@@ -1,3 +1,4 @@
+
 // ABOUTME: Detailed user management modal with comprehensive user information and editing capabilities
 
 import React, { useState } from 'react';
@@ -59,12 +60,12 @@ export const UserDetailModal = ({ userId, open, onOpenChange }: UserDetailModalP
     }
   }, [userDetail, isEditing]);
 
-  // Handle form submission
+  // Handle form submission - FIXED: Use correct parameter structure
   const handleSave = async () => {
     try {
       await updateUserMutation.mutateAsync({
         userId,
-        userData: editForm
+        ...editForm // Spread the form data directly instead of wrapping in userData
       });
       
       toast({

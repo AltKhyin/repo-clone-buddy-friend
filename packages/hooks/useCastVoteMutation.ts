@@ -1,94 +1,104 @@
 
-// ABOUTME: TanStack Query mutation hook for casting votes with optimistic updates.
+// ABOUTME: Consolidated voting mutation hook that handles all types of votes through the unified cast-vote endpoint
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../src/integrations/supabase/client';
-import { ConsolidatedHomepageData, Suggestion } from './useHomepageFeedQuery';
+import { useToast } from '../../src/hooks/use-toast';
 
 interface CastVotePayload {
-  suggestion_id: number;
-  action: 'upvote' | 'remove_vote';
+  entity_id: string;
+  vote_type: 'up' | 'down' | 'none';
+  entity_type: 'suggestion' | 'community_post' | 'poll';
 }
 
-interface CastVoteResponse {
-  message: string;
-  new_vote_count: number;
-  user_has_voted: boolean;
-}
+const castVote = async (payload: CastVotePayload) => {
+  const { data, error } = await supabase.functions.invoke('cast-vote', {
+    body: payload
+  });
 
-// Define the context type for the mutation
-interface MutationContext {
-  previousData?: ConsolidatedHomepageData;
-}
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data;
+};
 
 export const useCastVoteMutation = () => {
   const queryClient = useQueryClient();
-  const queryKey = ['consolidated-homepage-feed'];
+  const { toast } = useToast();
 
-  return useMutation<CastVoteResponse, Error, CastVotePayload, MutationContext>({
-    mutationFn: async (payload) => {
-      console.log('Casting vote via Edge Function:', payload);
-      
-      const { data, error } = await supabase.functions.invoke('cast-suggestion-vote', {
-        body: payload
+  return useMutation({
+    mutationFn: castVote,
+    onSuccess: (data, variables) => {
+      // Invalidate relevant queries based on entity type
+      switch (variables.entity_type) {
+        case 'suggestion':
+          queryClient.invalidateQueries({ queryKey: ['suggestions'] });
+          break;
+        case 'community_post':
+          queryClient.invalidateQueries({ queryKey: ['communityPosts'] });
+          queryClient.invalidateQueries({ queryKey: ['community-feed'] });
+          break;
+        case 'poll':
+          queryClient.invalidateQueries({ queryKey: ['polls'] });
+          break;
+      }
+
+      toast({
+        title: "Voto registrado",
+        description: "Seu voto foi registrado com sucesso.",
       });
-
-      if (error) {
-        console.error('Vote casting error:', error);
-        throw new Error(error.message || 'Failed to cast vote');
-      }
-
-      if (data?.error) {
-        console.error('Vote casting API error:', data.error);
-        throw new Error(data.error.message || 'Failed to cast vote');
-      }
-
-      console.log('Vote cast successfully:', data);
-      return data;
     },
-
-    // Optimistic update: immediately update the UI
-    onMutate: async (newVote) => {
-      // Cancel any outgoing refetches so they don't overwrite our optimistic update
-      await queryClient.cancelQueries({ queryKey });
-
-      // Snapshot the previous value
-      const previousData = queryClient.getQueryData<ConsolidatedHomepageData>(queryKey);
-
-      // Optimistically update to the new value
-      if (previousData) {
-        const newData = {
-          ...previousData,
-          suggestions: previousData.suggestions.map((suggestion: Suggestion) => {
-            if (suggestion.id === newVote.suggestion_id) {
-              return {
-                ...suggestion,
-                upvotes: suggestion.upvotes + (newVote.action === 'upvote' ? 1 : -1),
-                user_has_voted: newVote.action === 'upvote',
-              };
-            }
-            return suggestion;
-          }),
-        };
-        queryClient.setQueryData(queryKey, newData);
-      }
-      
-      // Return a context object with the snapshotted value
-      return { previousData };
-    },
-
-    // If the mutation fails, use the context to roll back
-    onError: (err, newVote, context) => {
-      console.error('Vote casting failed, rolling back:', err);
-      if (context?.previousData) {
-        queryClient.setQueryData(queryKey, context.previousData);
-      }
-    },
-
-    // Always refetch after error or success to ensure authoritative state
-    onSettled: () => {
-      console.log('Vote casting settled, invalidating queries');
-      queryClient.invalidateQueries({ queryKey });
+    onError: (error) => {
+      console.error('Error casting vote:', error);
+      toast({
+        title: "Erro ao votar",
+        description: "Ocorreu um erro ao registrar seu voto. Tente novamente.",
+        variant: "destructive",
+      });
     },
   });
+};
+
+// Export specific hooks for backwards compatibility
+export const useCastCommunityVoteMutation = () => {
+  const mutation = useCastVoteMutation();
+  
+  return {
+    ...mutation,
+    mutateAsync: (payload: { post_id: string; vote_type: 'up' | 'down' | 'none' }) =>
+      mutation.mutateAsync({
+        entity_id: payload.post_id,
+        vote_type: payload.vote_type,
+        entity_type: 'community_post'
+      })
+  };
+};
+
+export const useCastPollVoteMutation = () => {
+  const mutation = useCastVoteMutation();
+  
+  return {
+    ...mutation,
+    mutateAsync: (payload: { option_id: string; vote_type: 'up' | 'down' | 'none' }) =>
+      mutation.mutateAsync({
+        entity_id: payload.option_id,
+        vote_type: payload.vote_type,
+        entity_type: 'poll'
+      })
+  };
+};
+
+export const useCastSuggestionVoteMutation = () => {
+  const mutation = useCastVoteMutation();
+  
+  return {
+    ...mutation,
+    mutateAsync: (payload: { suggestion_id: string; vote_type: 'up' | 'down' | 'none' }) =>
+      mutation.mutateAsync({
+        entity_id: payload.suggestion_id,
+        vote_type: payload.vote_type,
+        entity_type: 'suggestion'
+      })
+  };
 };

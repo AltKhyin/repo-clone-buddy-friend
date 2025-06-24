@@ -10,15 +10,6 @@ verify_jwt = false
 [functions.cast-vote]
 verify_jwt = false
 
-[functions.cast-community-vote]
-verify_jwt = false
-
-[functions.cast-poll-vote]
-verify_jwt = false
-
-[functions.cast-suggestion-vote]
-verify_jwt = false
-
 [functions.get-analytics-dashboard-data]
 verify_jwt = false
 
