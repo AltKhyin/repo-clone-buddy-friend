@@ -1,1 +1,86 @@
+
 project_id = "qjoxiowuiiupbvqlssgk"
+
+[functions.admin-tag-operations]
+verify_jwt = false
+
+[functions.admin-manage-users]
+verify_jwt = false
+
+[functions.cast-vote]
+verify_jwt = false
+
+[functions.cast-community-vote]
+verify_jwt = false
+
+[functions.cast-poll-vote]
+verify_jwt = false
+
+[functions.cast-suggestion-vote]
+verify_jwt = false
+
+[functions.get-analytics-dashboard-data]
+verify_jwt = false
+
+[functions.admin-analytics]
+verify_jwt = false
+
+[functions.admin-audit-logs]
+verify_jwt = false
+
+[functions.admin-bulk-content-actions]
+verify_jwt = false
+
+[functions.admin-content-analytics]
+verify_jwt = false
+
+[functions.admin-get-content-queue]
+verify_jwt = false
+
+[functions.admin-manage-publication]
+verify_jwt = false
+
+[functions.admin-moderation-actions]
+verify_jwt = false
+
+[functions.admin-user-analytics]
+verify_jwt = false
+
+[functions.create-community-post]
+verify_jwt = false
+
+[functions.get-acervo-data]
+verify_jwt = false
+
+[functions.get-community-feed]
+verify_jwt = false
+
+[functions.get-community-page-data]
+verify_jwt = false
+
+[functions.get-community-post-detail]
+verify_jwt = false
+
+[functions.get-homepage-feed]
+verify_jwt = false
+
+[functions.get-personalized-recommendations]
+verify_jwt = false
+
+[functions.get-saved-posts]
+verify_jwt = false
+
+[functions.get-trending-discussions]
+verify_jwt = false
+
+[functions.moderate-community-post]
+verify_jwt = false
+
+[functions.reward-content]
+verify_jwt = false
+
+[functions.save-post]
+verify_jwt = false
+
+[functions.submit-suggestion]
+verify_jwt = false

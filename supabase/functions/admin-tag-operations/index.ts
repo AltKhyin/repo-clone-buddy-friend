@@ -1,6 +1,7 @@
 
-// ABOUTME: Tag management operations Edge Function for admin tag system following the mandatory 7-step pattern
+// ABOUTME: Standardized tag management operations with mandatory 7-step pattern compliance
 
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.0';
 import { 
   createSuccessResponse, 
@@ -25,7 +26,7 @@ interface TagOperationPayload {
   };
 }
 
-Deno.serve(async (req) => {
+serve(async (req) => {
   // STEP 1: CORS Preflight Handling (MANDATORY FIRST)
   if (req.method === 'OPTIONS') {
     return handleCorsPreflightRequest();
@@ -46,9 +47,9 @@ Deno.serve(async (req) => {
       throw new Error('FORBIDDEN: Tag operations require admin or editor role');
     }
 
-    // STEP 3: Rate Limiting Implementation
-    const rateLimitResult = await checkRateLimit(req, 'admin-tag-operations', 60, 60000);
-    if (!rateLimitResult.allowed) {
+    // STEP 3: Rate Limiting Implementation - FIXED: Pass full req object
+    const rateLimitResult = await checkRateLimit(req, { windowMs: 60000, maxRequests: 60 });
+    if (!rateLimitResult.success) {
       throw RateLimitError;
     }
 

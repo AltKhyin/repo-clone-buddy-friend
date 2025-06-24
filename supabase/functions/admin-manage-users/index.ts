@@ -1,5 +1,5 @@
 
-// ABOUTME: Admin endpoint for comprehensive user management with role assignments and data updates
+// ABOUTME: Standardized user management operations following mandatory 7-step pattern
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.0';
 import {
@@ -11,7 +11,7 @@ import {
 } from '../_shared/api-helpers.ts';
 import { checkAdminRateLimit, rateLimitHeaders } from '../_shared/rate-limit.ts';
 
-Deno.serve(async (req) => {
+serve(async (req) => {
   // STEP 1: CORS Preflight Handling
   if (req.method === 'OPTIONS') {
     return handleCorsPreflightRequest();
@@ -36,7 +36,7 @@ Deno.serve(async (req) => {
       throw new Error('FORBIDDEN: Admin access required');
     }
 
-    // STEP 3: Rate Limiting
+    // STEP 3: Rate Limiting - FIXED: Pass full req object
     const rateLimitResult = await checkAdminRateLimit(req);
     if (!rateLimitResult.success) {
       throw RateLimitError;
