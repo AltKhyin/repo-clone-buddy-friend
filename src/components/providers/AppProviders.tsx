@@ -7,35 +7,32 @@ import AuthSessionProvider from '../auth/AuthSessionProvider';
 import { CustomThemeProvider } from '../theme/CustomThemeProvider';
 import PWAProvider from '../pwa/PWAProvider';
 
-// Create QueryClient with stable reference and proper error handling
-const createQueryClient = () => new QueryClient({
-  defaultOptions: {
-    queries: {
-      refetchOnWindowFocus: false,
-      retry: (failureCount, error) => {
-        // Don't retry on auth errors
-        if (error?.message?.includes('unauthorized') || error?.message?.includes('forbidden')) {
-          return false;
-        }
-        // Retry up to 2 times for other errors
-        return failureCount < 2;
-      },
-      staleTime: 5 * 60 * 1000, // 5 minutes
-    },
-    mutations: {
-      retry: false, // Don't retry mutations by default
-    },
-  },
-});
-
-// Stable client instance to prevent re-creation on re-renders
-const queryClient = createQueryClient();
-
 interface AppProvidersProps {
   children: React.ReactNode;
 }
 
 export const AppProviders = ({ children }: AppProvidersProps) => {
+  // Create QueryClient inside the component to ensure React is properly initialized
+  const [queryClient] = React.useState(() => new QueryClient({
+    defaultOptions: {
+      queries: {
+        refetchOnWindowFocus: false,
+        retry: (failureCount, error) => {
+          // Don't retry on auth errors
+          if (error?.message?.includes('unauthorized') || error?.message?.includes('forbidden')) {
+            return false;
+          }
+          // Retry up to 2 times for other errors
+          return failureCount < 2;
+        },
+        staleTime: 5 * 60 * 1000, // 5 minutes
+      },
+      mutations: {
+        retry: false, // Don't retry mutations by default
+      },
+    },
+  }));
+
   return (
     <QueryClientProvider client={queryClient}>
       <AuthSessionProvider>
