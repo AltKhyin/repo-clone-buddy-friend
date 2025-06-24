@@ -1,15 +1,18 @@
 
 // ABOUTME: Optimized community feed endpoint using RPC to eliminate N+1 queries.
 
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.0'
-import { checkRateLimit, rateLimitHeaders } from '../_shared/rate-limit.ts'
 import { 
-  createErrorResponse, 
-  createSuccessResponse, 
+  serve,
+  createClient,
+  corsHeaders,
   handleCorsPreflightRequest,
-  RateLimitError 
-} from '../_shared/api-helpers.ts'
+  createSuccessResponse,
+  createErrorResponse,
+  authenticateUser,
+  checkRateLimit,
+  rateLimitHeaders,
+  RateLimitError
+} from '../_shared/imports.ts';
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -35,8 +38,8 @@ serve(async (req) => {
     }
 
     // Check rate limit (30 requests per 60 seconds)
-    const rateLimitResult = await checkRateLimit(supabase, 'get-community-feed', userId, 30, 60);
-    if (!rateLimitResult.allowed) {
+    const rateLimitResult = await checkRateLimit(req, { windowMs: 60000, maxRequests: 30 });
+    if (!rateLimitResult.success) {
       throw RateLimitError;
     }
 

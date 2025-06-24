@@ -1,13 +1,17 @@
-// supabase/functions/get-homepage-feed/index.ts
+// ABOUTME: Consolidated homepage feed data with layout configuration and user personalization.
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
-
-// Define standard CORS headers for all responses
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { 
+  serve,
+  createClient,
+  corsHeaders,
+  handleCorsPreflightRequest,
+  createSuccessResponse,
+  createErrorResponse,
+  authenticateUser,
+  checkRateLimit,
+  rateLimitHeaders,
+  RateLimitError
+} from '../_shared/imports.ts';
 
 // --- Define TypeScript interfaces for our data shapes for type safety ---
 interface Review {
@@ -59,7 +63,7 @@ const getResultData = (result: PromiseSettledResult<any>, fallback: any = null) 
 // --- Main server logic ---
 serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return handleCorsPreflightRequest();
   }
 
   try {
@@ -116,13 +120,10 @@ serve(async (req: Request) => {
       notificationCount: (notificationCountResult.status === 'fulfilled' && notificationCountResult.value.count) ? notificationCountResult.value.count : 0,
     };
 
-    return new Response(JSON.stringify(responseData), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    return createSuccessResponse(responseData);
 
   } catch (error) {
     console.error('Critical error in get-homepage-feed:', error.message);
-    return new Response(
-      JSON.stringify({ error: { message: 'Internal server error', code: 'INTERNAL_ERROR' } }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return createErrorResponse(error);
   }
 });

@@ -1,73 +1,64 @@
 
 // ABOUTME: Edge Function for submitting new suggestions with rate limiting and validation.
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-
-// CORS Headers - MANDATORY FOR ALL EDGE FUNCTIONS
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-}
+import { 
+  serve,
+  createClient,
+  corsHeaders,
+  handleCorsPreflightRequest,
+  createSuccessResponse,
+  createErrorResponse,
+  authenticateUser,
+  checkRateLimit,
+  rateLimitHeaders,
+  RateLimitError
+} from '../_shared/imports.ts';
 
 serve(async (req: Request) => {
-  // Handle CORS preflight requests
+  // STEP 1: CORS Preflight Handling
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return handleCorsPreflightRequest();
   }
 
   try {
+    // STEP 2: Create Supabase client
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Get authenticated user
+    // STEP 3: Rate Limiting
+    const rateLimitResult = await checkRateLimit(req, { windowMs: 60000, maxRequests: 10 });
+    if (!rateLimitResult.success) {
+      throw RateLimitError;
+    }
+
+    // STEP 4: Authentication (Required for suggestions)
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: { message: 'Authorization required', code: 'UNAUTHORIZED' } }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      throw new Error('UNAUTHORIZED: Authorization required for submitting suggestions');
     }
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
-    if (authError || !user) {
-      return new Response(
-        JSON.stringify({ error: { message: 'Invalid authentication', code: 'UNAUTHORIZED' } }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    const user = await authenticateUser(supabase, authHeader);
 
-    // Parse request body
+    // STEP 5: Input Validation
     const { title, description } = await req.json();
 
-    // Validate input
     if (!title || typeof title !== 'string' || title.trim().length === 0) {
-      return new Response(
-        JSON.stringify({ error: { message: 'Title is required', code: 'VALIDATION_FAILED' } }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      throw new Error('VALIDATION_FAILED: Title is required');
     }
 
     if (title.trim().length > 200) {
-      return new Response(
-        JSON.stringify({ error: { message: 'Title must be 200 characters or less', code: 'VALIDATION_FAILED' } }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      throw new Error('VALIDATION_FAILED: Title must be 200 characters or less');
     }
 
     if (description && typeof description === 'string' && description.trim().length > 500) {
-      return new Response(
-        JSON.stringify({ error: { message: 'Description must be 500 characters or less', code: 'VALIDATION_FAILED' } }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      throw new Error('VALIDATION_FAILED: Description must be 500 characters or less');
     }
 
     console.log(`Submitting suggestion "${title}" by user ${user.id}`);
 
-    // Insert new suggestion
+    // STEP 6: Core Business Logic
     const { data: newSuggestion, error: insertError } = await supabase
       .from('Suggestions')
       .insert({
@@ -81,26 +72,20 @@ serve(async (req: Request) => {
       .single();
 
     if (insertError) {
-      console.error('Insert suggestion error:', insertError);
-      return new Response(
-        JSON.stringify({ error: { message: 'Failed to submit suggestion', code: 'DATABASE_ERROR' } }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      throw new Error(`Failed to submit suggestion: ${insertError.message}`);
     }
 
-    return new Response(
-      JSON.stringify({
-        message: 'Suggestion submitted successfully',
-        suggestion: newSuggestion
-      }),
-      { status: 201, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    const response = {
+      message: 'Suggestion submitted successfully',
+      suggestion: newSuggestion
+    };
+
+    // STEP 7: Standardized Success Response
+    return createSuccessResponse(response, rateLimitHeaders(rateLimitResult));
 
   } catch (error) {
-    console.error('Critical error in submit-suggestion:', error);
-    return new Response(
-      JSON.stringify({ error: { message: 'Internal server error', code: 'INTERNAL_ERROR' } }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    // STEP 8: Centralized Error Handling
+    console.error('Error in submit-suggestion:', error);
+    return createErrorResponse(error);
   }
 });

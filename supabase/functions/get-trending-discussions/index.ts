@@ -1,12 +1,18 @@
 
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.0'
-import { checkRateLimit, rateLimitHeaders } from '../_shared/rate-limit.ts'
+// ABOUTME: Edge function for fetching trending community discussions based on engagement scores.
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+import { 
+  serve,
+  createClient,
+  corsHeaders,
+  handleCorsPreflightRequest,
+  createSuccessResponse,
+  createErrorResponse,
+  authenticateUser,
+  checkRateLimit,
+  rateLimitHeaders,
+  RateLimitError
+} from '../_shared/imports.ts';
 
 interface TrendingPost {
   id: number;
@@ -26,9 +32,9 @@ interface TrendingPost {
 }
 
 serve(async (req) => {
-  // Handle CORS preflight requests
+  // STEP 1: CORS Preflight Handling
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return handleCorsPreflightRequest();
   }
 
   try {

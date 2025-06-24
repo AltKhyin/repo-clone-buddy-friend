@@ -1,12 +1,18 @@
 
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.0'
-import { checkRateLimit, rateLimitHeaders } from '../_shared/rate-limit.ts'
+// ABOUTME: Edge function for fetching individual review details by slug with access control.
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+import { 
+  serve,
+  createClient,
+  corsHeaders,
+  handleCorsPreflightRequest,
+  createSuccessResponse,
+  createErrorResponse,
+  authenticateUser,
+  checkRateLimit,
+  rateLimitHeaders,
+  RateLimitError
+} from '../_shared/imports.ts';
 
 interface ReviewDetailResponse {
   id: number;

@@ -1,15 +1,23 @@
 
 // ABOUTME: Edge Function for retrieving user's saved posts with pagination and proper data joins.
 
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.0";
-import { corsHeaders, createErrorResponse, createSuccessResponse } from "../_shared/api-helpers.ts";
-import { checkRateLimit, rateLimitHeaders } from "../_shared/rate-limit.ts";
+import { 
+  serve,
+  createClient,
+  corsHeaders,
+  handleCorsPreflightRequest,
+  createSuccessResponse,
+  createErrorResponse,
+  authenticateUser,
+  checkRateLimit,
+  rateLimitHeaders,
+  RateLimitError
+} from '../_shared/imports.ts';
 
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return handleCorsPreflightRequest();
   }
 
   if (req.method !== 'GET') {
@@ -37,18 +45,9 @@ serve(async (req) => {
     console.log(`Get saved posts request from user: ${user.id}`);
 
     // Rate limiting check
-    const rateLimitResult = await checkRateLimit(supabase, 'get-saved-posts', user.id);
-    if (!rateLimitResult.allowed) {
-      return new Response(JSON.stringify({
-        error: { message: 'Rate limit exceeded', code: 'RATE_LIMIT_EXCEEDED' }
-      }), {
-        status: 429,
-        headers: {
-          'Content-Type': 'application/json',
-          ...corsHeaders,
-          ...rateLimitHeaders(rateLimitResult)
-        }
-      });
+    const rateLimitResult = await checkRateLimit(req, { windowMs: 60000, maxRequests: 30 });
+    if (!rateLimitResult.success) {
+      throw RateLimitError;
     }
 
     // Parse query parameters for pagination

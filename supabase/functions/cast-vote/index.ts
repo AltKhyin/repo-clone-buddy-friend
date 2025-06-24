@@ -1,16 +1,18 @@
 
 // ABOUTME: Consolidated voting system handling all vote types with standardized pattern
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.0'
-import {
+import { 
+  serve,
+  createClient,
+  corsHeaders,
+  handleCorsPreflightRequest,
   createSuccessResponse,
   createErrorResponse,
   authenticateUser,
-  handleCorsPreflightRequest,
+  checkRateLimit,
+  rateLimitHeaders,
   RateLimitError
-} from '../_shared/api-helpers.ts';
-import { checkRateLimit, rateLimitHeaders } from '../_shared/rate-limit.ts';
+} from '../_shared/imports.ts';
 
 interface VoteRequest {
   entity_id: number;

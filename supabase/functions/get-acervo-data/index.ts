@@ -1,17 +1,20 @@
 
 // ABOUTME: Optimized endpoint for fetching Acervo page data with reviews and tags in minimal queries
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.0';
-import {
+import { 
+  serve,
+  createClient,
+  corsHeaders,
+  handleCorsPreflightRequest,
   createSuccessResponse,
   createErrorResponse,
   authenticateUser,
-  handleCorsPreflightRequest,
+  checkRateLimit,
+  rateLimitHeaders,
   RateLimitError
-} from '../_shared/api-helpers.ts';
-import { checkRateLimit, rateLimitHeaders } from '../_shared/rate-limit.ts';
+} from '../_shared/imports.ts';
 
-Deno.serve(async (req) => {
+serve(async (req) => {
   // STEP 1: CORS Preflight Handling
   if (req.method === 'OPTIONS') {
     return handleCorsPreflightRequest();
