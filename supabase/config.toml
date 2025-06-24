@@ -1,1 +1,99 @@
+
 project_id = "qjoxiowuiiupbvqlssgk"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "storage", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+
+[studio]
+enabled = true
+port = 54323
+api_url = "http://localhost"
+
+[inbound_webhooks]
+enabled = false
+
+[auth]
+enabled = true
+port = 54324
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["https://localhost:3000"]
+jwt_expiry = 3600
+enable_signup = true
+
+[auth.email]
+enable_signup = true
+double_confirm_changes = true
+enable_confirmations = false
+
+[functions.admin-analytics]
+verify_jwt = false
+
+[functions.admin-assign-roles]
+verify_jwt = false
+
+[functions.admin-audit-logs]
+verify_jwt = false
+
+[functions.admin-content-analytics]
+verify_jwt = false
+
+[functions.admin-get-content-queue]
+verify_jwt = false
+
+[functions.admin-manage-publication]
+verify_jwt = false
+
+[functions.admin-tag-operations]
+verify_jwt = false
+
+[functions.cast-community-vote]
+verify_jwt = false
+
+[functions.cast-poll-vote]
+verify_jwt = false
+
+[functions.cast-suggestion-vote]
+verify_jwt = false
+
+[functions.create-community-post]
+verify_jwt = false
+
+[functions.get-acervo-data]
+verify_jwt = false
+
+[functions.get-analytics-dashboard-data]
+verify_jwt = false
+
+[functions.get-community-feed]
+verify_jwt = false
+
+[functions.get-community-page-data]
+verify_jwt = false
+
+[functions.get-homepage-feed]
+verify_jwt = false
+
+[functions.get-personalized-recommendations]
+verify_jwt = false
+
+[functions.get-review-by-slug]
+verify_jwt = false
+
+[functions.get-trending-discussions]
+verify_jwt = false
+
+[functions.moderate-community-post]
+verify_jwt = false
+
+[functions.reward-content]
+verify_jwt = false
+
+[functions.save-post]
+verify_jwt = false
