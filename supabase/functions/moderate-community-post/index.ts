@@ -1,14 +1,18 @@
 
 // ABOUTME: Edge function for community post moderation actions (pin, lock, flair) with proper authorization checks.
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
-import { corsHeaders } from '../_shared/cors.ts'
-import { rateLimit } from '../_shared/rate-limit.ts'
-
-const supabase = createClient(
-  Deno.env.get('SUPABASE_URL') ?? '',
-  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-)
+import { 
+  serve,
+  createClient,
+  corsHeaders,
+  handleCorsPreflightRequest,
+  createSuccessResponse,
+  createErrorResponse,
+  authenticateUser,
+  checkRateLimit,
+  rateLimitHeaders,
+  RateLimitError
+} from '../_shared/imports.ts';
 
 interface ModerationRequest {
   post_id: number;
@@ -23,102 +27,56 @@ interface ModerationResponse {
   message: string;
 }
 
-Deno.serve(async (req) => {
-  // Handle CORS preflight requests
+serve(async (req) => {
+  // STEP 1: CORS Preflight Handling
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return handleCorsPreflightRequest();
   }
 
   try {
-    // Rate limiting check
-    const clientIP = req.headers.get('x-forwarded-for') || 'unknown';
-    const rateLimitResult = await rateLimit(supabase, `moderate:${clientIP}`, 20, 60); // 20 actions per minute
-    
-    if (!rateLimitResult.allowed) {
-      return new Response(
-        JSON.stringify({
-          error: {
-            message: 'Rate limit exceeded. Please try again later.',
-            code: 'RATE_LIMIT_EXCEEDED'
-          }
-        }),
-        { 
-          status: 429, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
-    }
-
-    // Authentication check - required for moderation
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({
-          error: {
-            message: 'Authentication required for moderation actions',
-            code: 'UNAUTHORIZED'
-          }
-        }),
-        { 
-          status: 401, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
-    }
-
-    // Get authenticated user
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', '')
+    // STEP 2: Create Supabase client
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    if (authError || !user) {
-      return new Response(
-        JSON.stringify({
-          error: {
-            message: 'Invalid authentication token',
-            code: 'UNAUTHORIZED'
-          }
-        }),
-        { 
-          status: 401, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
+    // STEP 3: Rate Limiting
+    const rateLimitResult = await checkRateLimit(req, { windowMs: 60000, maxRequests: 20 });
+    if (!rateLimitResult.success) {
+      throw RateLimitError;
     }
 
-    // Parse request body
+    // STEP 4: Authentication & Authorization (Required for moderation)
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      throw new Error('UNAUTHORIZED: Authentication required for moderation actions');
+    }
+
+    const user = await authenticateUser(supabase, authHeader);
+    
+    // Verify moderator privileges
+    const { data: practitioner, error: practitionerError } = await supabase
+      .from('Practitioners')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (practitionerError || !practitioner || !['admin', 'editor'].includes(practitioner.role)) {
+      throw new Error('FORBIDDEN: Moderation privileges required');
+    }
+
+    // STEP 5: Input Validation
     const body: ModerationRequest = await req.json();
     
     if (!body.post_id || typeof body.post_id !== 'number') {
-      return new Response(
-        JSON.stringify({
-          error: {
-            message: 'Invalid post_id provided',
-            code: 'VALIDATION_ERROR'
-          }
-        }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
+      throw new Error('VALIDATION_FAILED: Invalid post_id provided');
     }
 
     if (!body.action_type) {
-      return new Response(
-        JSON.stringify({
-          error: {
-            message: 'action_type is required',
-            code: 'VALIDATION_ERROR'
-          }
-        }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
+      throw new Error('VALIDATION_FAILED: action_type is required');
     }
 
+    // STEP 6: Core Business Logic
     // Use database function for moderation actions
     const { data: result, error: moderationError } = await supabase
       .rpc('handle_post_action', {
@@ -132,47 +90,14 @@ Deno.serve(async (req) => {
       
       // Handle specific error cases
       if (moderationError.message.includes('POST_NOT_FOUND')) {
-        return new Response(
-          JSON.stringify({
-            error: {
-              message: 'Post not found',
-              code: 'POST_NOT_FOUND'
-            }
-          }),
-          { 
-            status: 404, 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          }
-        );
+        throw new Error('POST_NOT_FOUND: Post not found');
       }
       
       if (moderationError.message.includes('FORBIDDEN')) {
-        return new Response(
-          JSON.stringify({
-            error: {
-              message: 'Insufficient permissions for this action',
-              code: 'FORBIDDEN'
-            }
-          }),
-          { 
-            status: 403, 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          }
-        );
+        throw new Error('FORBIDDEN: Insufficient permissions for this action');
       }
-
-      return new Response(
-        JSON.stringify({
-          error: {
-            message: 'Failed to execute moderation action',
-            code: 'MODERATION_ERROR'
-          }
-        }),
-        { 
-          status: 500, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
+      
+      throw new Error(`Moderation failed: ${moderationError.message}`);
     }
 
     // Handle flair actions separately (not covered by the database function)
@@ -186,19 +111,7 @@ Deno.serve(async (req) => {
         .eq('id', body.post_id);
 
       if (flairError) {
-        console.error('Error setting flair:', flairError);
-        return new Response(
-          JSON.stringify({
-            error: {
-              message: 'Failed to set post flair',
-              code: 'DATABASE_ERROR'
-            }
-          }),
-          { 
-            status: 500, 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          }
-        );
+        throw new Error(`Failed to update flair: ${flairError.message}`);
       }
     }
 
@@ -236,27 +149,12 @@ Deno.serve(async (req) => {
       message: actionMessages[body.action_type] || 'Moderation action completed'
     };
 
-    return new Response(
-      JSON.stringify(response),
-      { 
-        status: 200, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      }
-    );
+    // STEP 7: Standardized Success Response
+    return createSuccessResponse(response, rateLimitHeaders(rateLimitResult));
 
   } catch (error) {
-    console.error('Unexpected error in moderate-community-post function:', error);
-    return new Response(
-      JSON.stringify({
-        error: {
-          message: 'Internal server error',
-          code: 'INTERNAL_ERROR'
-        }
-      }),
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      }
-    );
+    // STEP 8: Centralized Error Handling
+    console.error('Error in moderate-community-post:', error);
+    return createErrorResponse(error);
   }
 });

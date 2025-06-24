@@ -1,14 +1,18 @@
 
 // ABOUTME: Edge function for saving/unsaving community posts with rate limiting and comprehensive error handling.
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
-import { corsHeaders } from '../_shared/cors.ts'
-import { rateLimit } from '../_shared/rate-limit.ts'
-
-const supabase = createClient(
-  Deno.env.get('SUPABASE_URL') ?? '',
-  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-)
+import { 
+  serve,
+  createClient,
+  corsHeaders,
+  handleCorsPreflightRequest,
+  createSuccessResponse,
+  createErrorResponse,
+  authenticateUser,
+  checkRateLimit,
+  rateLimitHeaders,
+  RateLimitError
+} from '../_shared/imports.ts';
 
 interface SavePostRequest {
   post_id: number;
@@ -21,87 +25,41 @@ interface SavePostResponse {
   message?: string;
 }
 
-Deno.serve(async (req) => {
-  // Handle CORS preflight requests
+serve(async (req) => {
+  // STEP 1: CORS Preflight Handling
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return handleCorsPreflightRequest();
   }
 
   try {
-    // Rate limiting check
-    const clientIP = req.headers.get('x-forwarded-for') || 'unknown';
-    const rateLimitResult = await rateLimit(supabase, `save-post:${clientIP}`, 30, 60); // 30 requests per minute
-    
-    if (!rateLimitResult.allowed) {
-      return new Response(
-        JSON.stringify({
-          error: {
-            message: 'Rate limit exceeded. Please try again later.',
-            code: 'RATE_LIMIT_EXCEEDED'
-          }
-        }),
-        { 
-          status: 429, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
-    }
-
-    // Authentication check
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({
-          error: {
-            message: 'Authentication required',
-            code: 'UNAUTHORIZED'
-          }
-        }),
-        { 
-          status: 401, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
-    }
-
-    // Get authenticated user
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', '')
+    // STEP 2: Create Supabase client
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    if (authError || !user) {
-      return new Response(
-        JSON.stringify({
-          error: {
-            message: 'Invalid authentication token',
-            code: 'UNAUTHORIZED'
-          }
-        }),
-        { 
-          status: 401, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
+    // STEP 3: Rate Limiting
+    const rateLimitResult = await checkRateLimit(req, { windowMs: 60000, maxRequests: 30 });
+    if (!rateLimitResult.success) {
+      throw RateLimitError;
     }
 
-    // Parse request body
+    // STEP 4: Authentication (Required for saving posts)
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      throw new Error('UNAUTHORIZED: Authentication required for saving posts');
+    }
+
+    const user = await authenticateUser(supabase, authHeader);
+
+    // STEP 5: Input Validation
     const body: SavePostRequest = await req.json();
     
     if (!body.post_id || typeof body.post_id !== 'number') {
-      return new Response(
-        JSON.stringify({
-          error: {
-            message: 'Invalid post_id provided',
-            code: 'VALIDATION_ERROR'
-          }
-        }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
+      throw new Error('VALIDATION_FAILED: Invalid post_id provided');
     }
 
+    // STEP 6: Core Business Logic
     // Check if post exists
     const { data: post, error: postError } = await supabase
       .from('CommunityPosts')
@@ -110,18 +68,7 @@ Deno.serve(async (req) => {
       .single();
 
     if (postError || !post) {
-      return new Response(
-        JSON.stringify({
-          error: {
-            message: 'Post not found',
-            code: 'POST_NOT_FOUND'
-          }
-        }),
-        { 
-          status: 404, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
+      throw new Error('POST_NOT_FOUND: Post not found');
     }
 
     // Check current save status
@@ -143,19 +90,7 @@ Deno.serve(async (req) => {
         .eq('practitioner_id', user.id);
 
       if (deleteError) {
-        console.error('Error unsaving post:', deleteError);
-        return new Response(
-          JSON.stringify({
-            error: {
-              message: 'Failed to unsave post',
-              code: 'DATABASE_ERROR'
-            }
-          }),
-          { 
-            status: 500, 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          }
-        );
+        throw new Error(`Failed to unsave post: ${deleteError.message}`);
       }
       
       isSaved = false;
@@ -169,19 +104,7 @@ Deno.serve(async (req) => {
         });
 
       if (insertError) {
-        console.error('Error saving post:', insertError);
-        return new Response(
-          JSON.stringify({
-            error: {
-              message: 'Failed to save post',
-              code: 'DATABASE_ERROR'
-            }
-          }),
-          { 
-            status: 500, 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          }
-        );
+        throw new Error(`Failed to save post: ${insertError.message}`);
       }
       
       isSaved = true;
@@ -193,27 +116,12 @@ Deno.serve(async (req) => {
       message: isSaved ? 'Post saved successfully' : 'Post removed from saved'
     };
 
-    return new Response(
-      JSON.stringify(response),
-      { 
-        status: 200, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      }
-    );
+    // STEP 7: Standardized Success Response
+    return createSuccessResponse(response, rateLimitHeaders(rateLimitResult));
 
   } catch (error) {
-    console.error('Unexpected error in save-post function:', error);
-    return new Response(
-      JSON.stringify({
-        error: {
-          message: 'Internal server error',
-          code: 'INTERNAL_ERROR'
-        }
-      }),
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      }
-    );
+    // STEP 8: Centralized Error Handling
+    console.error('Error in save-post:', error);
+    return createErrorResponse(error);
   }
 });

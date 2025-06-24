@@ -1,14 +1,18 @@
 
 // ABOUTME: Edge function for admins/editors to reward community content with comprehensive security checks.
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
-import { corsHeaders } from '../_shared/cors.ts'
-import { rateLimit } from '../_shared/rate-limit.ts'
-
-const supabase = createClient(
-  Deno.env.get('SUPABASE_URL') ?? '',
-  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-);
+import { 
+  serve,
+  createClient,
+  corsHeaders,
+  handleCorsPreflightRequest,
+  createSuccessResponse,
+  createErrorResponse,
+  authenticateUser,
+  checkRateLimit,
+  rateLimitHeaders,
+  RateLimitError
+} from '../_shared/imports.ts';
 
 interface RewardRequest {
   content_id: number;
@@ -20,102 +24,52 @@ interface RewardResponse {
   message: string;
 }
 
-Deno.serve(async (req) => {
+serve(async (req) => {
+  // STEP 1: CORS Preflight Handling
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return handleCorsPreflightRequest();
   }
 
   try {
-    // Rate limiting check
-    const clientIP = req.headers.get('x-forwarded-for') || 'unknown';
-    const rateLimitResult = await rateLimit(supabase, `reward-content:${clientIP}`, 20, 60); // 20 rewards per minute
-    
-    if (!rateLimitResult.allowed) {
-      return new Response(
-        JSON.stringify({
-          error: {
-            message: 'Rate limit exceeded. Please try again later.',
-            code: 'RATE_LIMIT_EXCEEDED'
-          }
-        }),
-        { 
-          status: 429, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
-    }
-
-    // Authentication and Authorization
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({
-          error: {
-            message: 'Authentication required',
-            code: 'UNAUTHORIZED'
-          }
-        }),
-        { 
-          status: 401, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
-    }
-
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', '')
+    // STEP 2: Create Supabase client
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    if (authError || !user) {
-      return new Response(
-        JSON.stringify({
-          error: {
-            message: 'Invalid authentication token',
-            code: 'UNAUTHORIZED'
-          }
-        }),
-        { 
-          status: 401, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
+    // STEP 3: Rate Limiting
+    const rateLimitResult = await checkRateLimit(req, { windowMs: 60000, maxRequests: 20 });
+    if (!rateLimitResult.success) {
+      throw RateLimitError;
     }
 
-    // Security check: Only admins and editors can reward content
-    const userRole = user.app_metadata?.role;
-    if (userRole !== 'admin' && userRole !== 'editor') {
-      return new Response(
-        JSON.stringify({
-          error: {
-            message: 'Forbidden: Insufficient permissions',
-            code: 'FORBIDDEN'
-          }
-        }),
-        { 
-          status: 403, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
+    // STEP 4: Authentication & Authorization (Required for rewarding)
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      throw new Error('UNAUTHORIZED: Authentication required for content rewarding');
     }
 
-    // Input validation
+    const user = await authenticateUser(supabase, authHeader);
+    
+    // Verify admin/editor privileges
+    const { data: practitioner, error: practitionerError } = await supabase
+      .from('Practitioners')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (practitionerError || !practitioner || !['admin', 'editor'].includes(practitioner.role)) {
+      throw new Error('FORBIDDEN: Admin or editor privileges required for content rewarding');
+    }
+
+    // STEP 5: Input Validation
     const body: RewardRequest = await req.json();
+    
     if (!body.content_id || typeof body.content_id !== 'number') {
-      return new Response(
-        JSON.stringify({
-          error: {
-            message: 'Invalid content_id provided',
-            code: 'VALIDATION_ERROR'
-          }
-        }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
+      throw new Error('VALIDATION_FAILED: Invalid content_id provided');
     }
 
-    // Business logic: Update the content to be rewarded
+    // STEP 6: Core Business Logic
     const { data, error: updateError } = await supabase
       .from('CommunityPosts')
       .update({ is_rewarded: true })
@@ -124,51 +78,24 @@ Deno.serve(async (req) => {
       .single();
 
     if (updateError) {
-      if (updateError.code === 'PGRST116') { // No rows returned
-        return new Response(
-          JSON.stringify({
-            error: {
-              message: 'Content not found',
-              code: 'NOT_FOUND'
-            }
-          }),
-          { 
-            status: 404, 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          }
-        );
+      if (updateError.code === 'PGRST116') {
+        throw new Error('NOT_FOUND: Content not found');
       }
-      throw updateError;
+      throw new Error(`Database error: ${updateError.message}`);
     }
 
-    // Return success response
     const response: RewardResponse = {
       success: true,
       rewarded_content: data,
       message: 'Content rewarded successfully'
     };
 
-    return new Response(
-      JSON.stringify(response),
-      {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    );
+    // STEP 7: Standardized Success Response
+    return createSuccessResponse(response, rateLimitHeaders(rateLimitResult));
 
   } catch (error) {
-    console.error('Unexpected error in reward-content function:', error);
-    return new Response(
-      JSON.stringify({
-        error: {
-          message: 'Internal server error',
-          code: 'INTERNAL_ERROR'
-        }
-      }),
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      }
-    );
+    // STEP 8: Centralized Error Handling
+    console.error('Error in reward-content:', error);
+    return createErrorResponse(error);
   }
 });

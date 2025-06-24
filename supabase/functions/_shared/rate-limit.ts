@@ -17,7 +17,7 @@ interface RateLimitStore {
 // In-memory store for rate limiting (production would use Redis/external store)
 const store: RateLimitStore = {};
 
-export const checkRateLimit = async (
+export const checkRateLimitRequest = async (
   req: Request, 
   config: RateLimitConfig = { windowMs: 60000, maxRequests: 100 }
 ): Promise<{ success: boolean; error?: string; headers?: Record<string, string> }> => {
@@ -85,13 +85,81 @@ export const checkRateLimit = async (
 
 // Admin-specific rate limiting (more restrictive)
 export const checkAdminRateLimit = (req: Request) => 
-  checkRateLimit(req, { windowMs: 60000, maxRequests: 50 });
+  checkRateLimitRequest(req, { windowMs: 60000, maxRequests: 50 });
 
 // Analytics-specific rate limiting (even more restrictive due to computational cost)
 export const checkAnalyticsRateLimit = (req: Request) => 
-  checkRateLimit(req, { windowMs: 60000, maxRequests: 20 });
+  checkRateLimitRequest(req, { windowMs: 60000, maxRequests: 20 });
 
-// ADD THIS NEW EXPORTED FUNCTION AT THE END OF THE FILE
-export const rateLimitHeaders = (result: { success: boolean; headers?: Record<string, string> }) => {
+// Database-based rate limiting (alternative pattern for user-specific limits)
+export const checkRateLimitDB = async (
+  supabase: any,
+  action: string,
+  userId: string,
+  maxRequests: number = 30,
+  windowSeconds: number = 60
+): Promise<{ allowed: boolean; error?: string }> => {
+  try {
+    // For database-based pattern, simulate rate limiting check
+    // In production, this would query a rate_limit_log table
+    const key = `${action}:${userId}`;
+    const now = Date.now();
+    const windowStart = now - (windowSeconds * 1000);
+    
+    // Clean and check in-memory store (fallback)
+    Object.keys(store).forEach(k => {
+      if (store[k].resetTime < windowStart) {
+        delete store[k];
+      }
+    });
+    
+    const current = store[key];
+    if (!current) {
+      store[key] = { count: 1, resetTime: now + (windowSeconds * 1000) };
+      return { allowed: true };
+    }
+    
+    if (current.count >= maxRequests) {
+      return { allowed: false, error: 'Rate limit exceeded' };
+    }
+    
+    current.count++;
+    return { allowed: true };
+    
+  } catch (error) {
+    console.error('Database rate limiting error:', error);
+    return { allowed: true }; // Fail open
+  }
+};
+
+// Unified checkRateLimit function that handles both patterns
+export async function checkRateLimit(
+  supabaseOrReq: any,
+  actionOrConfig: string | RateLimitConfig,
+  userId?: string,
+  maxRequests?: number,
+  windowSeconds?: number
+): Promise<{ success?: boolean; allowed?: boolean; error?: string; headers?: Record<string, string> }> {
+  // Pattern 1: Modern request-based rate limiting
+  if (supabaseOrReq instanceof Request || (supabaseOrReq && supabaseOrReq.headers && typeof actionOrConfig === 'object')) {
+    const result = await checkRateLimitRequest(supabaseOrReq, actionOrConfig as RateLimitConfig);
+    return { success: result.success, headers: result.headers };
+  }
+  
+  // Pattern 2: Database-based rate limiting (legacy)
+  if (typeof actionOrConfig === 'string') {
+    const result = await checkRateLimitDB(supabaseOrReq, actionOrConfig, userId || 'anonymous', maxRequests, windowSeconds);
+    return { allowed: result.allowed, error: result.error };
+  }
+  
+  // Fallback
+  return { success: true, allowed: true };
+}
+
+// Helper function for rate limit headers
+export const rateLimitHeaders = (result: { success?: boolean; allowed?: boolean; headers?: Record<string, string> }) => {
   return result.headers || {};
 };
+
+// Compatibility alias for functions expecting 'rateLimit' import
+export const rateLimit = checkRateLimit;

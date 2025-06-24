@@ -17,3 +17,11 @@ export const handleCorsPrelight = (req: Request): Response | null => {
   }
   return null;
 };
+
+// Compatibility alias for existing functions - provides both function signatures
+export function handleCorsPreflightRequest(): Response {
+  return new Response(null, {
+    status: 200,
+    headers: corsHeaders,
+  });
+}

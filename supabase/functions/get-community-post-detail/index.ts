@@ -1,75 +1,63 @@
 
 // ABOUTME: Edge function for fetching individual community post details with user-specific data (votes, save status).
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
-import { corsHeaders } from '../_shared/cors.ts'
-import { rateLimit } from '../_shared/rate-limit.ts'
-
-const supabase = createClient(
-  Deno.env.get('SUPABASE_URL') ?? '',
-  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-)
+import { 
+  serve,
+  createClient,
+  corsHeaders,
+  handleCorsPreflightRequest,
+  createSuccessResponse,
+  createErrorResponse,
+  authenticateUser,
+  checkRateLimit,
+  rateLimitHeaders,
+  RateLimitError
+} from '../_shared/imports.ts';
 
 interface PostDetailRequest {
   post_id: number;
 }
 
-Deno.serve(async (req) => {
-  // Handle CORS preflight requests
+serve(async (req) => {
+  // STEP 1: CORS Preflight Handling
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return handleCorsPreflightRequest();
   }
 
   try {
-    // Rate limiting check
-    const clientIP = req.headers.get('x-forwarded-for') || 'unknown';
-    const rateLimitResult = await rateLimit(supabase, `get-post-detail:${clientIP}`, 60, 60); // 60 requests per minute
-    
-    if (!rateLimitResult.allowed) {
-      return new Response(
-        JSON.stringify({
-          error: {
-            message: 'Rate limit exceeded. Please try again later.',
-            code: 'RATE_LIMIT_EXCEEDED'
-          }
-        }),
-        { 
-          status: 429, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
+    // STEP 2: Create Supabase client
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
+    // STEP 3: Rate Limiting
+    const rateLimitResult = await checkRateLimit(req, { windowMs: 60000, maxRequests: 60 });
+    if (!rateLimitResult.success) {
+      throw RateLimitError;
     }
 
-    // Get authenticated user (optional for this endpoint)
-    const authHeader = req.headers.get('Authorization');
+    // STEP 4: Authentication (optional for this endpoint)
     let user = null;
+    const authHeader = req.headers.get('Authorization');
     
     if (authHeader) {
-      const { data: { user: authUser } } = await supabase.auth.getUser(
-        authHeader.replace('Bearer ', '')
-      );
-      user = authUser;
+      try {
+        user = await authenticateUser(supabase, authHeader);
+      } catch (authError) {
+        // Continue as anonymous user if auth fails
+        console.log('Auth failed, continuing as anonymous:', authError);
+      }
     }
 
-    // Parse request body
+    // STEP 5: Input Validation
     const body: PostDetailRequest = await req.json();
     
     if (!body.post_id || typeof body.post_id !== 'number') {
-      return new Response(
-        JSON.stringify({
-          error: {
-            message: 'Invalid post_id provided',
-            code: 'VALIDATION_ERROR'
-          }
-        }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
+      throw new Error('VALIDATION_FAILED: Invalid post_id provided');
     }
 
-    // Fetch post with author details
+    // STEP 6: Core Business Logic
     const { data: post, error: postError } = await supabase
       .from('CommunityPosts')
       .select(`
@@ -84,18 +72,7 @@ Deno.serve(async (req) => {
       .single();
 
     if (postError || !post) {
-      return new Response(
-        JSON.stringify({
-          error: {
-            message: 'Post not found',
-            code: 'POST_NOT_FOUND'
-          }
-        }),
-        { 
-          status: 404, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
+      throw new Error('POST_NOT_FOUND: Post not found');
     }
 
     let userVote = null;
@@ -163,27 +140,12 @@ Deno.serve(async (req) => {
       user_can_moderate: userCanModerate
     };
 
-    return new Response(
-      JSON.stringify(response),
-      { 
-        status: 200, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      }
-    );
+    // STEP 7: Standardized Success Response
+    return createSuccessResponse(response, rateLimitHeaders(rateLimitResult));
 
   } catch (error) {
-    console.error('Unexpected error in get-community-post-detail function:', error);
-    return new Response(
-      JSON.stringify({
-        error: {
-          message: 'Internal server error',
-          code: 'INTERNAL_ERROR'
-        }
-      }),
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      }
-    );
+    // STEP 8: Centralized Error Handling
+    console.error('Error in get-community-post-detail:', error);
+    return createErrorResponse(error);
   }
 });

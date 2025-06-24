@@ -1,17 +1,20 @@
 
 // ABOUTME: Community page data Edge Function following [DOC_5] mandatory 7-step pattern
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.0';
-import { corsHeaders, handleCorsPreflightRequest } from '../_shared/cors.ts';
 import { 
-  createSuccessResponse, 
-  createErrorResponse, 
+  serve,
+  createClient,
+  corsHeaders,
+  handleCorsPreflightRequest,
+  createSuccessResponse,
+  createErrorResponse,
   authenticateUser,
+  checkRateLimit,
+  rateLimitHeaders,
   RateLimitError
-} from '../_shared/api-helpers.ts';
-import { checkRateLimit, rateLimitHeaders } from '../_shared/rate-limit.ts';
+} from '../_shared/imports.ts';
 
-Deno.serve(async (req) => {
+serve(async (req) => {
   // STEP 1: CORS Preflight Handling (MANDATORY FIRST)
   if (req.method === 'OPTIONS') {
     return handleCorsPreflightRequest();
@@ -46,8 +49,8 @@ Deno.serve(async (req) => {
     }
 
     // STEP 3: Rate Limiting Implementation
-    const rateLimitResult = await checkRateLimit(supabase, 'get-community-page-data', userId, 30, 60);
-    if (!rateLimitResult.allowed) {
+    const rateLimitResult = await checkRateLimit(req, { windowMs: 60000, maxRequests: 30 });
+    if (!rateLimitResult.success) {
       console.log('Rate limit exceeded for user:', userId);
       throw RateLimitError;
     }
