@@ -90,3 +90,8 @@ export const checkAdminRateLimit = (req: Request) =>
 // Analytics-specific rate limiting (even more restrictive due to computational cost)
 export const checkAnalyticsRateLimit = (req: Request) => 
   checkRateLimit(req, { windowMs: 60000, maxRequests: 20 });
+
+// ADD THIS NEW EXPORTED FUNCTION AT THE END OF THE FILE
+export const rateLimitHeaders = (result: { success: boolean; headers?: Record<string, string> }) => {
+  return result.headers || {};
+};
