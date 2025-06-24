@@ -993,6 +993,28 @@ export type Database = {
           nesting_level: number
         }[]
       }
+      get_community_feed_with_details: {
+        Args: { p_user_id: string; p_limit: number; p_offset: number }
+        Returns: {
+          id: number
+          title: string
+          content: string
+          category: string
+          upvotes: number
+          downvotes: number
+          created_at: string
+          is_pinned: boolean
+          is_locked: boolean
+          flair_text: string
+          flair_color: string
+          post_type: string
+          image_url: string
+          video_url: string
+          author: Json
+          user_vote: string
+          reply_count: number
+        }[]
+      }
       get_content_analytics: {
         Args: Record<PropertyKey, never>
         Returns: Json
