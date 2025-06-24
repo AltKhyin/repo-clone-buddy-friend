@@ -9,20 +9,18 @@ import './App.css';
 
 function App() {
   return (
-    <React.StrictMode>
-      <AppProviders>
-        {/* Tier 1: Root Error Boundary - Ultimate safety net for entire application */}
-        <ErrorBoundary 
-          tier="root"
-          context="aplicação completa"
-          showDetails={process.env.NODE_ENV === 'development'}
-          showHomeButton={false}
-          showBackButton={false}
-        >
-          <AppRouter />
-        </ErrorBoundary>
-      </AppProviders>
-    </React.StrictMode>
+    <AppProviders>
+      {/* Tier 1: Root Error Boundary - Ultimate safety net for entire application */}
+      <ErrorBoundary 
+        tier="root"
+        context="aplicação completa"
+        showDetails={process.env.NODE_ENV === 'development'}
+        showHomeButton={false}
+        showBackButton={false}
+      >
+        <AppRouter />
+      </ErrorBoundary>
+    </AppProviders>
   );
 }
 

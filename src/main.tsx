@@ -24,9 +24,13 @@ if (!rootElement) {
 // Create React 18 root with proper error handling
 const root = ReactDOM.createRoot(rootElement);
 
-// Render with enhanced error boundary
+// Render with React.StrictMode and enhanced error boundary
 try {
-  root.render(<App />);
+  root.render(
+    <React.StrictMode>
+      <App />
+    </React.StrictMode>
+  );
 } catch (error) {
   console.error('Failed to render React app:', error);
   
