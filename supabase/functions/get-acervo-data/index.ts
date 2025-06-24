@@ -58,14 +58,28 @@ serve(async (req) => {
       throw RateLimitError;
     }
 
-    // STEP 4: Input Validation
-    if (req.method !== 'GET') {
-      throw new Error('METHOD_NOT_ALLOWED: Only GET method is supported');
-    }
+    // STEP 4: Input Validation & Parameter Parsing
+    let tagFilter = null;
+    let searchQuery = null;
 
-    const url = new URL(req.url);
-    const tagFilter = url.searchParams.get('tag');
-    const searchQuery = url.searchParams.get('search');
+    if (req.method === 'GET') {
+      // GET request - parse query parameters
+      const url = new URL(req.url);
+      tagFilter = url.searchParams.get('tag');
+      searchQuery = url.searchParams.get('search');
+    } else if (req.method === 'POST') {
+      // POST request - parse JSON body
+      try {
+        const body = await req.json();
+        tagFilter = body.tag || null;
+        searchQuery = body.search || null;
+      } catch (error) {
+        // If JSON parsing fails, continue with null values
+        console.log('Failed to parse POST body, using defaults');
+      }
+    } else {
+      throw new Error('METHOD_NOT_ALLOWED: Only GET and POST methods are supported');
+    }
 
     console.log(`Starting Acervo data fetch for user: ${userId}, subscription: ${userSubscriptionTier}`);
 
