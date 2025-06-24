@@ -58,6 +58,9 @@ verify_jwt = false
 [functions.get-personalized-recommendations]
 verify_jwt = false
 
+[functions.get-review-by-slug]
+verify_jwt = false
+
 [functions.get-saved-posts]
 verify_jwt = false
 
