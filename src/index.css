@@ -1,94 +1,103 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. */
-
 @layer base {
-  :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+  /* Light Theme Tokens (Default - The "Manus" Reference) */
+  .light {
+    --background: 220 20% 98%;   /* Very light, soft off-white */
+    --foreground: 220 10% 15%;  /* Dark charcoal, not pure black */
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --surface: 220 20% 94%;      /* Subtle gray for cards, secondary backgrounds */
+    --surface-muted: 220 20% 88%; /* Gray for input fields, disabled states */
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --border: 220 10% 85%;      /* Light gray border */
+    --border-hover: 220 10% 75%; /* Slightly darker border on hover */
 
-    --primary: 222.2 47.4% 11.2%;
+    /* Primary action color is high-contrast black */
+    --primary: 220 10% 10%;
     --primary-foreground: 210 40% 98%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --text-primary: 220 10% 15%;
+    --text-secondary: 220 10% 35%;
+    
+    /* NEW: Enhanced hierarchy tokens for Reddit-style clarity */
+    --text-tertiary: 220 10% 48%;     /* For less important metadata */
+    --surface-hover: 220 20% 91%;     /* For subtle hover backgrounds */
+    --border-strong: 220 10% 70%;     /* For emphasized separators */
+    --comment-thread: 220 10% 82%;    /* For threading lines */
+    --action-hover: 220 20% 85%;      /* For action button hovers */
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-
+    /* Legacy tokens for compatibility */
+    --card: 220 20% 98%;
+    --card-foreground: 220 10% 15%;
+    --popover: 220 20% 98%;
+    --popover-foreground: 220 10% 15%;
+    --secondary: 220 4.8% 95.9%;
+    --secondary-foreground: 220 5.9% 10%;
+    --muted: 220 4.8% 95.9%;
+    --muted-foreground: 220 3.8% 46.1%;
+    --accent: 220 4.8% 95.9%;
+    --accent-foreground: 220 5.9% 10%;
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-
-    --radius: 0.5rem;
-
-    --sidebar-background: 0 0% 98%;
-
-    --sidebar-foreground: 240 5.3% 26.1%;
-
-    --sidebar-primary: 240 5.9% 10%;
-
-    --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --destructive-foreground: 0 0% 98%;
+    --input: 220 5.9% 90%;
+    --ring: 240 10% 3.9%;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    /* Dark Theme Tokens (v3.1 - Refined Dark Palette) */
+    --background: 0 0% 7%;          /* #121212 - Deepest background */
+    --foreground: 210 40% 95%;      /* Soft off-white text */
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+    --surface: 0 0% 10%;            /* #1a1a1a - Primary surfaces (sidebar, cards) */
+    --surface-muted: 0 0% 13%;      /* #212121 - Input fields, secondary surfaces */
 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    --border: 0 0% 16%;             /* #2a2a2a - Subtle borders */
+    --border-hover: 0 0% 18%;       /* #2d2d2d - Slightly brighter border on hover */
 
+    /* Primary action color is high-contrast white */
     --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --primary-foreground: 0 0% 7%;
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    --text-primary: 210 40% 95%;
+    --text-secondary: 0 0% 28%;     /* #484848 - Secondary text */
+    
+    /* NEW: Enhanced hierarchy tokens for Reddit-style clarity */
+    --text-tertiary: 0 0% 45%;      /* For less important metadata */
+    --surface-hover: 0 0% 12%;      /* For subtle hover backgrounds */
+    --border-strong: 0 0% 22%;      /* For emphasized separators */
+    --comment-thread: 0 0% 20%;     /* For threading lines */
+    --action-hover: 0 0% 15%;       /* For action button hovers */
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-
+    /* Legacy tokens for compatibility - updated to match new scheme */
+    --card: 0 0% 10%;               /* #1a1a1a */
+    --card-foreground: 210 40% 95%;
+    --popover: 0 0% 10%;            /* #1a1a1a */
+    --popover-foreground: 210 40% 95%;
+    --secondary: 0 0% 13%;          /* #212121 */
+    --secondary-foreground: 210 40% 95%;
+    --muted: 0 0% 13%;              /* #212121 */
+    --muted-foreground: 0 0% 28%;   /* #484848 */
+    --accent: 0 0% 13%;             /* #212121 */
+    --accent-foreground: 210 40% 95%;
     --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 0 0% 98%;
+    --input: 0 0% 13%;              /* #212121 */
+    --ring: 240 4.9% 83.9%;
+  }
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+  /* Universal Semantic & Utility Tokens */
+  :root {
+    --font-sans: 'Inter', sans-serif;
+    --font-serif: 'Source Serif 4', serif;
+    --radius: 8px; /* Updated to 8px per v3.0 spec */
+    --chart-1: 12 76% 61%;
+    --chart-2: 173 58% 39%;
+    --chart-3: 197 37% 24%;
+    --chart-4: 43 74% 66%;
+    --chart-5: 27 87% 67%;
   }
 }
 
@@ -96,8 +105,232 @@
   * {
     @apply border-border;
   }
-
+  
+  html, body {
+    @apply min-h-screen;
+    margin: 0;
+    padding: 0;
+  }
+  
   body {
     @apply bg-background text-foreground;
+    /* Ensure body always has a background */
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+  }
+  
+  /* Ensure root element has full height */
+  #root {
+    @apply min-h-screen bg-background;
+  }
+
+  /* Discrete, theme-aware scrollbars */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--border-hover));
+  }
+
+  /* Firefox scrollbar styling */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--border)) transparent;
+  }
+}
+
+/* Mobile typography and spacing optimizations */
+@media (max-width: 767px) {
+  body {
+    font-size: 16px;
+    line-height: 1.7;
+  }
+  
+  .mobile-content {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  /* Ensure mobile content has proper spacing */
+  main {
+    padding-bottom: 80px; /* Account for bottom navigation */
+  }
+}
+
+/* Custom utilities for homepage components */
+@layer utilities {
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .line-clamp-1 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 1;
+  }
+  
+  .line-clamp-2 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .line-clamp-3 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+  }
+
+  /* Mobile-specific touch targets - ENHANCED */
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Mobile carousel hint styling */
+  .mobile-carousel-hint {
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .mobile-carousel-hint > * {
+    scroll-snap-align: start;
+  }
+}
+
+/* Reddit-Style Component Utilities - ENHANCED */
+@layer components {
+  .reddit-post-item {
+    @apply bg-background border-0 shadow-none rounded-none;
+    @apply border-b border-border/30 last:border-b-0;
+    @apply hover:bg-surface/20 transition-colors duration-150;
+  }
+
+  .reddit-post-title {
+    @apply text-lg font-semibold text-foreground leading-tight;
+    @apply hover:text-primary transition-colors duration-150;
+  }
+
+  .reddit-post-body {
+    @apply text-sm text-foreground/80 leading-relaxed;
+  }
+
+  .reddit-post-meta {
+    @apply text-xs text-muted-foreground flex items-center gap-2;
+  }
+
+  .reddit-feed-container {
+    @apply bg-background border-0 shadow-none;
+  }
+
+  /* ENHANCED: Comment threading styles */
+  .reddit-comment-thread {
+    @apply space-y-1;
+  }
+
+  .reddit-comment-item {
+    @apply transition-colors duration-150;
+    @apply hover:bg-surface-hover/30;
+  }
+
+  .reddit-comment-collapsed {
+    @apply opacity-60 transition-opacity duration-200;
+  }
+
+  .reddit-thread-line {
+    @apply bg-comment-thread hover:bg-border-strong transition-colors duration-150;
+  }
+
+  .reddit-thread-toggle {
+    @apply bg-background border border-border rounded-sm;
+    @apply hover:bg-surface-muted hover:border-border-hover;
+    @apply transition-all duration-150 cursor-pointer;
+    @apply flex items-center justify-center;
+  }
+
+  /* Enhanced action button styling - MOBILE OPTIMIZED */
+  .reddit-action-button {
+    @apply h-8 px-2 text-xs rounded-md;
+    @apply bg-transparent border-0 shadow-none;
+    @apply text-muted-foreground hover:text-foreground;
+    @apply hover:bg-action-hover transition-all duration-150;
+    @apply font-medium; /* Enhanced readability */
+  }
+
+  /* ENHANCED: Typography hierarchy for better contrast */
+  .reddit-text-primary {
+    @apply text-foreground font-medium;
+  }
+
+  .reddit-text-secondary {
+    @apply text-muted-foreground;
+  }
+
+  .reddit-text-tertiary {
+    @apply text-tertiary text-xs;
+  }
+
+  .reddit-post-header {
+    @apply flex items-center gap-2 mb-3;
+  }
+
+  .reddit-post-author {
+    @apply font-medium text-foreground hover:text-primary transition-colors duration-150;
+  }
+
+  .reddit-post-timestamp {
+    @apply text-tertiary text-sm;
+  }
+
+  /* Mobile optimizations for Reddit-style components - ENHANCED */
+  @media (max-width: 767px) {
+    .reddit-post-item {
+      @apply px-4 py-3;
+    }
+    
+    .reddit-action-button {
+      @apply min-h-[44px] min-w-[44px] touch-target;
+      @apply px-3 text-sm; /* Larger touch targets with better spacing */
+    }
+
+    .reddit-comment-thread {
+      @apply space-y-2;
+    }
+
+    .reddit-thread-toggle {
+      @apply w-8 h-8 text-sm; /* Larger toggle for mobile */
+    }
+
+    .reddit-comment-item {
+      @apply px-3 py-2; /* Better mobile spacing */
+    }
+
+    /* Enhanced mobile typography */
+    .reddit-post-title {
+      @apply text-base font-semibold; /* Slightly smaller on mobile */
+    }
+    
+    .reddit-post-body {
+      @apply text-sm leading-relaxed;
+    }
   }
 }

@@ -1,24 +1,98 @@
+
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>repo-clone-buddy-friend</title>
-    <meta name="description" content="Lovable Generated Project" />
-    <meta name="author" content="Lovable" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <title>Reviews - Plataforma de Revisões Médicas</title>
+    <meta name="description" content="Plataforma digital para revisões médicas sistemáticas e medicina baseada em evidências. Acesse estudos revisados, participe da comunidade médica e contribua com o conhecimento científico." />
+    <meta name="author" content="Reviews" />
+    <meta name="keywords" content="medicina, revisões médicas, evidências científicas, estudos clínicos, comunidade médica" />
 
-    <meta property="og:title" content="repo-clone-buddy-friend" />
-    <meta property="og:description" content="Lovable Generated Project" />
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#3b82f6" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="application-name" content="Reviews" />
+    
+    <!-- iOS specific meta tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Reviews" />
+    <meta name="apple-touch-fullscreen" content="yes" />
+    
+    <!-- iOS Icons -->
+    <link rel="apple-touch-icon" href="/lovable-uploads/9162a45a-bbb2-4b4c-90ad-2fc80a1b7b12.png" />
+    <link rel="apple-touch-icon" sizes="152x152" href="/lovable-uploads/9162a45a-bbb2-4b4c-90ad-2fc80a1b7b12.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/lovable-uploads/9162a45a-bbb2-4b4c-90ad-2fc80a1b7b12.png" />
+    <link rel="apple-touch-icon" sizes="167x167" href="/lovable-uploads/9162a45a-bbb2-4b4c-90ad-2fc80a1b7b12.png" />
+    
+    <!-- iOS Splash Screens -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <link rel="apple-touch-startup-image" href="/lovable-uploads/9162a45a-bbb2-4b4c-90ad-2fc80a1b7b12.png" />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:title" content="Reviews - Plataforma de Revisões Médicas" />
+    <meta property="og:description" content="Plataforma digital para revisões médicas sistemáticas e medicina baseada em evidências. Acesse estudos revisados, participe da comunidade médica e contribua com o conhecimento científico." />
     <meta property="og:type" content="website" />
-    <meta property="og:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+    <meta property="og:image" content="/lovable-uploads/9162a45a-bbb2-4b4c-90ad-2fc80a1b7b12.png" />
+    <meta property="og:url" content="https://reviews-medicina.com" />
+    <meta property="og:site_name" content="Reviews" />
 
+    <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:site" content="@lovable_dev" />
-    <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+    <meta name="twitter:site" content="@reviews" />
+    <meta name="twitter:image" content="/lovable-uploads/9162a45a-bbb2-4b4c-90ad-2fc80a1b7b12.png" />
+    <meta name="twitter:title" content="Reviews - Plataforma de Revisões Médicas" />
+    <meta name="twitter:description" content="Plataforma digital para revisões médicas sistemáticas e medicina baseada em evidências." />
+
+    <!-- Favicon -->
+    <link rel="icon" href="/lovable-uploads/9162a45a-bbb2-4b4c-90ad-2fc80a1b7b12.png" type="image/png">
+    <link rel="shortcut icon" href="/lovable-uploads/9162a45a-bbb2-4b4c-90ad-2fc80a1b7b12.png" type="image/png">
+    
+    <!-- Manifest -->
+    <link rel="manifest" href="/manifest.json" />
+
+    <!-- Microsoft Tiles -->
+    <meta name="msapplication-TileImage" content="/lovable-uploads/9162a45a-bbb2-4b4c-90ad-2fc80a1b7b12.png" />
+    <meta name="msapplication-TileColor" content="#3b82f6" />
+    <meta name="msapplication-config" content="/browserconfig.xml" />
+
+    <!-- Preconnect for performance -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+Pro:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <!-- DNS Prefetch -->
+    <link rel="dns-prefetch" href="//fonts.googleapis.com">
+    <link rel="dns-prefetch" href="//fonts.gstatic.com">
   </head>
 
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    
+    <!-- Enhanced Service Worker Registration -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+          navigator.serviceWorker.register('/sw.js')
+            .then(function(registration) {
+              console.log('ServiceWorker registration successful with scope: ', registration.scope);
+            })
+            .catch(function(err) {
+              console.log('ServiceWorker registration failed: ', err);
+            });
+        });
+      }
+
+      // Add global error handling for better debugging
+      window.addEventListener('error', function(e) {
+        console.error('Global error:', e.error, e.filename, e.lineno);
+      });
+
+      window.addEventListener('unhandledrejection', function(e) {
+        console.error('Unhandled promise rejection:', e.reason);
+      });
+    </script>
   </body>
 </html>

@@ -1,27 +1,29 @@
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Index from "./pages/Index";
-import NotFound from "./pages/NotFound";
 
-const queryClient = new QueryClient();
+// ABOUTME: Main application component with hierarchical error boundary protection - Root tier (Tier 1)
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+import React from 'react';
+import { AppRouter } from './router/AppRouter';
+import { AppProviders } from './components/providers/AppProviders';
+import { ErrorBoundary } from './components/ErrorBoundary';
+import './App.css';
+
+function App() {
+  return (
+    <React.StrictMode>
+      <AppProviders>
+        {/* Tier 1: Root Error Boundary - Ultimate safety net for entire application */}
+        <ErrorBoundary 
+          tier="root"
+          context="aplicação completa"
+          showDetails={process.env.NODE_ENV === 'development'}
+          showHomeButton={false}
+          showBackButton={false}
+        >
+          <AppRouter />
+        </ErrorBoundary>
+      </AppProviders>
+    </React.StrictMode>
+  );
+}
 
 export default App;
