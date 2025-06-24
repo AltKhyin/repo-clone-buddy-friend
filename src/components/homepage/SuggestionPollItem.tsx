@@ -17,10 +17,14 @@ const SuggestionPollItem: React.FC<SuggestionPollItemProps> = ({ suggestion }) =
   const mutation = useCastVoteMutation();
 
   const handleVote = () => {
-    const action = suggestion.user_has_voted ? 'remove_vote' : 'upvote';
+    const vote_type = suggestion.user_has_voted ? 'none' : 'up';
 
     mutation.mutate(
-      { suggestion_id: suggestion.id, action },
+      { 
+        entity_id: suggestion.id.toString(), 
+        vote_type, 
+        entity_type: 'suggestion' 
+      },
       {
         onError: (error) => {
           toast.error("Erro ao registrar voto", { description: error.message });
