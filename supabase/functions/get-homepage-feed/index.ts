@@ -1,17 +1,10 @@
 // ABOUTME: Consolidated homepage feed data with layout configuration and user personalization.
 
-import { 
-  serve,
-  createClient,
-  corsHeaders,
-  handleCorsPreflightRequest,
-  createSuccessResponse,
-  createErrorResponse,
-  authenticateUser,
-  checkRateLimit,
-  rateLimitHeaders,
-  RateLimitError
-} from '../_shared/imports.ts';
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.0';
+import { corsHeaders, handleCorsPreflightRequest } from '../_shared/cors.ts';
+import { createSuccessResponse, createErrorResponse, authenticateUser } from '../_shared/api-helpers.ts';
+import { checkRateLimit, rateLimitHeaders, RateLimitError } from '../_shared/rate-limit.ts';
 
 // --- Define TypeScript interfaces for our data shapes for type safety ---
 interface Review {
