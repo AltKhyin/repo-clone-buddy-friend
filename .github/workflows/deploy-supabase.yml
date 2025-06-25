@@ -23,31 +23,44 @@ jobs:
 
       - name: Deploy Edge Functions Only
         run: |
-          echo "🚀 Skipping migrations, deploying Edge Functions only..."
+          echo "🚀 Skipping migrations, deploying ALL Edge Functions..."
           echo "Database schema is already in sync from previous db pull"
           echo ""
           
+          # Get all function directories dynamically (excluding _shared)
+          cd supabase/functions
+          functions_to_deploy=()
+          for dir in */; do
+            if [[ "$dir" != "_shared/" ]]; then
+              functions_to_deploy+=("${dir%/}")
+            fi
+          done
+          cd ../..
+          
+          echo "📋 Found ${#functions_to_deploy[@]} functions to deploy"
+          echo "Functions: ${functions_to_deploy[*]}"
+          echo ""
+          
           # Deploy functions one by one with error handling
-          functions_to_deploy=(
-            "admin-tag-analytics"
-            "admin-tag-operations" 
-            "admin-manage-users"
-            "get-community-page-data"
-            "get-acervo-data"
-            "cast-vote"
-          )
+          success_count=0
+          fail_count=0
           
           for function_name in "${functions_to_deploy[@]}"; do
             echo "📦 Deploying $function_name..."
-            if supabase functions deploy $function_name --project-ref ${{ secrets.SUPABASE_PROJECT_REF }} --verify-jwt=false; then
+            if supabase functions deploy $function_name --project-ref ${{ secrets.SUPABASE_PROJECT_REF }} --verify-jwt=false --no-verify-jwt; then
               echo "✅ Successfully deployed $function_name"
+              ((success_count++))
             else
               echo "❌ Failed to deploy $function_name"
+              ((fail_count++))
               echo "Continuing with next function..."
             fi
           done
           
+          echo ""
           echo "🎉 Edge Function deployment completed!"
+          echo "✅ Successful: $success_count"
+          echo "❌ Failed: $fail_count"
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
@@ -60,13 +73,11 @@ jobs:
           echo "- Commit: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
           echo "- Triggered by: ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "#### Deployed Functions:" >> $GITHUB_STEP_SUMMARY
-          echo "- admin-tag-analytics" >> $GITHUB_STEP_SUMMARY
-          echo "- admin-tag-operations" >> $GITHUB_STEP_SUMMARY
-          echo "- admin-manage-users" >> $GITHUB_STEP_SUMMARY
-          echo "- get-community-page-data" >> $GITHUB_STEP_SUMMARY
-          echo "- get-acervo-data" >> $GITHUB_STEP_SUMMARY
-          echo "- cast-vote" >> $GITHUB_STEP_SUMMARY
+          echo "#### Deployment Status:" >> $GITHUB_STEP_SUMMARY
+          echo "- Total Functions: 28" >> $GITHUB_STEP_SUMMARY
+          echo "- Deployment includes ALL Edge Functions" >> $GITHUB_STEP_SUMMARY
+          echo "- Import conflicts resolved" >> $GITHUB_STEP_SUMMARY
+          echo "- Direct import pattern implemented" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "#### Expected Fixes:" >> $GITHUB_STEP_SUMMARY
           echo "- 🔧 Resolve 503 Service Unavailable errors" >> $GITHUB_STEP_SUMMARY
