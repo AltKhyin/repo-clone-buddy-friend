@@ -49,3 +49,13 @@ export const requireRole = (user: any, requiredRoles: string[]): { success: bool
   
   return { success: true };
 };
+
+// Additional export name for compatibility
+export const getUserFromRequest = async (req: Request): Promise<{ user?: any; error?: string }> => {
+  const result = await authenticateRequest(req);
+  if (result.success) {
+    return { user: result.user };
+  } else {
+    return { error: result.error };
+  }
+};
