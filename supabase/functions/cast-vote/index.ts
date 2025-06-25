@@ -15,7 +15,7 @@ import {
 } from '../_shared/imports.ts';
 
 interface VoteRequest {
-  entity_id: number;
+  entity_id: number | string;
   vote_type: 'up' | 'down' | 'none';
   entity_type: 'suggestion' | 'community_post' | 'poll';
 }
@@ -45,9 +45,10 @@ serve(async (req: Request) => {
     const requestBody: VoteRequest = await req.json();
     const { entity_id, vote_type, entity_type } = requestBody;
 
-    // Validate input
-    if (!entity_id || typeof entity_id !== 'number') {
-      throw new Error('VALIDATION_FAILED: Invalid entity_id');
+    // Validate and convert entity_id
+    const entityIdNumber = typeof entity_id === 'string' ? parseInt(entity_id, 10) : entity_id;
+    if (!entity_id || isNaN(entityIdNumber)) {
+      throw new Error('VALIDATION_FAILED: Invalid entity_id - must be a valid number or numeric string');
     }
 
     if (!vote_type || !['up', 'down', 'none'].includes(vote_type)) {
@@ -58,20 +59,20 @@ serve(async (req: Request) => {
       throw new Error('VALIDATION_FAILED: Invalid entity_type');
     }
 
-    console.log(`Processing ${vote_type} vote for ${entity_type} ${entity_id} by user ${user.id}`);
+    console.log(`Processing ${vote_type} vote for ${entity_type} ${entityIdNumber} by user ${user.id}`);
 
     // STEP 5: Execute business logic based on entity type
     let result;
     
     switch (entity_type) {
       case 'suggestion':
-        result = await handleSuggestionVote(supabase, entity_id, vote_type, user.id);
+        result = await handleSuggestionVote(supabase, entityIdNumber, vote_type, user.id);
         break;
       case 'community_post':
-        result = await handleCommunityPostVote(supabase, entity_id, vote_type, user.id);
+        result = await handleCommunityPostVote(supabase, entityIdNumber, vote_type, user.id);
         break;
       case 'poll':
-        result = await handlePollVote(supabase, entity_id, vote_type, user.id);
+        result = await handlePollVote(supabase, entityIdNumber, vote_type, user.id);
         break;
       default:
         throw new Error('VALIDATION_FAILED: Unsupported entity type');

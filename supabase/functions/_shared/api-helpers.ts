@@ -23,8 +23,8 @@ export async function authenticateUser(supabase: any, authHeader: string | null)
   return user;
 }
 
-// CORS preflight handler - moved to cors.ts for centralization
-// Import handleCorsPreflightRequest from './cors.ts' instead
+// CORS preflight handler - re-exported for backward compatibility
+export { handleCorsPreflightRequest } from './cors.ts';
 
 // Standardized success response
 export function createSuccessResponse(data: any, additionalHeaders: Record<string, string> = {}) {

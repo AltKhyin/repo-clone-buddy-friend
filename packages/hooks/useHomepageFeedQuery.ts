@@ -2,7 +2,7 @@
 // ABOUTME: TanStack Query hook for fetching consolidated homepage feed data.
 
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '../../src/integrations/supabase/client';
+import { invokeFunctionGet } from '../../src/lib/supabase-functions';
 
 export interface HomepageReview {
   id: number;
@@ -51,20 +51,8 @@ export const useConsolidatedHomepageFeedQuery = () => {
     queryFn: async () => {
       console.log('Fetching consolidated homepage data...');
       
-      const { data, error } = await supabase.functions.invoke('get-homepage-feed', {
-        body: {}
-      });
-
-      if (error) {
-        console.error('Homepage feed error:', error);
-        throw new Error(error.message || 'Failed to fetch homepage data');
-      }
-
-      if (data?.error) {
-        console.error('Homepage feed API error:', data.error);
-        throw new Error(data.error.details || data.error || 'Failed to fetch homepage data');
-      }
-
+      const data = await invokeFunctionGet<ConsolidatedHomepageData>('get-homepage-feed');
+      
       console.log('Homepage data fetched successfully:', data);
       return data;
     },

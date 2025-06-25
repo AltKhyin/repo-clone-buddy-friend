@@ -5,7 +5,7 @@ import React, { useState } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow, isValid, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { CommentEditor } from './CommentEditor';
 import { PostActionMenu } from './PostActionMenu';
@@ -13,7 +13,7 @@ import { ChevronUp, ChevronDown, Award } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import type { CommunityPost } from '../../types/community';
-import { useCastCommunityVoteMutation } from '../../../packages/hooks/useCastCommunityVoteMutation';
+import { useCastVoteMutation } from '../../../packages/hooks/useCastVoteMutation';
 import { useAuthStore } from '../../store/auth';
 
 interface CommentProps {
@@ -22,10 +22,42 @@ interface CommentProps {
   onCommentPosted: () => void;
 }
 
+// Safe date formatting helper
+const formatCommentDate = (dateString: string | null | undefined): string => {
+  if (!dateString) {
+    console.warn('Comment: Missing or null date value:', dateString);
+    return 'Data indisponível';
+  }
+
+  try {
+    // Try parsing as ISO string first
+    let date = parseISO(dateString);
+    
+    // If not valid, try as direct Date constructor
+    if (!isValid(date)) {
+      date = new Date(dateString);
+    }
+    
+    // Final validation
+    if (!isValid(date)) {
+      console.error('Comment: Invalid date after parsing:', dateString);
+      return 'Data inválida';
+    }
+    
+    return formatDistanceToNow(date, {
+      addSuffix: true,
+      locale: ptBR
+    });
+  } catch (error) {
+    console.error('Comment: Date formatting error:', error, 'for date:', dateString);
+    return 'Data inválida';
+  }
+};
+
 export const Comment = ({ comment, indentationLevel, onCommentPosted }: CommentProps) => {
   const [isReplying, setIsReplying] = useState(false);
   const { user } = useAuthStore();
-  const castVoteMutation = useCastCommunityVoteMutation();
+  const castVoteMutation = useCastVoteMutation();
 
   // Calculate left margin for nesting effect (max 6 levels to prevent UI overflow)
   const effectiveLevel = Math.min(indentationLevel, 6);
@@ -46,8 +78,9 @@ export const Comment = ({ comment, indentationLevel, onCommentPosted }: CommentP
 
     try {
       await castVoteMutation.mutateAsync({
-        postId: comment.id,
-        voteType: newVoteType
+        entity_id: comment.id.toString(),
+        vote_type: newVoteType || 'none',
+        entity_type: 'community_post'
       });
     } catch (error) {
       toast.error('Erro ao votar. Tente novamente.');
@@ -77,7 +110,7 @@ export const Comment = ({ comment, indentationLevel, onCommentPosted }: CommentP
               </Avatar>
               <span className="font-medium text-foreground">{comment.author?.full_name}</span>
               <span>•</span>
-              <span>{formatDistanceToNow(new Date(comment.created_at), { addSuffix: true, locale: ptBR })}</span>
+              <span>{formatCommentDate(comment.created_at)}</span>
               {comment.is_rewarded && (
                 <Badge variant="secondary" className="text-yellow-600 border-yellow-500/50 bg-yellow-100 dark:bg-yellow-900/30">
                   <Award className="w-3 h-3 mr-1" />

@@ -4,8 +4,9 @@ import React from 'react';
 import { useAppData } from '@/contexts/AppDataContext';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
-const PerfilPage = () => {
+const PerfilPageContent = () => {
   const { userProfile, isLoading } = useAppData();
 
   if (isLoading) {
@@ -59,4 +60,15 @@ const PerfilPage = () => {
   );
 };
 
-export default PerfilPage;
+export default function PerfilPage() {
+  return (
+    <ErrorBoundary 
+      tier="page"
+      context="página de perfil"
+      showHomeButton={true}
+      showBackButton={true}
+    >
+      <PerfilPageContent />
+    </ErrorBoundary>
+  );
+}

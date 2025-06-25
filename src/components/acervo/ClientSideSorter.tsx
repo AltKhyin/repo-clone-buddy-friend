@@ -26,6 +26,23 @@ export const ClientSideSorter = ({
   children
 }: ClientSideSorterProps) => {
   const sortedData = useMemo(() => {
+    // Defensive checks for tags and reviews
+    if (!tags || !Array.isArray(tags)) {
+      console.warn('ClientSideSorter: tags is not a valid array:', tags);
+      return {
+        sortedReviews: Array.isArray(reviews) ? reviews : [],
+        sortedTags: []
+      };
+    }
+
+    if (!reviews || !Array.isArray(reviews)) {
+      console.warn('ClientSideSorter: reviews is not a valid array:', reviews);
+      return {
+        sortedReviews: [],
+        sortedTags: tags
+      };
+    }
+
     // **TASK 3.1 FIX: Improved Tag Sorting Algorithm**
     const getTagPriority = (tag: Tag, selectedTags: number[]): number => {
       if (selectedTags.includes(tag.id)) return 1; // Selected
@@ -33,7 +50,7 @@ export const ClientSideSorter = ({
       return 3; // Other
     };
 
-    // Sort tags by priority, then alphabetically
+    // Sort tags by priority, then alphabetically (safe array spread)
     const sortedTags = [...tags].sort((a, b) => {
       const priorityDiff = getTagPriority(a, selectedTags) - getTagPriority(b, selectedTags);
       return priorityDiff !== 0 ? priorityDiff : a.tag_name.localeCompare(b.tag_name);

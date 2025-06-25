@@ -7,8 +7,9 @@ import { useReviewDetailQuery } from '../../packages/hooks/useReviewDetailQuery'
 import LayoutAwareRenderer from '@/components/review-detail/LayoutAwareRenderer';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertTriangle, Lock } from 'lucide-react';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
-const ReviewDetailPage = () => {
+const ReviewDetailPageContent = () => {
   const { slug } = useParams<{ slug: string }>();
   const { data: review, isLoading, isError, error } = useReviewDetailQuery(slug);
 
@@ -216,4 +217,15 @@ const ReviewDetailPage = () => {
   );
 };
 
-export default ReviewDetailPage;
+export default function ReviewDetailPage() {
+  return (
+    <ErrorBoundary 
+      tier="page"
+      context="página de detalhes da review"
+      showHomeButton={true}
+      showBackButton={true}
+    >
+      <ReviewDetailPageContent />
+    </ErrorBoundary>
+  );
+}

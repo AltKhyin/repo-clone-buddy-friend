@@ -5,14 +5,14 @@ import React from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow, isValid, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Pin, Lock, ChevronUp, ChevronDown, Bookmark, BookmarkCheck, Share2, MessageCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '../../lib/utils';
 import type { CommunityPost } from '@/types';
 import { PostActionMenu } from './PostActionMenu';
-import { useCastCommunityVoteMutation } from '../../../packages/hooks/useCastCommunityVoteMutation';
+import { useCastVoteMutation } from '../../../packages/hooks/useCastVoteMutation';
 import { useSavePostMutation } from '../../../packages/hooks/useSavePostMutation';
 import { useAuthStore } from '../../store/auth';
 
@@ -34,9 +34,41 @@ const CATEGORY_COLORS: Record<string, string> = {
   announcement: 'destructive'
 };
 
+// Safe date formatting helper
+const formatPostDate = (dateString: string | null | undefined): string => {
+  if (!dateString) {
+    console.warn('PostDetailCard: Missing or null date value:', dateString);
+    return 'Data indisponível';
+  }
+
+  try {
+    // Try parsing as ISO string first
+    let date = parseISO(dateString);
+    
+    // If not valid, try as direct Date constructor
+    if (!isValid(date)) {
+      date = new Date(dateString);
+    }
+    
+    // Final validation
+    if (!isValid(date)) {
+      console.error('PostDetailCard: Invalid date after parsing:', dateString);
+      return 'Data inválida';
+    }
+    
+    return formatDistanceToNow(date, {
+      addSuffix: true,
+      locale: ptBR
+    });
+  } catch (error) {
+    console.error('PostDetailCard: Date formatting error:', error, 'for date:', dateString);
+    return 'Data inválida';
+  }
+};
+
 export const PostDetailCard = ({ post }: PostDetailCardProps) => {
   const { user } = useAuthStore();
-  const castVoteMutation = useCastCommunityVoteMutation();
+  const castVoteMutation = useCastVoteMutation();
   const savePostMutation = useSavePostMutation();
   
   const categoryLabel = CATEGORY_LABELS[post.category] || post.category;
@@ -52,8 +84,9 @@ export const PostDetailCard = ({ post }: PostDetailCardProps) => {
 
     try {
       await castVoteMutation.mutateAsync({
-        postId: post.id,
-        voteType: newVoteType
+        entity_id: post.id.toString(),
+        vote_type: newVoteType || 'none',
+        entity_type: 'community_post'
       });
     } catch (error) {
       toast.error('Erro ao votar. Tente novamente.');
@@ -122,10 +155,7 @@ export const PostDetailCard = ({ post }: PostDetailCardProps) => {
                 <span className="text-muted-foreground text-sm">•</span>
                 
                 <span className="reddit-post-timestamp text-sm">
-                  {formatDistanceToNow(new Date(post.created_at), {
-                    addSuffix: true,
-                    locale: ptBR
-                  })}
+                  {formatPostDate(post.created_at)}
                 </span>
 
                 {/* Status indicators */}

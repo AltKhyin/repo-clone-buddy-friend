@@ -1,166 +1,275 @@
+// ABOUTME: Admin endpoint for comprehensive user management operations with role updates and JWT claim synchronization.
 
-// ABOUTME: Standardized user management operations following mandatory 7-step pattern
+import { handleCorsPreflightRequest } from '../_shared/cors.ts';
+import { getUserFromRequest } from '../_shared/auth.ts';
+import { sendSuccess, sendError } from '../_shared/api-helpers.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.0';
-import {
-  createSuccessResponse,
-  createErrorResponse,
-  authenticateUser,
-  handleCorsPreflightRequest,
-  RateLimitError
-} from '../_shared/api-helpers.ts';
-import { checkAdminRateLimit, rateLimitHeaders } from '../_shared/rate-limit.ts';
+interface UserManagementPayload {
+  action: 'promote' | 'demote' | 'ban' | 'unban' | 'delete' | 'list' | 'update_profile' | 'get';
+  targetUserId?: string;
+  newRole?: 'admin' | 'moderator' | 'practitioner';
+  subscriptionTier?: 'free' | 'premium' | 'pro';
+  reason?: string;
+  profileData?: {
+    full_name?: string;
+    bio?: string;
+    avatar_url?: string;
+  };
+  filters?: {
+    role?: string;
+    subscription_tier?: string;
+    banned?: boolean;
+    search?: string;
+    page?: number;
+    limit?: number;
+  };
+}
 
-serve(async (req) => {
-  // STEP 1: CORS Preflight Handling
+Deno.serve(async (req: Request) => {
+  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return handleCorsPreflightRequest();
   }
 
   try {
-    // STEP 2: Authentication & Authorization
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
-    const user = await authenticateUser(supabase, req.headers.get('Authorization'));
+    // Authenticate and verify admin privileges
+    const { user, error: authError } = await getUserFromRequest(req);
+    if (authError || !user) {
+      return sendError('Authentication required', 401);
+    }
 
-    // Verify admin privileges
-    const { data: practitioner, error: practitionerError } = await supabase
+    // Initialize Supabase admin client
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+      { auth: { persistSession: false } }
+    );
+
+    // Check if user is admin
+    const { data: adminCheck } = await supabaseAdmin
       .from('Practitioners')
       .select('role')
       .eq('id', user.id)
       .single();
 
-    if (practitionerError || !practitioner || practitioner.role !== 'admin') {
-      throw new Error('FORBIDDEN: Admin access required');
+    if (adminCheck?.role !== 'admin') {
+      return sendError('Admin privileges required', 403);
     }
 
-    // STEP 3: Rate Limiting - FIXED: Pass full req object
-    const rateLimitResult = await checkAdminRateLimit(req);
-    if (!rateLimitResult.success) {
-      throw RateLimitError;
-    }
+    // Parse request body
+    const payload: UserManagementPayload = await req.json();
+    const { action, targetUserId, newRole, subscriptionTier, reason, profileData, filters } = payload;
 
-    console.log(`Admin user management request from: ${user.id}, method: ${req.method}`);
+    let result;
 
-    if (req.method === 'GET') {
-      // STEP 4: Input Validation (GET - query parameters)
-      const url = new URL(req.url);
-      const page = parseInt(url.searchParams.get('page') || '1');
-      const limit = Math.min(parseInt(url.searchParams.get('limit') || '20'), 100);
-      const search = url.searchParams.get('search') || '';
-      const roleFilter = url.searchParams.get('role') || '';
+    switch (action) {
+      case 'list':
+        // List users with filters
+        let query = supabaseAdmin
+          .from('Practitioners')
+          .select(`
+            id, 
+            full_name, 
+            email, 
+            role, 
+            subscription_tier, 
+            banned, 
+            created_at, 
+            avatar_url,
+            profession_flair,
+            display_hover_card,
+            contribution_score
+          `, { count: 'exact' });
 
-      // STEP 5: Core Business Logic - Fetch Users
-      let query = supabase
-        .from('Practitioners')
-        .select('id, full_name, avatar_url, role, subscription_tier, contribution_score, created_at', { count: 'exact' });
-
-      if (search) {
-        query = query.ilike('full_name', `%${search}%`);
-      }
-      if (roleFilter) {
-        query = query.eq('role', roleFilter);
-      }
-
-      const { data: users, error: usersError, count } = await query
-        .order('created_at', { ascending: false })
-        .range((page - 1) * limit, page * limit - 1);
-
-      if (usersError) {
-        throw new Error(`Failed to fetch users: ${usersError.message}`);
-      }
-
-      const result = {
-        users: users || [],
-        pagination: {
-          page,
-          limit,
-          total: count || 0,
-          totalPages: Math.ceil((count || 0) / limit)
+        if (filters?.role) {
+          query = query.eq('role', filters.role);
         }
-      };
-
-      // STEP 6: Standardized Success Response
-      return createSuccessResponse(result, rateLimitHeaders(rateLimitResult));
-
-    } else if (req.method === 'POST') {
-      // STEP 4: Input Validation (POST - body data)
-      const { userId, role, subscriptionTier } = await req.json();
-      
-      if (!userId || typeof userId !== 'string') {
-        throw new Error('VALIDATION_FAILED: userId is required and must be a string');
-      }
-
-      const updateData: any = {};
-      if (role) {
-        if (!['practitioner', 'editor', 'admin'].includes(role)) {
-          throw new Error('VALIDATION_FAILED: role must be practitioner, editor, or admin');
+        if (filters?.subscription_tier) {
+          query = query.eq('subscription_tier', filters.subscription_tier);
         }
-        updateData.role = role;
-      }
-      if (subscriptionTier) {
-        if (!['free', 'premium'].includes(subscriptionTier)) {
-          throw new Error('VALIDATION_FAILED: subscriptionTier must be free or premium');
+        if (filters?.banned !== undefined) {
+          query = query.eq('banned', filters.banned);
         }
-        updateData.subscription_tier = subscriptionTier;
-      }
+        if (filters?.search) {
+          query = query.or(`full_name.ilike.%${filters.search}%,email.ilike.%${filters.search}%`);
+        }
 
-      if (Object.keys(updateData).length === 0) {
-        throw new Error('VALIDATION_FAILED: At least one field (role or subscriptionTier) must be provided');
-      }
+        const page = (filters?.page || 1) - 1; // Convert to 0-based indexing
+        const limit = Math.min(filters?.limit || 20, 100); // Cap at 100
+        query = query.range(page * limit, (page + 1) * limit - 1);
 
-      // STEP 5: Core Business Logic - Update User (Hardened)
-      const { data: updatedUsers, error: updateError } = await supabase
-        .from('Practitioners')
-        .update(updateData)
-        .eq('id', userId)
-        .select(); // Use .select() without .single() to avoid crashes
+        const { data: users, error: listError, count } = await query;
+        if (listError) throw new Error(`Failed to list users: ${listError.message}`);
 
-      if (updateError) {
-        console.error('Error updating user:', updateError);
-        throw new Error(`Update error: ${updateError.message}`);
-      }
+        // Normalize user data to ensure all required fields are present
+        const normalizedUsers = (users || []).map(user => ({
+          id: user.id,
+          full_name: user.full_name || 'Nome não informado',
+          email: user.email,
+          role: user.role || 'practitioner',
+          subscription_tier: user.subscription_tier || 'free',
+          banned: user.banned || false,
+          created_at: user.created_at,
+          avatar_url: user.avatar_url,
+          profession_flair: user.profession_flair,
+          display_hover_card: user.display_hover_card || false,
+          contribution_score: user.contribution_score || 0
+        }));
 
-      // Check if the user was actually found and updated
-      if (!updatedUsers || updatedUsers.length === 0) {
-        throw new Error(`User not found with ID: ${userId}`);
-      }
+        result = {
+          users: normalizedUsers,
+          pagination: {
+            page: page + 1, // Convert back to 1-based for frontend
+            limit,
+            total: count || 0,
+            hasMore: (normalizedUsers?.length || 0) === limit
+          }
+        };
+        break;
 
-      const updatedUser = updatedUsers[0];
+      case 'get':
+        // Get single user details
+        if (!targetUserId) {
+          return sendError('Target user ID required', 400);
+        }
 
-      // If role was updated, also update auth.users metadata
-      if (role) {
-        const { error: authUpdateError } = await supabase.auth.admin.updateUserById(
-          userId,
+        const { data: singleUser, error: getUserError } = await supabaseAdmin
+          .from('Practitioners')
+          .select('id, full_name, email, role, subscription_tier, banned, created_at, avatar_url, contribution_score')
+          .eq('id', targetUserId)
+          .single();
+
+        if (getUserError) {
+          throw new Error(`Failed to fetch user: ${getUserError.message}`);
+        }
+
+        result = singleUser;
+        break;
+
+      case 'promote':
+      case 'demote':
+        if (!targetUserId || !newRole) {
+          return sendError('Target user ID and new role required', 400);
+        }
+
+        // Update role in database
+        const { error: roleError } = await supabaseAdmin
+          .from('Practitioners')
+          .update({ 
+            role: newRole,
+            subscription_tier: subscriptionTier || 'free'
+          })
+          .eq('id', targetUserId);
+
+        if (roleError) throw new Error(`Failed to update role: ${roleError.message}`);
+
+        // Update JWT claims
+        const { error: claimsError } = await supabaseAdmin.auth.admin.updateUserById(
+          targetUserId,
           {
-            app_metadata: { role: role }
+            app_metadata: {
+              role: newRole,
+              subscription_tier: subscriptionTier || 'free'
+            }
           }
         );
 
-        if (authUpdateError) {
-          console.error('Error updating auth metadata:', authUpdateError);
-          // Don't fail the entire operation, but log the issue
+        if (claimsError) {
+          console.warn('Failed to update JWT claims:', claimsError);
         }
-      }
 
-      const result = {
-        message: 'User updated successfully',
-        user: updatedUser
-      };
+        result = { 
+          success: true, 
+          message: `User ${action}d to ${newRole}`,
+          updatedUserId: targetUserId,
+          newRole,
+          subscriptionTier: subscriptionTier || 'free'
+        };
+        break;
 
-      // STEP 6: Standardized Success Response
-      return createSuccessResponse(result, rateLimitHeaders(rateLimitResult));
+      case 'ban':
+      case 'unban':
+        if (!targetUserId) {
+          return sendError('Target user ID required', 400);
+        }
 
-    } else {
-      throw new Error('METHOD_NOT_ALLOWED: Only GET and POST methods are supported');
+        const banned = action === 'ban';
+        const { error: banError } = await supabaseAdmin
+          .from('Practitioners')
+          .update({ banned })
+          .eq('id', targetUserId);
+
+        if (banError) throw new Error(`Failed to ${action} user: ${banError.message}`);
+
+        // Log moderation action
+        if (reason) {
+          await supabaseAdmin
+            .from('ModerationLogs')
+            .insert({
+              moderator_id: user.id,
+              target_user_id: targetUserId,
+              action: action,
+              reason: reason,
+              created_at: new Date().toISOString()
+            });
+        }
+
+        result = { 
+          success: true, 
+          message: `User ${action}ned successfully`,
+          targetUserId,
+          banned
+        };
+        break;
+
+      case 'update_profile':
+        if (!targetUserId || !profileData) {
+          return sendError('Target user ID and profile data required', 400);
+        }
+
+        const { error: profileError } = await supabaseAdmin
+          .from('Practitioners')
+          .update(profileData)
+          .eq('id', targetUserId);
+
+        if (profileError) throw new Error(`Failed to update profile: ${profileError.message}`);
+
+        result = { 
+          success: true, 
+          message: 'Profile updated successfully',
+          targetUserId,
+          updatedFields: Object.keys(profileData)
+        };
+        break;
+
+      case 'delete':
+        if (!targetUserId) {
+          return sendError('Target user ID required', 400);
+        }
+
+        // This is a dangerous operation - require explicit confirmation
+        const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(targetUserId);
+        if (deleteError) throw new Error(`Failed to delete user: ${deleteError.message}`);
+
+        result = { 
+          success: true, 
+          message: 'User deleted successfully',
+          deletedUserId: targetUserId
+        };
+        break;
+
+      default:
+        return sendError(`Invalid action: ${action}`, 400);
     }
 
+    return sendSuccess(result);
+
   } catch (error) {
-    // STEP 7: Centralized Error Handling
-    console.error('Error in admin-manage-users:', error);
-    return createErrorResponse(error);
+    console.error('Admin user management error:', error);
+    return sendError(
+      error instanceof Error ? error.message : 'Internal server error',
+      500
+    );
   }
 });

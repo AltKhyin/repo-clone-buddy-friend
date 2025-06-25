@@ -7,8 +7,9 @@ import FeaturedReview from '../components/homepage/FeaturedReview';
 import ReviewCarousel from '../components/homepage/ReviewCarousel';
 import NextEditionModule from '../components/homepage/NextEditionModule';
 import { Skeleton } from '../components/ui/skeleton';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
-const Index = () => {
+const IndexContent = () => {
   // Use ONLY the consolidated query - no other API calls allowed
   const { data, isLoading, isError, error } = useConsolidatedHomepageFeedQuery();
 
@@ -137,4 +138,15 @@ const Index = () => {
   );
 };
 
-export default Index;
+export default function Index() {
+  return (
+    <ErrorBoundary 
+      tier="page"
+      context="página inicial"
+      showHomeButton={false}
+      showBackButton={false}
+    >
+      <IndexContent />
+    </ErrorBoundary>
+  );
+}

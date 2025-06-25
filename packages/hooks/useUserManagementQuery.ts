@@ -53,19 +53,20 @@ export const useUserListQuery = (filters?: UserManagementFilters) => {
     queryFn: async (): Promise<PaginatedUsers> => {
       console.log('Fetching user list via Edge Function...');
       
-      // Build query parameters
-      const params = new URLSearchParams();
-      if (filters?.role) params.append('role', filters.role);
-      if (filters?.subscription_tier) params.append('subscription_tier', filters.subscription_tier);
-      if (filters?.search) params.append('search', filters.search);
-      if (filters?.page) params.append('page', filters.page.toString());
-      if (filters?.limit) params.append('limit', filters.limit.toString());
+      // Use POST with action-based payload
+      const payload = {
+        action: 'list',
+        filters: {
+          role: filters?.role,
+          subscription_tier: filters?.subscription_tier,
+          search: filters?.search,
+          page: filters?.page || 1,
+          limit: filters?.limit || 20
+        }
+      };
 
-      // Use GET request with query parameters
-      const functionUrl = `admin-manage-users${params.toString() ? `?${params.toString()}` : ''}`;
-      
-      const { data, error } = await supabase.functions.invoke(functionUrl, {
-        method: 'GET'
+      const { data, error } = await supabase.functions.invoke('admin-manage-users', {
+        body: payload
       });
       
       if (error) {
@@ -73,6 +74,11 @@ export const useUserListQuery = (filters?: UserManagementFilters) => {
         throw new Error(`Failed to fetch users: ${error.message}`);
       }
 
+      // Extract data from standardized response wrapper
+      if (data?.success && data?.data) {
+        return data.data as PaginatedUsers;
+      }
+      
       return data as PaginatedUsers;
     },
     staleTime: 2 * 60 * 1000, // 2 minutes (users change less frequently)
@@ -95,7 +101,7 @@ export const useUserDetailQuery = (userId: string) => {
       const { data, error } = await supabase.functions.invoke('admin-manage-users', {
         body: {
           action: 'get',
-          userId
+          targetUserId: userId
         }
       });
       
@@ -130,10 +136,10 @@ export const useUpdateUserMutation = () => {
       console.log('Updating user via Edge Function...', { userId, role, subscriptionTier });
       
       const { data, error } = await supabase.functions.invoke('admin-manage-users', {
-        method: 'POST',
         body: {
-          userId,
-          role,
+          action: role ? 'promote' : 'update_profile',
+          targetUserId: userId,
+          newRole: role,
           subscriptionTier
         }
       });
@@ -167,8 +173,8 @@ export const useUserStatusMutation = () => {
       
       const { data, error } = await supabase.functions.invoke('admin-manage-users', {
         body: {
-          action,
-          userId
+          action: action === 'deactivate' ? 'ban' : 'unban',
+          targetUserId: userId
         }
       });
       
@@ -202,7 +208,7 @@ export const useDeleteUserMutation = () => {
       const { data, error } = await supabase.functions.invoke('admin-manage-users', {
         body: {
           action: 'delete',
-          userId
+          targetUserId: userId
         }
       });
       

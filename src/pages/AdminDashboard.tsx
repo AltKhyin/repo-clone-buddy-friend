@@ -5,8 +5,9 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { FileText, Users, MessageSquare, TrendingUp } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
-export const AdminDashboard = () => {
+const AdminDashboardContent = () => {
   const { user } = useAuthStore();
   
   const stats = [
@@ -143,3 +144,18 @@ export const AdminDashboard = () => {
     </div>
   );
 };
+
+export default function AdminDashboard() {
+  return (
+    <ErrorBoundary 
+      tier="page"
+      context="dashboard administrativo"
+      showHomeButton={true}
+      showBackButton={true}
+    >
+      <AdminDashboardContent />
+    </ErrorBoundary>
+  );
+}
+
+export { AdminDashboard };

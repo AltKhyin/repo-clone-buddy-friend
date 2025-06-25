@@ -165,7 +165,12 @@ serve(async (req) => {
           }
         }
       }
-      return { ...review, tags_json: tagsJson };
+      // Fix data contract: rename 'id' to 'review_id' to match frontend interface
+      return { 
+        ...review, 
+        review_id: review.id, // Add expected field name
+        tags_json: tagsJson 
+      };
     });
 
     // Apply client-side filtering if needed

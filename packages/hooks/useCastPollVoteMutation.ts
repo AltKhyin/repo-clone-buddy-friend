@@ -21,8 +21,12 @@ export const useCastPollVoteMutation = () => {
     mutationFn: async (payload) => {
       console.log('Casting poll vote:', payload);
       
-      const { data, error } = await supabase.functions.invoke('cast-poll-vote', {
-        body: payload
+      const { data, error } = await supabase.functions.invoke('cast-vote', {
+        body: {
+          entity_id: payload.option_id,
+          vote_type: 'up',
+          entity_type: 'poll'
+        }
       });
 
       if (error) {
@@ -41,10 +45,10 @@ export const useCastPollVoteMutation = () => {
     onSuccess: () => {
       console.log('Poll vote successful, invalidating queries');
       
-      // Invalidate sidebar data to update poll results
-      queryClient.invalidateQueries({ 
-        queryKey: ['community-sidebar'] 
-      });
+      // Invalidate relevant queries to update poll results
+      queryClient.invalidateQueries({ queryKey: ['polls'] });
+      queryClient.invalidateQueries({ queryKey: ['community-sidebar'] });
+      queryClient.invalidateQueries({ queryKey: ['homepage-feed'] });
     },
     onError: (error) => {
       console.error('Poll vote failed:', error);

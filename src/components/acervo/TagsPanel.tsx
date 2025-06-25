@@ -14,10 +14,15 @@ interface TagsPanelProps {
 const TagsPanel: React.FC<TagsPanelProps> = ({ allTags, selectedTags, onTagSelect }) => {
   const [visibleSubtags, setVisibleSubtags] = useState<number[]>([]);
 
-  // Memoize tag hierarchy computation
+  // Memoize tag hierarchy computation with defensive null checking
   const { parentTags, childTags } = useMemo(() => {
-    const parentTags = allTags.filter(tag => tag.parent_id === null);
-    const childTags = allTags.filter(tag => tag.parent_id !== null);
+    if (!allTags || !Array.isArray(allTags)) {
+      console.warn('TagsPanel: allTags is not a valid array:', allTags);
+      return { parentTags: [], childTags: [] };
+    }
+    
+    const parentTags = allTags.filter(tag => tag && tag.parent_id === null);
+    const childTags = allTags.filter(tag => tag && tag.parent_id !== null);
     return { parentTags, childTags };
   }, [allTags]);
 

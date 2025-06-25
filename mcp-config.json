@@ -1,0 +1,19 @@
+{
+  "mcpServers": {
+    "filesystem": {
+      "command": "npx",
+      "args": [
+        "@modelcontextprotocol/server-filesystem",
+        "/mnt/c/Users/Igor Cogo Koehler/Desktop/Repo/Repositório EVIDENS/Reviews/Main Branch/repo-clone-buddy-friend"
+      ]
+    },
+    "supabase": {
+      "command": "node",
+      "args": ["./scripts/mcp-supabase-server.js"],
+      "env": {
+        "SUPABASE_URL": "https://qjoxiowuiiupbvqlssgk.supabase.co",
+        "SUPABASE_ACCESS_TOKEN": "sbp_31ba857b278d3f16c800989274f747782212bec0"
+      }
+    }
+  }
+}

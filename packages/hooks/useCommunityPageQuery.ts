@@ -2,7 +2,7 @@
 // ABOUTME: Consolidated hook for fetching all community page data (posts + sidebar) with enhanced performance and error handling.
 
 import { useInfiniteQuery } from '@tanstack/react-query';
-import { supabase } from '../../src/integrations/supabase/client';
+import { invokeFunctionPost } from '../../src/lib/supabase-functions';
 import type { CommunityPageResponse, CommunityPost, SidebarData } from '../../src/types/community';
 
 export const useCommunityPageQuery = () => {
@@ -11,22 +11,13 @@ export const useCommunityPageQuery = () => {
     queryFn: async ({ pageParam = 0 }) => {
       console.log('Fetching community page data, page:', pageParam);
       
-      const { data, error } = await supabase.functions.invoke('get-community-page-data', {
-        body: { page: pageParam, limit: 20 }
+      const data = await invokeFunctionPost<CommunityPageResponse>('get-community-page-data', {
+        page: pageParam,
+        limit: 20
       });
 
-      if (error) {
-        console.error('Community page data fetch error:', error);
-        // Enhanced error context for better debugging
-        throw new Error(error.message || `Failed to fetch community page data (page: ${pageParam})`);
-      }
-
-      if (!data) {
-        throw new Error('No data returned from community page endpoint');
-      }
-
       console.log('Community page data fetched successfully:', data);
-      return data as CommunityPageResponse;
+      return data;
     },
     getNextPageParam: (lastPage) => {
       if (!lastPage?.pagination?.hasMore) return undefined;

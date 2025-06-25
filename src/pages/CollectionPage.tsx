@@ -10,8 +10,9 @@ import MobileTagsModal from '@/components/acervo/MobileTagsModal';
 import MasonryGrid from '@/components/acervo/MasonryGrid';
 import SearchInput from '@/components/acervo/SearchInput';
 import { ClientSideSorter } from '@/components/acervo/ClientSideSorter';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
-const AcervoPage = () => {
+const AcervoPageContent = () => {
   const isMobile = useIsMobile();
   const [selectedTags, setSelectedTags] = useState<number[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -179,4 +180,15 @@ const AcervoPage = () => {
   );
 };
 
-export default AcervoPage;
+export default function AcervoPage() {
+  return (
+    <ErrorBoundary 
+      tier="page"
+      context="página do acervo"
+      showHomeButton={true}
+      showBackButton={true}
+    >
+      <AcervoPageContent />
+    </ErrorBoundary>
+  );
+}

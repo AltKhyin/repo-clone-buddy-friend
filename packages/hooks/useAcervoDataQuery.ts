@@ -2,7 +2,7 @@
 // ABOUTME: TanStack Query hook for fetching Acervo data with aggressive caching.
 
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '../../src/integrations/supabase/client';
+import { invokeFunctionGet } from '../../src/lib/supabase-functions';
 
 export interface AcervoReview {
   review_id: number;
@@ -32,20 +32,8 @@ export const useAcervoDataQuery = () => {
     queryFn: async () => {
       console.log('Fetching acervo data via Edge Function...');
       
-      const { data, error } = await supabase.functions.invoke('get-acervo-data', {
-        body: {}
-      });
-
-      if (error) {
-        console.error('Acervo data fetch error:', error);
-        throw new Error(error.message || 'Failed to fetch acervo data');
-      }
-
-      if (data?.error) {
-        console.error('Acervo data API error:', data.error);
-        throw new Error(data.error.details || data.error || 'Failed to fetch acervo data');
-      }
-
+      const data = await invokeFunctionGet<AcervoData>('get-acervo-data');
+      
       console.log('Acervo data fetched successfully:', data);
       return data;
     },
