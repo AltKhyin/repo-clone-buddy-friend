@@ -1,19 +1,10 @@
 
 project_id = "qjoxiowuiiupbvqlssgk"
 
-[functions.admin-tag-operations]
-verify_jwt = false
-
-[functions.admin-manage-users]
-verify_jwt = false
-
-[functions.cast-vote]
-verify_jwt = false
-
-[functions.get-analytics-dashboard-data]
-verify_jwt = false
-
 [functions.admin-analytics]
+verify_jwt = false
+
+[functions.admin-assign-roles]
 verify_jwt = false
 
 [functions.admin-audit-logs]
@@ -31,16 +22,28 @@ verify_jwt = false
 [functions.admin-manage-publication]
 verify_jwt = false
 
+[functions.admin-manage-users]
+verify_jwt = false
+
 [functions.admin-moderation-actions]
 verify_jwt = false
 
+[functions.admin-tag-operations]
+verify_jwt = false
+
 [functions.admin-user-analytics]
+verify_jwt = false
+
+[functions.cast-vote]
 verify_jwt = false
 
 [functions.create-community-post]
 verify_jwt = false
 
 [functions.get-acervo-data]
+verify_jwt = false
+
+[functions.get-analytics-dashboard-data]
 verify_jwt = false
 
 [functions.get-community-feed]

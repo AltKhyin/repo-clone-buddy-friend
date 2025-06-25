@@ -1,16 +1,17 @@
-// ABOUTME: Centralized import definitions for consistent Edge Function dependencies
 
-// Standardized Deno imports (consistent version across all functions)
-export { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+// ABOUTME: Centralized imports for all Edge Functions to ensure consistency and reduce duplication
 
-// Standardized Supabase imports (consistent version across all functions)
+// Core Deno imports
+export { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+
+// Supabase client
 export { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.0';
 
-// Re-export all shared utilities for convenience
-export * from './cors.ts';
+// API helpers - re-export everything from api-helpers.ts
 export * from './api-helpers.ts';
-export * from './rate-limit.ts';
-export * from './auth.ts';
 
-// Compatibility exports for legacy patterns
-export { checkRateLimit as rateLimit } from './rate-limit.ts';
+// CORS handling - re-export from cors.ts
+export * from './cors.ts';
+
+// Rate limiting - re-export from rate-limit.ts
+export * from './rate-limit.ts';
