@@ -82,3 +82,9 @@ export function createErrorResponse(error: any, additionalHeaders: Record<string
     }
   });
 }
+
+// Backward compatibility aliases for functions expecting sendSuccess/sendError
+export const sendSuccess = createSuccessResponse;
+export const sendError = (message: string, status: number = 500, additionalHeaders: Record<string, string> = {}) => {
+  return createErrorResponse(new Error(message), additionalHeaders);
+};

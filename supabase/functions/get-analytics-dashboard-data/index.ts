@@ -2,18 +2,20 @@
 // ABOUTME: Analytics dashboard Edge Function using standardized pattern
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.0';
-import { corsHeaders, handleCorsPrelight } from '../_shared/cors.ts';
-import { checkAnalyticsRateLimit } from '../_shared/rate-limit.ts';
+import { corsHeaders, handleCorsPreflightRequest } from '../_shared/cors.ts';
+import { checkRateLimit, RateLimitError } from '../_shared/rate-limit.ts';
 import { authenticateRequest, requireRole } from '../_shared/auth.ts';
+import { createSuccessResponse, createErrorResponse } from '../_shared/api-helpers.ts';
 
 Deno.serve(async (req) => {
   // Step 1: Handle CORS preflight
-  const corsResponse = handleCorsPrelight(req);
-  if (corsResponse) return corsResponse;
+  if (req.method === 'OPTIONS') {
+    return handleCorsPreflightRequest();
+  }
 
   try {
     // Step 2: Rate limiting
-    const rateLimitResult = await checkAnalyticsRateLimit(req);
+    const rateLimitResult = await checkRateLimit(req, { windowMs: 60000, maxRequests: 50 });
     if (!rateLimitResult.success) {
       return new Response(JSON.stringify({ 
         error: rateLimitResult.error || 'Rate limit exceeded',
