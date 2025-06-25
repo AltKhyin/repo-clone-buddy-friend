@@ -2,10 +2,6 @@
 // ABOUTME: Centralized API helper functions for Edge Functions with consistent error handling and responses
 
 import { corsHeaders } from './cors.ts';
-import { RateLimitError } from './rate-limit.ts';
-
-// Re-export for backward compatibility
-export { RateLimitError };
 
 // Enhanced authentication helper
 export async function authenticateUser(supabase: any, authHeader: string | null) {
