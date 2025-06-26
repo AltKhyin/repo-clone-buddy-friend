@@ -1,9 +1,11 @@
 // ABOUTME: Admin endpoint for comprehensive tag analytics and statistics with hierarchy analysis.
 
-import { handleCorsPreflightRequest } from '../_shared/cors.ts';
-import { getUserFromRequest } from '../_shared/auth.ts';
-import { sendSuccess, sendError } from '../_shared/api-helpers.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.0';
+import { corsHeaders, handleCorsPreflightRequest } from '../_shared/cors.ts';
+import { createSuccessResponse, createErrorResponse, authenticateUser } from '../_shared/api-helpers.ts';
+import { checkRateLimit, rateLimitHeaders, RateLimitError } from '../_shared/rate-limit.ts';
+import { getUserFromRequest, requireRole } from '../_shared/auth.ts';
 
 interface TagWithStats {
   id: number;
@@ -29,44 +31,52 @@ interface TagAnalytics {
   recentTags: TagWithStats[];
 }
 
-Deno.serve(async (req: Request) => {
-  // Handle CORS preflight
+serve(async (req: Request) => {
+  // STEP 1: CORS Preflight Handling
   if (req.method === 'OPTIONS') {
     return handleCorsPreflightRequest();
   }
 
   try {
-    // Authenticate and verify admin privileges
-    const { user, error: authError } = await getUserFromRequest(req);
-    if (authError || !user) {
-      return sendError('Authentication required', 401);
-    }
-
-    // Initialize Supabase admin client
-    const supabaseAdmin = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
-      { auth: { persistSession: false } }
+    // STEP 2: Create Supabase client
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Check if user is admin
-    const { data: adminCheck } = await supabaseAdmin
+    // STEP 3: Rate Limiting
+    const rateLimitResult = await checkRateLimit(req, { windowMs: 60000, maxRequests: 30 });
+    if (!rateLimitResult.success) {
+      throw RateLimitError;
+    }
+
+    // STEP 4: Authentication (Required for admin operations)
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      throw new Error('UNAUTHORIZED: Authentication required for admin operations');
+    }
+
+    const user = await authenticateUser(supabase, authHeader);
+
+    // STEP 5: Authorization - Check admin role
+    const { data: adminCheck } = await supabase
       .from('Practitioners')
       .select('role')
       .eq('id', user.id)
       .single();
 
     if (adminCheck?.role !== 'admin') {
-      return sendError('Admin privileges required', 403);
+      throw new Error('FORBIDDEN: Admin privileges required');
     }
 
     // Only allow GET requests for analytics
     if (req.method !== 'GET') {
-      return sendError('Only GET method is allowed', 405);
+      throw new Error('VALIDATION_FAILED: Only GET method is allowed');
     }
 
+    // STEP 6: Core Business Logic
     // Fetch all tags with usage statistics
-    const { data: allTags, error: tagsError } = await supabaseAdmin
+    const { data: allTags, error: tagsError } = await supabase
       .from('Tags')
       .select(`
         id,
@@ -74,8 +84,7 @@ Deno.serve(async (req: Request) => {
         parent_id,
         created_at,
         color,
-        description,
-        ReviewTags(count)
+        description
       `)
       .order('tag_name');
 
@@ -89,8 +98,13 @@ Deno.serve(async (req: Request) => {
     const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
     // Transform tags data and calculate statistics
-    const tagsWithStats: TagWithStats[] = (allTags || []).map(tag => {
-      const usageCount = Array.isArray(tag.ReviewTags) ? tag.ReviewTags.length : 0;
+    const tagsWithStats: TagWithStats[] = await Promise.all((allTags || []).map(async (tag) => {
+      // Get usage count for this tag
+      const { count: usageCount } = await supabase
+        .from('ReviewTags')
+        .select('*', { count: 'exact' })
+        .eq('tag_id', tag.id);
+
       const createdAt = new Date(tag.created_at);
       
       return {
@@ -98,14 +112,14 @@ Deno.serve(async (req: Request) => {
         tag_name: tag.tag_name,
         parent_id: tag.parent_id,
         created_at: tag.created_at,
-        usage_count: usageCount,
+        usage_count: usageCount || 0,
         direct_children: 0, // Will be calculated below
         total_descendants: 0, // Will be calculated below
-        recent_usage: createdAt > oneWeekAgo ? usageCount : 0,
+        recent_usage: createdAt > oneWeekAgo ? (usageCount || 0) : 0,
         color: tag.color,
         description: tag.description
       };
-    });
+    }));
 
     // Calculate hierarchy statistics
     const tagMap = new Map(tagsWithStats.map(tag => [tag.id, tag]));
@@ -191,13 +205,12 @@ Deno.serve(async (req: Request) => {
       recentTags
     };
 
-    return sendSuccess(analytics);
+    // STEP 7: Standardized Success Response
+    return createSuccessResponse(analytics, rateLimitHeaders(rateLimitResult));
 
   } catch (error) {
-    console.error('Admin tag analytics error:', error);
-    return sendError(
-      error instanceof Error ? error.message : 'Internal server error',
-      500
-    );
+    // STEP 8: Centralized Error Handling
+    console.error('Error in admin-tag-analytics:', error);
+    return createErrorResponse(error);
   }
 });

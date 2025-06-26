@@ -44,10 +44,26 @@ serve(async (req) => {
     }
 
     // STEP 5: Input Validation
-    const body: PostDetailRequest = await req.json();
+    let postId: number;
     
-    if (!body.post_id || typeof body.post_id !== 'number') {
-      throw new Error('VALIDATION_FAILED: Invalid post_id provided');
+    if (req.method === 'GET') {
+      // Handle GET request with URL parameter
+      const url = new URL(req.url);
+      const postIdParam = url.searchParams.get('post_id');
+      if (!postIdParam) {
+        throw new Error('VALIDATION_FAILED: post_id query parameter is required');
+      }
+      postId = parseInt(postIdParam, 10);
+      if (isNaN(postId)) {
+        throw new Error('VALIDATION_FAILED: post_id must be a valid number');
+      }
+    } else {
+      // Handle POST request with JSON body
+      const body: PostDetailRequest = await req.json();
+      if (!body.post_id || typeof body.post_id !== 'number') {
+        throw new Error('VALIDATION_FAILED: Invalid post_id provided');
+      }
+      postId = body.post_id;
     }
 
     // STEP 6: Core Business Logic
@@ -61,7 +77,7 @@ serve(async (req) => {
           avatar_url
         )
       `)
-      .eq('id', body.post_id)
+      .eq('id', postId)
       .single();
 
     if (postError || !post) {
@@ -77,7 +93,7 @@ serve(async (req) => {
       const { data: voteData } = await supabase
         .from('CommunityPost_Votes')
         .select('vote_type')
-        .eq('post_id', body.post_id)
+        .eq('post_id', postId)
         .eq('practitioner_id', user.id)
         .single();
       
@@ -87,7 +103,7 @@ serve(async (req) => {
       const { data: savedData } = await supabase
         .from('SavedPosts')
         .select('id')
-        .eq('post_id', body.post_id)
+        .eq('post_id', postId)
         .eq('practitioner_id', user.id)
         .single();
       
@@ -107,26 +123,30 @@ serve(async (req) => {
     const { count: replyCount } = await supabase
       .from('CommunityPosts')
       .select('id', { count: 'exact' })
-      .eq('parent_post_id', body.post_id);
+      .eq('parent_post_id', postId);
 
-    // Format response
+    // Format response with proper fallbacks
     const response = {
       id: post.id,
-      title: post.title,
-      content: post.content,
-      category: post.category,
+      title: post.title || 'Post sem título',
+      content: post.content || '',
+      category: post.category || 'geral',
       upvotes: post.upvotes || 0,
       downvotes: post.downvotes || 0,
       created_at: post.created_at,
       is_pinned: post.is_pinned || false,
       is_locked: post.is_locked || false,
-      flair_text: post.flair_text,
-      flair_color: post.flair_color,
+      flair_text: post.flair_text || null,
+      flair_color: post.flair_color || null,
       post_type: post.post_type || 'text',
-      image_url: post.image_url,
-      video_url: post.video_url,
-      poll_data: post.poll_data,
-      author: post.author,
+      image_url: post.image_url || null,
+      video_url: post.video_url || null,
+      poll_data: post.poll_data || null,
+      author: post.author || {
+        id: post.author_id || null,
+        full_name: 'Usuário removido',
+        avatar_url: null
+      },
       user_vote: userVote,
       reply_count: replyCount || 0,
       is_saved: isSaved,

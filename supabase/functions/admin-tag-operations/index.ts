@@ -1,9 +1,11 @@
 // ABOUTME: Admin endpoint for comprehensive tag management operations with enhanced analytics and hierarchy support.
 
-import { handleCorsPreflightRequest } from '../_shared/cors.ts';
-import { getUserFromRequest } from '../_shared/auth.ts';
-import { sendSuccess, sendError } from '../_shared/api-helpers.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.0';
+import { corsHeaders, handleCorsPreflightRequest } from '../_shared/cors.ts';
+import { createSuccessResponse, createErrorResponse, authenticateUser } from '../_shared/api-helpers.ts';
+import { checkRateLimit, rateLimitHeaders, RateLimitError } from '../_shared/rate-limit.ts';
+import { getUserFromRequest, requireRole } from '../_shared/auth.ts';
 
 interface TagOperationPayload {
   action: 'create' | 'update' | 'delete' | 'merge' | 'move' | 'cleanup';
@@ -15,47 +17,54 @@ interface TagOperationPayload {
   bulkTagIds?: number[];
 }
 
-Deno.serve(async (req: Request) => {
-  // Handle CORS preflight
+serve(async (req: Request) => {
+  // STEP 1: CORS Preflight Handling
   if (req.method === 'OPTIONS') {
     return handleCorsPreflightRequest();
   }
 
   try {
-    // Authenticate and verify admin privileges
-    const { user, error: authError } = await getUserFromRequest(req);
-    if (authError || !user) {
-      return sendError('Authentication required', 401);
-    }
-
-    // Initialize Supabase admin client
-    const supabaseAdmin = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
-      { auth: { persistSession: false } }
+    // STEP 2: Create Supabase client
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Check if user is admin
-    const { data: adminCheck } = await supabaseAdmin
+    // STEP 3: Rate Limiting
+    const rateLimitResult = await checkRateLimit(req, { windowMs: 60000, maxRequests: 30 });
+    if (!rateLimitResult.success) {
+      throw RateLimitError;
+    }
+
+    // STEP 4: Authentication (Required for admin operations)
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      throw new Error('UNAUTHORIZED: Authentication required for admin operations');
+    }
+
+    const user = await authenticateUser(supabase, authHeader);
+
+    // STEP 5: Authorization - Check admin role
+    const { data: adminCheck } = await supabase
       .from('Practitioners')
       .select('role')
       .eq('id', user.id)
       .single();
 
     if (adminCheck?.role !== 'admin') {
-      return sendError('Admin privileges required', 403);
+      throw new Error('FORBIDDEN: Admin privileges required');
     }
 
+    // STEP 6: Core Business Logic
     if (req.method === 'GET') {
       // Fetch all tags with usage statistics
-      const { data: tags, error: tagsError } = await supabaseAdmin
+      const { data: tags, error: tagsError } = await supabase
         .from('Tags')
         .select(`
           id,
           tag_name,
           parent_id,
-          created_at,
-          ReviewTags(count)
+          created_at
         `)
         .order('tag_name');
 
@@ -63,19 +72,27 @@ Deno.serve(async (req: Request) => {
         throw new Error(`Failed to fetch tags: ${tagsError.message}`);
       }
 
-      // Transform data to include usage statistics
-      const tagsWithStats = (tags || []).map(tag => ({
-        id: tag.id,
-        tag_name: tag.tag_name,
-        parent_id: tag.parent_id,
-        created_at: tag.created_at,
-        usage_count: Array.isArray(tag.ReviewTags) ? tag.ReviewTags.length : 0,
-        direct_children: 0, // Will be calculated client-side
-        total_descendants: 0, // Will be calculated client-side
-        recent_usage: 0 // Will be calculated client-side
+      // Get usage statistics separately to avoid join issues
+      const tagsWithStats = await Promise.all((tags || []).map(async (tag) => {
+        const { count: usageCount } = await supabase
+          .from('ReviewTags')
+          .select('*', { count: 'exact' })
+          .eq('tag_id', tag.id);
+
+        return {
+          id: tag.id,
+          tag_name: tag.tag_name,
+          parent_id: tag.parent_id,
+          created_at: tag.created_at,
+          usage_count: usageCount || 0,
+          direct_children: 0, // Will be calculated client-side
+          total_descendants: 0, // Will be calculated client-side
+          recent_usage: 0 // Will be calculated client-side
+        };
       }));
 
-      return sendSuccess(tagsWithStats);
+      // STEP 7: Standardized Success Response
+      return createSuccessResponse(tagsWithStats, rateLimitHeaders(rateLimitResult));
 
     } else if (req.method === 'POST') {
       // Parse request body for tag operations
@@ -83,11 +100,14 @@ Deno.serve(async (req: Request) => {
       try {
         const bodyText = await req.text();
         if (!bodyText || bodyText.trim() === '') {
-          return sendError('Request body is empty', 400);
+          throw new Error('VALIDATION_FAILED: Request body is empty');
         }
         payload = JSON.parse(bodyText);
       } catch (parseError) {
-        return sendError('Invalid JSON in request body', 400);
+        if (parseError instanceof Error && parseError.message.includes('VALIDATION_FAILED')) {
+          throw parseError;
+        }
+        throw new Error('VALIDATION_FAILED: Invalid JSON in request body');
       }
       
       const { action, tagId, parentId, name, description, mergeTargetId, bulkTagIds } = payload;
@@ -95,12 +115,12 @@ Deno.serve(async (req: Request) => {
       let result;
 
       switch (action) {
-        case 'create':
+        case 'create': {
           if (!name) {
-            return sendError('Tag name is required', 400);
+            throw new Error('VALIDATION_FAILED: Tag name is required');
           }
 
-          const { data: newTag, error: createError } = await supabaseAdmin
+          const { data: newTag, error: createError } = await supabase
             .from('Tags')
             .insert({
               tag_name: name.trim(),
@@ -112,7 +132,7 @@ Deno.serve(async (req: Request) => {
 
           if (createError) {
             if (createError.code === '23505') {
-              throw new Error('A tag with this name already exists');
+              throw new Error('VALIDATION_FAILED: A tag with this name already exists');
             }
             throw new Error(`Failed to create tag: ${createError.message}`);
           }
@@ -122,22 +142,23 @@ Deno.serve(async (req: Request) => {
             tag: newTag
           };
           break;
+        }
 
-        case 'update':
+        case 'update': {
           if (!tagId) {
-            return sendError('Tag ID is required', 400);
+            throw new Error('VALIDATION_FAILED: Tag ID is required');
           }
 
-          const updateData: any = {};
+          const updateData: Record<string, unknown> = {};
           if (name !== undefined) updateData.tag_name = name.trim();
           if (parentId !== undefined) updateData.parent_id = parentId;
           if (description !== undefined) updateData.description = description?.trim();
 
           if (Object.keys(updateData).length === 0) {
-            return sendError('At least one field must be provided for update', 400);
+            throw new Error('VALIDATION_FAILED: At least one field must be provided for update');
           }
 
-          const { data: updatedTag, error: updateError } = await supabaseAdmin
+          const { data: updatedTag, error: updateError } = await supabase
             .from('Tags')
             .update(updateData)
             .eq('id', tagId)
@@ -153,33 +174,34 @@ Deno.serve(async (req: Request) => {
             tag: updatedTag
           };
           break;
+        }
 
-        case 'delete':
+        case 'delete': {
           if (!tagId) {
-            return sendError('Tag ID is required', 400);
+            throw new Error('VALIDATION_FAILED: Tag ID is required');
           }
 
           // Check if tag has children
-          const { data: children } = await supabaseAdmin
+          const { data: children } = await supabase
             .from('Tags')
             .select('id')
             .eq('parent_id', tagId);
 
           if (children && children.length > 0) {
-            return sendError('Cannot delete tag with child tags', 400);
+            throw new Error('VALIDATION_FAILED: Cannot delete tag with child tags');
           }
 
           // Check if tag is used in reviews
-          const { data: reviews } = await supabaseAdmin
+          const { data: reviews } = await supabase
             .from('ReviewTags')
             .select('id')
             .eq('tag_id', tagId);
 
           if (reviews && reviews.length > 0) {
-            return sendError('Cannot delete tag that is used in reviews', 400);
+            throw new Error('VALIDATION_FAILED: Cannot delete tag that is used in reviews');
           }
 
-          const { error: deleteError } = await supabaseAdmin
+          const { error: deleteError } = await supabase
             .from('Tags')
             .delete()
             .eq('id', tagId);
@@ -193,14 +215,15 @@ Deno.serve(async (req: Request) => {
             tagId
           };
           break;
+        }
 
-        case 'merge':
+        case 'merge': {
           if (!tagId || !mergeTargetId) {
-            return sendError('Both source and target tag IDs are required for merge', 400);
+            throw new Error('VALIDATION_FAILED: Both source and target tag IDs are required for merge');
           }
 
           // Update all ReviewTags to use the target tag
-          const { error: mergeError } = await supabaseAdmin
+          const { error: mergeError } = await supabase
             .from('ReviewTags')
             .update({ tag_id: mergeTargetId })
             .eq('tag_id', tagId);
@@ -210,7 +233,7 @@ Deno.serve(async (req: Request) => {
           }
 
           // Delete the source tag
-          const { error: deleteSourceError } = await supabaseAdmin
+          const { error: deleteSourceError } = await supabase
             .from('Tags')
             .delete()
             .eq('id', tagId);
@@ -225,10 +248,11 @@ Deno.serve(async (req: Request) => {
             targetTagId: mergeTargetId
           };
           break;
+        }
 
-        case 'cleanup':
+        case 'cleanup': {
           // Remove unused tags (tags with no ReviewTags associations)
-          const { data: unusedTags, error: unusedError } = await supabaseAdmin
+          const { data: unusedTags, error: unusedError } = await supabase
             .from('Tags')
             .select('id')
             .not('id', 'in', `(SELECT DISTINCT tag_id FROM "ReviewTags")`);
@@ -243,7 +267,7 @@ Deno.serve(async (req: Request) => {
               removedCount: 0
             };
           } else {
-            const { error: cleanupError } = await supabaseAdmin
+            const { error: cleanupError } = await supabase
               .from('Tags')
               .delete()
               .in('id', unusedTags.map(tag => tag.id));
@@ -258,22 +282,22 @@ Deno.serve(async (req: Request) => {
             };
           }
           break;
+        }
 
         default:
-          return sendError(`Invalid action: ${action}`, 400);
+          throw new Error(`VALIDATION_FAILED: Invalid action: ${action}`);
       }
 
-      return sendSuccess(result);
+      // STEP 7: Standardized Success Response
+      return createSuccessResponse(result, rateLimitHeaders(rateLimitResult));
 
     } else {
-      return sendError('Only GET and POST methods are supported', 405);
+      throw new Error('VALIDATION_FAILED: Only GET and POST methods are supported');
     }
 
   } catch (error) {
-    console.error('Admin tag operations error:', error);
-    return sendError(
-      error instanceof Error ? error.message : 'Internal server error',
-      500
-    );
+    // STEP 8: Centralized Error Handling
+    console.error('Error in admin-tag-operations:', error);
+    return createErrorResponse(error);
   }
 });
