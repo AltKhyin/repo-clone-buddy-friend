@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { formatDistanceToNow, isValid, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { CommentEditor } from './CommentEditor';
+import { MinimalCommentInput } from './MinimalCommentInput';
 import { PostActionMenu } from './PostActionMenu';
 import { ChevronUp, ChevronDown, Award } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -85,7 +85,7 @@ export const Comment = ({ comment, indentationLevel, onCommentPosted }: CommentP
   };
 
   return (
-    <div className="flex gap-3 mt-4" style={indentationStyle}>
+    <div className="flex gap-2 mt-3" style={indentationStyle}>
       {/* Vertical connector line for nested comments */}
       {indentationLevel > 0 && (
         <div className="flex flex-col items-center">
@@ -95,11 +95,11 @@ export const Comment = ({ comment, indentationLevel, onCommentPosted }: CommentP
 
       <div className="flex-1">
         <div className={cn(
-          "p-3 transition-colors hover:bg-surface/20",
+          "p-2 transition-colors hover:bg-surface/20",
           comment.is_rewarded && "border-l-2 border-yellow-500 bg-yellow-50/50 dark:bg-yellow-950/20"
         )}>
           {/* Comment Header */}
-          <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
+          <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
             <div className="flex items-center gap-2">
               <Avatar className="w-6 h-6">
                 <AvatarImage src={comment.author?.avatar_url || ''} />
@@ -120,7 +120,7 @@ export const Comment = ({ comment, indentationLevel, onCommentPosted }: CommentP
 
           {/* Comment Body */}
           <div
-            className="prose dark:prose-invert prose-sm max-w-none mb-3"
+            className="prose dark:prose-invert prose-sm max-w-none mb-2"
             dangerouslySetInnerHTML={{ __html: comment.content }}
           />
 
@@ -169,12 +169,13 @@ export const Comment = ({ comment, indentationLevel, onCommentPosted }: CommentP
           </div>
         </div>
         
-        {/* Reply Editor */}
+        {/* Reply Input */}
         {isReplying && (
           <div className="mt-2 ml-4">
-            <CommentEditor
+            <MinimalCommentInput
               parentPostId={comment.id}
               onCommentPosted={handleReplyPosted}
+              placeholder="Reply to this comment"
             />
           </div>
         )}

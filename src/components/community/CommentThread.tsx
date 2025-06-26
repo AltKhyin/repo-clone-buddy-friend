@@ -211,7 +211,7 @@ export const CommentThread = ({ comments, onCommentPosted }: CommentThreadProps)
   return (
     <div className="space-y-1">
       {/* Thread stats */}
-      <div className="flex items-center justify-between mb-4 pb-2 border-b border-border/30">
+      <div className="flex items-center justify-between mb-3 pb-2 border-b border-border/30">
         <div className="text-sm text-muted-foreground">
           {totalComments} {totalComments === 1 ? 'comentário' : 'comentários'}
           {collapsedCount > 0 && (

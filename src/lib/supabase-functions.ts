@@ -56,65 +56,64 @@ export async function invokeFunctionGet<T>(
   functionName: string,
   headers?: Record<string, string>
 ): Promise<T> {
-  // For now, fall back to standard Supabase invoke which uses POST
-  // This avoids the HTML response issue we're seeing with direct fetch
-  console.log(`Invoking function ${functionName} via Supabase client`);
+  // Use direct GET fetch as primary method since GET functions expect actual GET requests
+  console.log(`Invoking function ${functionName} via direct GET fetch`);
   
-  try {
-    return await invokeFunction<T>(functionName, { headers });
-  } catch (error) {
-    console.error(`Function ${functionName} failed via Supabase client:`, error);
-    
-    // If Supabase client fails, try direct fetch as fallback
-    console.log(`Attempting direct fetch fallback for ${functionName}`);
-    
-    const { data: { session } } = await supabase.auth.getSession();
-    
-    const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/${functionName}`, {
-      method: 'GET',
-      headers: {
-        'Authorization': session?.access_token ? `Bearer ${session.access_token}` : '',
-        'Content-Type': 'application/json',
-        ...headers
-      }
-    });
+  const { data: { session } } = await supabase.auth.getSession();
+  
+  const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/${functionName}`, {
+    method: 'GET',
+    headers: {
+      'Authorization': session?.access_token ? `Bearer ${session.access_token}` : '',
+      'Content-Type': 'application/json',
+      ...headers
+    }
+  });
 
-    // Check content type first
-    const contentType = response.headers.get('content-type');
-    const responseText = await response.text();
+  // Check content type first
+  const contentType = response.headers.get('content-type');
+  const responseText = await response.text();
+  
+  if (!response.ok) {
+    console.error(`Function ${functionName} failed with status ${response.status}:`, responseText);
     
-    if (!response.ok) {
-      console.error(`Function ${functionName} failed with status ${response.status}:`, responseText);
+    // If direct GET fails, try fallback to Supabase client (POST) for functions that support both
+    console.log(`Direct GET failed, trying Supabase client fallback for ${functionName}`);
+    
+    try {
+      return await invokeFunction<T>(functionName, { headers });
+    } catch (fallbackError) {
+      console.error(`Both GET and POST attempts failed for ${functionName}`);
       throw new Error(`Function ${functionName} failed: ${response.status} ${response.statusText}`);
     }
-
-    // Check if response is actually JSON
-    if (!contentType || !contentType.includes('application/json')) {
-      console.error(`Function ${functionName} returned non-JSON response:`, responseText);
-      throw new Error(`Function ${functionName} returned invalid response (expected JSON, got ${contentType || 'unknown'})`);
-    }
-
-    let data;
-    try {
-      data = JSON.parse(responseText);
-    } catch (parseError) {
-      console.error(`Function ${functionName} JSON parse error:`, parseError, 'Response:', responseText);
-      throw new Error(`Function ${functionName} returned invalid JSON`);
-    }
-    
-    // Handle standardized error responses
-    if (data?.success === false && data?.error) {
-      throw new Error(data.error);
-    }
-    
-    // Extract data from standardized wrapper if present
-    if (data?.success === true && data?.data !== undefined) {
-      return data.data as T;
-    }
-    
-    // Return raw data if not wrapped (backward compatibility)
-    return data as T;
   }
+
+  // Check if response is actually JSON
+  if (!contentType || !contentType.includes('application/json')) {
+    console.error(`Function ${functionName} returned non-JSON response:`, responseText);
+    throw new Error(`Function ${functionName} returned invalid response (expected JSON, got ${contentType || 'unknown'})`);
+  }
+
+  let data;
+  try {
+    data = JSON.parse(responseText);
+  } catch (parseError) {
+    console.error(`Function ${functionName} JSON parse error:`, parseError, 'Response:', responseText);
+    throw new Error(`Function ${functionName} returned invalid JSON`);
+  }
+  
+  // Handle standardized error responses
+  if (data?.success === false && data?.error) {
+    throw new Error(data.error);
+  }
+  
+  // Extract data from standardized wrapper if present
+  if (data?.success === true && data?.data !== undefined) {
+    return data.data as T;
+  }
+  
+  // Return raw data if not wrapped (backward compatibility)
+  return data as T;
 }
 
 /**

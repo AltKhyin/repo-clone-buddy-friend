@@ -147,12 +147,12 @@ export const PostDetailCard = ({ post }: PostDetailCardProps) => {
 
   return (
     <div className={cn(
-      "reddit-post-item mb-6",
+      "reddit-post-item mb-4",
       post.is_pinned && "ring-2 ring-primary/20 bg-primary/5"
     )}>
-      <div className="p-6">
+      <div className="p-4">
         {/* UNIFIED HEADER: Avatar + Author + Time + Badges (matching PostCard) */}
-        <div className="flex items-start justify-between gap-4 mb-4">
+        <div className="flex items-start justify-between gap-3 mb-3">
           <div className="flex items-center gap-3 min-w-0 flex-1">
             <Avatar className="w-10 h-10 flex-shrink-0">
               <AvatarImage src={post.author?.avatar_url || undefined} />
@@ -214,7 +214,7 @@ export const PostDetailCard = ({ post }: PostDetailCardProps) => {
             )}
             
             {/* Category badge */}
-            <Badge variant={categoryColor as any} className="flex-shrink-0">
+            <Badge variant={categoryColor as "default" | "destructive" | "outline" | "secondary"} className="flex-shrink-0">
               {categoryLabel}
             </Badge>
 
@@ -224,47 +224,49 @@ export const PostDetailCard = ({ post }: PostDetailCardProps) => {
         </div>
 
         {/* Title - Always Present */}
-        <h1 className="reddit-post-title text-2xl mb-4">
+        <h1 className="reddit-post-title text-xl mb-3">
           {post.title || 'Post sem título'}
         </h1>
 
         {/* Full content - Text first, then media */}
         {post.content && (
           <div 
-            className="prose dark:prose-invert prose-lg max-w-none text-foreground mb-6"
+            className="prose dark:prose-invert prose-sm max-w-none text-foreground mb-4"
             dangerouslySetInnerHTML={{ __html: post.content }}
           />
         )}
 
-        {/* Media content - Always displayed if exists */}
-        {post.image_url && (
-          <div className="mb-6">
+        {/* Media content - Displayed based on post_type */}
+        {post.post_type === 'image' && post.image_url && (
+          <div className="mb-4">
             <img 
               src={post.image_url} 
               alt="Post image" 
-              className="rounded-lg max-w-full h-auto"
+              className="rounded-lg max-w-full h-auto border"
+              loading="lazy"
             />
           </div>
         )}
 
-        {post.video_url && (
-          <div className="mb-6">
+        {post.post_type === 'video' && post.video_url && (
+          <div className="mb-4">
             <video 
               src={post.video_url} 
               controls 
-              className="rounded-lg max-w-full h-auto"
+              className="rounded-lg max-w-full h-auto border"
+              preload="metadata"
             />
           </div>
         )}
 
-        {post.poll_data && (
-          <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border">
+        {post.post_type === 'poll' && post.poll_data && (
+          <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg border">
             <div className="text-lg font-medium text-blue-900 dark:text-blue-100 mb-3">
               📊 {post.poll_data.question || 'Enquete'}
             </div>
             {post.poll_data.options && post.poll_data.options.length > 0 && (
               <div className="space-y-2">
-                {post.poll_data.options.map((option: any, index: number) => (
+                {post.poll_data.options.map((option: { text?: string; votes?: number }, index: number) => (
                   <div key={index} className="p-3 bg-white dark:bg-blue-900/20 rounded border">
                     <div className="font-medium">{option.text || `Opção ${index + 1}`}</div>
                     <div className="text-sm text-muted-foreground">
@@ -279,7 +281,7 @@ export const PostDetailCard = ({ post }: PostDetailCardProps) => {
       </div>
 
       {/* Bottom Action Row - Mobile-Optimized Touch Targets (matching PostCard) */}
-      <div className="px-6 pb-4">
+      <div className="px-4 pb-3">
         <div className="flex items-center gap-1 text-muted-foreground">
           {/* Vote Section */}
           <div className="flex items-center gap-1">

@@ -4,7 +4,7 @@
 import React from 'react';
 import { PostDetailCard } from './PostDetailCard';
 import { CommentThread } from './CommentThread';
-import { CommentEditor } from './CommentEditor';
+import { MinimalCommentInput } from './MinimalCommentInput';
 import { useAuthStore } from '../../store/auth';
 import { Separator } from '../ui/separator';
 import type { CommunityPost } from '../../types/community';
@@ -24,22 +24,20 @@ export const PostDetail = ({ post, comments }: PostDetailProps) => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Main Post */}
       <PostDetailCard post={post} />
       
       {/* Comment Section Separator */}
       <Separator className="border-border/50" />
       
-      {/* Comment Editor for Top-Level Comments */}
+      {/* Minimal Comment Input for Top-Level Comments */}
       {user && !post.is_locked && (
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold">Adicionar Comentário</h3>
-          <CommentEditor
-            parentPostId={post.id}
-            onCommentPosted={handleCommentPosted}
-          />
-        </div>
+        <MinimalCommentInput
+          parentPostId={post.id}
+          onCommentPosted={handleCommentPosted}
+          placeholder="Join the conversation"
+        />
       )}
       
       {/* Locked Post Notice */}
@@ -54,7 +52,7 @@ export const PostDetail = ({ post, comments }: PostDetailProps) => {
       )}
       
       {/* Comments Thread with Enhanced Threading */}
-      <div className="space-y-4">
+      <div className="space-y-3">
         <CommentThread 
           comments={comments} 
           onCommentPosted={handleCommentPosted}

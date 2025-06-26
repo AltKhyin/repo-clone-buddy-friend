@@ -23,8 +23,8 @@ const CommunityPostDetailContent = () => {
     console.log('CommunityPostDetail: Raw params object:', params);
     console.log('CommunityPostDetail: Available param keys:', Object.keys(params));
     
-    // Try different possible parameter names
-    const rawId = params.id || params.postId || params.post_id;
+    // Try different possible parameter names (postId first as defined in route)
+    const rawId = params.postId || params.id || params.post_id;
     console.log('CommunityPostDetail: Raw ID value:', rawId, 'Type:', typeof rawId);
     
     if (!rawId) {

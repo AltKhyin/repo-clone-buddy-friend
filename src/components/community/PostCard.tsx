@@ -22,6 +22,15 @@ interface PostCardProps {
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
+  // Current frontend Portuguese categories
+  'discussao-geral': 'Discussão Geral',
+  'duvida-clinica': 'Dúvida Clínica',
+  'caso-clinico': 'Caso Clínico',
+  'evidencia-cientifica': 'Evidência Científica',
+  'tecnologia-saude': 'Tecnologia & Saúde',
+  'carreira-medicina': 'Carreira em Medicina',
+  'bem-estar-medico': 'Bem-estar Médico',
+  // Legacy English categories for backward compatibility
   general: 'Geral',
   review_discussion: 'Review',
   question: 'Pergunta',
