@@ -79,7 +79,17 @@ Deno.serve(async (req: Request) => {
 
     } else if (req.method === 'POST') {
       // Parse request body for tag operations
-      const payload: TagOperationPayload = await req.json();
+      let payload: TagOperationPayload;
+      try {
+        const bodyText = await req.text();
+        if (!bodyText || bodyText.trim() === '') {
+          return sendError('Request body is empty', 400);
+        }
+        payload = JSON.parse(bodyText);
+      } catch (parseError) {
+        return sendError('Invalid JSON in request body', 400);
+      }
+      
       const { action, tagId, parentId, name, description, mergeTargetId, bulkTagIds } = payload;
 
       let result;

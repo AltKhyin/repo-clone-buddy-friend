@@ -136,7 +136,7 @@ export const Comment = ({ comment, indentationLevel, onCommentPosted }: CommentP
                 size="sm"
                 className={cn(
                   "h-8 px-2 text-xs hover:bg-surface-muted/50",
-                  comment.user_vote === 'up' && "text-green-600 bg-green-50 hover:bg-green-100"
+                  comment.user_vote === 'up' && "text-green-600 bg-green-50 dark:bg-green-950/20 hover:bg-green-100 dark:hover:bg-green-900/30"
                 )}
                 onClick={() => handleVote('up')}
                 disabled={castVoteMutation.isPending}
@@ -150,7 +150,7 @@ export const Comment = ({ comment, indentationLevel, onCommentPosted }: CommentP
                 size="sm"
                 className={cn(
                   "h-8 px-2 text-xs hover:bg-surface-muted/50",
-                  comment.user_vote === 'down' && "text-red-600 bg-red-50 hover:bg-red-100"
+                  comment.user_vote === 'down' && "text-red-600 bg-red-50 dark:bg-red-950/20 hover:bg-red-100 dark:hover:bg-red-900/30"
                 )}
                 onClick={() => handleVote('down')}
                 disabled={castVoteMutation.isPending}

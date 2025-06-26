@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Suggestion } from './NextEditionModule';
 import { useCastVoteMutation } from '../../../packages/hooks/useCastVoteMutation';
 import { toast } from 'sonner';
+import { cn } from '../../lib/utils';
 
 interface SuggestionPollItemProps {
   suggestion: Suggestion;
@@ -58,15 +59,18 @@ const SuggestionPollItem: React.FC<SuggestionPollItemProps> = ({ suggestion }) =
           {suggestion.upvotes}
         </span>
         <Button
-          variant={suggestion.user_has_voted ? "default" : "outline"}
+          variant="ghost"
           size="sm"
           onClick={handleVote}
           disabled={mutation.isPending}
-          className="p-2 h-8 w-8"
+          className={cn(
+            "p-2 h-8 w-8",
+            suggestion.user_has_voted && "text-green-600 bg-green-50 dark:bg-green-950/20 hover:bg-green-100 dark:hover:bg-green-900/30"
+          )}
         >
           <ChevronUp 
             size={14} 
-            className={suggestion.user_has_voted ? "text-primary-foreground" : "text-secondary"} 
+            className={suggestion.user_has_voted ? "text-current" : "text-muted-foreground"} 
           />
         </Button>
       </div>

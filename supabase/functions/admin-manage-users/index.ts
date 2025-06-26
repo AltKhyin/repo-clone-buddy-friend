@@ -65,16 +65,14 @@ Deno.serve(async (req: Request) => {
 
     switch (action) {
       case 'list':
-        // List users with filters
+        // List users with filters - join with auth.users to get email
         let query = supabaseAdmin
           .from('Practitioners')
           .select(`
             id, 
             full_name, 
-            email, 
             role, 
             subscription_tier, 
-            banned, 
             created_at, 
             avatar_url,
             profession_flair,
@@ -92,7 +90,7 @@ Deno.serve(async (req: Request) => {
           query = query.eq('banned', filters.banned);
         }
         if (filters?.search) {
-          query = query.or(`full_name.ilike.%${filters.search}%,email.ilike.%${filters.search}%`);
+          query = query.or(`full_name.ilike.%${filters.search}%`);
         }
 
         const page = (filters?.page || 1) - 1; // Convert to 0-based indexing
@@ -102,14 +100,18 @@ Deno.serve(async (req: Request) => {
         const { data: users, error: listError, count } = await query;
         if (listError) throw new Error(`Failed to list users: ${listError.message}`);
 
+        // Get emails from auth.users for each practitioner
+        const userIds = (users || []).map(user => user.id);
+        const { data: authUsers } = await supabaseAdmin.auth.admin.listUsers();
+        const emailMap = new Map(authUsers.users?.map(u => [u.id, u.email]) || []);
+
         // Normalize user data to ensure all required fields are present
         const normalizedUsers = (users || []).map(user => ({
           id: user.id,
           full_name: user.full_name || 'Nome não informado',
-          email: user.email,
+          email: emailMap.get(user.id) || 'Email não encontrado',
           role: user.role || 'practitioner',
           subscription_tier: user.subscription_tier || 'free',
-          banned: user.banned || false,
           created_at: user.created_at,
           avatar_url: user.avatar_url,
           profession_flair: user.profession_flair,
@@ -136,7 +138,7 @@ Deno.serve(async (req: Request) => {
 
         const { data: singleUser, error: getUserError } = await supabaseAdmin
           .from('Practitioners')
-          .select('id, full_name, email, role, subscription_tier, banned, created_at, avatar_url, contribution_score')
+          .select('id, full_name, role, subscription_tier, created_at, avatar_url, contribution_score')
           .eq('id', targetUserId)
           .single();
 
@@ -144,7 +146,13 @@ Deno.serve(async (req: Request) => {
           throw new Error(`Failed to fetch user: ${getUserError.message}`);
         }
 
-        result = singleUser;
+        // Get email from auth.users
+        const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(targetUserId);
+
+        result = {
+          ...singleUser,
+          email: authUser.user?.email || 'Email não encontrado'
+        };
         break;
 
       case 'promote':
