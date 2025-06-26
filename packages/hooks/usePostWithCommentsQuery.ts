@@ -75,10 +75,11 @@ const fetchPostWithComments = async (postId: number): Promise<PostWithCommentsDa
   } catch (edgeFunctionError) {
     console.error('Edge function approach failed, trying direct query:', edgeFunctionError);
     
-    // Strategy 2: Fallback to direct database query
+    // Strategy 2: Fallback to direct database query with vote data
     try {
-      console.log('Attempting direct database query...');
+      console.log('Attempting direct database query with vote data...');
       
+      // Get basic post data
       const { data: post, error: postError } = await supabase
         .from('CommunityPosts')
         .select(`
@@ -104,6 +105,48 @@ const fetchPostWithComments = async (postId: number): Promise<PostWithCommentsDa
       }
 
       console.log('Post fetched successfully via direct query:', post);
+      
+      // Get user's vote data if authenticated
+      let userVote = null;
+      let isSaved = false;
+      
+      if (user) {
+        // Get user's vote on this post
+        const { data: voteData } = await supabase
+          .from('CommunityPost_Votes')
+          .select('vote_type')
+          .eq('post_id', postId)
+          .eq('practitioner_id', user.id)
+          .single();
+        
+        userVote = voteData?.vote_type || null;
+
+        // Check if post is saved by user
+        const { data: savedData } = await supabase
+          .from('SavedPosts')
+          .select('id')
+          .eq('post_id', postId)
+          .eq('practitioner_id', user.id)
+          .single();
+        
+        isSaved = !!savedData;
+      }
+      
+      // Get reply count for the post
+      const { count: replyCount } = await supabase
+        .from('CommunityPosts')
+        .select('id', { count: 'exact' })
+        .eq('parent_post_id', postId);
+      
+      // Enhance post with vote data
+      const enhancedPost = {
+        ...post,
+        user_vote: userVote,
+        reply_count: replyCount || 0,
+        is_saved: isSaved
+      };
+      
+      console.log('Enhanced post with vote data:', enhancedPost);
 
       // Fetch comments using the optimized RPC function
       const { data: comments, error: commentsError } = await supabase
@@ -115,12 +158,12 @@ const fetchPostWithComments = async (postId: number): Promise<PostWithCommentsDa
       if (commentsError) {
         console.error('Comments RPC error (fallback):', commentsError);
         // Don't fail the entire query if comments fail
-        return { post: post as CommunityPost, comments: [] };
+        return { post: enhancedPost as CommunityPost, comments: [] };
       }
 
       console.log('=== fetchPostWithComments SUCCESS ===');
       return {
-        post: post as CommunityPost,
+        post: enhancedPost as CommunityPost,
         comments: (comments || []) as CommunityPost[]
       };
       
@@ -142,8 +185,17 @@ const fetchPostWithComments = async (postId: number): Promise<PostWithCommentsDa
       }
       
       console.log('Minimal post data retrieved as fallback:', minimalPost);
+      
+      // Add minimal vote data structure for compatibility
+      const minimalEnhancedPost = {
+        ...minimalPost,
+        user_vote: null,
+        reply_count: 0,
+        is_saved: false
+      };
+      
       return {
-        post: minimalPost as CommunityPost,
+        post: minimalEnhancedPost as CommunityPost,
         comments: []
       };
     }

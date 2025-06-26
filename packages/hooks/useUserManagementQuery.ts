@@ -19,6 +19,13 @@ interface UserData {
   display_hover_card?: boolean;
 }
 
+interface UpdateUserParams {
+  userId: string;
+  role?: string;
+  subscriptionTier?: string;
+  profileData?: UserData;
+}
+
 interface UserWithRoles {
   id: string;
   full_name: string;
@@ -128,19 +135,30 @@ export const useUpdateUserMutation = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ userId, role, subscriptionTier }: { 
-      userId: string; 
-      role?: string; 
-      subscriptionTier?: string; 
-    }) => {
-      console.log('Updating user via Edge Function...', { userId, role, subscriptionTier });
+    mutationFn: async ({ userId, role, subscriptionTier, profileData }: UpdateUserParams) => {
+      console.log('Updating user via Edge Function...', { userId, role, subscriptionTier, profileData });
+      
+      // Determine action based on what's being updated
+      let action: string;
+      let payload: any = {
+        targetUserId: userId
+      };
+      
+      if (role) {
+        action = 'promote';
+        payload.newRole = role;
+        payload.subscriptionTier = subscriptionTier;
+      } else if (profileData) {
+        action = 'update_profile';
+        payload.profileData = profileData;
+      } else {
+        throw new Error('Either role or profileData must be provided');
+      }
       
       const { data, error } = await supabase.functions.invoke('admin-manage-users', {
         body: {
-          action: role ? 'promote' : 'update_profile',
-          targetUserId: userId,
-          newRole: role,
-          subscriptionTier
+          action,
+          ...payload
         }
       });
       

@@ -65,7 +65,7 @@ export const UserDetailModal = ({ userId, open, onOpenChange }: UserDetailModalP
     try {
       await updateUserMutation.mutateAsync({
         userId,
-        ...editForm // Spread the form data directly instead of wrapping in userData
+        profileData: editForm // Wrap form data in profileData as expected by Edge Function
       });
       
       toast({
