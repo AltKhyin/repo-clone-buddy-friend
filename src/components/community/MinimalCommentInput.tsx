@@ -64,27 +64,11 @@ export const MinimalCommentInput = ({
   };
 
   const handleImageClick = () => {
-    // Create a file input and trigger it
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/*';
-    input.onchange = (e) => {
-      const file = (e.target as HTMLInputElement)?.files?.[0];
-      if (file) {
-        // For now, just insert a placeholder in the text
-        const imageText = `[Imagem: ${file.name}]`;
-        setContent(prev => prev + (prev ? '\n\n' : '') + imageText);
-        toast.success('Imagem selecionada (funcionalidade em desenvolvimento)');
-      }
-    };
-    input.click();
+    toast.info('Upload de imagens em comentários será implementado em breve');
   };
 
   const handleGifClick = () => {
-    // Simple GIF placeholder functionality
-    const gifText = '[GIF]';
-    setContent(prev => prev + (prev ? '\n\n' : '') + gifText);
-    toast.info('GIF adicionado (funcionalidade em desenvolvimento)');
+    toast.info('GIFs em comentários serão implementados em breve');
   };
 
   const toggleRichText = () => {

@@ -237,6 +237,14 @@ export const PostDetailCard = ({ post }: PostDetailCardProps) => {
         )}
 
         {/* Media content - Displayed based on post_type */}
+        {/* Debug info */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="mb-2 p-2 bg-gray-100 dark:bg-gray-800 text-xs rounded">
+            <strong>Debug:</strong> post_type="{post.post_type}", image_url={post.image_url ? 'exists' : 'null'}, 
+            video_url={post.video_url ? 'exists' : 'null'}, poll_data={post.poll_data ? 'exists' : 'null'}
+          </div>
+        )}
+        
         {post.post_type === 'image' && post.image_url && (
           <div className="mb-4">
             <img 
