@@ -7,6 +7,7 @@ import {
 import AppShell from "@/components/shell/AppShell";
 import Index from "@/pages/Index";
 import CommunityPage from "@/pages/CommunityPage";
+import CreatePostPage from "@/pages/CreatePostPage";
 import ArchivePage from "@/pages/ArchivePage";
 import ReviewDetailPage from "@/pages/ReviewDetailPage";
 import ErrorBoundary from "@/components/ErrorBoundary";
@@ -54,6 +55,10 @@ const router = createBrowserRouter([
       {
         path: "comunidade",
         element: <CommunityPage />,
+      },
+      {
+        path: "comunidade/criar",
+        element: <CreatePostPage />,
       },
       {
         path: "comunidade/:postId",

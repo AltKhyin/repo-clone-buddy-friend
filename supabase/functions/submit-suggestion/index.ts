@@ -57,7 +57,7 @@ serve(async (req: Request) => {
       .insert({
         title: title.trim(),
         description: description ? description.trim() : null,
-        practitioner_id: user.id,
+        submitted_by: user.id,
         status: 'pending',
         upvotes: 0
       })

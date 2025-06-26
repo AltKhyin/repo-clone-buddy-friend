@@ -21,12 +21,12 @@ interface ReviewCardProps {
 }
 
 const ReviewCard: React.FC<ReviewCardProps> = ({ review }) => {
-  // Create URL-safe slug from title
-  const slug = encodeURIComponent(review.title);
+  // Use review ID for reliable navigation
+  const reviewId = review.id;
 
   return (
     <Card className="group hover:shadow-lg transition-all duration-200 h-full flex-shrink-0">
-      <Link to={`/reviews/${slug}`} className="block h-full">
+      <Link to={`/reviews/${reviewId}`} className="block h-full">
         <CardContent className="p-0 h-full flex flex-col">
           {/* Cover Image */}
           {review.cover_image_url ? (

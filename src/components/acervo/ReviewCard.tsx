@@ -13,8 +13,8 @@ interface ReviewCardProps {
 }
 
 const ReviewCard: React.FC<ReviewCardProps> = ({ review }) => {
-  // Create URL-safe slug from title
-  const slug = encodeURIComponent(review.title);
+  // Use review ID for reliable navigation
+  const reviewId = review.id;
   
   // Get all tags as a flat array for display
   const allTags = Object.entries(review.tags_json).flatMap(([categoria, subtags]) => {
@@ -27,7 +27,7 @@ const ReviewCard: React.FC<ReviewCardProps> = ({ review }) => {
 
   return (
     <Card className="group hover:shadow-lg transition-all duration-200 h-fit">
-      <Link to={`/reviews/${slug}`} className="block">
+      <Link to={`/reviews/${reviewId}`} className="block">
         <CardContent className="p-0">
           {/* Cover Image */}
           {review.cover_image_url ? (

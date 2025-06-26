@@ -80,32 +80,72 @@ serve(async (req) => {
 
     console.log(`Fetching review with slug: ${slug} for user: ${userId}`);
 
-    // Decode the slug to handle URL encoding
-    const decodedSlug = decodeURIComponent(slug);
-    console.log(`Decoded slug: ${decodedSlug}`);
-
-    // First, try to find the review without tags to avoid relationship issues
-    const { data: basicReview, error: basicError } = await supabase
-      .from('Reviews')
-      .select(`
-        id,
-        title,
-        description,
-        cover_image_url,
-        structured_content,
-        published_at,
-        access_level,
-        community_post_id,
-        view_count,
-        author:Practitioners!author_id(
+    // Try to parse as ID first, then fall back to title-based lookup
+    const parsedId = parseInt(slug, 10);
+    const isNumericId = !isNaN(parsedId) && parsedId > 0;
+    
+    let basicReview = null;
+    let basicError = null;
+    
+    if (isNumericId) {
+      console.log(`Looking up review by ID: ${parsedId}`);
+      // Try ID-based lookup first
+      const result = await supabase
+        .from('Reviews')
+        .select(`
           id,
-          full_name,
-          avatar_url
-        )
-      `)
-      .eq('status', 'published')
-      .eq('title', decodedSlug)
-      .maybeSingle(); // Use maybeSingle() instead of single() to handle no results gracefully
+          title,
+          description,
+          cover_image_url,
+          structured_content,
+          published_at,
+          access_level,
+          community_post_id,
+          view_count,
+          author:Practitioners!author_id(
+            id,
+            full_name,
+            avatar_url
+          )
+        `)
+        .eq('status', 'published')
+        .eq('id', parsedId)
+        .maybeSingle();
+      
+      basicReview = result.data;
+      basicError = result.error;
+    }
+    
+    // Fall back to title-based lookup if ID lookup failed or wasn't attempted
+    if (!basicReview && !basicError) {
+      const decodedSlug = decodeURIComponent(slug);
+      console.log(`Looking up review by title: ${decodedSlug}`);
+      
+      const result = await supabase
+        .from('Reviews')
+        .select(`
+          id,
+          title,
+          description,
+          cover_image_url,
+          structured_content,
+          published_at,
+          access_level,
+          community_post_id,
+          view_count,
+          author:Practitioners!author_id(
+            id,
+            full_name,
+            avatar_url
+          )
+        `)
+        .eq('status', 'published')
+        .eq('title', decodedSlug)
+        .maybeSingle();
+      
+      basicReview = result.data;
+      basicError = result.error;
+    }
 
     if (basicError) {
       console.error('Basic review fetch error:', basicError);
