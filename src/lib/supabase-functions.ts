@@ -61,7 +61,7 @@ export async function invokeFunctionGet<T>(
   
   const { data: { session } } = await supabase.auth.getSession();
   
-  const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/${functionName}`, {
+  const response = await fetch(`https://qjoxiowuiiupbvqlssgk.supabase.co/functions/v1/${functionName}`, {
     method: 'GET',
     headers: {
       'Authorization': session?.access_token ? `Bearer ${session.access_token}` : '',

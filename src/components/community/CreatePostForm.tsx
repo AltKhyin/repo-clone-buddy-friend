@@ -94,11 +94,21 @@ export const CreatePostForm = ({ onPostCreated }: CreatePostFormProps) => {
       options: pollData.options.map(opt => ({ text: opt.text }))
     } : undefined;
 
+    // Handle image upload to Supabase Storage if needed
+    let uploadedImageUrl = '';
+    if (postType === 'image' && imageFile) {
+      // TODO: Implement actual Supabase Storage upload
+      // For now, create a temporary URL that won't persist
+      uploadedImageUrl = URL.createObjectURL(imageFile);
+      toast.warning('Imagens são temporárias até implementar upload para Storage');
+    }
+
     const payload = {
       title: title.trim() || undefined,
       content: content.trim(),
       category,
       post_type: postType,
+      ...(postType === 'image' && uploadedImageUrl && { image_url: uploadedImageUrl }),
       ...(postType === 'video' && videoUrl && { video_url: videoUrl }),
       ...(postType === 'poll' && transformedPollData && { poll_data: transformedPollData })
     };

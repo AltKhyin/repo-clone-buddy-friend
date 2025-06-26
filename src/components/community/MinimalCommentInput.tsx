@@ -64,17 +64,37 @@ export const MinimalCommentInput = ({
   };
 
   const handleImageClick = () => {
-    // TODO: Implement image upload functionality
-    toast.info('Funcionalidade de imagem em desenvolvimento');
+    // Create a file input and trigger it
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement)?.files?.[0];
+      if (file) {
+        // For now, just insert a placeholder in the text
+        const imageText = `[Imagem: ${file.name}]`;
+        setContent(prev => prev + (prev ? '\n\n' : '') + imageText);
+        toast.success('Imagem selecionada (funcionalidade em desenvolvimento)');
+      }
+    };
+    input.click();
   };
 
   const handleGifClick = () => {
-    // TODO: Implement GIF picker functionality  
-    toast.info('Funcionalidade de GIF em desenvolvimento');
+    // Simple GIF placeholder functionality
+    const gifText = '[GIF]';
+    setContent(prev => prev + (prev ? '\n\n' : '') + gifText);
+    toast.info('GIF adicionado (funcionalidade em desenvolvimento)');
   };
 
   const toggleRichText = () => {
     setIsRichText(!isRichText);
+    // Visual feedback for toggling
+    if (!isRichText) {
+      toast.info('Modo texto rico ativado (funcionalidade em desenvolvimento)');
+    } else {
+      toast.info('Modo texto simples ativado');
+    }
     // Focus textarea after toggle
     setTimeout(() => {
       textareaRef.current?.focus();
