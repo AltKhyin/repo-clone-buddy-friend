@@ -18,8 +18,9 @@ export const PostDetail = ({ post, comments }: PostDetailProps) => {
   const { user } = useAuthStore();
 
   const handleCommentPosted = () => {
-    // Trigger refetch of comments - this will be handled by the parent component
-    window.location.reload(); // Temporary solution - should use proper cache invalidation
+    // Comment posted successfully - TanStack Query will handle cache invalidation automatically
+    // No need for manual reload as useCreateCommentMutation invalidates the postWithComments query
+    console.log('Comment posted successfully - cache will be updated automatically');
   };
 
   return (

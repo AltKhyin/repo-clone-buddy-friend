@@ -33,35 +33,54 @@ export const CommentThread = ({ comments, onCommentPosted }: CommentThreadProps)
 
   // Build hierarchical tree from flat list with depth tracking
   const commentTree = useMemo(() => {
+    console.log('Building comment tree from comments:', comments);
+    
     const commentMap = new Map<number, EnhancedComment>();
     const rootComments: EnhancedComment[] = [];
 
     // First pass: Create enhanced comment objects
     comments.forEach(comment => {
-      commentMap.set(comment.id, { 
+      const enhancedComment = { 
         ...comment, 
         replies: [],
         depth: 0,
         hasReplies: false
-      });
+      };
+      commentMap.set(comment.id, enhancedComment);
+      console.log(`Created enhanced comment ${comment.id}, parent_post_id: ${comment.parent_post_id}`);
     });
 
     // Second pass: Build tree structure and calculate depth
-    comments.forEach(comment => {
+    // Sort comments by nesting_level to process parents before children
+    const sortedComments = [...comments].sort((a, b) => (a.nesting_level || 0) - (b.nesting_level || 0));
+    
+    sortedComments.forEach(comment => {
       const enhancedComment = commentMap.get(comment.id)!;
       
-      if (comment.parent_post_id && commentMap.has(comment.parent_post_id)) {
-        // This is a reply to another comment
-        const parentComment = commentMap.get(comment.parent_post_id)!;
+      // Find the parent in our comment map (for threaded replies)
+      const parentComment = comment.parent_post_id ? commentMap.get(comment.parent_post_id) : null;
+      
+      if (parentComment) {
+        // This is a reply to another comment in our tree
         enhancedComment.depth = parentComment.depth + 1;
+        enhancedComment.nesting_level = comment.nesting_level || (parentComment.nesting_level || 0) + 1;
         parentComment.replies.push(enhancedComment);
         parentComment.hasReplies = true;
+        console.log(`Added comment ${comment.id} as reply to ${comment.parent_post_id} at depth ${enhancedComment.depth}`);
       } else {
-        // This is a top-level comment
+        // This is a top-level comment (direct reply to the main post)
+        enhancedComment.depth = 0;
+        enhancedComment.nesting_level = comment.nesting_level || 1;
         rootComments.push(enhancedComment);
+        console.log(`Added comment ${comment.id} as root comment`);
       }
     });
 
+    console.log('Built comment tree:', { rootComments: rootComments.length, totalComments: comments.length });
+    
+    // Sort root comments by creation date (newest first for better UX)
+    rootComments.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+    
     return rootComments;
   }, [comments]);
 

@@ -26,56 +26,57 @@ interface ReviewDetailResponse {
 }
 
 serve(async (req) => {
-  // Handle CORS preflight requests
+  // STEP 1: CORS Preflight Handling
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return handleCorsPreflightRequest();
   }
 
   try {
+    // STEP 2: Create Supabase client
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
+    );
 
-    // Extract slug from request body
-    const { slug } = await req.json();
-
-    if (!slug) {
-      return new Response(JSON.stringify({
-        error: { message: 'Review slug is required', code: 'MISSING_SLUG' }
-      }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json', ...corsHeaders }
-      });
+    // STEP 3: Rate Limiting
+    const rateLimitResult = await checkRateLimit(req, { windowMs: 60000, maxRequests: 20 });
+    if (!rateLimitResult.success) {
+      throw RateLimitError;
     }
 
-    // Get user for rate limiting and RLS
-    const authHeader = req.headers.get('Authorization');
-    let userId = 'anonymous';
-    let userSubscriptionTier = 'free';
-    
-    if (authHeader) {
-      const { data: { user } } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
-      if (user) {
-        userId = user.id;
-        // Get user's subscription tier from JWT claims
-        userSubscriptionTier = user.user_metadata?.subscription_tier || 'free';
+    // STEP 4: Extract slug from request (support both GET params and POST body)
+    let slug;
+    if (req.method === 'GET') {
+      const url = new URL(req.url);
+      slug = url.searchParams.get('slug');
+    } else {
+      try {
+        const body = await req.json();
+        slug = body.slug;
+      } catch (error) {
+        console.error('Failed to parse request body:', error);
+        throw new Error('VALIDATION_FAILED: Invalid request format');
       }
     }
 
-    // Check rate limit (20 requests per 60 seconds) - enhanced per [DOC_5]
-    const rateLimitResult = await checkRateLimit(supabase, 'get-review-by-slug', userId, 20, 60);
-    if (!rateLimitResult.allowed) {
-      return new Response(JSON.stringify({
-        error: { message: 'Rate limit exceeded', code: 'RATE_LIMIT_EXCEEDED' }
-      }), {
-        status: 429,
-        headers: {
-          'Content-Type': 'application/json',
-          ...corsHeaders,
-          ...rateLimitHeaders(rateLimitResult)
-        }
-      });
+    if (!slug) {
+      throw new Error('VALIDATION_FAILED: Review slug is required');
+    }
+
+    // STEP 5: Authentication (Optional for reviews)
+    const authHeader = req.headers.get('Authorization');
+    let userId = null;
+    let userSubscriptionTier = 'free';
+    
+    if (authHeader) {
+      try {
+        const user = await authenticateUser(supabase, authHeader);
+        userId = user.id;
+        userSubscriptionTier = user.user_metadata?.subscription_tier || 'free';
+      } catch (authError) {
+        // Continue as anonymous user for public reviews
+        console.log('Authentication failed, continuing as anonymous:', authError.message);
+      }
     }
 
     console.log(`Fetching review with slug: ${slug} for user: ${userId}`);
@@ -153,6 +154,7 @@ serve(async (req) => {
     }
 
     if (!basicReview) {
+      const decodedSlug = decodeURIComponent(slug);
       console.log(`No review found with title: ${decodedSlug}`);
       
       // Let's also try a LIKE search to be more flexible
@@ -179,40 +181,34 @@ serve(async (req) => {
         .maybeSingle();
 
       if (!fuzzyReview) {
-        return new Response(JSON.stringify({
-          error: { message: 'Review not found', code: 'REVIEW_NOT_FOUND' }
-        }), {
-          status: 404,
-          headers: { 'Content-Type': 'application/json', ...corsHeaders }
-        });
+        throw new Error('REVIEW_NOT_FOUND: Review not found');
       }
 
-      // Use fuzzy match result
-      Object.assign(basicReview, fuzzyReview);
+      basicReview = fuzzyReview;
     }
 
     const review = basicReview;
 
-    // Check access level permissions (following RLS logic but explicit for clarity)
+    // Add fallback for missing author data
+    if (!review.author) {
+      review.author = {
+        id: review.author_id || 'unknown',
+        full_name: 'Autor removido',
+        avatar_url: null
+      };
+    }
+
+    // STEP 6: Access Control Validation
     const isPublic = review.access_level === 'public';
-    const isFreeUser = userId !== 'anonymous' && review.access_level === 'free_users_only';
-    const isPaying = userId !== 'anonymous' && userSubscriptionTier === 'paying' && review.access_level === 'paying_users_only';
+    const isFreeUser = userId && review.access_level === 'free_users_only';
+    const isPaying = userId && userSubscriptionTier === 'paying' && review.access_level === 'paying_users_only';
     const hasAccess = isPublic || isFreeUser || isPaying;
 
     if (!hasAccess) {
-      return new Response(JSON.stringify({
-        error: { 
-          message: 'Access denied. This content requires a higher subscription tier.',
-          code: 'ACCESS_DENIED',
-          required_tier: review.access_level
-        }
-      }), {
-        status: 403,
-        headers: { 'Content-Type': 'application/json', ...corsHeaders }
-      });
+      throw new Error(`ACCESS_DENIED: This content requires ${review.access_level} access level`);
     }
 
-    // Now try to get tags separately to avoid breaking the main query
+    // STEP 7: Fetch Tags (Non-blocking)
     let tags: string[] = [];
     try {
       const { data: tagData } = await supabase
@@ -231,7 +227,7 @@ serve(async (req) => {
     }
 
     // Asynchronously increment view count (fire and forget) - performance optimization
-    if (userId !== 'anonymous') {
+    if (userId) {
       supabase
         .from('Reviews')
         .update({ view_count: (review.view_count || 0) + 1 })
@@ -240,6 +236,7 @@ serve(async (req) => {
         .catch(err => console.error('Failed to increment view count:', err));
     }
 
+    // STEP 8: Build Response
     const response: ReviewDetailResponse = {
       id: review.id,
       title: review.title,
@@ -256,28 +253,12 @@ serve(async (req) => {
 
     console.log(`Successfully fetched review: ${review.title} with ${tags.length} tags`);
 
-    return new Response(JSON.stringify(response), {
-      headers: {
-        'Content-Type': 'application/json',
-        ...corsHeaders,
-        ...rateLimitHeaders(rateLimitResult)
-      }
-    });
+    // STEP 9: Standardized Success Response
+    return createSuccessResponse(response, rateLimitHeaders(rateLimitResult));
 
   } catch (error) {
+    // STEP 10: Centralized Error Handling
     console.error('Review detail fetch error:', error);
-    
-    return new Response(JSON.stringify({
-      error: {
-        message: error.message || 'Internal server error',
-        code: 'INTERNAL_ERROR'
-      }
-    }), {
-      status: 500,
-      headers: {
-        'Content-Type': 'application/json',
-        ...corsHeaders
-      }
-    });
+    return createErrorResponse(error);
   }
 });

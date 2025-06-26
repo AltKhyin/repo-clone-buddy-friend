@@ -21,6 +21,15 @@ interface PostDetailCardProps {
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
+  // Current frontend Portuguese categories
+  'discussao-geral': 'Discussão Geral',
+  'duvida-clinica': 'Dúvida Clínica',
+  'caso-clinico': 'Caso Clínico',
+  'evidencia-cientifica': 'Evidência Científica',
+  'tecnologia-saude': 'Tecnologia & Saúde',
+  'carreira-medicina': 'Carreira em Medicina',
+  'bem-estar-medico': 'Bem-estar Médico',
+  // Legacy English categories for backward compatibility
   general: 'Discussão Geral',
   review_discussion: 'Review',
   question: 'Pergunta',
@@ -28,6 +37,15 @@ const CATEGORY_LABELS: Record<string, string> = {
 };
 
 const CATEGORY_COLORS: Record<string, string> = {
+  // Current frontend Portuguese categories
+  'discussao-geral': 'default',
+  'duvida-clinica': 'outline',
+  'caso-clinico': 'secondary',
+  'evidencia-cientifica': 'default',
+  'tecnologia-saude': 'outline',
+  'carreira-medicina': 'secondary',
+  'bem-estar-medico': 'outline',
+  // Legacy English categories for backward compatibility
   general: 'default',
   review_discussion: 'secondary',
   question: 'outline',

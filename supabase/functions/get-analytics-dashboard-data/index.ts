@@ -1,13 +1,14 @@
 
 // ABOUTME: Analytics dashboard Edge Function using standardized pattern
 
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.0';
 import { corsHeaders, handleCorsPreflightRequest } from '../_shared/cors.ts';
 import { checkRateLimit, RateLimitError } from '../_shared/rate-limit.ts';
 import { authenticateRequest, requireRole } from '../_shared/auth.ts';
 import { createSuccessResponse, createErrorResponse } from '../_shared/api-helpers.ts';
 
-Deno.serve(async (req) => {
+serve(async (req) => {
   // Step 1: Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return handleCorsPreflightRequest();

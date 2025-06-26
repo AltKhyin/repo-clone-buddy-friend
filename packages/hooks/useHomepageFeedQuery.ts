@@ -51,16 +51,26 @@ export const useConsolidatedHomepageFeedQuery = () => {
     queryFn: async () => {
       console.log('Fetching consolidated homepage data...');
       
-      const data = await invokeFunctionGet<ConsolidatedHomepageData>('get-homepage-feed');
-      
-      console.log('Homepage data fetched successfully:', data);
-      return data;
+      try {
+        const data = await invokeFunctionGet<ConsolidatedHomepageData>('get-homepage-feed');
+        console.log('Homepage data fetched successfully:', data);
+        return data;
+      } catch (error) {
+        console.error('Homepage data fetch failed:', error);
+        console.error('Error details:', {
+          name: error?.name,
+          message: error?.message,
+          stack: error?.stack,
+        });
+        throw error;
+      }
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
     refetchOnWindowFocus: false,
     retry: (failureCount, error) => {
-      console.log(`Homepage query retry ${failureCount}:`, error);
+      console.error(`Homepage query retry ${failureCount}:`, error);
+      console.error('Error type:', typeof error, 'Error:', error);
       return failureCount < 2;
     },
   });

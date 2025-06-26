@@ -28,15 +28,59 @@ const createComment = async (payload: CreateCommentPayload) => {
 
 /**
  * Custom hook for creating comments.
- * Follows [D3.4] Data Access Layer patterns with proper cache invalidation.
+ * Follows [D3.4] Data Access Layer patterns with optimistic updates and proper cache invalidation.
  */
 export const useCreateCommentMutation = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: createComment,
+    onMutate: async (variables) => {
+      // Cancel any outgoing refetches to avoid overwriting our optimistic update
+      await queryClient.cancelQueries({ 
+        queryKey: ['postWithComments', variables.parent_post_id] 
+      });
+
+      // Snapshot the previous value for rollback
+      const previousData = queryClient.getQueryData(['postWithComments', variables.parent_post_id]);
+
+      // Optimistically update the cache
+      queryClient.setQueryData(['postWithComments', variables.parent_post_id], (old: any) => {
+        if (!old) return old;
+
+        // Create optimistic comment
+        const optimisticComment = {
+          id: Date.now(), // Temporary ID
+          content: variables.content,
+          category: variables.category,
+          parent_post_id: variables.parent_post_id,
+          upvotes: 0,
+          downvotes: 0,
+          created_at: new Date().toISOString(),
+          is_pinned: false,
+          is_locked: false,
+          reply_count: 0,
+          author: {
+            id: 'temp',
+            full_name: 'Você',
+            avatar_url: null
+          },
+          user_vote: null,
+          is_saved: false,
+          _isOptimistic: true // Flag to identify optimistic updates
+        };
+
+        return {
+          ...old,
+          comments: [...(old.comments || []), optimisticComment]
+        };
+      });
+
+      // Return context for potential rollback
+      return { previousData };
+    },
     onSuccess: (data, variables) => {
-      // Invalidate the post with comments query to trigger a refetch
+      // Replace optimistic update with real data
       queryClient.invalidateQueries({ 
         queryKey: ['postWithComments', variables.parent_post_id] 
       });
@@ -46,8 +90,19 @@ export const useCreateCommentMutation = () => {
         queryKey: ['communityPosts'] 
       });
     },
-    onError: (error) => {
+    onError: (error, variables, context) => {
       console.error('Failed to create comment:', error);
+      
+      // Rollback optimistic update on error
+      if (context?.previousData) {
+        queryClient.setQueryData(['postWithComments', variables.parent_post_id], context.previousData);
+      }
+    },
+    onSettled: (data, error, variables) => {
+      // Always refetch to ensure we have the latest data
+      queryClient.invalidateQueries({ 
+        queryKey: ['postWithComments', variables.parent_post_id] 
+      });
     },
   });
 };

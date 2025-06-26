@@ -56,38 +56,65 @@ export async function invokeFunctionGet<T>(
   functionName: string,
   headers?: Record<string, string>
 ): Promise<T> {
-  // Supabase functions.invoke always uses POST, so we need to handle GET differently
-  // For functions expecting GET, we'll add a special header or use fetch directly
-  const { data: { session } } = await supabase.auth.getSession();
+  // For now, fall back to standard Supabase invoke which uses POST
+  // This avoids the HTML response issue we're seeing with direct fetch
+  console.log(`Invoking function ${functionName} via Supabase client`);
   
-  const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/${functionName}`, {
-    method: 'GET',
-    headers: {
-      'Authorization': session?.access_token ? `Bearer ${session.access_token}` : '',
-      'Content-Type': 'application/json',
-      ...headers
+  try {
+    return await invokeFunction<T>(functionName, { headers });
+  } catch (error) {
+    console.error(`Function ${functionName} failed via Supabase client:`, error);
+    
+    // If Supabase client fails, try direct fetch as fallback
+    console.log(`Attempting direct fetch fallback for ${functionName}`);
+    
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/${functionName}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': session?.access_token ? `Bearer ${session.access_token}` : '',
+        'Content-Type': 'application/json',
+        ...headers
+      }
+    });
+
+    // Check content type first
+    const contentType = response.headers.get('content-type');
+    const responseText = await response.text();
+    
+    if (!response.ok) {
+      console.error(`Function ${functionName} failed with status ${response.status}:`, responseText);
+      throw new Error(`Function ${functionName} failed: ${response.status} ${response.statusText}`);
     }
-  });
 
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(error || `Function ${functionName} failed`);
-  }
+    // Check if response is actually JSON
+    if (!contentType || !contentType.includes('application/json')) {
+      console.error(`Function ${functionName} returned non-JSON response:`, responseText);
+      throw new Error(`Function ${functionName} returned invalid response (expected JSON, got ${contentType || 'unknown'})`);
+    }
 
-  const data = await response.json();
-  
-  // Handle standardized error responses
-  if (data?.success === false && data?.error) {
-    throw new Error(data.error);
+    let data;
+    try {
+      data = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error(`Function ${functionName} JSON parse error:`, parseError, 'Response:', responseText);
+      throw new Error(`Function ${functionName} returned invalid JSON`);
+    }
+    
+    // Handle standardized error responses
+    if (data?.success === false && data?.error) {
+      throw new Error(data.error);
+    }
+    
+    // Extract data from standardized wrapper if present
+    if (data?.success === true && data?.data !== undefined) {
+      return data.data as T;
+    }
+    
+    // Return raw data if not wrapped (backward compatibility)
+    return data as T;
   }
-  
-  // Extract data from standardized wrapper if present
-  if (data?.success === true && data?.data !== undefined) {
-    return data.data as T;
-  }
-  
-  // Return raw data if not wrapped (backward compatibility)
-  return data as T;
 }
 
 /**
