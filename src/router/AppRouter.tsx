@@ -69,7 +69,7 @@ const router = createBrowserRouter([
         element: <ArchivePage />,
       },
       {
-        path: "reviews/:reviewSlug",
+        path: "reviews/:slug",
         element: <ReviewDetailPage />,
       },
       {

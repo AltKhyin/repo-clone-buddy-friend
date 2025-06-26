@@ -70,12 +70,13 @@ serve(async (req) => {
       'discussao-review', // review discussion
       'pergunta',        // question
       'anuncio',         // announcement
+      'evidencia-cientifica', // scientific evidence
       'comment',         // comment (internal)
       // Legacy English categories for backward compatibility
       'general', 'review_discussion', 'question', 'announcement'
     ];
     if (!validCategories.includes(body.category)) {
-      throw new Error('VALIDATION_FAILED: Categoria inválida fornecida. Categorias válidas: geral, duvida-clinica, discussao-review, pergunta, anuncio');
+      throw new Error('VALIDATION_FAILED: Categoria inválida fornecida. Categorias válidas: geral, duvida-clinica, discussao-review, pergunta, anuncio, evidencia-cientifica');
     }
 
     // Content length validation

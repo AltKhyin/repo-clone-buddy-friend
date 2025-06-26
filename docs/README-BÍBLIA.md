@@ -41,10 +41,12 @@
 - **All Edge Functions Operational**: Zero 503/500/400 errors remaining
 - **Admin Panels Functional**: User management, tag operations, analytics fully operational
 - **Community Features Active**: Voting, posts, feed generation working with Portuguese categories
-- **Post Creation System**: Community post creation now supports all Portuguese categories
+- **Post Creation System**: Community post creation now supports all Portuguese categories including 'evidencia-cientifica'
 - **Post Detail Pages**: Full data display with proper author fallbacks
 - **Acervo System Online**: Review browsing and data fetching operational
 - **Analytics Dashboard Live**: Performance metrics and insights available
+- **HTTP Method Standardization**: Frontend GET/POST requests properly routed to edge functions
+- **Review Routing Fixed**: Review pages now properly accessible via corrected URL parameters
 
 ---
 

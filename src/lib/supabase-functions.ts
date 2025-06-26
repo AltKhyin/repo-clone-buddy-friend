@@ -56,8 +56,38 @@ export async function invokeFunctionGet<T>(
   functionName: string,
   headers?: Record<string, string>
 ): Promise<T> {
-  // Don't send body for GET-style operations to ensure actual GET request
-  return invokeFunction<T>(functionName, { headers });
+  // Supabase functions.invoke always uses POST, so we need to handle GET differently
+  // For functions expecting GET, we'll add a special header or use fetch directly
+  const { data: { session } } = await supabase.auth.getSession();
+  
+  const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/${functionName}`, {
+    method: 'GET',
+    headers: {
+      'Authorization': session?.access_token ? `Bearer ${session.access_token}` : '',
+      'Content-Type': 'application/json',
+      ...headers
+    }
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(error || `Function ${functionName} failed`);
+  }
+
+  const data = await response.json();
+  
+  // Handle standardized error responses
+  if (data?.success === false && data?.error) {
+    throw new Error(data.error);
+  }
+  
+  // Extract data from standardized wrapper if present
+  if (data?.success === true && data?.data !== undefined) {
+    return data.data as T;
+  }
+  
+  // Return raw data if not wrapped (backward compatibility)
+  return data as T;
 }
 
 /**
