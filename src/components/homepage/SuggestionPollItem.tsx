@@ -9,29 +9,30 @@ import { Suggestion } from './NextEditionModule';
 import { useCastVoteMutation } from '../../../packages/hooks/useCastVoteMutation';
 import { toast } from 'sonner';
 import { cn } from '../../lib/utils';
+import { useAuthStore } from '../../store/auth';
 
 interface SuggestionPollItemProps {
   suggestion: Suggestion;
 }
 
 const SuggestionPollItem: React.FC<SuggestionPollItemProps> = ({ suggestion }) => {
+  const { user } = useAuthStore();
   const mutation = useCastVoteMutation();
 
   const handleVote = () => {
+    if (!user) {
+      toast.error('Você precisa estar logado para votar');
+      return;
+    }
+
     const vote_type = suggestion.user_has_voted ? 'none' : 'up';
 
-    mutation.mutate(
-      { 
-        entity_id: suggestion.id.toString(), 
-        vote_type, 
-        entity_type: 'suggestion' 
-      },
-      {
-        onError: (error) => {
-          toast.error("Erro ao registrar voto", { description: error.message });
-        }
-      }
-    );
+    // The mutation now handles optimistic updates automatically
+    mutation.mutate({
+      entity_id: suggestion.id.toString(), 
+      vote_type, 
+      entity_type: 'suggestion' 
+    });
   };
 
   return (

@@ -35,7 +35,7 @@ export const useCastVoteMutation = () => {
       
       switch (variables.entity_type) {
         case 'suggestion':
-          queryKeysToCancel.push(['suggestions']);
+          queryKeysToCancel.push(['suggestions'], ['consolidated-homepage-feed']);
           break;
         case 'community_post':
           queryKeysToCancel.push(['community-feed'], ['community-page-data']);
@@ -57,7 +57,71 @@ export const useCastVoteMutation = () => {
       }
 
       // Optimistically update the cache
-      if (variables.entity_type === 'community_post') {
+      if (variables.entity_type === 'suggestion') {
+        // Update suggestion votes optimistically
+        queryClient.setQueriesData({ queryKey: ['suggestions'] }, (old: unknown) => {
+          if (!old || typeof old !== 'object') return old;
+          
+          // Handle both array and paginated response formats
+          if (Array.isArray(old)) {
+            return old.map((suggestion: Record<string, unknown>) => {
+              if (suggestion.id.toString() === variables.entity_id) {
+                const currentVoted = suggestion.user_has_voted;
+                const newVoted = variables.vote_type !== 'none';
+                
+                let upvotes = suggestion.upvotes || 0;
+                
+                // Remove previous vote if existed
+                if (currentVoted) upvotes--;
+                
+                // Add new vote if voting up
+                if (newVoted) upvotes++;
+                
+                return {
+                  ...suggestion,
+                  user_has_voted: newVoted,
+                  upvotes: Math.max(0, upvotes)
+                };
+              }
+              return suggestion;
+            });
+          }
+          
+          return old;
+        });
+        
+        // Also update consolidated homepage feed if available
+        queryClient.setQueriesData({ queryKey: ['consolidated-homepage-feed'] }, (old: unknown) => {
+          if (!old || typeof old !== 'object' || !('suggestions' in old)) return old;
+          
+          const data = old as { suggestions?: Array<Record<string, unknown>> };
+          
+          return {
+            ...data,
+            suggestions: data.suggestions?.map((suggestion: Record<string, unknown>) => {
+              if (suggestion.id.toString() === variables.entity_id) {
+                const currentVoted = suggestion.user_has_voted;
+                const newVoted = variables.vote_type !== 'none';
+                
+                let upvotes = suggestion.upvotes || 0;
+                
+                // Remove previous vote if existed
+                if (currentVoted) upvotes--;
+                
+                // Add new vote if voting up
+                if (newVoted) upvotes++;
+                
+                return {
+                  ...suggestion,
+                  user_has_voted: newVoted,
+                  upvotes: Math.max(0, upvotes)
+                };
+              }
+              return suggestion;
+            })
+          };
+        });
+      } else if (variables.entity_type === 'community_post') {
         // Update community post votes optimistically
         queryClient.setQueriesData({ queryKey: ['community-feed'] }, (old: unknown) => {
           if (!old || typeof old !== 'object' || !('pages' in old)) return old;
@@ -134,6 +198,42 @@ export const useCastVoteMutation = () => {
             }))
           };
         });
+      } else if (variables.entity_type === 'poll') {
+        // Update poll votes optimistically
+        queryClient.setQueriesData({ queryKey: ['polls'] }, (old: unknown) => {
+          if (!old || typeof old !== 'object') return old;
+          
+          // Handle both array and paginated response formats
+          if (Array.isArray(old)) {
+            return old.map((poll: Record<string, unknown>) => {
+              if (poll.id.toString() === variables.entity_id) {
+                const currentVote = poll.user_vote;
+                const newVote = variables.vote_type === 'none' ? null : variables.vote_type;
+                
+                let upvotes = poll.upvotes || 0;
+                let downvotes = poll.downvotes || 0;
+                
+                // Remove previous vote
+                if (currentVote === 'up') upvotes--;
+                if (currentVote === 'down') downvotes--;
+                
+                // Add new vote
+                if (newVote === 'up') upvotes++;
+                if (newVote === 'down') downvotes++;
+                
+                return {
+                  ...poll,
+                  user_vote: newVote,
+                  upvotes: Math.max(0, upvotes),
+                  downvotes: Math.max(0, downvotes)
+                };
+              }
+              return poll;
+            });
+          }
+          
+          return old;
+        });
       }
 
       return { previousData };
@@ -150,6 +250,7 @@ export const useCastVoteMutation = () => {
         switch (variables.entity_type) {
           case 'suggestion':
             queryClient.invalidateQueries({ queryKey: ['suggestions'] });
+            queryClient.invalidateQueries({ queryKey: ['consolidated-homepage-feed'] });
             break;
           case 'community_post':
             queryClient.invalidateQueries({ queryKey: ['community-feed'] });

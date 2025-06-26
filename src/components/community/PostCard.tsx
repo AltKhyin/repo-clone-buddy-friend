@@ -72,7 +72,7 @@ export const PostCard = ({ post }: PostCardProps) => {
     navigate(`/comunidade/${post.id}`);
   };
 
-  const handleVote = async (voteType: 'up' | 'down') => {
+  const handleVote = (voteType: 'up' | 'down') => {
     if (!user) {
       toast.error('Você precisa estar logado para votar');
       return;
@@ -80,15 +80,12 @@ export const PostCard = ({ post }: PostCardProps) => {
 
     const newVoteType = post.user_vote === voteType ? null : voteType;
 
-    try {
-      await castVoteMutation.mutateAsync({
-        entity_id: post.id.toString(),
-        vote_type: newVoteType || 'none',
-        entity_type: 'community_post'
-      });
-    } catch (error) {
-      toast.error('Erro ao votar. Tente novamente.');
-    }
+    // The mutation now handles optimistic updates and error handling automatically
+    castVoteMutation.mutate({
+      entity_id: post.id.toString(),
+      vote_type: newVoteType || 'none',
+      entity_type: 'community_post'
+    });
   };
 
   const handleSave = async () => {
