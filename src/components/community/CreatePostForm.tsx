@@ -16,7 +16,7 @@ import { VideoUrlInput } from './VideoUrlInput';
 import { PollCreator } from './PollCreator';
 import { useCreateCommunityPostMutation } from '../../../packages/hooks/useCreateCommunityPostMutation';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/store/auth';
+import { useAuthStore } from '@/store/auth';
 
 interface CreatePostFormProps {
   onPostCreated?: (postId: number) => void;
@@ -24,7 +24,7 @@ interface CreatePostFormProps {
 
 export const CreatePostForm = ({ onPostCreated }: CreatePostFormProps) => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user } = useAuthStore();
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [category, setCategory] = useState('');
