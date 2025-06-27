@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 
 interface MinimalCommentInputProps {
   parentPostId: number;
+  rootPostId?: number; // The root post ID for cache invalidation
   onCommentPosted: () => void;
   placeholder?: string;
   className?: string;
@@ -17,6 +18,7 @@ interface MinimalCommentInputProps {
 
 export const MinimalCommentInput = ({ 
   parentPostId, 
+  rootPostId,
   onCommentPosted, 
   placeholder = "Join the conversation",
   className 
@@ -46,6 +48,7 @@ export const MinimalCommentInput = ({
     createComment.mutate({
       content: content.trim(),
       parent_post_id: parentPostId,
+      root_post_id: rootPostId || parentPostId, // Use rootPostId for cache invalidation
       category: 'comment',
     }, {
       onSuccess: () => {

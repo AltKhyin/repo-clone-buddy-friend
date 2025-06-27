@@ -19,6 +19,7 @@ import { useAuthStore } from '../../store/auth';
 interface CommentProps {
   comment: CommunityPost;
   indentationLevel: number;
+  rootPostId: number;
   onCommentPosted: () => void;
 }
 
@@ -54,7 +55,7 @@ const formatCommentDate = (dateString: string | null | undefined): string => {
   }
 };
 
-export const Comment = ({ comment, indentationLevel, onCommentPosted }: CommentProps) => {
+export const Comment = ({ comment, indentationLevel, rootPostId, onCommentPosted }: CommentProps) => {
   const [isReplying, setIsReplying] = useState(false);
   const { user } = useAuthStore();
   const castVoteMutation = useCastVoteMutation();
@@ -174,6 +175,7 @@ export const Comment = ({ comment, indentationLevel, onCommentPosted }: CommentP
           <div className="mt-2 ml-4">
             <MinimalCommentInput
               parentPostId={comment.id}
+              rootPostId={rootPostId}
               onCommentPosted={handleReplyPosted}
               placeholder="Reply to this comment"
             />

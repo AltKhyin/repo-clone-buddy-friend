@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { toast } from 'sonner';
 import { TiptapEditor } from './TiptapEditor';
 import { ImageUploadZone } from './ImageUploadZone';
-import { VideoUrlInput } from './VideoUrlInput';
+import { VideoInput } from './VideoInput';
 import { PollCreator } from './PollCreator';
 import { useCreateCommunityPostMutation } from '../../../packages/hooks/useCreateCommunityPostMutation';
 import { supabase } from '@/integrations/supabase/client';
@@ -31,6 +31,7 @@ export const CreatePostForm = ({ onPostCreated }: CreatePostFormProps) => {
   const [postType, setPostType] = useState<'text' | 'image' | 'poll' | 'video'>('text');
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [videoUrl, setVideoUrl] = useState('');
+  const [videoFile, setVideoFile] = useState<File | null>(null);
   const [pollData, setPollData] = useState<{
     question: string;
     options: Array<{ id: string; text: string }>;
@@ -81,8 +82,8 @@ export const CreatePostForm = ({ onPostCreated }: CreatePostFormProps) => {
       return;
     }
     
-    if (postType === 'video' && !videoUrl) {
-      toast.error('Adicione um URL de vídeo para posts do tipo vídeo');
+    if (postType === 'video' && !videoUrl && !videoFile) {
+      toast.error('Adicione um URL de vídeo ou faça upload de um arquivo para posts do tipo vídeo');
       return;
     }
     
@@ -138,13 +139,54 @@ export const CreatePostForm = ({ onPostCreated }: CreatePostFormProps) => {
       }
     }
 
+    // Handle video upload to Supabase Storage if needed
+    let uploadedVideoUrl = '';
+    if (postType === 'video' && videoFile) {
+      if (!user) {
+        toast.error('Você precisa estar logado para fazer upload de vídeos');
+        return;
+      }
+      
+      try {
+        // Generate unique filename
+        const fileExt = videoFile.name.split('.').pop();
+        const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+        const filePath = `posts/${fileName}`;
+        
+        // Upload to Supabase Storage
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('community-videos')
+          .upload(filePath, videoFile, {
+            cacheControl: '3600',
+            upsert: false
+          });
+          
+        if (uploadError) {
+          console.error('Video upload error:', uploadError);
+          toast.error('Erro ao fazer upload do vídeo');
+          return;
+        }
+        
+        // Get public URL
+        const { data: { publicUrl } } = supabase.storage
+          .from('community-videos')
+          .getPublicUrl(filePath);
+          
+        uploadedVideoUrl = publicUrl;
+      } catch (error) {
+        console.error('Video upload failed:', error);
+        toast.error('Falha no upload do vídeo');
+        return;
+      }
+    }
+
     const payload = {
       title: title.trim() || undefined,
       content: content.trim(),
       category,
       post_type: postType,
       ...(postType === 'image' && uploadedImageUrl && { image_url: uploadedImageUrl }),
-      ...(postType === 'video' && videoUrl && { video_url: videoUrl }),
+      ...(postType === 'video' && (uploadedVideoUrl || videoUrl) && { video_url: uploadedVideoUrl || videoUrl }),
       ...(postType === 'poll' && transformedPollData && { poll_data: transformedPollData })
     };
 
@@ -251,10 +293,16 @@ export const CreatePostForm = ({ onPostCreated }: CreatePostFormProps) => {
                     maxLength={200}
                   />
                 </div>
-                <VideoUrlInput 
-                  value={videoUrl}
-                  onChange={setVideoUrl} 
-                  onRemove={() => setVideoUrl('')}
+                <VideoInput 
+                  urlValue={videoUrl}
+                  fileValue={videoFile}
+                  onUrlChange={setVideoUrl}
+                  onFileChange={setVideoFile}
+                  onRemove={() => {
+                    setVideoUrl('');
+                    setVideoFile(null);
+                  }}
+                  isUploading={createPostMutation.isPending}
                 />
               </TabsContent>
 

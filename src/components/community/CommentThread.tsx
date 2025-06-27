@@ -10,6 +10,7 @@ import type { CommunityPost } from '../../types/community';
 
 interface CommentThreadProps {
   comments: CommunityPost[];
+  rootPostId: number;
   onCommentPosted: () => void;
 }
 
@@ -25,7 +26,7 @@ interface ThreadState {
   expandedPaths: Map<number, boolean>;
 }
 
-export const CommentThread = ({ comments, onCommentPosted }: CommentThreadProps) => {
+export const CommentThread = ({ comments, rootPostId, onCommentPosted }: CommentThreadProps) => {
   const [threadState, setThreadState] = useState<ThreadState>({
     collapsedComments: new Set(),
     expandedPaths: new Map()
@@ -165,6 +166,7 @@ export const CommentThread = ({ comments, onCommentPosted }: CommentThreadProps)
             <Comment 
               comment={comment} 
               indentationLevel={level}
+              rootPostId={rootPostId}
               onCommentPosted={onCommentPosted}
             />
             

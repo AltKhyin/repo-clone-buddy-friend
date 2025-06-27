@@ -35,6 +35,7 @@ export const PostDetail = ({ post, comments }: PostDetailProps) => {
       {user && !post.is_locked && (
         <MinimalCommentInput
           parentPostId={post.id}
+          rootPostId={post.id}
           onCommentPosted={handleCommentPosted}
           placeholder="Join the conversation"
         />
@@ -55,6 +56,7 @@ export const PostDetail = ({ post, comments }: PostDetailProps) => {
       <div className="space-y-3">
         <CommentThread 
           comments={comments} 
+          rootPostId={post.id}
           onCommentPosted={handleCommentPosted}
         />
       </div>

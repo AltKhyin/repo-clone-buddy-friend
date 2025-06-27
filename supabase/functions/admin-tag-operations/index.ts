@@ -8,7 +8,13 @@ import { checkRateLimit, rateLimitHeaders, RateLimitError } from '../_shared/rat
 import { getUserFromRequest, requireRole } from '../_shared/auth.ts';
 
 interface TagOperationPayload {
-  action: 'create' | 'update' | 'delete' | 'merge' | 'move' | 'cleanup';
+  operation: 'create' | 'update' | 'delete' | 'merge' | 'move' | 'cleanup';
+  tag_data?: {
+    tag_name?: string;
+    color?: string;
+    description?: string;
+    parent_id?: number | null;
+  };
   tagId?: number;
   parentId?: number | null;
   name?: string;
@@ -42,7 +48,19 @@ serve(async (req: Request) => {
       throw new Error('UNAUTHORIZED: Authentication required for admin operations');
     }
 
-    const user = await authenticateUser(supabase, authHeader);
+    // Create a client for user authentication (using anon key)
+    const userSupabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+    );
+
+    const { data: { user }, error: authError } = await userSupabase.auth.getUser(
+      authHeader.replace('Bearer ', '')
+    );
+
+    if (authError || !user) {
+      throw new Error('UNAUTHORIZED: Invalid authentication token');
+    }
 
     // STEP 5: Authorization - Check admin role
     const { data: adminCheck } = await supabase
@@ -114,7 +132,14 @@ serve(async (req: Request) => {
         throw new Error('VALIDATION_FAILED: Invalid JSON in request body');
       }
       
-      const { action, tagId, parentId, name, description, mergeTargetId, bulkTagIds } = payload;
+      // Support both old and new payload formats
+      const action = payload.operation || payload.action;
+      const { tagId, parentId, mergeTargetId, bulkTagIds } = payload;
+      
+      // Extract tag data from tag_data object or direct properties
+      const name = payload.tag_data?.tag_name || payload.name;
+      const description = payload.tag_data?.description || payload.description;
+      const color = payload.tag_data?.color;
 
       let result;
 
@@ -128,8 +153,9 @@ serve(async (req: Request) => {
             .from('Tags')
             .insert({
               tag_name: name.trim(),
-              parent_id: parentId,
-              description: description?.trim()
+              parent_id: parentId || payload.tag_data?.parent_id,
+              description: description?.trim(),
+              color: color
             })
             .select()
             .single();
