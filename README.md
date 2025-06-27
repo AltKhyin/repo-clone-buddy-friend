@@ -1,8 +1,49 @@
-# Welcome to your Lovable project
+# EVIDENS Platform
 
-## Project info
+## 🚨 CRITICAL: Version Control & Sync Requirements
 
-**URL**: https://lovable.dev/projects/bf5f0070-40f8-4760-bbe1-41e5ac0dce78
+**IMPORTANT**: This repository MUST be kept synchronized with GitHub at all times. 
+
+### Sync Protocol:
+1. **After EVERY change**: Commit and push to GitHub immediately
+2. **Before starting work**: Always pull latest changes
+3. **Working directory**: Use `repo-clone-buddy-friend/` as the primary development directory
+4. **No desync allowed**: GitHub is the single source of truth
+
+```bash
+# Always follow this workflow:
+git add .
+git commit -m "Descriptive message"
+git push origin main
+```
+
+## 🔥 Immediate Issues to Address
+
+### High Priority Fixes Required:
+1. **Community Posts Issues**:
+   - Comments being counted as posts in some queries
+   - Image/video/poll posts not displaying correctly
+   - Missing multimedia data in post details
+   - `/comunidade/:post-id` route data loading issues
+
+2. **Tag System**:
+   - Missing color column in Tags table
+   - Tag analytics function errors
+   - Tag filtering not working properly
+
+3. **Security Warnings**:
+   - 20 functions need explicit search_path set
+   - rate_limit_log table needs RLS policies
+
+### Testing Requirements:
+- All fixes MUST be tested using Supabase MCP tools
+- Simulate actual app calls before marking as complete
+- Verify data integrity after each change
+
+## Project Info
+
+**Platform**: EVIDENS - Review and Community Application for Practitioners  
+**Previous URL**: https://lovable.dev/projects/bf5f0070-40f8-4760-bbe1-41e5ac0dce78 (DEPRECATED)
 
 ## How can I edit this code?
 
