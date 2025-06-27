@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { cn } from '../../lib/utils';
 import type { CommunityPost } from '@/types';
 import { PostActionMenu } from './PostActionMenu';
+import { PollDisplay } from './PollDisplay';
 import { useCastVoteMutation } from '../../../packages/hooks/useCastVoteMutation';
 import { useSavePostMutation } from '../../../packages/hooks/useSavePostMutation';
 import { useAuthStore } from '../../store/auth';
@@ -268,22 +269,13 @@ export const PostDetailCard = ({ post }: PostDetailCardProps) => {
         )}
 
         {post.post_type === 'poll' && post.poll_data && (
-          <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg border">
-            <div className="text-lg font-medium text-blue-900 dark:text-blue-100 mb-3">
-              📊 {post.poll_data.question || 'Enquete'}
-            </div>
-            {post.poll_data.options && post.poll_data.options.length > 0 && (
-              <div className="space-y-2">
-                {post.poll_data.options.map((option: { text?: string; votes?: number }, index: number) => (
-                  <div key={index} className="p-3 bg-white dark:bg-blue-900/20 rounded border">
-                    <div className="font-medium">{option.text || `Opção ${index + 1}`}</div>
-                    <div className="text-sm text-muted-foreground">
-                      {option.votes || 0} votos
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+          <div className="mb-4">
+            <PollDisplay 
+              pollData={post.poll_data}
+              isCompact={false}
+              allowVoting={true}
+              postId={post.id}
+            />
           </div>
         )}
       </div>

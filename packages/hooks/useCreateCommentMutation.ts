@@ -46,7 +46,11 @@ export const useCreateCommentMutation = () => {
 
       // Optimistically update the cache
       queryClient.setQueryData(['postWithComments', variables.parent_post_id], (old: any) => {
-        if (!old) return old;
+        console.log('Optimistic update - old data:', old);
+        if (!old) {
+          console.log('No existing data for optimistic update');
+          return old;
+        }
 
         // Create optimistic comment
         const optimisticComment = {
@@ -70,18 +74,31 @@ export const useCreateCommentMutation = () => {
           _isOptimistic: true // Flag to identify optimistic updates
         };
 
-        return {
+        const updatedData = {
           ...old,
           comments: [...(old.comments || []), optimisticComment]
         };
+        
+        console.log('Optimistic update - new data:', updatedData);
+        console.log('Added optimistic comment:', optimisticComment);
+        
+        return updatedData;
       });
 
       // Return context for potential rollback
       return { previousData };
     },
     onSuccess: (data, variables) => {
-      // Replace optimistic update with real data
+      console.log('Comment creation succeeded, invalidating cache for post:', variables.parent_post_id);
+      console.log('Success data:', data);
+      
+      // First, remove the optimistic update and refetch with real data
       queryClient.invalidateQueries({ 
+        queryKey: ['postWithComments', variables.parent_post_id] 
+      });
+      
+      // Force an immediate refetch to ensure UI updates
+      queryClient.refetchQueries({ 
         queryKey: ['postWithComments', variables.parent_post_id] 
       });
       
@@ -89,6 +106,8 @@ export const useCreateCommentMutation = () => {
       queryClient.invalidateQueries({ 
         queryKey: ['communityPosts'] 
       });
+      
+      console.log('Cache invalidation completed for comment creation');
     },
     onError: (error, variables, context) => {
       console.error('Failed to create comment:', error);
@@ -99,9 +118,17 @@ export const useCreateCommentMutation = () => {
       }
     },
     onSettled: (data, error, variables) => {
-      // Always refetch to ensure we have the latest data
+      console.log('Comment mutation settled. Success:', !!data, 'Error:', !!error);
+      
+      // Always ensure we have the latest data, regardless of success/error
       queryClient.invalidateQueries({ 
         queryKey: ['postWithComments', variables.parent_post_id] 
+      });
+      
+      // Also ensure the comment list is properly refreshed
+      queryClient.refetchQueries({ 
+        queryKey: ['postWithComments', variables.parent_post_id],
+        type: 'active'
       });
     },
   });

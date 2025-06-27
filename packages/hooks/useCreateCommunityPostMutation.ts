@@ -100,20 +100,40 @@ export const useCreateCommunityPostMutation = () => {
       });
 
       // Optimistically update community page data
+      // NOTE: The cache structure after 'select' is { posts: [...], sidebarData: {...} }
       queryClient.setQueryData(['community-page-data'], (old: any) => {
-        if (!old) return { pages: [{ posts: [optimisticPost] }] };
-        
-        const newPages = [...old.pages];
-        if (newPages.length > 0) {
-          newPages[0] = {
-            ...newPages[0],
-            posts: [optimisticPost, ...(newPages[0].posts || [])]
+        if (!old) {
+          return {
+            posts: [optimisticPost],
+            sidebarData: null
           };
-        } else {
-          newPages.push({ posts: [optimisticPost] });
         }
         
-        return { ...old, pages: newPages };
+        // Handle both raw infinite query data and selected data
+        if (old.pages) {
+          // This is the raw infinite query data, update the first page
+          const newPages = [...old.pages];
+          if (newPages.length > 0) {
+            newPages[0] = {
+              ...newPages[0],
+              posts: [optimisticPost, ...(newPages[0].posts || [])]
+            };
+          } else {
+            newPages.push({ 
+              posts: [optimisticPost],
+              pagination: { page: 0, limit: 20, hasMore: false },
+              sidebarData: null
+            });
+          }
+          
+          return { ...old, pages: newPages };
+        } else {
+          // This is the selected data, update directly
+          return {
+            ...old,
+            posts: [optimisticPost, ...(old.posts || [])]
+          };
+        }
       });
 
       // Return context for potential rollback

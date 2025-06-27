@@ -10,6 +10,7 @@ import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { PostActionMenu } from './PostActionMenu';
+import { PollDisplay } from './PollDisplay';
 import { cn } from '../../lib/utils';
 import type { CommunityPost } from '../../types/community';
 import { useCastVoteMutation } from '../../../packages/hooks/useCastVoteMutation';
@@ -243,15 +244,13 @@ export const PostCard = ({ post }: PostCardProps) => {
             />
           </div>
         ) : post.post_type === 'poll' && post.poll_data ? (
-          <div className="mb-3 p-4 bg-blue-50 dark:bg-blue-950/20 rounded border">
-            <div className="text-sm font-medium text-blue-900 dark:text-blue-100">
-              📊 Enquete: {post.poll_data.question || 'Clique para participar'}
-            </div>
-            {post.poll_data.options && (
-              <div className="mt-2 text-xs text-blue-700 dark:text-blue-300">
-                {post.poll_data.options.length} opções disponíveis
-              </div>
-            )}
+          <div className="mb-3">
+            <PollDisplay 
+              pollData={post.poll_data}
+              isCompact={true}
+              allowVoting={true}
+              postId={post.id}
+            />
           </div>
         ) : post.content ? (
           <div 
