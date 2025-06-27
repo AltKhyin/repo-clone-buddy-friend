@@ -1,9 +1,9 @@
 
 # **[DOC_2] System Architecture**
 
-**Version:** 4.0 (Decoupled Architecture Update)  
-**Date:** June 20, 2025  
-**Purpose:** This document defines the canonical system architecture for the EVIDENS platform, optimized for the Vite + React development environment with decoupled data layer.
+**Version:** 4.1 (Implementation Reality Update)  
+**Date:** June 27, 2025  
+**Purpose:** This document defines the canonical system architecture for the EVIDENS platform, updated to reflect the actual implemented architecture patterns including strategic data consolidation.
 
 ---
 
@@ -36,7 +36,7 @@ The EVIDENS platform is implemented as a unified, client-side rendered (CSR) app
 
 ### **1.3 Architectural Principles**
 
-**PRINCIPLE 1 (Decoupled Data Layer):** Each component and page is responsible for its own data requirements. No global data providers except for truly global state (authentication).
+**PRINCIPLE 1 (Strategic Data Architecture):** Components use granular data fetching by default, with strategic consolidation for performance optimization. Global data providers are used selectively for specific use cases (homepage performance, authentication state).
 
 **PRINCIPLE 2 (Instant Shell Rendering):** The application shell renders immediately without waiting for any data fetching operations.
 
@@ -161,26 +161,30 @@ The application follows a feature-first organization pattern within the `src/` d
 
 ## **4.0 Data Architecture**
 
-### **4.1 Decoupled Data Fetching**
+### **4.1 Strategic Data Fetching Patterns**
 
-**Shell Components:**
+**Shell Components (Independent):**
 - `UserProfileBlock` → `useUserProfileQuery()`
 - `NotificationBell` → `useNotificationCountQuery()`
 
-**Page Components:**
-- `Index.tsx` → `useConsolidatedHomepageFeedQuery()` (exception - multiple modules)
+**Homepage (Strategic Consolidation):**
+- `Index.tsx` → `useConsolidatedHomepageFeedQuery()` via `AppDataContext`
+- Multiple modules benefit from parallel data fetching optimization
+
+**Other Pages (Granular):**
 - `CommunityPage.tsx` → `useCommunityPageQuery()`
 - `CollectionPage.tsx` → `useAcervoDataQuery()`
 
 **Specialized Components:**
 - Individual hooks for specific features (e.g., `useSavePostMutation`)
 
-### **4.2 Data Fetching Rules**
+### **4.2 Data Fetching Rules (Implementation Reality)**
 
-1. **No Global Data Providers:** Only authentication state is global
-2. **Component-Scoped Queries:** Each component fetches only what it needs
+1. **Strategic Global Providers:** Authentication state and homepage optimization use global context
+2. **Component-Scoped Queries:** Default pattern for most components
 3. **Independent Loading States:** Components manage their own skeleton/error states
-4. **Parallel Data Loading:** Multiple queries run concurrently without blocking
+4. **Parallel Data Loading:** Consolidated queries and independent queries run concurrently
+5. **Pattern Selection:** Choose granular vs consolidated based on performance requirements
 
 ---
 

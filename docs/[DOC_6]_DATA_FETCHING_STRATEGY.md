@@ -1,14 +1,14 @@
 
 # **[DOC_6] Data-Fetching Strategy**
 
-Version: 2.0 (Decoupled Architecture Update)  
-Date: June 20, 2025  
-Purpose: This document defines the canonical, non-negotiable strategy for all data fetching and server state management within the EVIDENS front-end applications. Updated to reflect the decoupled architecture with granular, component-scoped data fetching patterns.
+Version: 2.1 (Implementation Reality Update)  
+Date: June 27, 2025  
+Purpose: This document defines the canonical strategy for all data fetching and server state management within the EVIDENS front-end applications. Updated to reflect the actual implementation patterns which use both granular and strategic consolidation approaches.
 
 ## **1.0 Core Principles**
 
 * **PRINCIPLE 1 (Granular & Co-located Data Fetching):** Each component should fetch only the data it needs, when it needs it. Data fetching should be co-located with the component that uses the data.
-* **PRINCIPLE 2 (No Global Data Dependencies):** Components must not depend on global data providers except for truly global state (authentication). Each component is self-contained.
+* **PRINCIPLE 2 (Strategic Data Dependencies):** Components generally use granular data fetching, except where strategic consolidation provides performance benefits. Global data providers are used sparingly for specific optimizations (e.g., homepage feed) and truly global state (authentication).
 * **PRINCIPLE 3 (Separation of Concerns):** UI components are responsible for presentation only. They must be completely decoupled from the logic of how data is fetched. All data-fetching logic must reside in a dedicated data access layer (custom hooks).
 * **PRINCIPLE 4 (Server State vs. Client State):** A clear distinction must be maintained:  
   * **Server State:** Any data that persists on the backend (in our PostgreSQL database). This is asynchronous data. **It MUST be managed by TanStack Query.**  
@@ -36,8 +36,13 @@ This is the most critical rule in this document. Adherence is not optional.
 - `useNotificationCountQuery()` - Fetches only unread notification count
 - `useSavePostMutation()` - Handles only post saving/unsaving
 
-**The Exception - Consolidated Queries:**
-The `useConsolidatedHomepageFeedQuery` is a specific optimization only for the homepage, where multiple modules need to be populated simultaneously. **It is the exception, not the rule.**
+**Strategic Consolidation Pattern:**
+The `useConsolidatedHomepageFeedQuery` represents a strategic optimization for the homepage, where multiple modules benefit from parallel data fetching. This pattern demonstrates when consolidated queries provide performance benefits over granular fetching. Similar consolidations may be appropriate for other complex pages with multiple data requirements.
+
+**Implementation Reality:**
+- Homepage uses `AppDataContext` with consolidated query for performance optimization
+- Individual pages and components use granular, component-scoped hooks
+- Both patterns coexist strategically throughout the application
 
 ### **4.2 Data Fetching for Shell Components**
 

@@ -1,14 +1,17 @@
 # **[DOC_3] EVIDENS Database Schema**
 
-*Version: 1.4*
-*Date: June 23, 2025*
-*Purpose: This document provides the canonical and complete database schema for the EVIDENS platform. It is the single source of truth for all tables, columns, data types, and relationships. The AI developer must adhere to this specification precisely when creating database migrations.*
+*Version: 1.5 (Implementation Reality Update)*
+*Date: June 27, 2025*
+*Purpose: This document provides the canonical database schema for the EVIDENS platform, updated to reflect the actual implemented schema including community features, moderation system, and advanced functionality.*
 
-*CHANGELOG (v1.4):*
-- Added publication workflow fields to Reviews table
-- Added Publication_History table for audit trail
-- Updated indexes for publication workflow performance
-- Added RLS policies for admin content management
+*CHANGELOG (v1.5):*
+- **MAJOR UPDATE**: Added all missing community-related tables
+- Added Communities, CommunityModerationActions, CommunityPost_Votes tables
+- Added Polls, PollOptions, PollVotes for voting system
+- Added SavedPosts, Reports, Notifications tables
+- Added SiteSettings, OnboardingQuestions, OnboardingAnswers tables
+- Updated ERD to reflect complete schema
+- Added recursive comment counting functions documentation
 
 *================================================================================*
 *1.0. Guiding Principles & Conventions*
@@ -30,6 +33,9 @@ erDiagram
         String full_name
         String role
         String subscription_tier
+        INT contribution_score
+        STRING profession_flair
+        BOOLEAN display_hover_card
     }
     Reviews {
         INT id PK
@@ -40,27 +46,126 @@ erDiagram
         TEXT review_status
         UUID reviewer_id FK
         TIMESTAMPTZ scheduled_publish_at
+        TEXT title
+        TEXT description
+        TEXT cover_image_url
+        INT view_count
     }
-    Publication_History {
+    CommunityPosts {
+        INT id PK
+        UUID author_id FK
+        INT parent_post_id FK
+        TEXT title
+        TEXT content
+        TEXT category
+        INT upvotes
+        INT downvotes
+        BOOLEAN is_pinned
+        BOOLEAN is_locked
+        TEXT flair_text
+        TEXT flair_color
+        TEXT image_url
+        TEXT video_url
+        JSONB poll_data
+        TEXT post_type
+        BOOLEAN is_rewarded
+    }
+    CommunityPost_Votes {
         UUID id PK
-        INT review_id FK
-        TEXT action
-        UUID performed_by FK
-        TIMESTAMPTZ created_at
+        INT post_id FK
+        UUID practitioner_id FK
+        TEXT vote_type
+    }
+    Communities {
+        STRING id PK
+        STRING name
+        TEXT description
+        STRING avatar_url
+        STRING banner_url
+        INT member_count
+    }
+    CommunityModerationActions {
+        STRING id PK
+        INT post_id FK
+        UUID moderator_id FK
+        STRING action_type
+        TEXT reason
+        JSONB metadata
+    }
+    Polls {
+        INT id PK
+        INT community_post_id FK
+        TEXT question
+        BOOLEAN multiple_choice
+        TIMESTAMPTZ expires_at
+    }
+    PollOptions {
+        INT id PK
+        INT poll_id FK
+        TEXT option_text
+        INT vote_count
+    }
+    PollVotes {
+        UUID id PK
+        INT poll_option_id FK
+        UUID practitioner_id FK
+    }
+    SavedPosts {
+        UUID id PK
+        INT post_id FK
+        UUID practitioner_id FK
+    }
+    Notifications {
+        UUID id PK
+        UUID practitioner_id FK
+        TEXT type
+        TEXT title
+        TEXT message
+        BOOLEAN is_read
+        JSONB metadata
     }
     Tags {
         INT id PK
         TEXT tag_name
         INT parent_id FK
+        TEXT color
+        TEXT description
     }
     ReviewTags {
         INT id PK
         INT review_id FK
         INT tag_id FK
     }
-    CommunityPosts {
+    Suggestions {
         INT id PK
-        UUID author_id FK
+        TEXT title
+        TEXT description
+        TEXT status
+        INT upvotes
+        UUID submitted_by FK
+    }
+    Suggestion_Votes {
+        UUID id PK
+        INT suggestion_id FK
+        UUID practitioner_id FK
+    }
+    OnboardingQuestions {
+        INT id PK
+        TEXT question_text
+        TEXT question_type
+        JSONB options
+        INT order_index
+    }
+    OnboardingAnswers {
+        INT id PK
+        UUID practitioner_id FK
+        INT question_id FK
+        JSONB answer
+    }
+    SiteSettings {
+        TEXT key PK
+        JSONB value
+        TEXT description
     }
     rate_limit_log {
         BIGINT id PK
@@ -69,13 +174,20 @@ erDiagram
     }
 
     Practitioners ||--o{ Reviews : "authors"
-    Practitioners ||--o{ Reviews : "reviews_as_reviewer"
-    Practitioners ||--o{ Publication_History : "performs_actions"
     Practitioners ||--o{ CommunityPosts : "creates"
-    Reviews ||--o{ Publication_History : "has_history"
-    Reviews }o--|| CommunityPosts : "is_discussed_in"
-    Reviews }o--o{ ReviewTags : "has"
-    Tags }o--o{ ReviewTags : "is_tagged_by"
+    Practitioners ||--o{ CommunityPost_Votes : "votes"
+    Practitioners ||--o{ SavedPosts : "saves"
+    Practitioners ||--o{ Notifications : "receives"
+    Practitioners ||--o{ Suggestions : "submits"
+    Practitioners ||--o{ Suggestion_Votes : "votes_on"
+    Practitioners ||--o{ OnboardingAnswers : "answers"
+    CommunityPosts ||--o{ CommunityPost_Votes : "has_votes"
+    CommunityPosts ||--o{ SavedPosts : "can_be_saved"
+    CommunityPosts ||--o{ Polls : "may_have_poll"
+    Polls ||--o{ PollOptions : "has_options"
+    PollOptions ||--o{ PollVotes : "receives_votes"
+    Reviews }o--o{ ReviewTags : "has_tags"
+    Tags }o--o{ ReviewTags : "tags_reviews"
     Tags }o--o{ Tags : "parent_child"
 ```
 
@@ -284,26 +396,79 @@ GROUP BY
 *   Publication audit trail provides complete governance and compliance*
 
 *================================================================================*
-*6.0. Appendix: Full Table List*
+*6.0. Database Functions (Advanced Features)*
 *================================================================================*
 
-*   Practitioners*
-*   Reviews (with publication workflow)*
-*   Publication_History (new)*
-*   Tags*
-*   ReviewTags*
-*   CommunityPosts*
-*   CommunityPostVotes*
-*   Polls*
-*   PollOptions*
-*   PollVotes*
-*   SiteSettings*
-*   OnboardingQuestions*
-*   OnboardingAnswers*
-*   Reports*
-*   Notifications*
-*   Suggestions*
-*   Suggestion_Votes*
-*   rate_limit_log*
+*6.1. Recursive Comment Counting*
+*   Purpose: Advanced PostgreSQL function for nested comment hierarchies.*
+
+```sql
+CREATE OR REPLACE FUNCTION get_total_comment_count(post_id INT)
+RETURNS BIGINT
+LANGUAGE sql
+STABLE
+AS $$
+  WITH RECURSIVE comment_tree AS (
+    -- Base case: Direct comments to the post
+    SELECT id 
+    FROM "CommunityPosts" 
+    WHERE parent_post_id = post_id
+    
+    UNION ALL
+    
+    -- Recursive case: Replies to comments
+    SELECT cp.id
+    FROM "CommunityPosts" cp
+    JOIN comment_tree ct ON cp.parent_post_id = ct.id
+  )
+  SELECT COUNT(*) FROM comment_tree;
+$$;
+```
+
+*6.2. JWT Claims Helper*
+*   Purpose: Safe extraction of custom claims from JWT tokens for RLS policies.*
+
+```sql
+CREATE OR REPLACE FUNCTION get_my_claim(claim TEXT) RETURNS TEXT AS $$
+  SELECT nullif(current_setting('request.jwt.claims', true)::jsonb ->> claim, '')::TEXT;
+$$ LANGUAGE sql STABLE;
+```
+
+*================================================================================*
+*7.0. Appendix: Complete Table List (Implementation Reality)*
+*================================================================================*
+
+**Core Identity & Content:**
+*   Practitioners - User profiles and authentication*
+*   Reviews - Main content with publication workflow*
+*   Publication_History - Audit trail for content management*
+*   Tags - Hierarchical tagging system*
+*   ReviewTags - Many-to-many tag relationships*
+
+**Community System:**
+*   CommunityPosts - Posts and comments with threading*
+*   CommunityPost_Votes - Voting system for posts*
+*   Communities - Community management (future expansion)*
+*   CommunityModerationActions - Moderation audit trail*
+*   SavedPosts - User bookmarking system*
+
+**Interactive Features:**
+*   Polls - Poll creation for posts*
+*   PollOptions - Individual poll choices*
+*   PollVotes - User votes on polls*
+*   Suggestions - Content suggestions from users*
+*   Suggestion_Votes - Voting on suggestions*
+
+**User Experience:**
+*   Notifications - User notification system*
+*   OnboardingQuestions - New user onboarding*
+*   OnboardingAnswers - User onboarding responses*
+*   Reports - Content reporting system*
+
+**System Management:**
+*   SiteSettings - Application configuration*
+*   rate_limit_log - API rate limiting tracking*
+
+**Total Tables: 20+ (significantly expanded from original documentation)**
 
 *End of [DOC_3] EVIDENS Database Schema*
