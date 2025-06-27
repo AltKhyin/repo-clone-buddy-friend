@@ -19,19 +19,52 @@ export const useCommunityPageQuery = () => {
       console.log('Community page data fetched successfully:', data);
       return data;
     },
-    getNextPageParam: (lastPage) => {
-      if (!lastPage?.pagination?.hasMore) return undefined;
-      return lastPage.pagination.page + 1;
+    getNextPageParam: (lastPage, allPages, lastPageParam) => {
+      // Enhanced safety checks to prevent undefined errors
+      if (!lastPage || typeof lastPage !== 'object') {
+        console.warn('getNextPageParam: lastPage is invalid:', lastPage);
+        return undefined;
+      }
+      
+      if (!lastPage.pagination || typeof lastPage.pagination !== 'object') {
+        console.warn('getNextPageParam: pagination is invalid:', lastPage.pagination);
+        return undefined;
+      }
+      
+      if (!lastPage.pagination.hasMore) {
+        console.log('getNextPageParam: No more pages available');
+        return undefined;
+      }
+      
+      const nextPage = (lastPage.pagination.page ?? lastPageParam ?? 0) + 1;
+      console.log('getNextPageParam: Next page will be:', nextPage);
+      return nextPage;
     },
     initialPageParam: 0,
     staleTime: 5 * 60 * 1000, // 5 minutes - optimized for community freshness
     gcTime: 10 * 60 * 1000, // 10 minutes garbage collection
     refetchOnWindowFocus: false, // Reduce unnecessary refetches
     select: (data) => {
+      // Enhanced safety checks for data.pages
+      if (!data || !Array.isArray(data.pages)) {
+        console.warn('select: data.pages is invalid:', data);
+        return {
+          posts: [],
+          sidebarData: null
+        };
+      }
+      
       // Flatten all posts from all pages for infinite scroll
-      const posts = data.pages.flatMap(page => page.posts || []);
+      const posts = data.pages.flatMap(page => {
+        if (!page || !Array.isArray(page.posts)) {
+          console.warn('select: Invalid page data:', page);
+          return [];
+        }
+        return page.posts;
+      });
+      
       // Get sidebar data from the first page (consistent across pages)
-      const sidebarData = data.pages[0]?.sidebarData;
+      const sidebarData = data.pages.length > 0 ? data.pages[0]?.sidebarData : null;
       
       return {
         posts,
