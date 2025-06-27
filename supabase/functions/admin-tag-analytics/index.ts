@@ -82,7 +82,9 @@ serve(async (req: Request) => {
         id,
         tag_name,
         parent_id,
-        created_at
+        created_at,
+        color,
+        description
       `)
       .order('tag_name');
 
@@ -113,7 +115,9 @@ serve(async (req: Request) => {
         usage_count: usageCount || 0,
         direct_children: 0, // Will be calculated below
         total_descendants: 0, // Will be calculated below
-        recent_usage: createdAt > oneWeekAgo ? (usageCount || 0) : 0
+        recent_usage: createdAt > oneWeekAgo ? (usageCount || 0) : 0,
+        color: tag.color,
+        description: tag.description
       };
     }));
 
