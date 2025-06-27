@@ -52,6 +52,10 @@ const fetchPostWithComments = async (postId: number): Promise<PostWithCommentsDa
 
     console.log('Post fetched successfully via edge function:', postData);
 
+    // Extract the actual post data from the response
+    const actualPostData = postData?.data || postData;
+    console.log('Extracted post data:', actualPostData);
+
     // Fetch comments using the optimized RPC function
     const { data: comments, error: commentsError } = await supabase
       .rpc('get_comments_for_post', {
@@ -62,13 +66,13 @@ const fetchPostWithComments = async (postId: number): Promise<PostWithCommentsDa
     if (commentsError) {
       console.error('Comments RPC error:', commentsError);
       // Don't fail the entire query if comments fail
-      return { post: postData as CommunityPost, comments: [] };
+      return { post: actualPostData as CommunityPost, comments: [] };
     }
 
     console.log('Comments fetched successfully:', comments?.length || 0, 'comments');
     
     return {
-      post: postData as CommunityPost,
+      post: actualPostData as CommunityPost,
       comments: (comments || []) as CommunityPost[]
     };
     

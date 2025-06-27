@@ -64,7 +64,9 @@ serve(async (req: Request) => {
           id,
           tag_name,
           parent_id,
-          created_at
+          created_at,
+          color,
+          description
         `)
         .order('tag_name');
 
@@ -84,6 +86,8 @@ serve(async (req: Request) => {
           tag_name: tag.tag_name,
           parent_id: tag.parent_id,
           created_at: tag.created_at,
+          color: tag.color,
+          description: tag.description,
           usage_count: usageCount || 0,
           direct_children: 0, // Will be calculated client-side
           total_descendants: 0, // Will be calculated client-side
