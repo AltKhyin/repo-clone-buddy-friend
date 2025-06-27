@@ -238,13 +238,6 @@ export const PostDetailCard = ({ post }: PostDetailCardProps) => {
         )}
 
         {/* Media content - Displayed based on post_type */}
-        {/* Debug info */}
-        {process.env.NODE_ENV === 'development' && (
-          <div className="mb-2 p-2 bg-gray-100 dark:bg-gray-800 text-xs rounded">
-            <strong>Debug:</strong> post_type="{post.post_type}", image_url={post.image_url ? 'exists' : 'null'}, 
-            video_url={post.video_url ? 'exists' : 'null'}, poll_data={post.poll_data ? 'exists' : 'null'}
-          </div>
-        )}
         
         {post.post_type === 'image' && post.image_url && (
           <div className="mb-4">
@@ -259,12 +252,27 @@ export const PostDetailCard = ({ post }: PostDetailCardProps) => {
 
         {post.post_type === 'video' && post.video_url && (
           <div className="mb-4">
-            <video 
-              src={post.video_url} 
-              controls 
-              className="rounded-lg max-w-full h-auto border"
-              preload="metadata"
-            />
+            {post.video_url.includes('youtube.com/embed') || post.video_url.includes('player.vimeo.com') ? (
+              <iframe
+                src={post.video_url}
+                className="w-full aspect-video rounded-lg border"
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                title="Video content"
+              />
+            ) : (
+              <video 
+                src={post.video_url} 
+                controls 
+                className="rounded-lg max-w-full h-auto border"
+                preload="metadata"
+                onError={(e) => {
+                  console.error('Video load error:', e);
+                  (e.target as HTMLVideoElement).style.display = 'none';
+                }}
+              />
+            )}
           </div>
         )}
 

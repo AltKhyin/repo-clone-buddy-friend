@@ -236,12 +236,27 @@ export const PostCard = ({ post }: PostCardProps) => {
           </div>
         ) : post.post_type === 'video' && post.video_url ? (
           <div className="mb-3">
-            <video 
-              src={post.video_url} 
-              controls 
-              className="max-h-80 w-auto rounded border"
-              preload="metadata"
-            />
+            {post.video_url.includes('youtube.com/embed') || post.video_url.includes('player.vimeo.com') ? (
+              <iframe
+                src={post.video_url}
+                className="w-full aspect-video max-h-80 rounded border"
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                title="Video content"
+              />
+            ) : (
+              <video 
+                src={post.video_url} 
+                controls 
+                className="max-h-80 w-auto rounded border"
+                preload="metadata"
+                onError={(e) => {
+                  console.error('Video load error:', e);
+                  (e.target as HTMLVideoElement).style.display = 'none';
+                }}
+              />
+            )}
           </div>
         ) : post.post_type === 'poll' && post.poll_data ? (
           <div className="mb-3">

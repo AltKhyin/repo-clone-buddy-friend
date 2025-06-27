@@ -282,10 +282,27 @@ serve(async (req: Request) => {
 
         case 'cleanup': {
           // Remove unused tags (tags with no ReviewTags associations)
-          const { data: unusedTags, error: unusedError } = await supabase
-            .from('Tags')
-            .select('id')
-            .not('id', 'in', `(SELECT DISTINCT tag_id FROM "ReviewTags")`);
+          // First get all used tag IDs
+          const { data: usedTagIds, error: usedError } = await supabase
+            .from('ReviewTags')
+            .select('tag_id');
+
+          if (usedError) {
+            throw new Error(`Failed to get used tags: ${usedError.message}`);
+          }
+
+          // Extract the IDs into an array
+          const usedIds = usedTagIds?.map(row => row.tag_id) || [];
+
+          // Now get unused tags
+          const { data: unusedTags, error: unusedError } = usedIds.length > 0 
+            ? await supabase
+                .from('Tags')
+                .select('id')
+                .not('id', 'in', `(${usedIds.join(',')})`)
+            : await supabase
+                .from('Tags')
+                .select('id');
 
           if (unusedError) {
             throw new Error(`Failed to identify unused tags: ${unusedError.message}`);
