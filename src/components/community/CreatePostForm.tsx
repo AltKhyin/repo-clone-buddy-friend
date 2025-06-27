@@ -15,6 +15,8 @@ import { ImageUploadZone } from './ImageUploadZone';
 import { VideoUrlInput } from './VideoUrlInput';
 import { PollCreator } from './PollCreator';
 import { useCreateCommunityPostMutation } from '../../../packages/hooks/useCreateCommunityPostMutation';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/store/auth';
 
 interface CreatePostFormProps {
   onPostCreated?: (postId: number) => void;
@@ -22,6 +24,7 @@ interface CreatePostFormProps {
 
 export const CreatePostForm = ({ onPostCreated }: CreatePostFormProps) => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [category, setCategory] = useState('');
@@ -97,10 +100,42 @@ export const CreatePostForm = ({ onPostCreated }: CreatePostFormProps) => {
     // Handle image upload to Supabase Storage if needed
     let uploadedImageUrl = '';
     if (postType === 'image' && imageFile) {
-      // TODO: Implement actual Supabase Storage upload
-      // For now, create a temporary URL that won't persist
-      uploadedImageUrl = URL.createObjectURL(imageFile);
-      toast.warning('Imagens são temporárias até implementar upload para Storage');
+      if (!user) {
+        toast.error('Você precisa estar logado para fazer upload de imagens');
+        return;
+      }
+      
+      try {
+        // Generate unique filename
+        const fileExt = imageFile.name.split('.').pop();
+        const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+        const filePath = `posts/${fileName}`;
+        
+        // Upload to Supabase Storage
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('community-images')
+          .upload(filePath, imageFile, {
+            cacheControl: '3600',
+            upsert: false
+          });
+          
+        if (uploadError) {
+          console.error('Image upload error:', uploadError);
+          toast.error('Erro ao fazer upload da imagem');
+          return;
+        }
+        
+        // Get public URL
+        const { data: { publicUrl } } = supabase.storage
+          .from('community-images')
+          .getPublicUrl(filePath);
+          
+        uploadedImageUrl = publicUrl;
+      } catch (error) {
+        console.error('Image upload failed:', error);
+        toast.error('Falha no upload da imagem');
+        return;
+      }
     }
 
     const payload = {
