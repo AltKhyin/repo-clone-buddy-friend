@@ -419,15 +419,16 @@ describe('usePublicationActionMutation', () => {
         notes: 'Great content',
       };
 
-      await waitFor(async () => {
-        await result.current.mutateAsync(action);
-      });
+      // Execute the mutation
+      await result.current.mutateAsync(action);
 
-      // Check that specific review cache was updated
-      const updatedReview = queryClient.getQueryData(['admin', 'review', 123]);
-      expect(updatedReview).toEqual({
-        ...existingReview,
-        ...mockResponse.review,
+      // Wait for the cache update to complete
+      await waitFor(() => {
+        const updatedReview = queryClient.getQueryData(['admin', 'review', 123]);
+        expect(updatedReview).toEqual({
+          ...existingReview,
+          ...mockResponse.review,
+        });
       });
     });
 

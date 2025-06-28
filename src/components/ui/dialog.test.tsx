@@ -364,7 +364,11 @@ describe('Dialog Accessibility', () => {
     trigger.focus();
 
     await user.click(trigger);
-    await user.click(screen.getByText('Close'));
+    
+    // Click the visible close button (not the sr-only one)
+    const closeButtons = screen.getAllByText('Close');
+    const visibleCloseButton = closeButtons.find(button => !button.classList.contains('sr-only'));
+    await user.click(visibleCloseButton!);
 
     // Focus should return to trigger after close
     await waitFor(() => {

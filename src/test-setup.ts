@@ -19,6 +19,47 @@ global.ResizeObserver = vi.fn(() => ({
   unobserve: vi.fn(),
 }))
 
+// Polyfill pointer capture APIs for Radix UI components
+if (typeof Element !== 'undefined') {
+  Element.prototype.hasPointerCapture = Element.prototype.hasPointerCapture || vi.fn(() => false)
+  Element.prototype.setPointerCapture = Element.prototype.setPointerCapture || vi.fn()
+  Element.prototype.releasePointerCapture = Element.prototype.releasePointerCapture || vi.fn()
+}
+
+// Polyfill scrollIntoView for JSDOM
+if (typeof Element !== 'undefined') {
+  Element.prototype.scrollIntoView = Element.prototype.scrollIntoView || vi.fn()
+}
+
+// Polyfill getBoundingClientRect for layout-dependent tests
+if (typeof Element !== 'undefined') {
+  Element.prototype.getBoundingClientRect = Element.prototype.getBoundingClientRect || vi.fn(() => ({
+    bottom: 0,
+    height: 0,
+    left: 0,
+    right: 0,
+    top: 0,
+    width: 0,
+    x: 0,
+    y: 0,
+    toJSON: vi.fn(),
+  }))
+}
+
+// Mock animate method for animation-based components
+if (typeof Element !== 'undefined') {
+  Element.prototype.animate = Element.prototype.animate || vi.fn(() => ({
+    cancel: vi.fn(),
+    finish: vi.fn(),
+    pause: vi.fn(),
+    play: vi.fn(),
+    reverse: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  }))
+}
+
 // Mock matchMedia for responsive components
 Object.defineProperty(window, 'matchMedia', {
   writable: true,

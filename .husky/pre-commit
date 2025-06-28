@@ -1,35 +1,52 @@
-#!/usr/bin/bash
+#!/bin/sh
 
-# EVIDENS TDD Protocol Enforcement
-# This pre-commit hook enforces the mandatory testing requirements outlined in CLAUDE.md
+# Set up Node.js environment for Git Bash/mingw64
+export PATH="/c/Program Files/nodejs:$PATH"
+export PATH="/c/Users/Igor Cogo Koehler/AppData/Roaming/npm:$PATH"
 
 echo "🧪 EVIDENS TDD Protocol: Enforcing test requirements..."
 
-# Run lint-staged to check staged files
-npx lint-staged
+# Run lint-staged using local installation
+if [ -f "./node_modules/.bin/lint-staged" ]; then
+    ./node_modules/.bin/lint-staged
+else
+    echo "⚠️ lint-staged not found, skipping..."
+fi
 
-# Check if there are any TypeScript compilation errors
 echo "🔍 Checking TypeScript compilation..."
-npm run build > /dev/null 2>&1
+echo "Node version: $(node --version 2>/dev/null || echo 'Node not found')"
+echo "NPM version: $('/c/Program Files/nodejs/npm.cmd' --version 2>/dev/null || echo 'NPM not found')"
+
+# Use local TypeScript installation
+if [ -f "./node_modules/.bin/tsc" ]; then
+    echo "Using local TypeScript..."
+    ./node_modules/.bin/tsc --noEmit
+else
+    echo "TypeScript not found locally"
+    exit 1
+fi
+
 if [ $? -ne 0 ]; then
     echo "❌ TypeScript compilation failed. Fix errors before committing."
     exit 1
 fi
 
-# Run all tests to ensure nothing is broken
-echo "🧪 Running all tests..."
-npm test -- --no-cache
-if [ $? -ne 0 ]; then
-    echo "❌ Tests failed. Fix failing tests before committing."
-    echo "📋 TDD Protocol: ALL tests must pass before committing."
+echo "🧪 Running complete test suite..."
+echo "📋 TDD Protocol: ALL tests must pass before committing."
+
+# Run tests using local installation
+if [ -f "./node_modules/.bin/vitest" ]; then
+    ./node_modules/.bin/vitest run
+else
+    echo "Vitest not found locally"
     exit 1
 fi
 
-# Check test coverage (informational only for now)
-echo "📊 Checking test coverage..."
-npm run test:coverage > coverage.tmp 2>&1 || true
-echo "📋 Coverage report generated (review manually if needed)"
-rm -f coverage.tmp
+if [ $? -ne 0 ]; then
+    echo "❌ Tests failed. Fix failing tests before committing."
+    echo "📋 TDD Protocol violation: Cannot commit with failing tests."
+    exit 1
+fi
 
 echo "✅ All TDD Protocol checks passed!"
 echo "🚀 Commit approved - TDD Protocol compliance verified."

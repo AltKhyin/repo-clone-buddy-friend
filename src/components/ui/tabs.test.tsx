@@ -45,8 +45,9 @@ describe('Tabs Component', () => {
     expect(screen.getByText('Content 2')).toBeInTheDocument();
   });
 
-  it('should handle controlled state', () => {
+  it('should handle controlled state', async () => {
     const handleValueChange = vi.fn();
+    const user = userEvent.setup();
 
     render(
       <Tabs value="tab1" onValueChange={handleValueChange}>
@@ -59,7 +60,7 @@ describe('Tabs Component', () => {
       </Tabs>
     );
 
-    fireEvent.click(screen.getByText('Tab 2'));
+    await user.click(screen.getByText('Tab 2'));
     expect(handleValueChange).toHaveBeenCalledWith('tab2');
   });
 

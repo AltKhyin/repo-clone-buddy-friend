@@ -310,15 +310,15 @@ describe('useSavePostMutation', () => {
         post_id: 123,
       };
 
-      await waitFor(async () => {
-        await result.current.mutateAsync(payload);
+      // Execute the mutation
+      await result.current.mutateAsync(payload);
+
+      // Wait for the cache update to complete
+      await waitFor(() => {
+        const updatedCache = queryClient.getQueryData(['communityFeed']) as any;
+        const updatedPost = updatedCache?.pages[0]?.posts?.find((p: any) => p.id === 123);
+        expect(updatedPost?.is_saved).toBe(true);
       });
-
-      // Check that the specific post's save status was updated
-      const updatedCache = queryClient.getQueryData(['communityFeed']) as any;
-      const updatedPost = updatedCache?.pages[0]?.posts?.find((p: any) => p.id === 123);
-
-      expect(updatedPost?.is_saved).toBe(true);
     });
 
     it('should update community feed cache immediately on unsave', async () => {
@@ -355,15 +355,15 @@ describe('useSavePostMutation', () => {
         save: false,
       };
 
-      await waitFor(async () => {
-        await result.current.mutateAsync(payload);
+      // Execute the mutation
+      await result.current.mutateAsync(payload);
+
+      // Wait for the cache update to complete
+      await waitFor(() => {
+        const updatedCache = queryClient.getQueryData(['communityFeed']) as any;
+        const updatedPost = updatedCache?.pages[0]?.posts?.find((p: any) => p.id === 123);
+        expect(updatedPost?.is_saved).toBe(false);
       });
-
-      // Check that the post's save status was updated to false
-      const updatedCache = queryClient.getQueryData(['communityFeed']) as any;
-      const updatedPost = updatedCache?.pages[0]?.posts?.find((p: any) => p.id === 123);
-
-      expect(updatedPost?.is_saved).toBe(false);
     });
 
     it('should handle multiple pages in community feed', async () => {
@@ -398,18 +398,20 @@ describe('useSavePostMutation', () => {
         post_id: 123,
       };
 
-      await waitFor(async () => {
-        await result.current.mutateAsync(payload);
+      // Execute the mutation
+      await result.current.mutateAsync(payload);
+
+      // Wait for the cache update to complete
+      await waitFor(() => {
+        const updatedCache = queryClient.getQueryData(['communityFeed']) as any;
+        const pages = updatedCache?.pages;
+        
+        expect(pages).toBeDefined();
+        expect(pages[0]?.posts[0]?.is_saved).toBeUndefined(); // First page unchanged
+        expect(pages[1]?.posts[0]?.is_saved).toBe(true); // Target post updated
+        expect(pages[1]?.posts[1]?.is_saved).toBeUndefined(); // Other post in same page unchanged
+        expect(pages[2]?.posts[0]?.is_saved).toBeUndefined(); // Third page unchanged
       });
-
-      // Check that only the target post was updated
-      const updatedCache = queryClient.getQueryData(['communityFeed']) as any;
-      const pages = updatedCache?.pages;
-
-      expect(pages[0].posts[0].is_saved).toBeUndefined(); // First page unchanged
-      expect(pages[1].posts[0].is_saved).toBe(true); // Target post updated
-      expect(pages[1].posts[1].is_saved).toBeUndefined(); // Other post in same page unchanged
-      expect(pages[2].posts[0].is_saved).toBeUndefined(); // Third page unchanged
     });
 
     it('should handle empty or missing cache gracefully', async () => {
@@ -432,9 +434,7 @@ describe('useSavePostMutation', () => {
       };
 
       // Should not throw error
-      await expect(async () => {
-        await result.current.mutateAsync(payload);
-      }).resolves.not.toThrow();
+      await expect(result.current.mutateAsync(payload)).resolves.not.toThrow();
     });
 
     it('should handle cache without pages structure', async () => {
@@ -460,13 +460,14 @@ describe('useSavePostMutation', () => {
         post_id: 123,
       };
 
-      await waitFor(async () => {
-        await result.current.mutateAsync(payload);
-      });
+      // Execute the mutation
+      await result.current.mutateAsync(payload);
 
       // Cache should remain unchanged since it doesn't have pages structure
-      const updatedCache = queryClient.getQueryData(['communityFeed']) as any;
-      expect(updatedCache?.posts[0].is_saved).toBe(false); // Unchanged
+      await waitFor(() => {
+        const updatedCache = queryClient.getQueryData(['communityFeed']) as any;
+        expect(updatedCache?.posts[0]?.is_saved).toBe(false); // Unchanged
+      });
     });
 
     it('should not affect other posts when updating specific post', async () => {
@@ -498,15 +499,18 @@ describe('useSavePostMutation', () => {
         post_id: 123,
       };
 
-      await waitFor(async () => {
-        await result.current.mutateAsync(payload);
+      // Execute the mutation
+      await result.current.mutateAsync(payload);
+
+      // Wait for the cache update to complete
+      await waitFor(() => {
+        const updatedCache = queryClient.getQueryData(['communityFeed']) as any;
+        const posts = updatedCache?.pages[0]?.posts;
+        
+        expect(posts).toBeDefined();
+        expect(posts[0]?.is_saved).toBe(true); // Target post updated
+        expect(posts[1]?.is_saved).toBe(true); // Other post unchanged
       });
-
-      const updatedCache = queryClient.getQueryData(['communityFeed']) as any;
-      const posts = updatedCache?.pages[0]?.posts;
-
-      expect(posts[0].is_saved).toBe(true); // Target post updated
-      expect(posts[1].is_saved).toBe(true); // Other post unchanged
     });
   });
 
