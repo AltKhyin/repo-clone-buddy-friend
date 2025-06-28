@@ -1,0 +1,449 @@
+// ABOUTME: Zustand store for managing Visual Composition Engine editor state
+
+import { create } from 'zustand';
+import { debounce } from 'lodash-es';
+import { 
+  EditorState, 
+  NodeObject, 
+  LayoutItem, 
+  Viewport, 
+  CanvasTransform, 
+  StructuredContentV2,
+  generateNodeId,
+  getDefaultDataForBlockType,
+  validateStructuredContent 
+} from '@/types/editor';
+
+const AUTOSAVE_DELAY = 30000; // 30 seconds as per user requirements
+
+const initialCanvasTransform: CanvasTransform = {
+  x: 0,
+  y: 0,
+  zoom: 1,
+};
+
+const initialLayouts = {
+  desktop: {
+    gridSettings: { columns: 12 },
+    items: [],
+  },
+  mobile: {
+    gridSettings: { columns: 4 },
+    items: [],
+  },
+};
+
+/**
+ * Editor store following the same simple pattern as auth.ts.
+ * Manages all editor state for the Visual Composition Engine.
+ * No middleware dependencies - manual immutable updates.
+ */
+export const useEditorStore = create<EditorState>((set, get) => {
+  // Debounced save function
+  const debouncedSave = debounce(async () => {
+    const state = get();
+    if (!state.reviewId || !state.isDirty) return;
+    
+    try {
+      set({ isSaving: true });
+      
+      const structuredContent: StructuredContentV2 = {
+        version: '2.0.0',
+        nodes: state.nodes,
+        layouts: state.layouts,
+        metadata: {
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          editorVersion: '1.0.0',
+        },
+      };
+      
+      // Validate before saving
+      validateStructuredContent(structuredContent);
+      
+      // TODO: Implement actual save mutation when we create the hooks
+      console.log('Saving to database:', structuredContent);
+      
+      set({ 
+        isDirty: false, 
+        isSaving: false, 
+        lastSaved: new Date() 
+      });
+    } catch (error) {
+      console.error('Save failed:', error);
+      set({ isSaving: false });
+      // TODO: Show error toast when we integrate with UI
+    }
+  }, AUTOSAVE_DELAY);
+
+  return {
+    // Document State
+    reviewId: null,
+    title: '',
+    description: '',
+    
+    // Content State
+    nodes: [],
+    layouts: initialLayouts,
+    
+    // Editor State
+    selectedNodeId: null,
+    currentViewport: 'desktop',
+    isDirty: false,
+    isSaving: false,
+    lastSaved: null,
+    
+    // Canvas State
+    canvasTransform: initialCanvasTransform,
+    
+    // Clipboard State
+    clipboardData: null,
+    
+    // History State
+    history: [],
+    historyIndex: -1,
+    
+    // ===== NODE ACTIONS =====
+    
+    addNode: (nodeData) => {
+      const newNode: NodeObject = {
+        id: generateNodeId(),
+        type: nodeData.type || 'textBlock',
+        data: nodeData.data || getDefaultDataForBlockType(nodeData.type || 'textBlock'),
+        ...nodeData,
+      } as NodeObject;
+      
+      set((state) => {
+        const updatedState = {
+          ...state,
+          nodes: [...state.nodes, newNode],
+          selectedNodeId: newNode.id,
+          isDirty: true,
+        };
+        
+        // Auto-save after adding node
+        debouncedSave();
+        
+        return updatedState;
+      });
+    },
+    
+    updateNode: (nodeId, updates) => {
+      set((state) => {
+        const nodeIndex = state.nodes.findIndex(n => n.id === nodeId);
+        if (nodeIndex === -1) return state;
+        
+        const updatedNodes = [...state.nodes];
+        updatedNodes[nodeIndex] = { 
+          ...updatedNodes[nodeIndex], 
+          ...updates,
+          id: nodeId, // Ensure ID is preserved
+        } as NodeObject;
+        
+        const updatedState = {
+          ...state,
+          nodes: updatedNodes,
+          isDirty: true,
+        };
+        
+        // Auto-save after updating node
+        debouncedSave();
+        
+        return updatedState;
+      });
+    },
+    
+    deleteNode: (nodeId) => {
+      set((state) => {
+        const updatedNodes = state.nodes.filter(n => n.id !== nodeId);
+        const updatedDesktopItems = state.layouts.desktop.items.filter(i => i.nodeId !== nodeId);
+        const updatedMobileItems = state.layouts.mobile.items.filter(i => i.nodeId !== nodeId);
+        
+        const updatedState = {
+          ...state,
+          nodes: updatedNodes,
+          layouts: {
+            desktop: {
+              ...state.layouts.desktop,
+              items: updatedDesktopItems,
+            },
+            mobile: {
+              ...state.layouts.mobile,
+              items: updatedMobileItems,
+            },
+          },
+          selectedNodeId: state.selectedNodeId === nodeId ? null : state.selectedNodeId,
+          isDirty: true,
+        };
+        
+        // Auto-save after deleting node
+        debouncedSave();
+        
+        return updatedState;
+      });
+    },
+    
+    duplicateNode: (nodeId) => {
+      const state = get();
+      const originalNode = state.nodes.find(n => n.id === nodeId);
+      if (!originalNode) return;
+      
+      // Create duplicate with new ID
+      const duplicateNode: NodeObject = {
+        ...originalNode,
+        id: generateNodeId(),
+      };
+      
+      get().addNode(duplicateNode);
+    },
+    
+    // ===== LAYOUT ACTIONS =====
+    
+    updateLayout: (nodeId, layout, viewport) => {
+      set((state) => {
+        const currentItems = state.layouts[viewport].items;
+        const existingIndex = currentItems.findIndex(i => i.nodeId === nodeId);
+        
+        let updatedItems;
+        if (existingIndex >= 0) {
+          // Update existing layout item
+          updatedItems = [...currentItems];
+          updatedItems[existingIndex] = { ...layout, nodeId };
+        } else {
+          // Add new layout item
+          updatedItems = [...currentItems, { ...layout, nodeId }];
+        }
+        
+        const updatedState = {
+          ...state,
+          layouts: {
+            ...state.layouts,
+            [viewport]: {
+              ...state.layouts[viewport],
+              items: updatedItems,
+            },
+          },
+          isDirty: true,
+        };
+        
+        // Auto-save after layout update
+        debouncedSave();
+        
+        return updatedState;
+      });
+    },
+    
+    // ===== SELECTION ACTIONS =====
+    
+    selectNode: (nodeId) => {
+      set({ selectedNodeId: nodeId });
+    },
+    
+    // ===== VIEWPORT ACTIONS =====
+    
+    switchViewport: (viewport) => {
+      set({ currentViewport: viewport });
+    },
+    
+    updateCanvasTransform: (transform) => {
+      set((state) => ({
+        canvasTransform: { ...state.canvasTransform, ...transform },
+      }));
+    },
+    
+    // ===== CLIPBOARD ACTIONS =====
+    
+    copyNodes: (nodeIds) => {
+      const state = get();
+      const nodesToCopy = state.nodes.filter(n => nodeIds.includes(n.id));
+      set({ clipboardData: nodesToCopy });
+    },
+    
+    pasteNodes: () => {
+      const state = get();
+      if (!state.clipboardData) return;
+      
+      // Create new nodes with new IDs
+      state.clipboardData.forEach(node => {
+        get().addNode({
+          ...node,
+          id: generateNodeId(), // New ID for pasted node
+        });
+      });
+    },
+    
+    // ===== HISTORY ACTIONS =====
+    
+    undo: () => {
+      const state = get();
+      if (state.historyIndex > 0) {
+        const previousState = state.history[state.historyIndex - 1];
+        set({
+          nodes: previousState.nodes,
+          layouts: previousState.layouts,
+          historyIndex: state.historyIndex - 1,
+          isDirty: true,
+        });
+      }
+    },
+    
+    redo: () => {
+      const state = get();
+      if (state.historyIndex < state.history.length - 1) {
+        const nextState = state.history[state.historyIndex + 1];
+        set({
+          nodes: nextState.nodes,
+          layouts: nextState.layouts,
+          historyIndex: state.historyIndex + 1,
+          isDirty: true,
+        });
+      }
+    },
+    
+    pushToHistory: () => {
+      const state = get();
+      const currentState: StructuredContentV2 = {
+        version: '2.0.0',
+        nodes: state.nodes,
+        layouts: state.layouts,
+      };
+      
+      // Limit history to 50 entries
+      const newHistory = [...state.history.slice(0, state.historyIndex + 1), currentState];
+      if (newHistory.length > 50) {
+        newHistory.shift();
+      }
+      
+      set({
+        history: newHistory,
+        historyIndex: newHistory.length - 1,
+      });
+    },
+    
+    // ===== DATA PERSISTENCE =====
+    
+    saveToDatabase: async () => {
+      // Force immediate save (bypass debounce)
+      const state = get();
+      if (!state.reviewId) return;
+      
+      try {
+        set({ isSaving: true });
+        
+        const structuredContent: StructuredContentV2 = {
+          version: '2.0.0',
+          nodes: state.nodes,
+          layouts: state.layouts,
+          metadata: {
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            editorVersion: '1.0.0',
+          },
+        };
+        
+        // Validate before saving
+        validateStructuredContent(structuredContent);
+        
+        // TODO: Implement actual save mutation
+        console.log('Force saving to database:', structuredContent);
+        
+        set({ 
+          isDirty: false, 
+          isSaving: false, 
+          lastSaved: new Date() 
+        });
+      } catch (error) {
+        console.error('Save failed:', error);
+        set({ isSaving: false });
+        throw error;
+      }
+    },
+    
+    loadFromDatabase: async (reviewId) => {
+      try {
+        set({ reviewId, isSaving: true });
+        
+        // TODO: Implement actual load query
+        console.log('Loading from database:', reviewId);
+        
+        // For now, just reset to empty state
+        set({
+          nodes: [],
+          layouts: initialLayouts,
+          selectedNodeId: null,
+          isDirty: false,
+          isSaving: false,
+          lastSaved: new Date(),
+        });
+      } catch (error) {
+        console.error('Load failed:', error);
+        set({ isSaving: false });
+        throw error;
+      }
+    },
+    
+    loadFromJSON: (json) => {
+      try {
+        const validatedContent = validateStructuredContent(json);
+        
+        set({
+          nodes: validatedContent.nodes,
+          layouts: validatedContent.layouts,
+          isDirty: false,
+          selectedNodeId: null,
+        });
+        
+        // Push to history after loading
+        get().pushToHistory();
+      } catch (error) {
+        console.error('JSON load failed:', error);
+        throw error;
+      }
+    },
+    
+    exportToJSON: () => {
+      const state = get();
+      return {
+        version: '2.0.0' as const,
+        nodes: state.nodes,
+        layouts: state.layouts,
+        metadata: {
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          editorVersion: '1.0.0',
+        },
+      };
+    },
+    
+    exportToPDF: async () => {
+      // TODO: Implement PDF export functionality
+      console.log('Exporting to PDF...');
+    },
+    
+    // ===== UTILITIES =====
+    
+    reset: () => {
+      set({
+        reviewId: null,
+        title: '',
+        description: '',
+        nodes: [],
+        layouts: initialLayouts,
+        selectedNodeId: null,
+        currentViewport: 'desktop',
+        isDirty: false,
+        isSaving: false,
+        lastSaved: null,
+        canvasTransform: initialCanvasTransform,
+        clipboardData: null,
+        history: [],
+        historyIndex: -1,
+      });
+    },
+    
+    setError: (error) => {
+      // TODO: Implement error state management
+      console.error('Editor error:', error);
+    },
+  };
+});

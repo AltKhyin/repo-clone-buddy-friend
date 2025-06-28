@@ -50,7 +50,7 @@
 #### 4. **Code Quality & Technical Debt Management**
 
 - **Current ESLint Status**: 0 errors, 21 warnings (testing framework deployment complete)
-- **TypeScript Configuration**: Full strict mode alignment completed across all configs
+- **TypeScript Configuration**: Full strict mode enabled (tsconfig.app.json:18) - actual implementation uses strict mode
 - **Temporary Accommodations**: 5 ESLint rules temporarily disabled with systematic remediation plan
 - **Target Resolution**: All technical debt items resolved by Sprint 2, 2025
 - **Impact**: Controlled technical debt with clear accountability and timelines
@@ -79,7 +79,31 @@
    - 2 violations in `VideoUrlInput.tsx`
    - Fix regex patterns - fix in Sprint 2, 2025
 
-**Systematic Remediation Plan**: Type safety recovery (Sprint 1) → Code quality improvements (Sprint 2) → Full rule re-enablement
+**NEW TECHNICAL DEBT IDENTIFIED (June 28, 2025):**
+
+6. **JSONB Content Validation** (HIGH PRIORITY)
+   - Missing runtime validation for `structured_content`, `poll_data`, `metadata` JSONB fields
+   - Fields typed as `Json` (too permissive) - implement Zod schemas
+   - Impact: Potential data integrity issues and type safety gaps
+   - Resolution: Add comprehensive JSONB validation with Zod
+
+7. **Rate Limiting Persistence** (CRITICAL SECURITY)
+   - In-memory rate limiting in Edge Functions loses state on restart
+   - Vulnerability: Rate limits can be bypassed by triggering function restarts
+   - Resolution: Implement persistent rate limiting using Supabase database
+
+8. **Environment Configuration Management** (HIGH PRIORITY)
+   - Missing proper .env file management for different environments
+   - No evidence of environment-specific configuration
+   - Impact: Deployment complexity and configuration drift
+   - Resolution: Implement structured environment configuration
+
+9. **Service Worker Cache Management** (MEDIUM)
+   - PWA service worker lacks versioning strategy for cache invalidation
+   - Potential stale content issues during updates
+   - Resolution: Implement cache versioning and update mechanisms
+
+**Systematic Remediation Plan**: Security fixes (Rate limiting) → Type safety recovery (Sprint 1) → Code quality improvements (Sprint 2) → Full rule re-enablement
 
 #### 3. **Build Performance Warnings**
 
@@ -90,11 +114,18 @@
 
 ### ⚠️ HIGH PRIORITY ISSUES
 
-#### 4. **Security Audit Incomplete**
+#### 4. **Security Audit Incomplete** (CRITICAL PRIORITY)
 
-- **Issue**: 24 Edge Functions with verify_jwt = false require security review
-- **Impact**: Potential security vulnerabilities in production
-- **Resolution Required**: Comprehensive security audit of all endpoints
+- **Issue**: 24 Edge Functions with verify_jwt = false require immediate security review
+- **Critical Finding**: Manual JWT verification creates bypass vulnerabilities
+- **Rate Limiting Vulnerability**: In-memory storage allows rate limit bypass via function restart
+- **Admin Function Risk**: Service role key usage bypasses RLS policies
+- **Impact**: HIGH RISK - Multiple attack vectors in production
+- **Resolution Required**: 
+  1. Enable verify_jwt = true where possible
+  2. Implement persistent rate limiting
+  3. Audit all admin functions for RLS bypass
+  4. Review manual JWT verification patterns
 
 #### 5. **Database Performance Optimization Needed**
 
@@ -121,6 +152,20 @@
 - **Issue**: No performance monitoring/analytics in place
 - **Impact**: Cannot detect production performance issues
 - **Resolution**: Implement performance monitoring infrastructure
+
+#### 9. **Input Validation Completeness** (NEW - HIGH PRIORITY)
+
+- **Issue**: Limited input sanitization in Edge Functions and JSONB fields
+- **Missing**: Runtime validation for complex JSONB content structures
+- **Impact**: Data integrity vulnerabilities and type safety gaps
+- **Resolution**: Implement comprehensive input validation with Zod schemas
+
+#### 10. **Database Query Optimization** (NEW - MEDIUM PRIORITY)
+
+- **Issue**: 20+ tables without verified performance optimization for production scale
+- **Missing**: Systematic indexing strategy and query performance analysis
+- **Impact**: Potential slow queries with real production data volumes
+- **Resolution**: Database performance audit and strategic indexing implementation
 
 ---
 
@@ -540,18 +585,45 @@ supabase/
 - **CRITICAL**: Import/export inconsistencies - Standardized shared utilities
 - **HIGH**: Admin function pattern deviation - Applied 7-step pattern universally
 
-### 🔄 REMAINING
+### 🚨 NEW CRITICAL ISSUES IDENTIFIED (June 28, 2025)
+
+- **CRITICAL**: Rate limiting persistence vulnerability - In-memory storage allows bypass
+- **HIGH**: JSONB content validation missing - Type safety gaps in structured content
+- **HIGH**: Environment configuration management - Missing .env structure
+- **MEDIUM**: Service worker cache versioning - Potential stale content issues
+
+### 🔄 REMAINING MEDIUM PRIORITY
 
 - **MEDIUM**: Admin component theme compliance needed
+- **MEDIUM**: Database query optimization for production scale
 - **LOW**: Some component prop type standardization pending
 
 ---
 
-## NEXT IMMEDIATE ACTIONS v6.0.1
+## NEXT IMMEDIATE ACTIONS v6.4.0 (UPDATED PRIORITIES)
 
-1. **✅ Verify Infrastructure**: All admin functions now operational
-2. **🔄 Begin Task 2.1**: Apply [DOC_7] theme compliance to admin components
-3. **🔄 Proceed systematically** through 08b component implementation
+### CRITICAL SECURITY PRIORITIES (MUST ADDRESS BEFORE NEW FEATURES)
+
+1. **🚨 URGENT: Rate Limiting Security Fix**
+   - Implement persistent rate limiting using Supabase database
+   - Replace in-memory Map with database-backed rate limiting
+   - Test rate limit bypass vulnerability resolution
+
+2. **🔒 Security Audit: Edge Function JWT Configuration**
+   - Review all 24 functions with verify_jwt = false
+   - Enable automatic JWT verification where possible
+   - Document justification for manual verification cases
+
+3. **📋 Input Validation Enhancement**
+   - Implement Zod schemas for JSONB field validation
+   - Add runtime validation for structured_content, poll_data, metadata
+   - Ensure type safety for user-generated content
+
+### DEVELOPMENT READY (After Security Fixes)
+
+4. **🎨 Admin Components Theme Compliance**: Apply [DOC_7] theme compliance
+5. **⚡ Bundle Size Optimization**: Implement code splitting for 1.67MB bundle
+6. **🔧 Environment Configuration**: Implement proper .env management
 
 ---
 

@@ -19,6 +19,7 @@ import SuggestionPage from "@/pages/SuggestionPage";
 import UnauthorizedPage from "@/pages/UnauthorizedPage";
 import LoginPage from "@/pages/LoginPage";
 import { AdminProtectedRoute } from '@/components/routes/AdminProtectedRoute';
+import { RoleProtectedRoute } from '@/components/routes/RoleProtectedRoute';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { AdminDashboard } from '@/pages/AdminDashboard';
 import ContentManagement from '@/pages/ContentManagement';
@@ -26,6 +27,7 @@ import AdminUserManagement from '@/pages/AdminUserManagement';
 import AdminTagManagement from '@/pages/AdminTagManagement';
 import AdminLayoutManagement from '@/pages/AdminLayoutManagement';
 import AdminAnalytics from '@/pages/AdminAnalytics';
+import EditorPage from '@/pages/EditorPage';
 
 const router = createBrowserRouter([
   {
@@ -142,6 +144,16 @@ const router = createBrowserRouter([
             element: <AdminAnalytics />,
           },
         ],
+      },
+      
+      // Editor Routes - Protected for admin and editor roles
+      {
+        path: "/editor/:reviewId",
+        element: (
+          <RoleProtectedRoute requiredRoles={['admin', 'editor']}>
+            <EditorPage />
+          </RoleProtectedRoute>
+        ),
       },
     ],
   },

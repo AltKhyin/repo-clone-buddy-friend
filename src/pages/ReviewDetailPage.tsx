@@ -2,16 +2,23 @@
 // ABOUTME: Review detail page that renders structured content using the Layout-Aware Renderer architecture per Blueprint 05.
 
 import React from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { useReviewDetailQuery } from '../../packages/hooks/useReviewDetailQuery';
 import LayoutAwareRenderer from '@/components/review-detail/LayoutAwareRenderer';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AlertTriangle, Lock } from 'lucide-react';
+import { AlertTriangle, Lock, Edit } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { useAuthStore } from '@/store/auth';
 
 const ReviewDetailPageContent = () => {
   const { slug } = useParams<{ slug: string }>();
   const { data: review, isLoading, isError, error } = useReviewDetailQuery(slug);
+  const { user } = useAuthStore();
+
+  // Check if user has admin/editor role
+  const userRole = user?.app_metadata?.role || 'practitioner';
+  const canEdit = ['admin', 'editor'].includes(userRole);
 
   console.log('ReviewDetailPage render:', { slug, review, isLoading, isError, error });
 
@@ -130,9 +137,21 @@ const ReviewDetailPageContent = () => {
       <div className="max-w-4xl mx-auto p-6">
         {/* Review Header */}
         <header className="mb-8 space-y-6">
-          <h1 className="text-4xl font-bold text-foreground font-serif leading-tight">
-            {review.title}
-          </h1>
+          <div className="flex items-start justify-between">
+            <h1 className="text-4xl font-bold text-foreground font-serif leading-tight flex-1">
+              {review.title}
+            </h1>
+            {canEdit && review.id && (
+              <div className="ml-6 flex-shrink-0">
+                <Button asChild size="sm" variant="outline">
+                  <Link to={`/editor/${review.id}`}>
+                    <Edit size={16} className="mr-2" />
+                    Edit
+                  </Link>
+                </Button>
+              </div>
+            )}
+          </div>
           
           {review.description && (
             <p className="text-xl text-muted-foreground leading-relaxed">
