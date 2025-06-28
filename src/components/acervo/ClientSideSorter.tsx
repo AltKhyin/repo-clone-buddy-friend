@@ -57,7 +57,7 @@ export const ClientSideSorter = ({
     });
 
     // Filter reviews based on search query and selected tags
-    let filteredReviews = reviews.filter(review => {
+    const filteredReviews = reviews.filter(review => {
       // Search query filter
       if (searchQuery) {
         const searchLower = searchQuery.toLowerCase();

@@ -140,7 +140,7 @@ export const useUpdateUserMutation = () => {
       
       // Determine action based on what's being updated
       let action: string;
-      let payload: any = {
+      const payload: any = {
         targetUserId: userId
       };
       
