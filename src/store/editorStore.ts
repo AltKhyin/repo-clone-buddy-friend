@@ -242,7 +242,53 @@ export const useEditorStore = create<EditorState>((set, get) => {
     // ===== VIEWPORT ACTIONS =====
     
     switchViewport: (viewport) => {
-      set({ currentViewport: viewport });
+      const state = get();
+      if (state.currentViewport === viewport) return; // No change needed
+      
+      const currentLayout = state.layouts[state.currentViewport];
+      const targetLayout = state.layouts[viewport];
+      
+      // Smart layout conversion: try to preserve relative positioning
+      const convertedItems = currentLayout.items.map(item => {
+        const currentColumns = currentLayout.gridSettings.columns;
+        const targetColumns = targetLayout.gridSettings.columns;
+        
+        // Calculate relative position as percentage
+        const relativeX = item.x / currentColumns;
+        const relativeWidth = item.w / currentColumns;
+        
+        // Convert to target viewport coordinates
+        const newX = Math.floor(relativeX * targetColumns);
+        const newWidth = Math.max(1, Math.floor(relativeWidth * targetColumns));
+        
+        // Ensure the item fits within the target grid
+        const adjustedX = Math.min(newX, targetColumns - newWidth);
+        const adjustedWidth = Math.min(newWidth, targetColumns - adjustedX);
+        
+        return {
+          ...item,
+          x: adjustedX,
+          w: adjustedWidth,
+        };
+      });
+      
+      // Update the target layout with converted items if it's empty
+      const updatedLayouts = {
+        ...state.layouts,
+        [viewport]: {
+          ...targetLayout,
+          items: targetLayout.items.length === 0 ? convertedItems : targetLayout.items,
+        },
+      };
+      
+      set({ 
+        currentViewport: viewport,
+        layouts: updatedLayouts,
+        isDirty: true,
+      });
+      
+      // Auto-save after viewport switch
+      debouncedSave();
     },
     
     updateCanvasTransform: (transform) => {

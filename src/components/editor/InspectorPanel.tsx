@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
-import { Trash2, Copy, Eye, EyeOff } from 'lucide-react';
+import { Trash2, Copy, Eye, EyeOff, Monitor, Smartphone } from 'lucide-react';
 
 export function InspectorPanel() {
   const { 
@@ -246,24 +246,34 @@ export function InspectorPanel() {
       <div className="p-4 border-b">
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-semibold text-sm">Inspector</h2>
-          <div className="flex space-x-1">
+          <div className="flex bg-muted rounded-lg p-1">
             <Button
               size="sm"
               variant={currentViewport === 'desktop' ? 'default' : 'ghost'}
               onClick={() => switchViewport('desktop')}
-              className="text-xs px-2"
+              className="text-xs px-2 h-6 rounded-md transition-all"
+              title="Switch to desktop layout (12 columns)"
             >
+              <Monitor size={12} className="mr-1" />
               Desktop
             </Button>
             <Button
               size="sm"
               variant={currentViewport === 'mobile' ? 'default' : 'ghost'}
               onClick={() => switchViewport('mobile')}
-              className="text-xs px-2"
+              className="text-xs px-2 h-6 rounded-md transition-all"
+              title="Switch to mobile layout (4 columns)"
             >
+              <Smartphone size={12} className="mr-1" />
               Mobile
             </Button>
           </div>
+        </div>
+        
+        {/* Viewport info */}
+        <div className="text-xs text-muted-foreground bg-muted/50 rounded px-2 py-1">
+          Current: {currentViewport === 'desktop' ? '12' : '4'} column grid • 
+          Layouts auto-convert when switching
         </div>
       </div>
 

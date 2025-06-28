@@ -1,8 +1,9 @@
-// ABOUTME: Main Visual Composition Engine editor page with three-panel workspace layout
+// ABOUTME: Main Visual Composition Engine editor page with React Flow 2D canvas and three-panel workspace
 
 import React from 'react';
 import { useParams } from 'react-router-dom';
 import { DndContext, DragEndEvent, DragOverEvent } from '@dnd-kit/core';
+import { ReactFlowProvider } from '@xyflow/react';
 import { useEditorStore } from '@/store/editorStore';
 import { BlockPalette } from '@/components/editor/BlockPalette';
 import { EditorCanvas } from '@/components/editor/EditorCanvas';
@@ -28,17 +29,30 @@ export default function EditorPage() {
   }, [reviewId, loadFromDatabase]);
 
   const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
+    const { active, over, delta } = event;
     
     if (over && over.id === 'editor-canvas') {
       const dragData = active.data.current;
       
       if (dragData?.type === 'block') {
         const blockType = dragData.blockType;
-        addNode({
+        
+        // Calculate drop position - use delta to determine where the block should be placed
+        // Default positioning with offset based on existing blocks to avoid overlap
+        const currentBlockCount = useEditorStore.getState().nodes.length;
+        const defaultX = 100 + (currentBlockCount * 50); // Offset each new block
+        const defaultY = 100 + (currentBlockCount * 80);
+        
+        // Create the node first
+        const newNode = {
           type: blockType,
           data: getDefaultDataForBlockType(blockType)
-        });
+        };
+        
+        addNode(newNode);
+        
+        // The positioning will be handled by the React Flow canvas automatically
+        // through the layout system we implemented
       }
     }
   };
@@ -101,7 +115,9 @@ export default function EditorPage() {
         {/* Three-Panel Workspace */}
         <div className="flex-1 flex">
           <BlockPalette />
-          <EditorCanvas />
+          <ReactFlowProvider>
+            <EditorCanvas />
+          </ReactFlowProvider>
           <InspectorPanel />
         </div>
       </div>

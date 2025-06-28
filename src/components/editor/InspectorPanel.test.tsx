@@ -19,7 +19,9 @@ vi.mock('lucide-react', () => ({
   EyeOff: ({ size }: any) => <div data-testid="eye-off-icon" data-size={size} />,
   ChevronDown: ({ size }: any) => <div data-testid="chevron-down-icon" data-size={size} />,
   ChevronUp: ({ size }: any) => <div data-testid="chevron-up-icon" data-size={size} />,
-  Check: ({ size }: any) => <div data-testid="check-icon" data-size={size} />
+  Check: ({ size }: any) => <div data-testid="check-icon" data-size={size} />,
+  Monitor: ({ size }: any) => <div data-testid="monitor-icon" data-size={size} />,
+  Smartphone: ({ size }: any) => <div data-testid="smartphone-icon" data-size={size} />
 }));
 
 const mockUseEditorStore = useEditorStore as any;
