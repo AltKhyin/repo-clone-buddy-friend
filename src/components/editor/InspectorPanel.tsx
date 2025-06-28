@@ -83,7 +83,7 @@ export function InspectorPanel() {
                     data: { ...selectedNode.data, textAlign: value }
                   })}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="text-align">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -120,7 +120,7 @@ export function InspectorPanel() {
                     data: { ...selectedNode.data, level: Number(value) as 1 | 2 | 3 | 4 }
                   })}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="heading-level">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -139,7 +139,7 @@ export function InspectorPanel() {
                     data: { ...selectedNode.data, alignment: value }
                   })}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="heading-align">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -215,7 +215,7 @@ export function InspectorPanel() {
                   data: { ...selectedNode.data, theme: value }
                 })}
               >
-                <SelectTrigger>
+                <SelectTrigger id="takeaway-theme">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
