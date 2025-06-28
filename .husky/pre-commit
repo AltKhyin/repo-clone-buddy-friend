@@ -6,8 +6,7 @@
 echo "🧪 EVIDENS TDD Protocol: Enforcing test requirements..."
 
 # Run lint-staged to check staged files
-# Temporarily disabled due to pre-existing ESLint errors across codebase
-# npx lint-staged
+npx lint-staged
 
 # Check if there are any TypeScript compilation errors
 echo "🔍 Checking TypeScript compilation..."

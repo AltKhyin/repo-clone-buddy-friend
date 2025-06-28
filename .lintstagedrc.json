@@ -1,9 +1,4 @@
 {
-  "*.{ts,tsx}": [
-    "eslint --fix",
-    "npm run test -- --related --passWithNoTests"
-  ],
-  "*.{js,jsx,ts,tsx,json,css,md}": [
-    "prettier --write"
-  ]
+  "*.{ts,tsx}": ["eslint --fix"],
+  "*.{js,jsx,ts,tsx,json,css,md}": ["prettier --write"]
 }

@@ -1,20 +1,14 @@
 {
   "files": [],
-  "references": [
-    { "path": "./tsconfig.app.json" },
-    { "path": "./tsconfig.node.json" }
-  ],
+  "references": [{ "path": "./tsconfig.app.json" }, { "path": "./tsconfig.node.json" }],
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
       "@packages/*": ["./packages/*"]
     },
-    "noImplicitAny": false,
-    "noUnusedParameters": false,
+    // Root config inherits from project references but maintains path resolution
     "skipLibCheck": true,
-    "allowJs": true,
-    "noUnusedLocals": false,
-    "strictNullChecks": false
+    "allowJs": true
   }
 }
