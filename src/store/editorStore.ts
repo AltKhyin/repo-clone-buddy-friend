@@ -330,8 +330,60 @@ export const useEditorStore = create<EditorState>((set, get) => {
       set((state) => ({ showGuidelines: !state.showGuidelines }));
     },
     
-    toggleFullscreen: () => {
-      set((state) => ({ isFullscreen: !state.isFullscreen }));
+    toggleFullscreen: async () => {
+      const state = get();
+      const newFullscreenState = !state.isFullscreen;
+      
+      try {
+        if (newFullscreenState) {
+          // Enter browser fullscreen mode
+          if (document.documentElement.requestFullscreen) {
+            await document.documentElement.requestFullscreen();
+          } else if ((document.documentElement as any).webkitRequestFullscreen) {
+            // Safari support
+            await (document.documentElement as any).webkitRequestFullscreen();
+          } else if ((document.documentElement as any).msRequestFullscreen) {
+            // IE/Edge support
+            await (document.documentElement as any).msRequestFullscreen();
+          } else if ((document.documentElement as any).mozRequestFullScreen) {
+            // Firefox support
+            await (document.documentElement as any).mozRequestFullScreen();
+          }
+        } else {
+          // Exit browser fullscreen mode
+          if (document.exitFullscreen) {
+            await document.exitFullscreen();
+          } else if ((document as any).webkitExitFullscreen) {
+            // Safari support
+            await (document as any).webkitExitFullscreen();
+          } else if ((document as any).msExitFullscreen) {
+            // IE/Edge support
+            await (document as any).msExitFullscreen();
+          } else if ((document as any).mozCancelFullScreen) {
+            // Firefox support
+            await (document as any).mozCancelFullScreen();
+          }
+        }
+        
+        // Update internal state
+        set({ isFullscreen: newFullscreenState });
+      } catch (error) {
+        console.error('Fullscreen toggle failed:', error);
+        // Don't update state if fullscreen failed
+      }
+    },
+    
+    // Handle browser fullscreen changes (ESC key, F11, etc.)
+    handleFullscreenChange: () => {
+      const isActuallyFullscreen = !!(
+        document.fullscreenElement ||
+        (document as any).webkitFullscreenElement ||
+        (document as any).msFullscreenElement ||
+        (document as any).mozFullScreenElement
+      );
+      
+      // Sync internal state with actual browser fullscreen state
+      set({ isFullscreen: isActuallyFullscreen });
     },
     
     addGuideline: (type, position) => {

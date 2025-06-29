@@ -18,6 +18,8 @@ import {
   Grid, 
   Ruler, 
   Minus,
+  Maximize,
+  MinusSquare,
   ChevronDown,
   Eye,
   EyeOff
@@ -291,11 +293,21 @@ export function TopToolbar() {
         <Button
           size="sm"
           variant="outline"
-          onClick={toggleFullscreen}
+          onClick={async () => {
+            try {
+              await toggleFullscreen();
+            } catch (error) {
+              console.error('Fullscreen toggle failed:', error);
+            }
+          }}
           className="h-7 px-2"
-          title="Toggle fullscreen"
+          title={isFullscreen ? "Exit fullscreen (ESC)" : "Enter fullscreen mode"}
         >
-          <Monitor size={12} className="mr-1" />
+          {isFullscreen ? (
+            <MinusSquare size={12} className="mr-1" />
+          ) : (
+            <Maximize size={12} className="mr-1" />
+          )}
           {isFullscreen ? 'Exit' : 'Full'}
         </Button>
 

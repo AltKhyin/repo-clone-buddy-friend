@@ -22,7 +22,8 @@ export default function EditorPage() {
     isDirty,
     lastSaved,
     isFullscreen,
-    setPersistenceCallbacks
+    setPersistenceCallbacks,
+    handleFullscreenChange
   } = useEditorStore();
 
   // Set up persistence hooks
@@ -47,6 +48,27 @@ export default function EditorPage() {
       loadFromDatabase(reviewId);
     }
   }, [reviewId, loadFromDatabase]);
+
+  // Set up fullscreen event listeners
+  React.useEffect(() => {
+    const handleFullscreenChangeEvent = () => {
+      handleFullscreenChange();
+    };
+
+    // Add event listeners for all browsers
+    document.addEventListener('fullscreenchange', handleFullscreenChangeEvent);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChangeEvent);
+    document.addEventListener('mozfullscreenchange', handleFullscreenChangeEvent);
+    document.addEventListener('MSFullscreenChange', handleFullscreenChangeEvent);
+
+    return () => {
+      // Clean up event listeners
+      document.removeEventListener('fullscreenchange', handleFullscreenChangeEvent);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChangeEvent);
+      document.removeEventListener('mozfullscreenchange', handleFullscreenChangeEvent);
+      document.removeEventListener('MSFullscreenChange', handleFullscreenChangeEvent);
+    };
+  }, [handleFullscreenChange]);
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over, delta } = event;
@@ -98,39 +120,41 @@ export default function EditorPage() {
 
   return (
     <DndContext onDragEnd={handleDragEnd}>
-      <div className="h-screen flex flex-col bg-background">
-        {/* Editor Header */}
-        <div className="h-14 border-b flex items-center justify-between px-4">
-          <div className="flex items-center space-x-4">
-            <h1 className="text-lg font-semibold">Visual Composition Engine</h1>
-            <span className="text-sm text-muted-foreground">
-              Review ID: {reviewId}
-            </span>
-            {isDirty && (
-              <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">
-                Unsaved changes
+      <div className={`flex flex-col bg-background ${isFullscreen ? 'h-screen w-screen fixed inset-0 z-50' : 'h-screen'}`}>
+        {/* Editor Header - Hide in fullscreen mode */}
+        {!isFullscreen && (
+          <div className="h-14 border-b flex items-center justify-between px-4">
+            <div className="flex items-center space-x-4">
+              <h1 className="text-lg font-semibold">Visual Composition Engine</h1>
+              <span className="text-sm text-muted-foreground">
+                Review ID: {reviewId}
               </span>
-            )}
-          </div>
-          
-          <div className="flex items-center space-x-4">
-            <div className="text-xs text-muted-foreground">
-              Last saved: {formatLastSaved(lastSaved)}
+              {isDirty && (
+                <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">
+                  Unsaved changes
+                </span>
+              )}
             </div>
-            <div className="flex space-x-2">
-              <Button
-                size="sm"
-                onClick={handleSave}
-                disabled={isSaving || !isDirty}
-              >
-                {isSaving ? 'Saving...' : 'Save'}
-              </Button>
-              <Button size="sm" variant="outline">
-                Export
-              </Button>
+            
+            <div className="flex items-center space-x-4">
+              <div className="text-xs text-muted-foreground">
+                Last saved: {formatLastSaved(lastSaved)}
+              </div>
+              <div className="flex space-x-2">
+                <Button
+                  size="sm"
+                  onClick={handleSave}
+                  disabled={isSaving || !isDirty}
+                >
+                  {isSaving ? 'Saving...' : 'Save'}
+                </Button>
+                <Button size="sm" variant="outline">
+                  Export
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Top Toolbar */}
         <TopToolbar />
