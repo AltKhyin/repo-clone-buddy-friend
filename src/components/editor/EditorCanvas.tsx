@@ -16,19 +16,86 @@ import {
   OnEdgesChange,
   NodeTypes,
   Connection,
-  NodeChange
+  NodeChange,
+  Handle,
+  Position,
+  NodeResizer,
+  useReactFlow,
+  ReactFlowProvider
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { useDroppable } from '@dnd-kit/core';
 import { debounce } from 'lodash-es';
 import { useEditorStore } from '@/store/editorStore';
 import { NodeObject } from '@/types/editor';
+import { CanvasHelpers } from './CanvasHelpers';
+import { TextBlockNode } from './Nodes/TextBlockNode';
+import { HeadingBlockNode } from './Nodes/HeadingBlockNode';
+import { ImageBlockNode } from './Nodes/ImageBlockNode';
+import { VideoEmbedBlockNode } from './Nodes/VideoEmbedBlockNode';
 
-// Custom React Flow node component that wraps our existing block rendering logic
-function CustomBlockNode({ data }: { data: { nodeObject: NodeObject } }) {
+// Custom React Flow node components with Tiptap integration
+function CustomTextBlockNode({ data, selected }: { data: { nodeObject: NodeObject }, selected?: boolean }) {
+  const { selectedNodeId } = useEditorStore();
+  const { nodeObject } = data;
+  const isSelected = selected || selectedNodeId === nodeObject.id;
+
+  return (
+    <TextBlockNode
+      id={nodeObject.id}
+      data={nodeObject.data}
+      selected={isSelected}
+    />
+  );
+}
+
+function CustomHeadingBlockNode({ data, selected }: { data: { nodeObject: NodeObject }, selected?: boolean }) {
+  const { selectedNodeId } = useEditorStore();
+  const { nodeObject } = data;
+  const isSelected = selected || selectedNodeId === nodeObject.id;
+
+  return (
+    <HeadingBlockNode
+      id={nodeObject.id}
+      data={nodeObject.data}
+      selected={isSelected}
+    />
+  );
+}
+
+function CustomImageBlockNode({ data, selected }: { data: { nodeObject: NodeObject }, selected?: boolean }) {
+  const { selectedNodeId } = useEditorStore();
+  const { nodeObject } = data;
+  const isSelected = selected || selectedNodeId === nodeObject.id;
+
+  return (
+    <ImageBlockNode
+      id={nodeObject.id}
+      data={nodeObject.data}
+      selected={isSelected}
+    />
+  );
+}
+
+function CustomVideoEmbedBlockNode({ data, selected }: { data: { nodeObject: NodeObject }, selected?: boolean }) {
+  const { selectedNodeId } = useEditorStore();
+  const { nodeObject } = data;
+  const isSelected = selected || selectedNodeId === nodeObject.id;
+
+  return (
+    <VideoEmbedBlockNode
+      id={nodeObject.id}
+      data={nodeObject.data}
+      selected={isSelected}
+    />
+  );
+}
+
+// Legacy block renderer for other block types (to be updated in future phases)
+function CustomBlockNode({ data, selected }: { data: { nodeObject: NodeObject }, selected?: boolean }) {
   const { selectedNodeId, selectNode } = useEditorStore();
   const { nodeObject } = data;
-  const isSelected = selectedNodeId === nodeObject.id;
+  const isSelected = selected || selectedNodeId === nodeObject.id;
 
   const handleClick = useCallback(() => {
     selectNode(nodeObject.id);
@@ -37,39 +104,11 @@ function CustomBlockNode({ data }: { data: { nodeObject: NodeObject } }) {
   const renderNodeContent = () => {
     switch (nodeObject.type) {
       case 'textBlock':
-        return (
-          <div 
-            className="prose prose-sm max-w-none"
-            dangerouslySetInnerHTML={{ __html: nodeObject.data.htmlContent || '<p>Text block</p>' }}
-          />
-        );
       case 'headingBlock':
-        const HeadingTag = `h${nodeObject.data.level}` as keyof JSX.IntrinsicElements;
-        return (
-          <HeadingTag 
-            className="font-semibold m-0"
-            dangerouslySetInnerHTML={{ __html: nodeObject.data.htmlContent || 'Heading' }}
-          />
-        );
       case 'imageBlock':
-        return (
-          <div className="text-center">
-            {nodeObject.data.src ? (
-              <img 
-                src={nodeObject.data.src} 
-                alt={nodeObject.data.alt} 
-                className="max-w-full h-auto"
-              />
-            ) : (
-              <div className="bg-muted/50 border-2 border-dashed border-muted-foreground/25 rounded p-8">
-                <p className="text-muted-foreground">Image placeholder</p>
-              </div>
-            )}
-            {nodeObject.data.caption && (
-              <p className="text-sm text-muted-foreground mt-2">{nodeObject.data.caption}</p>
-            )}
-          </div>
-        );
+      case 'videoEmbedBlock':
+        // These are now handled by dedicated components above
+        return null;
       case 'tableBlock':
         return (
           <div className="overflow-x-auto">
@@ -150,47 +189,54 @@ function CustomBlockNode({ data }: { data: { nodeObject: NodeObject } }) {
   const constraints = getSizeConstraints();
 
   return (
-    <div
-      onClick={handleClick}
-      className={`
-        relative p-3 rounded-lg cursor-pointer transition-all bg-background border
-        ${isSelected 
-          ? 'ring-2 ring-primary ring-offset-2 bg-primary/5 border-primary' 
-          : 'hover:bg-accent/50 border-border'
-        }
-        w-full h-full overflow-hidden
-      `}
-      style={{
-        minWidth: `${constraints.minWidth}px`,
-        minHeight: `${constraints.minHeight}px`,
-        maxWidth: `${constraints.maxWidth}px`,
-        maxHeight: `${constraints.maxHeight}px`,
-      }}
-    >
-      {/* Selection indicator */}
-      {isSelected && (
-        <div className="absolute -top-8 left-0 text-xs bg-primary text-primary-foreground px-2 py-1 rounded z-10">
-          Selected
-        </div>
-      )}
+    <>
+      {/* Node Resizer for React Flow */}
+      <NodeResizer 
+        isVisible={isSelected}
+        minWidth={constraints.minWidth}
+        minHeight={constraints.minHeight}
+        maxWidth={constraints.maxWidth}
+        maxHeight={constraints.maxHeight}
+        handleStyle={{
+          width: '10px',
+          height: '10px',
+          borderRadius: '50%',
+        }}
+      />
       
-      {/* Resize handles indicator */}
-      {isSelected && (
-        <div className="absolute bottom-1 right-1 w-3 h-3 bg-primary/50 cursor-se-resize pointer-events-none">
-          <div className="w-full h-full bg-primary/30 border border-primary/50"></div>
+      <div
+        onClick={handleClick}
+        className={`
+          relative p-3 rounded-lg cursor-pointer transition-all bg-background border
+          ${isSelected 
+            ? 'ring-2 ring-primary ring-offset-2 bg-primary/5 border-primary' 
+            : 'hover:bg-accent/50 border-border'
+          }
+          w-full h-full overflow-hidden
+        `}
+      >
+        {/* Selection indicator */}
+        {isSelected && (
+          <div className="absolute -top-8 left-0 text-xs bg-primary text-primary-foreground px-2 py-1 rounded z-10">
+            Selected
+          </div>
+        )}
+        
+        <div className="w-full h-full overflow-hidden">
+          {renderNodeContent()}
         </div>
-      )}
-      
-      <div className="w-full h-full overflow-hidden">
-        {renderNodeContent()}
       </div>
-    </div>
+    </>
   );
 }
 
-// Define node types for React Flow
+// Define node types for React Flow with Tiptap-enabled components
 const nodeTypes: NodeTypes = {
-  customBlock: CustomBlockNode,
+  textBlock: CustomTextBlockNode,
+  headingBlock: CustomHeadingBlockNode,
+  imageBlock: CustomImageBlockNode,
+  videoEmbedBlock: CustomVideoEmbedBlockNode,
+  customBlock: CustomBlockNode, // Legacy fallback for other block types
 };
 
 export function EditorCanvas() {
@@ -199,7 +245,11 @@ export function EditorCanvas() {
     currentViewport, 
     layouts,
     updateLayout,
-    addNode 
+    addNode,
+    canvasTheme,
+    showGrid,
+    showRulers,
+    showGuidelines
   } = useEditorStore();
   
   const { isOver, setNodeRef } = useDroppable({
@@ -212,68 +262,75 @@ export function EditorCanvas() {
     const gridColumns = currentLayout.gridSettings.columns;
     const gridWidth = 800; // Base grid width
     const columnWidth = gridWidth / gridColumns;
+    const nodesToInit: Array<{ nodeId: string; layoutItem: any }> = [];
 
-    return editorNodes.map((editorNode) => {
+    const nodes = editorNodes.map((editorNode, index) => {
       // Find layout position for this node
       const layoutItem = currentLayout.items.find(item => item.nodeId === editorNode.id);
       
       // Default positioning if no layout exists yet
-      const defaultX = 50;
-      const defaultY = 50 + (editorNodes.indexOf(editorNode) * 120);
+      const defaultX = 50 + (index % 2) * 420; // Alternate columns
+      const defaultY = 50 + Math.floor(index / 2) * 150; // Stack rows
       const defaultWidth = Math.min(400, columnWidth * 6); // 6 columns default
       const defaultHeight = 100;
 
       if (layoutItem) {
         // Convert grid coordinates to pixel coordinates
-        const x = layoutItem.x * columnWidth;
-        const y = layoutItem.y * 80; // 80px row height
-        const width = layoutItem.w * columnWidth;
-        const height = layoutItem.h * 80;
+        const x = layoutItem.x * (columnWidth / 2); // Half-column precision
+        const y = layoutItem.y * 20; // 20px grid
+        const width = layoutItem.w * (columnWidth / 2);
+        const height = layoutItem.h * 20;
 
         return {
           id: editorNode.id,
-          type: 'customBlock',
+          type: editorNode.type === 'textBlock' || editorNode.type === 'headingBlock' ? editorNode.type : 'customBlock',
           position: { x, y },
           data: { nodeObject: editorNode },
-          style: { 
+          width: width,
+          height: height,
+          style: {
             width: `${width}px`, 
-            height: `${height}px`,
-            minWidth: '200px',
-            minHeight: '60px'
+            height: `${height}px`
           },
-          resizable: true,
-          draggable: true,
         };
       } else {
-        // Create default layout item
-        const newLayoutItem = {
+        // Queue layout update for after render
+        nodesToInit.push({
           nodeId: editorNode.id,
-          x: Math.floor(defaultX / columnWidth),
-          y: Math.floor(defaultY / 80),
-          w: Math.floor(defaultWidth / columnWidth),
-          h: Math.floor(defaultHeight / 80),
-        };
-        
-        // Update layout in store
-        updateLayout(editorNode.id, newLayoutItem, currentViewport);
+          layoutItem: {
+            nodeId: editorNode.id,
+            x: Math.floor(defaultX / (columnWidth / 2)),
+            y: Math.floor(defaultY / 20),
+            w: Math.floor(defaultWidth / (columnWidth / 2)),
+            h: Math.floor(defaultHeight / 20),
+          }
+        });
 
         return {
           id: editorNode.id,
-          type: 'customBlock',
+          type: editorNode.type === 'textBlock' || editorNode.type === 'headingBlock' ? editorNode.type : 'customBlock',
           position: { x: defaultX, y: defaultY },
           data: { nodeObject: editorNode },
-          style: { 
+          width: defaultWidth,
+          height: defaultHeight,
+          style: {
             width: `${defaultWidth}px`, 
-            height: `${defaultHeight}px`,
-            minWidth: '200px',
-            minHeight: '60px',
-            maxWidth: '800px'
+            height: `${defaultHeight}px`
           },
-          resizable: true,
-          draggable: true,
         };
       }
     });
+
+    // Update layouts after render to avoid setState during render
+    if (nodesToInit.length > 0) {
+      setTimeout(() => {
+        nodesToInit.forEach(({ nodeId, layoutItem }) => {
+          updateLayout(nodeId, layoutItem, currentViewport);
+        });
+      }, 0);
+    }
+
+    return nodes;
   }, [editorNodes, layouts, currentViewport, updateLayout]);
 
   // React Flow state management
@@ -304,12 +361,34 @@ export function EditorCanvas() {
 
   // Handle node position/size changes with improved layout sync
   const handleNodesChange: OnNodesChange = useCallback((changes) => {
+    // First apply the changes to React Flow
     onNodesChange(changes);
     
-    // Update layout in store when nodes are moved or resized
+    // Then update our layout store for persistent changes only
     changes.forEach((change) => {
-      if (change.type === 'position' && change.position && !change.dragging) {
-        // Only update when drag is complete
+      if (change.type === 'position' && change.position && change.dragging === false) {
+        // Only update layout when drag is complete
+        const gridColumns = layouts[currentViewport].gridSettings.columns;
+        const columnWidth = 800 / gridColumns;
+        
+        // Find node dimensions from the current React Flow state
+        const node = nodes.find(n => n.id === change.id);
+        const width = node?.width || 400;
+        const height = node?.height || 100;
+        
+        const newLayoutItem = {
+          nodeId: change.id,
+          x: Math.max(0, Math.round(change.position.x / (columnWidth / 2))),
+          y: Math.max(0, Math.round(change.position.y / 20)),
+          w: Math.max(1, Math.round(width / (columnWidth / 2))),
+          h: Math.max(1, Math.round(height / 20)),
+        };
+        
+        debouncedLayoutUpdate(change.id, newLayoutItem, currentViewport);
+      }
+      
+      if (change.type === 'dimensions' && change.dimensions && change.resizing === false) {
+        // Only update when resize is complete
         const node = nodes.find(n => n.id === change.id);
         if (node) {
           const gridColumns = layouts[currentViewport].gridSettings.columns;
@@ -317,28 +396,10 @@ export function EditorCanvas() {
           
           const newLayoutItem = {
             nodeId: change.id,
-            x: Math.max(0, Math.floor(change.position.x / (columnWidth / 2))), // Allow half-column precision
-            y: Math.max(0, Math.floor(change.position.y / 20)), // 20px precision for Y
-            w: node.style?.width ? Math.max(1, Math.floor(parseInt(node.style.width as string) / (columnWidth / 2))) : 12,
-            h: node.style?.height ? Math.max(1, Math.floor(parseInt(node.style.height as string) / 20)) : 4,
-          };
-          
-          debouncedLayoutUpdate(change.id, newLayoutItem, currentViewport);
-        }
-      }
-      
-      if (change.type === 'dimensions' && change.dimensions) {
-        const gridColumns = layouts[currentViewport].gridSettings.columns;
-        const columnWidth = 800 / gridColumns;
-        const node = nodes.find(n => n.id === change.id);
-        
-        if (node) {
-          const newLayoutItem = {
-            nodeId: change.id,
-            x: node.position.x ? Math.max(0, Math.floor(node.position.x / (columnWidth / 2))) : 0,
-            y: node.position.y ? Math.max(0, Math.floor(node.position.y / 20)) : 0,
-            w: Math.max(1, Math.floor(change.dimensions.width / (columnWidth / 2))),
-            h: Math.max(1, Math.floor(change.dimensions.height / 20)),
+            x: Math.max(0, Math.round(node.position.x / (columnWidth / 2))),
+            y: Math.max(0, Math.round(node.position.y / 20)),
+            w: Math.max(1, Math.round(change.dimensions.width / (columnWidth / 2))),
+            h: Math.max(1, Math.round(change.dimensions.height / 20)),
           };
           
           debouncedLayoutUpdate(change.id, newLayoutItem, currentViewport);
@@ -360,7 +421,6 @@ export function EditorCanvas() {
     const columnWidth = gridWidth / gridColumns;
     
     return {
-      snapGrid: [columnWidth / 2, 20] as [number, number], // Snap to half-column increments
       gridGap: columnWidth,
       rowHeight: 80,
     };
@@ -369,7 +429,12 @@ export function EditorCanvas() {
   const gridConfig = getGridConfig();
 
   return (
-    <div className="flex-1 bg-background relative">
+    <div 
+      className={`flex-1 relative ${
+        canvasTheme === 'dark' ? 'bg-zinc-900' : 'bg-gray-50'
+      }`} 
+      style={{ height: '100%' }}
+    >
       {/* Enhanced viewport indicator with grid info */}
       <div className="absolute top-4 right-4 z-10">
         <div className="bg-background/95 backdrop-blur-sm border rounded-lg px-3 py-2 shadow-sm">
@@ -377,73 +442,154 @@ export function EditorCanvas() {
             {currentViewport} View
           </div>
           <div className="text-xs text-muted-foreground">
-            {layouts[currentViewport].gridSettings.columns} columns • {gridConfig.snapGrid[0]}px grid
+            {layouts[currentViewport].gridSettings.columns} columns • {gridConfig.gridGap}px grid
           </div>
         </div>
       </div>
 
       {/* Drop zone overlay */}
       {isOver && (
-        <div className="absolute inset-0 border-2 border-dashed border-primary bg-primary/5 rounded-lg flex items-center justify-center z-20">
+        <div className="absolute inset-0 border-2 border-dashed border-primary bg-primary/5 rounded-lg flex items-center justify-center z-20 pointer-events-none">
           <p className="text-primary font-medium">Drop block here</p>
         </div>
       )}
 
       {/* React Flow Canvas */}
-      <div ref={setNodeRef} className="w-full h-full">
-        <ReactFlow
-          nodes={nodes}
-          edges={edges}
-          onNodesChange={handleNodesChange}
-          onEdgesChange={onEdgesChange}
-          onConnect={onConnect}
-          nodeTypes={nodeTypes}
-          fitView
-          snapToGrid
-          snapGrid={gridConfig.snapGrid}
-          className="bg-background"
-          minZoom={0.1}
-          maxZoom={2}
-          defaultViewport={{ x: 0, y: 0, zoom: 1 }}
-        >
-          <Controls 
-            showZoom 
-            showFitView 
-            showInteractive
-            position="bottom-right"
+      <div ref={setNodeRef} className="w-full h-full" style={{ position: 'absolute', inset: 0 }}>
+        <ReactFlowProvider>
+          <ReactFlowWithHelpers 
+            nodes={nodes}
+            edges={edges}
+            onNodesChange={handleNodesChange}
+            onEdgesChange={onEdgesChange}
+            onConnect={onConnect}
+            nodeTypes={nodeTypes}
+            gridConfig={gridConfig}
+            editorNodes={editorNodes}
+            canvasTheme={canvasTheme}
+            showGrid={showGrid}
+            showRulers={showRulers}
+            showGuidelines={showGuidelines}
           />
-          
-          {/* Grid background with column guides */}
-          <Background 
-            variant={BackgroundVariant.Lines} 
-            gap={gridConfig.gridGap} 
-            size={1} 
-            className="opacity-20"
-            color="#3b82f6"
-          />
-          <Background 
-            variant={BackgroundVariant.Dots} 
-            gap={gridConfig.snapGrid[0]} 
-            size={1} 
-            className="opacity-10"
-            offset={1}
-          />
-          
-          {/* Empty state */}
-          {editorNodes.length === 0 && (
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="text-center">
-                <h3 className="text-lg font-medium text-muted-foreground mb-2">
-                  Empty Canvas
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  Drag blocks from the palette to start creating your review
-                </p>
-              </div>
-            </div>
-          )}
-        </ReactFlow>
+        </ReactFlowProvider>
       </div>
     </div>
+  );
+}
+
+// Inner component that has access to React Flow's context
+interface ReactFlowWithHelpersProps {
+  nodes: any[];
+  edges: any[];
+  onNodesChange: OnNodesChange;
+  onEdgesChange: OnEdgesChange;
+  onConnect: OnConnect;
+  nodeTypes: NodeTypes;
+  gridConfig: any;
+  editorNodes: NodeObject[];
+  canvasTheme: 'light' | 'dark';
+  showGrid: boolean;
+  showRulers: boolean;
+  showGuidelines: boolean;
+}
+
+function ReactFlowWithHelpers({
+  nodes,
+  edges,
+  onNodesChange,
+  onEdgesChange,
+  onConnect,
+  nodeTypes,
+  gridConfig,
+  editorNodes,
+  canvasTheme,
+  showGrid,
+  showRulers,
+  showGuidelines
+}: ReactFlowWithHelpersProps) {
+  const { getViewport } = useReactFlow();
+  const viewport = getViewport();
+
+  return (
+    <>
+      <ReactFlow
+        nodes={nodes}
+        edges={edges}
+        onNodesChange={onNodesChange}
+        onEdgesChange={onEdgesChange}
+        onConnect={onConnect}
+        nodeTypes={nodeTypes}
+        fitView={false}
+        className={canvasTheme === 'dark' ? 'bg-zinc-900' : 'bg-gray-50'}
+        minZoom={0.1}
+        maxZoom={2}
+        defaultViewport={{ x: 0, y: 0, zoom: 1 }}
+        proOptions={{ hideAttribution: true }}
+        nodesDraggable={true}
+        nodesConnectable={false}
+        elementsSelectable={true}
+        selectNodesOnDrag={false}
+        onNodeClick={(_, node) => {
+          const editorStore = useEditorStore.getState();
+          editorStore.selectNode(node.id);
+        }}
+      >
+        <Controls 
+          showZoom 
+          showFitView 
+          showInteractive
+          position="bottom-right"
+        />
+        
+        {/* Grid background with column guides */}
+        {showGrid && (
+          <>
+            <Background 
+              variant={BackgroundVariant.Lines} 
+              gap={gridConfig.gridGap} 
+              size={1} 
+              className={canvasTheme === 'dark' ? 'opacity-20' : 'opacity-30'}
+              color={canvasTheme === 'dark' ? '#3b82f6' : '#6b7280'}
+            />
+            <Background 
+              variant={BackgroundVariant.Dots} 
+              gap={gridConfig.gridGap / 2} 
+              size={1} 
+              className={canvasTheme === 'dark' ? 'opacity-10' : 'opacity-20'}
+              color={canvasTheme === 'dark' ? '#3b82f6' : '#6b7280'}
+              offset={1}
+            />
+          </>
+        )}
+        
+        {/* Empty state */}
+        {editorNodes.length === 0 && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="text-center">
+              <h3 className={`text-lg font-medium mb-2 ${
+                canvasTheme === 'dark' ? 'text-zinc-400' : 'text-gray-600'
+              }`}>
+                Empty Canvas
+              </h3>
+              <p className={`text-sm ${
+                canvasTheme === 'dark' ? 'text-zinc-500' : 'text-gray-500'
+              }`}>
+                Drag blocks from the palette to start creating your review
+              </p>
+            </div>
+          </div>
+        )}
+      </ReactFlow>
+      
+      {/* Visual Layout Helpers Overlay */}
+      {(showRulers || showGuidelines) && (
+        <CanvasHelpers 
+          width={window.innerWidth || 1200}
+          height={window.innerHeight || 800}
+          zoom={viewport.zoom}
+          offset={{ x: viewport.x, y: viewport.y }}
+        />
+      )}
+    </>
   );
 }

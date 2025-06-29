@@ -696,7 +696,213 @@ import { authenticateRequest, requireRole } from '../_shared/auth.ts';
 
 ---
 
+---
+
+## 🎯 EVIDENS VISUAL COMPOSITION ENGINE - DEVELOPMENT ROADMAP v1.0
+
+**Project Status:** Phase 4 Implementation with Critical UI/UX Fixes  
+**Last Updated:** June 29, 2025  
+**Next Milestone:** Critical Issues Resolution + Complete Phase 4  
+
+### 📊 IMPLEMENTATION PROGRESS STATUS
+
+**✅ COMPLETED PHASES (100%)**
+- **Phase 1**: Foundation & Infrastructure (Dependencies, Store, Routes, Layout)
+- **Phase 2**: React Flow 2D Canvas System (Drag-drop, Resizing, Grid layouts)  
+- **Phase 3**: Text Editing & Basic Blocks (Tiptap integration, Deep customization)
+- **Phase 4**: Media & Interactive Blocks (Image, Video, Table components - **95% complete**)
+
+**🚨 CRITICAL ISSUES REQUIRING IMMEDIATE ATTENTION**
+- **Issue #1**: TableBlock has no inspector (shows "coming soon")
+- **Issue #2**: Right panel needs conversion to Google Docs-style top toolbar
+- **Issue #3**: Fullscreen affects only panels, not true fullscreen
+- **Issue #4**: Border and resize lines are separate (non-intuitive)
+- **Issue #5**: Borders show even when toggle is off
+- **Issue #6**: Blocks not theme-aware in both editor and rendered page
+- **Issue #7**: Content disappears on reload despite "Last Saved: Just now"
+
+**⏳ PENDING PHASES (0-5%)**
+- **Phase 5**: Medical Diagram System & Templates
+- **Phase 6**: EVIDENS Specialized Blocks
+- **Phase 7**: Deep Customization & Inspector System
+- **Phase 8**: Database Integration & Persistence
+- **Phase 9**: UX & Interaction Polish
+- **Phase 10**: Performance Optimization & Testing
+- **Phase 11**: BlockRenderer Integration & Legacy Support
+- **Phase 12**: Final Polish & Production Readiness
+
+---
+
+### 🎯 CURRENT TODO LIST BREAKDOWN (Active Work Items)
+
+#### **CRITICAL FIXES (Priority 1 - Must Complete Before Continuing)**
+
+**🚨 CRITICAL ISSUE #1: TableBlockInspector Missing**
+- [ ] **1a**: Create TableBlockInspector.tsx with table structure controls (headers, add/remove rows/columns)
+- [ ] **1b**: Add table styling controls (alternating colors, header styling, sortable toggle)
+- [ ] **1c**: Add spacing and border controls for TableBlock
+- [ ] **1d**: Update InspectorPanel.tsx to import and use TableBlockInspector
+
+**🚨 CRITICAL ISSUE #2: Convert Right Panel to Google Docs Top Toolbar**
+- [ ] **2a**: Create new TopToolbar.tsx component with horizontal layout
+- [ ] **2b**: Move canvas controls (theme, fullscreen, viewport) to top toolbar
+- [ ] **2c**: Redesign block inspector properties for horizontal space-efficient layout
+- [ ] **2d**: Update EditorPage.tsx to use top toolbar instead of right panel
+- [ ] **2e**: Update all inspector components for compact horizontal layout
+
+**🚨 CRITICAL ISSUE #3: Implement True Fullscreen Mode**
+- [ ] **3a**: Add browser fullscreen API integration (document.documentElement.requestFullscreen)
+- [ ] **3b**: Update toggleFullscreen in editorStore to handle browser fullscreen
+- [ ] **3c**: Fix EditorPage layout to expand to full viewport in fullscreen mode
+- [ ] **3d**: Add fullscreen exit handler and proper state management
+
+**🚨 CRITICAL ISSUE #4: Unify Border and Resize Handle Styling**
+- [ ] **4a**: Remove separate ring selection styling from all block nodes
+- [ ] **4b**: Integrate border visibility into NodeResizer component styling
+- [ ] **4c**: Create unified selection/border system that respects borderWidth settings
+- [ ] **4d**: Update TextBlockNode, ImageBlockNode, VideoEmbedBlockNode, TableBlockNode for unified styling
+
+**🚨 CRITICAL ISSUE #5: Hide Borders When Toggle Off**
+- [ ] **5a**: Fix all block nodes to respect borderWidth: 0 setting and hide visual borders
+- [ ] **5b**: Update selection indicators to not show borders when borderWidth is disabled
+- [ ] **5c**: Ensure NodeResizer handles don't create border-like appearance when borders are off
+
+**🚨 CRITICAL ISSUE #6: Complete Theme Awareness**
+- [ ] **6a**: Add dark mode default text colors for all block types in editor mode
+- [ ] **6b**: Fix theme-aware backgrounds and borders for dark/light mode in editor
+- [ ] **6c**: Update BlockRenderer components to be theme-aware for rendered page
+- [ ] **6d**: Add theme-aware placeholders and UI states across all block types
+
+**🚨 CRITICAL ISSUE #7: Implement Real Database Persistence**
+- [ ] **7a**: Create data access hooks for editor persistence (useEditorSaveMutation, useEditorLoadQuery)
+- [ ] **7b**: Replace TODO stubs in editorStore.ts with actual Supabase calls
+- [ ] **7c**: Add proper error handling and retry logic for save/load operations
+- [ ] **7d**: Test persistence functionality to ensure content survives page reloads
+
+#### **PHASE 4 COMPLETION (Priority 2 - After Critical Fixes)**
+
+**📋 Phase 4 Remaining Tasks**
+- [x] **Phase 4.1**: Create ImageBlock component with WebP optimization and responsive sizing ✅
+- [x] **Phase 4.2**: Create VideoEmbedBlock component for YouTube/Vimeo with responsive embed ✅  
+- [x] **Phase 4.3**: Create TableBlock component with spreadsheet-like editing capabilities ✅
+- [ ] **Phase 4.4**: Create PollBlock component with voting functionality and results display
+- [ ] **Phase 4.5**: Create inspector components for all Phase 4 block types (TableBlock urgent)
+- [ ] **Phase 4.6**: Update BlockPalette to include new Phase 4 block types
+
+#### **FUTURE PHASES (Priority 3 - Long-term Development)**
+
+**📅 Phase 5**: Medical Diagram System & Templates
+- Build DiagramBlock with React Flow editor
+- Complete medical template library (CONSORT, PRISMA, inclusion/exclusion, decision matrices)
+- Medical/academic icon library
+
+**📅 Phase 6**: EVIDENS Specialized Blocks  
+- Implement ReferenceBlock (automatic APA formatting)
+- KeyTakeawayBlock (customizable themes)
+- SeparatorBlock (advanced styling options)
+
+**📅 Phase 7**: Deep Customization & Inspector System
+- Universal inline customization framework for ALL blocks
+- Advanced inspector panel system with context-aware controls
+- Style presets and theme system
+
+**📅 Phase 8**: Database Integration & Persistence
+- Structured content v2.0 with Zod validation
+- 5-second debounced auto-save system
+- LocalStorage backup and crash recovery
+
+**📅 Phase 9**: User Experience & Interaction Polish
+- Undo/redo system with keyboard shortcuts
+- Comprehensive keyboard shortcut system
+- Modal preview system (view without leaving editor)
+
+**📅 Phase 10**: Performance Optimization & Testing
+- React.memo optimization for all components
+- Image lazy loading and optimization
+- Comprehensive testing suite (>90% coverage)
+
+**📅 Phase 11**: BlockRenderer Integration & Legacy Support
+- Update BlockRenderer for all new block types
+- Content migration system from v1 to v2
+- Backward compatibility maintenance
+
+**📅 Phase 12**: Final Polish & Production Readiness
+- Comprehensive error boundaries
+- Loading states and UX polish
+- Documentation and training materials
+
+---
+
+### 🏗️ IMPLEMENTATION ARCHITECTURE OVERVIEW
+
+**Technology Stack:**
+- **Canvas**: React Flow v12 for 2D drag-and-drop positioning
+- **Rich Text**: Tiptap v2 with independent instances per block
+- **State Management**: Zustand without middleware
+- **Styling**: TailwindCSS + shadcn/ui components
+- **Media**: WebP optimization, responsive video embeds
+- **Tables**: Spreadsheet-like editing with sorting/reordering
+- **Theme System**: Dark/light mode with theme-aware components
+
+**Key Architecture Decisions:**
+- Visual composition engine similar to Figma
+- Figma-like block positioning with free 2D placement
+- Medical/academic content focus with EVIDENS branding
+- Google Docs-style interface (converting from 3-panel to top toolbar)
+- Real-time auto-save with database persistence
+- Progressive Web App (PWA) compatibility
+
+**Current Component Structure:**
+```
+src/components/editor/
+├── BlockPalette.tsx          # Left sidebar with draggable blocks
+├── EditorCanvas.tsx          # React Flow 2D canvas
+├── InspectorPanel.tsx        # Right panel (converting to top toolbar)
+├── Nodes/                    # Block node components
+│   ├── TextBlockNode.tsx     # Rich text with Tiptap
+│   ├── HeadingBlockNode.tsx  # Styled headings
+│   ├── ImageBlockNode.tsx    # Image with WebP optimization
+│   ├── VideoEmbedBlockNode.tsx # YouTube/Vimeo embeds
+│   └── TableBlockNode.tsx    # Spreadsheet-like tables
+└── Inspector/                # Property panels for each block type
+    ├── TextBlockInspector.tsx
+    ├── HeadingBlockInspector.tsx
+    ├── ImageBlockInspector.tsx
+    ├── VideoEmbedBlockInspector.tsx
+    └── TableBlockInspector.tsx (MISSING - Critical Issue #1)
+```
+
+---
+
+### 🚦 DEVELOPMENT EXECUTION PRIORITY
+
+**IMMEDIATE NEXT STEPS (This Session):**
+1. **Start with Critical Issue #1**: Create TableBlockInspector.tsx 
+2. **Verify TableBlock functionality**: Test all editing capabilities
+3. **Begin Critical Issue #7**: Implement database persistence
+4. **Address Critical Issue #2**: Start Google Docs layout conversion
+
+**SESSION GOALS:**
+- [ ] Complete TableBlockInspector implementation
+- [ ] Fix persistence issue (content disappearing on reload)
+- [ ] Begin architectural work on top toolbar conversion
+- [ ] Identify and document any additional critical issues
+
+**SUCCESS CRITERIA:**
+- TableBlock is fully editable with inspector controls
+- Content persists across page reloads
+- Clear path forward for remaining critical issues
+- All changes maintain existing functionality
+
+---
+
 ## 📋 CRITICAL DOCUMENTATION REGISTRY
+
+### Visual Composition Engine Development
+
+- **`docs/README-BÍBLIA.md`** - This document with complete VCE roadmap and todo tracking
+- **`src/store/editorStore.ts`** - Core state management with persistence layer
+- **`src/types/editor.ts`** - TypeScript interfaces for all block types and editor state
 
 ### Technical Debt & Code Quality
 

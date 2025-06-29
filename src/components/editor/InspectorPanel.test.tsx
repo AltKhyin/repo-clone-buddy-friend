@@ -11,6 +11,42 @@ vi.mock('@/store/editorStore', () => ({
   useEditorStore: vi.fn()
 }));
 
+// Mock the new Inspector components that use Tiptap
+vi.mock('./Inspector/TextBlockInspector', () => ({
+  TextBlockInspector: ({ nodeId }: { nodeId: string }) => (
+    <div data-testid="text-block-inspector" data-node-id={nodeId}>
+      <div>Text Block Inspector Mock</div>
+    </div>
+  )
+}));
+
+vi.mock('./Inspector/HeadingBlockInspector', () => ({
+  HeadingBlockInspector: ({ nodeId }: { nodeId: string }) => (
+    <div data-testid="heading-block-inspector" data-node-id={nodeId}>
+      <div>Heading Block Inspector Mock</div>
+    </div>
+  )
+}));
+
+vi.mock('./Inspector/ImageBlockInspector', () => ({
+  ImageBlockInspector: ({ nodeId }: { nodeId: string }) => (
+    <div data-testid="image-block-inspector" data-node-id={nodeId}>
+      <div>Image Block Inspector Mock</div>
+    </div>
+  )
+}));
+
+// Mock Tiptap components
+vi.mock('@tiptap/react', () => ({
+  useEditor: () => null,
+  EditorContent: ({ editor }: any) => <div data-testid="editor-content">Tiptap Editor Mock</div>,
+  BubbleMenu: ({ children }: any) => <div data-testid="bubble-menu">{children}</div>
+}));
+
+vi.mock('@tiptap/starter-kit', () => ({
+  default: () => ({})
+}));
+
 // Mock Lucide React icons
 vi.mock('lucide-react', () => ({
   Trash2: ({ size }: any) => <div data-testid="trash-icon" data-size={size} />,
@@ -21,7 +57,32 @@ vi.mock('lucide-react', () => ({
   ChevronUp: ({ size }: any) => <div data-testid="chevron-up-icon" data-size={size} />,
   Check: ({ size }: any) => <div data-testid="check-icon" data-size={size} />,
   Monitor: ({ size }: any) => <div data-testid="monitor-icon" data-size={size} />,
-  Smartphone: ({ size }: any) => <div data-testid="smartphone-icon" data-size={size} />
+  Smartphone: ({ size }: any) => <div data-testid="smartphone-icon" data-size={size} />,
+  Sun: ({ size }: any) => <div data-testid="sun-icon" data-size={size} />,
+  Moon: ({ size }: any) => <div data-testid="moon-icon" data-size={size} />,
+  Grid: ({ size }: any) => <div data-testid="grid-icon" data-size={size} />,
+  Ruler: ({ size }: any) => <div data-testid="ruler-icon" data-size={size} />,
+  Minus: ({ size }: any) => <div data-testid="minus-icon" data-size={size} />,
+  // Text alignment icons
+  AlignLeft: ({ size }: any) => <div data-testid="align-left-icon" data-size={size} />,
+  AlignCenter: ({ size }: any) => <div data-testid="align-center-icon" data-size={size} />,
+  AlignRight: ({ size }: any) => <div data-testid="align-right-icon" data-size={size} />,
+  AlignJustify: ({ size }: any) => <div data-testid="align-justify-icon" data-size={size} />,
+  // Typography icons
+  Palette: ({ size }: any) => <div data-testid="palette-icon" data-size={size} />,
+  Type: ({ size }: any) => <div data-testid="type-icon" data-size={size} />,
+  // Heading level icons
+  Heading1: ({ size }: any) => <div data-testid="heading1-icon" data-size={size} />,
+  Heading2: ({ size }: any) => <div data-testid="heading2-icon" data-size={size} />,
+  Heading3: ({ size }: any) => <div data-testid="heading3-icon" data-size={size} />,
+  Heading4: ({ size }: any) => <div data-testid="heading4-icon" data-size={size} />,
+  // Image Block icons
+  ImageIcon: ({ size }: any) => <div data-testid="image-icon" data-size={size} />,
+  ImageOff: ({ size }: any) => <div data-testid="image-off-icon" data-size={size} />,
+  Upload: ({ size }: any) => <div data-testid="upload-icon" data-size={size} />,
+  ExternalLink: ({ size }: any) => <div data-testid="external-link-icon" data-size={size} />,
+  Maximize2: ({ size }: any) => <div data-testid="maximize2-icon" data-size={size} />,
+  RefreshCw: ({ size }: any) => <div data-testid="refresh-cw-icon" data-size={size} />
 }));
 
 const mockUseEditorStore = useEditorStore as any;
@@ -35,6 +96,18 @@ const createMockStore = (overrides = {}) => ({
   selectNode: vi.fn(),
   currentViewport: 'desktop',
   switchViewport: vi.fn(),
+  canvasTheme: 'light',
+  setCanvasTheme: vi.fn(),
+  showGrid: true,
+  toggleGrid: vi.fn(),
+  showRulers: false,
+  toggleRulers: vi.fn(),
+  showGuidelines: false,
+  toggleGuidelines: vi.fn(),
+  isFullscreen: false,
+  toggleFullscreen: vi.fn(),
+  guidelines: { horizontal: [], vertical: [] },
+  clearGuidelines: vi.fn(),
   ...overrides
 });
 
@@ -249,7 +322,7 @@ describe('InspectorPanel', () => {
   });
 
   describe('Text Block Editor', () => {
-    it('should render text block editor fields', () => {
+    it('should render text block inspector component', () => {
       const mockNodes = [
         {
           id: 'text-1',
@@ -266,90 +339,14 @@ describe('InspectorPanel', () => {
       render(<InspectorPanel />);
 
       expect(screen.getByText('Properties')).toBeInTheDocument();
-      expect(screen.getByLabelText('Content')).toBeInTheDocument();
-      expect(screen.getByLabelText('Font Size')).toBeInTheDocument();
-      expect(screen.getByText('Alignment')).toBeInTheDocument();
+      expect(screen.getByTestId('text-block-inspector')).toBeInTheDocument();
+      expect(screen.getByText('Text Block Inspector Mock')).toBeInTheDocument();
     });
 
-    it('should display current text content without HTML tags', () => {
-      const mockNodes = [
-        {
-          id: 'text-1',
-          type: 'textBlock',
-          data: { htmlContent: '<p>Hello <strong>world</strong></p>' }
-        }
-      ];
-
-      mockUseEditorStore.mockReturnValue(createMockStore({
-        selectedNodeId: 'text-1',
-        nodes: mockNodes
-      }));
-
-      render(<InspectorPanel />);
-
-      const contentTextarea = screen.getByLabelText('Content') as HTMLTextAreaElement;
-      expect(contentTextarea.value).toBe('Hello world');
-    });
-
-    it('should call updateNode when text content is changed', () => {
-      const updateNodeMock = vi.fn();
-      const mockNodes = [
-        {
-          id: 'text-1',
-          type: 'textBlock',
-          data: { htmlContent: '<p>Original</p>' }
-        }
-      ];
-
-      mockUseEditorStore.mockReturnValue(createMockStore({
-        selectedNodeId: 'text-1',
-        nodes: mockNodes,
-        updateNode: updateNodeMock
-      }));
-
-      render(<InspectorPanel />);
-
-      const contentTextarea = screen.getByLabelText('Content');
-      
-      // Directly fire the change event with the new value
-      fireEvent.change(contentTextarea, { target: { value: 'Updated content' } });
-
-      expect(updateNodeMock).toHaveBeenCalledWith('text-1', {
-        data: { htmlContent: '<p>Updated content</p>' }
-      });
-    });
-
-    it('should call updateNode when font size is changed', () => {
-      const updateNodeMock = vi.fn();
-      const mockNodes = [
-        {
-          id: 'text-1',
-          type: 'textBlock',
-          data: { htmlContent: '<p>Test</p>', fontSize: 16 }
-        }
-      ];
-
-      mockUseEditorStore.mockReturnValue(createMockStore({
-        selectedNodeId: 'text-1',
-        nodes: mockNodes,
-        updateNode: updateNodeMock
-      }));
-
-      render(<InspectorPanel />);
-
-      const fontSizeInput = screen.getByLabelText('Font Size');
-      
-      // Directly fire the change event with the new value
-      fireEvent.change(fontSizeInput, { target: { value: '20' } });
-
-      expect(updateNodeMock).toHaveBeenCalledWith('text-1', {
-        data: { htmlContent: '<p>Test</p>', fontSize: 20 }
-      });
-    });
   });
 
   describe('Heading Block Editor', () => {
-    it('should render heading block editor fields', () => {
+    it('should render heading block inspector component', () => {
       const mockNodes = [
         {
           id: 'heading-1',
@@ -365,62 +362,13 @@ describe('InspectorPanel', () => {
 
       render(<InspectorPanel />);
 
-      expect(screen.getByLabelText('Heading Text')).toBeInTheDocument();
-      expect(screen.getByText('Level')).toBeInTheDocument();
-      expect(screen.getByText('Alignment')).toBeInTheDocument();
-    });
-
-    it('should display current heading content', () => {
-      const mockNodes = [
-        {
-          id: 'heading-1',
-          type: 'headingBlock',
-          data: { htmlContent: 'My Heading', level: 2 }
-        }
-      ];
-
-      mockUseEditorStore.mockReturnValue(createMockStore({
-        selectedNodeId: 'heading-1',
-        nodes: mockNodes
-      }));
-
-      render(<InspectorPanel />);
-
-      const headingInput = screen.getByLabelText('Heading Text') as HTMLInputElement;
-      expect(headingInput.value).toBe('My Heading');
-    });
-
-    it('should call updateNode when heading text is changed', () => {
-      const updateNodeMock = vi.fn();
-      const mockNodes = [
-        {
-          id: 'heading-1',
-          type: 'headingBlock',
-          data: { htmlContent: 'Original Heading', level: 1 }
-        }
-      ];
-
-      mockUseEditorStore.mockReturnValue(createMockStore({
-        selectedNodeId: 'heading-1',
-        nodes: mockNodes,
-        updateNode: updateNodeMock
-      }));
-
-      render(<InspectorPanel />);
-
-      const headingInput = screen.getByLabelText('Heading Text');
-      
-      // Directly fire the change event with the new value
-      fireEvent.change(headingInput, { target: { value: 'Updated Heading' } });
-
-      expect(updateNodeMock).toHaveBeenCalledWith('heading-1', {
-        data: { htmlContent: 'Updated Heading', level: 1 }
-      });
+      expect(screen.getByTestId('heading-block-inspector')).toBeInTheDocument();
+      expect(screen.getByText('Heading Block Inspector Mock')).toBeInTheDocument();
     });
   });
 
   describe('Image Block Editor', () => {
-    it('should render image block editor fields', () => {
+    it('should render image block inspector component', () => {
       const mockNodes = [
         {
           id: 'image-1',
@@ -436,66 +384,8 @@ describe('InspectorPanel', () => {
 
       render(<InspectorPanel />);
 
-      expect(screen.getByLabelText('Image URL')).toBeInTheDocument();
-      expect(screen.getByLabelText('Alt Text')).toBeInTheDocument();
-      expect(screen.getByLabelText('Caption')).toBeInTheDocument();
-    });
-
-    it('should display current image data', () => {
-      const mockNodes = [
-        {
-          id: 'image-1',
-          type: 'imageBlock',
-          data: { 
-            src: 'https://example.com/image.jpg', 
-            alt: 'Example image', 
-            caption: 'Example caption' 
-          }
-        }
-      ];
-
-      mockUseEditorStore.mockReturnValue(createMockStore({
-        selectedNodeId: 'image-1',
-        nodes: mockNodes
-      }));
-
-      render(<InspectorPanel />);
-
-      const srcInput = screen.getByLabelText('Image URL') as HTMLInputElement;
-      const altInput = screen.getByLabelText('Alt Text') as HTMLInputElement;
-      const captionInput = screen.getByLabelText('Caption') as HTMLInputElement;
-
-      expect(srcInput.value).toBe('https://example.com/image.jpg');
-      expect(altInput.value).toBe('Example image');
-      expect(captionInput.value).toBe('Example caption');
-    });
-
-    it('should call updateNode when image URL is changed', () => {
-      const updateNodeMock = vi.fn();
-      const mockNodes = [
-        {
-          id: 'image-1',
-          type: 'imageBlock',
-          data: { src: '', alt: '', caption: '' }
-        }
-      ];
-
-      mockUseEditorStore.mockReturnValue(createMockStore({
-        selectedNodeId: 'image-1',
-        nodes: mockNodes,
-        updateNode: updateNodeMock
-      }));
-
-      render(<InspectorPanel />);
-
-      const srcInput = screen.getByLabelText('Image URL');
-      
-      // Directly fire the change event with the new value
-      fireEvent.change(srcInput, { target: { value: 'https://example.com/new-image.jpg' } });
-
-      expect(updateNodeMock).toHaveBeenCalledWith('image-1', {
-        data: { src: 'https://example.com/new-image.jpg', alt: '', caption: '' }
-      });
+      expect(screen.getByTestId('image-block-inspector')).toBeInTheDocument();
+      expect(screen.getByText('Image Block Inspector Mock')).toBeInTheDocument();
     });
   });
 
@@ -517,7 +407,9 @@ describe('InspectorPanel', () => {
       render(<InspectorPanel />);
 
       expect(screen.getByLabelText('Message')).toBeInTheDocument();
-      expect(screen.getByLabelText('Theme')).toBeInTheDocument();
+      // Find the theme selector specifically within the Key Takeaway block editor
+      const themeSelectors = screen.getAllByLabelText('Theme');
+      expect(themeSelectors.length).toBeGreaterThan(0);
     });
 
     it('should display current takeaway content', () => {
@@ -590,6 +482,98 @@ describe('InspectorPanel', () => {
     });
   });
 
+  describe('Canvas Controls', () => {
+    it('should render canvas theme toggle', () => {
+      render(<InspectorPanel />);
+      expect(screen.getByLabelText('Theme')).toBeInTheDocument();
+      expect(screen.getByText('Light')).toBeInTheDocument();
+    });
+
+    it('should render grid toggle', () => {
+      render(<InspectorPanel />);
+      expect(screen.getByLabelText('Show Grid')).toBeInTheDocument();
+      expect(screen.getByTestId('grid-icon')).toBeInTheDocument();
+    });
+
+    it('should render rulers toggle', () => {
+      render(<InspectorPanel />);
+      expect(screen.getByLabelText('Show Rulers')).toBeInTheDocument();
+      expect(screen.getByTestId('ruler-icon')).toBeInTheDocument();
+    });
+
+    it('should render guidelines toggle', () => {
+      render(<InspectorPanel />);
+      expect(screen.getByLabelText('Show Guidelines')).toBeInTheDocument();
+      expect(screen.getByTestId('minus-icon')).toBeInTheDocument();
+    });
+
+    it('should show fullscreen toggle', () => {
+      render(<InspectorPanel />);
+      expect(screen.getByLabelText('Fullscreen')).toBeInTheDocument();
+    });
+
+    it('should hide snap to guides toggle (removed feature)', () => {
+      mockUseEditorStore.mockReturnValue(createMockStore({
+        showGuidelines: true
+      }));
+
+      render(<InspectorPanel />);
+      expect(screen.queryByLabelText('Snap to Guides')).not.toBeInTheDocument();
+    });
+
+    it('should show clear guidelines button when guidelines exist', () => {
+      mockUseEditorStore.mockReturnValue(createMockStore({
+        showGuidelines: true,
+        guidelines: { horizontal: [100, 200], vertical: [150] }
+      }));
+
+      render(<InspectorPanel />);
+      expect(screen.getByText('Clear All Guidelines (3)')).toBeInTheDocument();
+    });
+
+    it('should hide clear guidelines button when no guidelines exist', () => {
+      mockUseEditorStore.mockReturnValue(createMockStore({
+        showGuidelines: true,
+        guidelines: { horizontal: [], vertical: [] }
+      }));
+
+      render(<InspectorPanel />);
+      expect(screen.queryByText(/Clear All Guidelines/)).not.toBeInTheDocument();
+    });
+
+    it('should call toggle functions when controls are clicked', async () => {
+      const toggleRulersMock = vi.fn();
+      const toggleGuidelinesMock = vi.fn();
+      const clearGuidelinesMock = vi.fn();
+
+      mockUseEditorStore.mockReturnValue(createMockStore({
+        showGuidelines: true,
+        guidelines: { horizontal: [100], vertical: [150] },
+        toggleRulers: toggleRulersMock,
+        toggleGuidelines: toggleGuidelinesMock,
+        clearGuidelines: clearGuidelinesMock
+      }));
+
+      const user = userEvent.setup();
+      render(<InspectorPanel />);
+
+      // Test rulers toggle
+      const rulersToggle = screen.getByLabelText('Show Rulers');
+      await user.click(rulersToggle);
+      expect(toggleRulersMock).toHaveBeenCalled();
+
+      // Test guidelines toggle
+      const guidelinesToggle = screen.getByLabelText('Show Guidelines');
+      await user.click(guidelinesToggle);
+      expect(toggleGuidelinesMock).toHaveBeenCalled();
+
+      // Test clear guidelines button
+      const clearButton = screen.getByText('Clear All Guidelines (2)');
+      await user.click(clearButton);
+      expect(clearGuidelinesMock).toHaveBeenCalled();
+    });
+  });
+
   describe('Layout and Structure', () => {
     it('should have correct container styling', () => {
       render(<InspectorPanel />);
@@ -638,6 +622,47 @@ describe('InspectorPanel', () => {
       // Check for shadcn/ui Separator components (they have data-orientation="horizontal")
       const separators = document.querySelectorAll('[data-orientation="horizontal"]');
       expect(separators.length).toBeGreaterThan(0);
+    });
+
+    it('should display canvas controls section', () => {
+      render(<InspectorPanel />);
+      expect(screen.getByText('Canvas')).toBeInTheDocument();
+    });
+  });
+
+  describe('Visual Helpers Integration', () => {
+    it('should show appropriate visual helper controls based on state', () => {
+      mockUseEditorStore.mockReturnValue(createMockStore({
+        showRulers: true,
+        showGuidelines: true,
+        guidelines: { horizontal: [50, 100], vertical: [75] }
+      }));
+
+      render(<InspectorPanel />);
+
+      // All visual helper controls should be present
+      expect(screen.getByLabelText('Show Rulers')).toBeInTheDocument();
+      expect(screen.getByLabelText('Show Guidelines')).toBeInTheDocument();
+      expect(screen.getByText('Clear All Guidelines (3)')).toBeInTheDocument();
+    });
+
+    it('should respect visual helper state from store', () => {
+      mockUseEditorStore.mockReturnValue(createMockStore({
+        showRulers: true,
+        showGuidelines: false
+      }));
+
+      render(<InspectorPanel />);
+
+      const rulersToggle = screen.getByLabelText('Show Rulers');
+      const guidelinesToggle = screen.getByLabelText('Show Guidelines');
+
+      // Check that the toggles reflect the current state
+      expect(rulersToggle).toBeInTheDocument();
+      expect(guidelinesToggle).toBeInTheDocument();
+      
+      // Snap to guides feature has been removed
+      expect(screen.queryByLabelText('Snap to Guides')).not.toBeInTheDocument();
     });
   });
 });

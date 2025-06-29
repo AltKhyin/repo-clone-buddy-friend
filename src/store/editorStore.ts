@@ -61,8 +61,13 @@ export const useEditorStore = create<EditorState>((set, get) => {
       // Validate before saving
       validateStructuredContent(structuredContent);
       
-      // TODO: Implement actual save mutation when we create the hooks
-      console.log('Saving to database:', structuredContent);
+      // Call the actual save function if available
+      if (state.persistenceCallbacks?.save) {
+        await state.persistenceCallbacks.save(state.reviewId, structuredContent);
+      } else {
+        console.warn('Auto-save skipped: No persistence save callback configured');
+        return; // Don't update state if we can't save
+      }
       
       set({ 
         isDirty: false, 
@@ -92,9 +97,18 @@ export const useEditorStore = create<EditorState>((set, get) => {
     isDirty: false,
     isSaving: false,
     lastSaved: null,
+    isFullscreen: false,
     
     // Canvas State
     canvasTransform: initialCanvasTransform,
+    canvasTheme: 'light' as const,
+    showGrid: true,
+    showRulers: false,
+    showGuidelines: false,
+    guidelines: {
+      horizontal: [],
+      vertical: [],
+    },
     
     // Clipboard State
     clipboardData: null,
@@ -102,6 +116,9 @@ export const useEditorStore = create<EditorState>((set, get) => {
     // History State
     history: [],
     historyIndex: -1,
+    
+    // Persistence Callbacks
+    persistenceCallbacks: null,
     
     // ===== NODE ACTIONS =====
     
@@ -297,6 +314,53 @@ export const useEditorStore = create<EditorState>((set, get) => {
       }));
     },
     
+    setCanvasTheme: (theme) => {
+      set({ canvasTheme: theme });
+    },
+    
+    toggleGrid: () => {
+      set((state) => ({ showGrid: !state.showGrid }));
+    },
+    
+    toggleRulers: () => {
+      set((state) => ({ showRulers: !state.showRulers }));
+    },
+    
+    toggleGuidelines: () => {
+      set((state) => ({ showGuidelines: !state.showGuidelines }));
+    },
+    
+    toggleFullscreen: () => {
+      set((state) => ({ isFullscreen: !state.isFullscreen }));
+    },
+    
+    addGuideline: (type, position) => {
+      set((state) => ({
+        guidelines: {
+          ...state.guidelines,
+          [type]: [...state.guidelines[type], position].sort((a, b) => a - b),
+        },
+      }));
+    },
+    
+    removeGuideline: (type, position) => {
+      set((state) => ({
+        guidelines: {
+          ...state.guidelines,
+          [type]: state.guidelines[type].filter(p => p !== position),
+        },
+      }));
+    },
+    
+    clearGuidelines: () => {
+      set({
+        guidelines: {
+          horizontal: [],
+          vertical: [],
+        },
+      });
+    },
+    
     // ===== CLIPBOARD ACTIONS =====
     
     copyNodes: (nodeIds) => {
@@ -366,7 +430,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
       });
     },
     
-    // ===== DATA PERSISTENCE =====
+  // ===== DATA PERSISTENCE =====
     
     saveToDatabase: async () => {
       // Force immediate save (bypass debounce)
@@ -390,8 +454,12 @@ export const useEditorStore = create<EditorState>((set, get) => {
         // Validate before saving
         validateStructuredContent(structuredContent);
         
-        // TODO: Implement actual save mutation
-        console.log('Force saving to database:', structuredContent);
+        // Call the actual save function - this will be set by the component using persistence hooks
+        if (state.persistenceCallbacks?.save) {
+          await state.persistenceCallbacks.save(state.reviewId, structuredContent);
+        } else {
+          console.warn('No persistence save callback configured');
+        }
         
         set({ 
           isDirty: false, 
@@ -409,18 +477,43 @@ export const useEditorStore = create<EditorState>((set, get) => {
       try {
         set({ reviewId, isSaving: true });
         
-        // TODO: Implement actual load query
-        console.log('Loading from database:', reviewId);
-        
-        // For now, just reset to empty state
-        set({
-          nodes: [],
-          layouts: initialLayouts,
-          selectedNodeId: null,
-          isDirty: false,
-          isSaving: false,
-          lastSaved: new Date(),
-        });
+        // Call the actual load function - this will be set by the component using persistence hooks
+        if (get().persistenceCallbacks?.load) {
+          const data = await get().persistenceCallbacks!.load(reviewId);
+          
+          if (data?.structured_content) {
+            // Load the content into the store
+            set({
+              nodes: data.structured_content.nodes,
+              layouts: data.structured_content.layouts,
+              selectedNodeId: null,
+              isDirty: false,
+              isSaving: false,
+              lastSaved: new Date(data.updated_at),
+            });
+          } else {
+            // No existing content - start with empty state
+            set({
+              nodes: [],
+              layouts: initialLayouts,
+              selectedNodeId: null,
+              isDirty: false,
+              isSaving: false,
+              lastSaved: null,
+            });
+          }
+        } else {
+          console.warn('No persistence load callback configured');
+          // Fallback to empty state
+          set({
+            nodes: [],
+            layouts: initialLayouts,
+            selectedNodeId: null,
+            isDirty: false,
+            isSaving: false,
+            lastSaved: null,
+          });
+        }
       } catch (error) {
         console.error('Load failed:', error);
         set({ isSaving: false });
@@ -466,6 +559,12 @@ export const useEditorStore = create<EditorState>((set, get) => {
       console.log('Exporting to PDF...');
     },
     
+    // ===== PERSISTENCE =====
+    
+    setPersistenceCallbacks: (callbacks) => {
+      set({ persistenceCallbacks: callbacks });
+    },
+    
     // ===== UTILITIES =====
     
     reset: () => {
@@ -484,6 +583,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
         clipboardData: null,
         history: [],
         historyIndex: -1,
+        persistenceCallbacks: null,
       });
     },
     

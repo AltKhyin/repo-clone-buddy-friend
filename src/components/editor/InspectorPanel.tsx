@@ -9,7 +9,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
-import { Trash2, Copy, Eye, EyeOff, Monitor, Smartphone } from 'lucide-react';
+import { Trash2, Copy, Eye, EyeOff, Monitor, Smartphone, Sun, Moon, Grid, Ruler, Minus } from 'lucide-react';
+import { TextBlockInspector } from './Inspector/TextBlockInspector';
+import { HeadingBlockInspector } from './Inspector/HeadingBlockInspector';
+import { ImageBlockInspector } from './Inspector/ImageBlockInspector';
+import { VideoEmbedBlockInspector } from './Inspector/VideoEmbedBlockInspector';
+import { TableBlockInspector } from './Inspector/TableBlockInspector';
 
 export function InspectorPanel() {
   const { 
@@ -20,7 +25,19 @@ export function InspectorPanel() {
     duplicateNode,
     selectNode,
     currentViewport,
-    switchViewport
+    switchViewport,
+    canvasTheme,
+    setCanvasTheme,
+    showGrid,
+    toggleGrid,
+    showRulers,
+    toggleRulers,
+    showGuidelines,
+    toggleGuidelines,
+    toggleFullscreen,
+    isFullscreen,
+    guidelines,
+    clearGuidelines
   } = useEditorStore();
 
   const selectedNode = selectedNodeId ? nodes.find(n => n.id === selectedNodeId) : null;
@@ -49,148 +66,19 @@ export function InspectorPanel() {
 
     switch (selectedNode.type) {
       case 'textBlock':
-        return (
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="text-content">Content</Label>
-              <Textarea
-                id="text-content"
-                value={selectedNode.data.htmlContent.replace(/<[^>]*>/g, '')} // Strip HTML for editing
-                onChange={(e) => handleUpdateNode({
-                  data: { ...selectedNode.data, htmlContent: `<p>${e.target.value}</p>` }
-                })}
-                placeholder="Enter text content..."
-                rows={4}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="text-size">Font Size</Label>
-                <Input
-                  id="text-size"
-                  type="number"
-                  value={selectedNode.data.fontSize || 16}
-                  onChange={(e) => handleUpdateNode({
-                    data: { ...selectedNode.data, fontSize: Number(e.target.value) }
-                  })}
-                />
-              </div>
-              <div>
-                <Label htmlFor="text-align">Alignment</Label>
-                <Select 
-                  value={selectedNode.data.textAlign || 'left'}
-                  onValueChange={(value) => handleUpdateNode({
-                    data: { ...selectedNode.data, textAlign: value }
-                  })}
-                >
-                  <SelectTrigger id="text-align">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="left">Left</SelectItem>
-                    <SelectItem value="center">Center</SelectItem>
-                    <SelectItem value="right">Right</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </div>
-        );
-
+        return <TextBlockInspector nodeId={selectedNode.id} />;
+      
       case 'headingBlock':
-        return (
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="heading-content">Heading Text</Label>
-              <Input
-                id="heading-content"
-                value={selectedNode.data.htmlContent}
-                onChange={(e) => handleUpdateNode({
-                  data: { ...selectedNode.data, htmlContent: e.target.value }
-                })}
-                placeholder="Enter heading..."
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="heading-level">Level</Label>
-                <Select 
-                  value={selectedNode.data.level.toString()}
-                  onValueChange={(value) => handleUpdateNode({
-                    data: { ...selectedNode.data, level: Number(value) as 1 | 2 | 3 | 4 }
-                  })}
-                >
-                  <SelectTrigger id="heading-level">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1">H1</SelectItem>
-                    <SelectItem value="2">H2</SelectItem>
-                    <SelectItem value="3">H3</SelectItem>
-                    <SelectItem value="4">H4</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="heading-align">Alignment</Label>
-                <Select 
-                  value={selectedNode.data.alignment || 'left'}
-                  onValueChange={(value) => handleUpdateNode({
-                    data: { ...selectedNode.data, alignment: value }
-                  })}
-                >
-                  <SelectTrigger id="heading-align">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="left">Left</SelectItem>
-                    <SelectItem value="center">Center</SelectItem>
-                    <SelectItem value="right">Right</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </div>
-        );
-
+        return <HeadingBlockInspector nodeId={selectedNode.id} />;
+      
       case 'imageBlock':
-        return (
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="image-src">Image URL</Label>
-              <Input
-                id="image-src"
-                value={selectedNode.data.src}
-                onChange={(e) => handleUpdateNode({
-                  data: { ...selectedNode.data, src: e.target.value }
-                })}
-                placeholder="https://example.com/image.jpg"
-              />
-            </div>
-            <div>
-              <Label htmlFor="image-alt">Alt Text</Label>
-              <Input
-                id="image-alt"
-                value={selectedNode.data.alt}
-                onChange={(e) => handleUpdateNode({
-                  data: { ...selectedNode.data, alt: e.target.value }
-                })}
-                placeholder="Describe the image..."
-              />
-            </div>
-            <div>
-              <Label htmlFor="image-caption">Caption</Label>
-              <Input
-                id="image-caption"
-                value={selectedNode.data.caption || ''}
-                onChange={(e) => handleUpdateNode({
-                  data: { ...selectedNode.data, caption: e.target.value }
-                })}
-                placeholder="Optional caption..."
-              />
-            </div>
-          </div>
-        );
+        return <ImageBlockInspector nodeId={selectedNode.id} />;
+      
+      case 'videoEmbedBlock':
+        return <VideoEmbedBlockInspector nodeId={selectedNode.id} />;
+      
+      case 'tableBlock':
+        return <TableBlockInspector nodeId={selectedNode.id} />;
 
       case 'keyTakeawayBlock':
         return (
@@ -274,6 +162,102 @@ export function InspectorPanel() {
         <div className="text-xs text-muted-foreground bg-muted/50 rounded px-2 py-1">
           Current: {currentViewport === 'desktop' ? '12' : '4'} column grid • 
           Layouts auto-convert when switching
+        </div>
+        
+        <Separator className="my-3" />
+        
+        {/* Canvas Controls */}
+        <div className="space-y-3">
+          <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Canvas</h3>
+          
+          {/* Fullscreen Toggle */}
+          <div className="flex items-center justify-between">
+            <Label htmlFor="fullscreen-toggle" className="text-sm">Fullscreen</Label>
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="fullscreen-toggle"
+                checked={isFullscreen}
+                onCheckedChange={toggleFullscreen}
+              />
+              <Monitor size={14} className={isFullscreen ? 'text-foreground' : 'text-muted-foreground'} />
+            </div>
+          </div>
+          
+          {/* Theme Toggle */}
+          <div className="flex items-center justify-between">
+            <Label htmlFor="canvas-theme" className="text-sm">Theme</Label>
+            <Button
+              id="canvas-theme"
+              size="sm"
+              variant="outline"
+              onClick={() => setCanvasTheme(canvasTheme === 'light' ? 'dark' : 'light')}
+              className="h-7 px-2"
+            >
+              {canvasTheme === 'light' ? (
+                <>
+                  <Sun size={14} className="mr-1" />
+                  Light
+                </>
+              ) : (
+                <>
+                  <Moon size={14} className="mr-1" />
+                  Dark
+                </>
+              )}
+            </Button>
+          </div>
+          
+          {/* Grid Toggle */}
+          <div className="flex items-center justify-between">
+            <Label htmlFor="grid-toggle" className="text-sm">Show Grid</Label>
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="grid-toggle"
+                checked={showGrid}
+                onCheckedChange={toggleGrid}
+              />
+              <Grid size={14} className={showGrid ? 'text-foreground' : 'text-muted-foreground'} />
+            </div>
+          </div>
+          
+          {/* Rulers Toggle */}
+          <div className="flex items-center justify-between">
+            <Label htmlFor="rulers-toggle" className="text-sm">Show Rulers</Label>
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="rulers-toggle"
+                checked={showRulers}
+                onCheckedChange={toggleRulers}
+              />
+              <Ruler size={14} className={showRulers ? 'text-foreground' : 'text-muted-foreground'} />
+            </div>
+          </div>
+          
+          {/* Guidelines Toggle */}
+          <div className="flex items-center justify-between">
+            <Label htmlFor="guidelines-toggle" className="text-sm">Show Guidelines</Label>
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="guidelines-toggle"
+                checked={showGuidelines}
+                onCheckedChange={toggleGuidelines}
+              />
+              <Minus size={14} className={showGuidelines ? 'text-foreground' : 'text-muted-foreground'} />
+            </div>
+          </div>
+          
+          
+          {/* Clear Guidelines Button */}
+          {showGuidelines && guidelines && (guidelines.horizontal.length > 0 || guidelines.vertical.length > 0) && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={clearGuidelines}
+              className="w-full justify-center text-xs h-7"
+            >
+              Clear All Guidelines ({guidelines.horizontal.length + guidelines.vertical.length})
+            </Button>
+          )}
         </div>
       </div>
 

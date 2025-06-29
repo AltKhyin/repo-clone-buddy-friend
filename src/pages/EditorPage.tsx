@@ -10,6 +10,7 @@ import { EditorCanvas } from '@/components/editor/EditorCanvas';
 import { InspectorPanel } from '@/components/editor/InspectorPanel';
 import { Button } from '@/components/ui/button';
 import { getDefaultDataForBlockType } from '@/types/editor';
+import { useEditorSaveMutation, useEditorLoadQuery } from '../../packages/hooks/useEditorPersistence';
 
 export default function EditorPage() {
   const { reviewId } = useParams<{ reviewId: string }>();
@@ -19,8 +20,27 @@ export default function EditorPage() {
     addNode, 
     isSaving, 
     isDirty,
-    lastSaved 
+    lastSaved,
+    isFullscreen,
+    setPersistenceCallbacks
   } = useEditorStore();
+
+  // Set up persistence hooks
+  const saveMutation = useEditorSaveMutation();
+  const { data: loadedData } = useEditorLoadQuery(reviewId);
+
+  // Configure persistence callbacks
+  React.useEffect(() => {
+    setPersistenceCallbacks({
+      save: async (reviewId, content) => {
+        return saveMutation.mutateAsync({ reviewId, structuredContent: content });
+      },
+      load: async (reviewId) => {
+        // Return the loaded data from the query
+        return loadedData;
+      }
+    });
+  }, [setPersistenceCallbacks, saveMutation, loadedData]);
 
   React.useEffect(() => {
     if (reviewId) {
@@ -113,12 +133,14 @@ export default function EditorPage() {
         </div>
 
         {/* Three-Panel Workspace */}
-        <div className="flex-1 flex">
-          <BlockPalette />
-          <ReactFlowProvider>
-            <EditorCanvas />
-          </ReactFlowProvider>
-          <InspectorPanel />
+        <div className="flex-1 flex overflow-hidden">
+          {!isFullscreen && <BlockPalette />}
+          <div className="flex-1 relative">
+            <ReactFlowProvider>
+              <EditorCanvas />
+            </ReactFlowProvider>
+          </div>
+          {!isFullscreen && <InspectorPanel />}
         </div>
       </div>
     </DndContext>

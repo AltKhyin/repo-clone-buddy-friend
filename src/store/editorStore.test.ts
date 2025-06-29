@@ -6,7 +6,7 @@ import { generateNodeId, getDefaultDataForBlockType } from '@/types/editor';
 
 // Mock the debounce function
 vi.mock('lodash-es', () => ({
-  debounce: (fn: Function) => fn
+  debounce: (fn: (...args: any[]) => any) => fn
 }));
 
 // Mock crypto.randomUUID with proper UUID format and incrementing counter

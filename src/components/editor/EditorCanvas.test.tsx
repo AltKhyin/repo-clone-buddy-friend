@@ -18,6 +18,14 @@ vi.mock('@xyflow/react', () => ({
       {children}
     </div>
   ),
+  ReactFlowProvider: ({ children }: any) => (
+    <div data-testid="react-flow-provider">
+      {children}
+    </div>
+  ),
+  useReactFlow: () => ({
+    getViewport: () => ({ x: 0, y: 0, zoom: 1 })
+  }),
   useNodesState: () => [[], vi.fn(), vi.fn()],
   useEdgesState: () => [[], vi.fn(), vi.fn()],
   addEdge: vi.fn(),
@@ -30,12 +38,20 @@ vi.mock('@xyflow/react', () => ({
   BackgroundVariant: {
     Lines: 'lines',
     Dots: 'dots'
-  }
+  },
+  NodeResizer: () => <div data-testid="node-resizer" />
 }));
 
 // Mock lodash-es
 vi.mock('lodash-es', () => ({
   debounce: (fn: any) => fn
+}));
+
+// Mock CanvasHelpers
+vi.mock('./CanvasHelpers', () => ({
+  CanvasHelpers: ({ width, height, zoom, offset }: any) => (
+    <div data-testid="canvas-helpers" data-width={width} data-height={height} data-zoom={zoom} />
+  )
 }));
 
 // Mock the HTML parser for dangerouslySetInnerHTML
@@ -58,6 +74,10 @@ const createMockStore = (overrides = {}) => ({
   updateLayout: vi.fn(),
   selectNode: vi.fn(),
   addNode: vi.fn(),
+  canvasTheme: 'light',
+  showGrid: true,
+  showRulers: false,
+  showGuidelines: false,
   ...overrides
 });
 

@@ -28,25 +28,55 @@ export const LayoutsSchema = z.object({
 
 export const TextBlockDataSchema = z.object({
   htmlContent: z.string(),
+  // Typography
   fontSize: z.number().optional(),
-  textAlign: z.enum(['left', 'center', 'right']).optional(),
+  textAlign: z.enum(['left', 'center', 'right', 'justify']).optional(),
   color: z.string().optional(),
+  lineHeight: z.number().optional(),
+  fontFamily: z.string().optional(),
+  fontWeight: z.number().optional(),
+  // Background and borders
+  backgroundColor: z.string().optional(),
+  paddingX: z.number().optional(),
+  paddingY: z.number().optional(),
+  borderRadius: z.number().optional(),
+  borderWidth: z.number().default(0),
+  borderColor: z.string().optional(),
 });
 
 export const HeadingBlockDataSchema = z.object({
   htmlContent: z.string(),
   level: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4)]),
-  alignment: z.enum(['left', 'center', 'right']).optional(),
+  // Typography
+  textAlign: z.enum(['left', 'center', 'right']).optional(),
   color: z.string().optional(),
+  fontFamily: z.string().optional(),
+  fontWeight: z.number().optional(),
+  letterSpacing: z.number().optional(),
+  textTransform: z.enum(['none', 'uppercase', 'lowercase', 'capitalize']).optional(),
+  textDecoration: z.enum(['none', 'underline', 'line-through']).optional(),
+  // Background and borders
+  backgroundColor: z.string().optional(),
+  paddingX: z.number().optional(),
+  paddingY: z.number().optional(),
+  borderRadius: z.number().optional(),
+  borderWidth: z.number().default(0),
+  borderColor: z.string().optional(),
 });
 
 export const ImageBlockDataSchema = z.object({
-  src: z.string().url(),
+  src: z.string(),
   alt: z.string(),
   caption: z.string().optional(),
   borderRadius: z.number().optional(),
   width: z.number().optional(),
   height: z.number().optional(),
+  // Spacing and styling
+  paddingX: z.number().optional(),
+  paddingY: z.number().optional(),
+  backgroundColor: z.string().optional(),
+  borderWidth: z.number().default(0),
+  borderColor: z.string().optional(),
 });
 
 export const TableBlockDataSchema = z.object({
@@ -104,10 +134,17 @@ export const QuoteBlockDataSchema = z.object({
 });
 
 export const VideoEmbedBlockDataSchema = z.object({
-  url: z.string().url(),
+  url: z.string(),
   platform: z.enum(['youtube', 'vimeo']),
   caption: z.string().optional(),
   autoplay: z.boolean().default(false),
+  // Spacing and styling
+  paddingX: z.number().optional(),
+  paddingY: z.number().optional(),
+  backgroundColor: z.string().optional(),
+  borderWidth: z.number().default(0),
+  borderColor: z.string().optional(),
+  borderRadius: z.number().optional(),
 });
 
 export const SeparatorBlockDataSchema = z.object({
@@ -196,9 +233,18 @@ export interface EditorState {
   isDirty: boolean;
   isSaving: boolean;
   lastSaved: Date | null;
+  isFullscreen: boolean;
   
   // Canvas State
   canvasTransform: CanvasTransform;
+  canvasTheme: 'light' | 'dark';
+  showGrid: boolean;
+  showRulers: boolean;
+  showGuidelines: boolean;
+  guidelines: {
+    horizontal: number[];
+    vertical: number[];
+  };
   
   // Clipboard State
   clipboardData: NodeObject[] | null;
@@ -206,6 +252,12 @@ export interface EditorState {
   // History State (for undo/redo)
   history: StructuredContentV2[];
   historyIndex: number;
+  
+  // Persistence Callbacks
+  persistenceCallbacks: {
+    save: (reviewId: string, content: StructuredContentV2) => Promise<any>;
+    load: (reviewId: string) => Promise<any>;
+  } | null;
   
   // Actions
   addNode: (node: Partial<NodeObject>) => void;
@@ -216,6 +268,14 @@ export interface EditorState {
   selectNode: (nodeId: string | null) => void;
   switchViewport: (viewport: Viewport) => void;
   updateCanvasTransform: (transform: Partial<CanvasTransform>) => void;
+  setCanvasTheme: (theme: 'light' | 'dark') => void;
+  toggleGrid: () => void;
+  toggleRulers: () => void;
+  toggleGuidelines: () => void;
+  toggleFullscreen: () => void;
+  addGuideline: (type: 'horizontal' | 'vertical', position: number) => void;
+  removeGuideline: (type: 'horizontal' | 'vertical', position: number) => void;
+  clearGuidelines: () => void;
   
   // Clipboard actions
   copyNodes: (nodeIds: string[]) => void;
@@ -232,6 +292,12 @@ export interface EditorState {
   loadFromJSON: (json: StructuredContentV2) => void;
   exportToJSON: () => StructuredContentV2;
   exportToPDF: () => Promise<void>;
+  
+  // Persistence
+  setPersistenceCallbacks: (callbacks: {
+    save: (reviewId: string, content: StructuredContentV2) => Promise<any>;
+    load: (reviewId: string) => Promise<any>;
+  }) => void;
   
   // Utilities
   reset: () => void;
