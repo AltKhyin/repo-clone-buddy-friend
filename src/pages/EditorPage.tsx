@@ -7,7 +7,7 @@ import { ReactFlowProvider } from '@xyflow/react';
 import { useEditorStore } from '@/store/editorStore';
 import { BlockPalette } from '@/components/editor/BlockPalette';
 import { EditorCanvas } from '@/components/editor/EditorCanvas';
-import { InspectorPanel } from '@/components/editor/InspectorPanel';
+import { TopToolbar } from '@/components/editor/TopToolbar';
 import { Button } from '@/components/ui/button';
 import { getDefaultDataForBlockType } from '@/types/editor';
 import { useEditorSaveMutation, useEditorLoadQuery } from '../../packages/hooks/useEditorPersistence';
@@ -29,18 +29,18 @@ export default function EditorPage() {
   const saveMutation = useEditorSaveMutation();
   const { data: loadedData } = useEditorLoadQuery(reviewId);
 
-  // Configure persistence callbacks
+  // Configure persistence callbacks once when component mounts or reviewId changes
   React.useEffect(() => {
     setPersistenceCallbacks({
-      save: async (reviewId, content) => {
+      save: async (reviewId: string, content: any) => {
         return saveMutation.mutateAsync({ reviewId, structuredContent: content });
       },
-      load: async (reviewId) => {
-        // Return the loaded data from the query
+      load: async (reviewId: string) => {
+        // Return the current loaded data from the query
         return loadedData;
       }
     });
-  }, [setPersistenceCallbacks, saveMutation, loadedData]);
+  }, [reviewId]); // Only depend on reviewId to avoid infinite loops
 
   React.useEffect(() => {
     if (reviewId) {
@@ -132,7 +132,10 @@ export default function EditorPage() {
           </div>
         </div>
 
-        {/* Three-Panel Workspace */}
+        {/* Top Toolbar */}
+        <TopToolbar />
+
+        {/* Two-Panel Workspace (Palette + Canvas) */}
         <div className="flex-1 flex overflow-hidden">
           {!isFullscreen && <BlockPalette />}
           <div className="flex-1 relative">
@@ -140,7 +143,6 @@ export default function EditorPage() {
               <EditorCanvas />
             </ReactFlowProvider>
           </div>
-          {!isFullscreen && <InspectorPanel />}
         </div>
       </div>
     </DndContext>

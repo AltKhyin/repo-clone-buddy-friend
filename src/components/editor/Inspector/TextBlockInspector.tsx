@@ -13,9 +13,10 @@ import { AlignLeft, AlignCenter, AlignRight, AlignJustify, Palette, Type } from 
 
 interface TextBlockInspectorProps {
   nodeId: string
+  compact?: boolean
 }
 
-export const TextBlockInspector: React.FC<TextBlockInspectorProps> = ({ nodeId }) => {
+export const TextBlockInspector: React.FC<TextBlockInspectorProps> = ({ nodeId, compact = false }) => {
   const { nodes, updateNode } = useEditorStore()
   
   const node = nodes.find(n => n.id === nodeId)
@@ -27,6 +28,58 @@ export const TextBlockInspector: React.FC<TextBlockInspectorProps> = ({ nodeId }
     updateNode(nodeId, {
       data: { ...data, ...updates }
     })
+  }
+
+  // Compact mode for toolbar
+  if (compact) {
+    return (
+      <div className="flex items-center gap-3">
+        {/* Font Size */}
+        <div className="flex items-center gap-1">
+          <Input
+            type="number"
+            value={data.fontSize || 16}
+            onChange={(e) => updateNodeData({ fontSize: parseInt(e.target.value) || 16 })}
+            className="w-16 h-7 text-xs"
+            min={12}
+            max={72}
+          />
+          <span className="text-xs text-muted-foreground">px</span>
+        </div>
+
+        {/* Text Alignment */}
+        <div className="flex gap-1">
+          {[
+            { value: 'left', icon: AlignLeft },
+            { value: 'center', icon: AlignCenter },
+            { value: 'right', icon: AlignRight },
+          ].map(({ value, icon: Icon }) => (
+            <Button
+              key={value}
+              size="sm"
+              variant={data.textAlign === value ? "default" : "outline"}
+              onClick={() => updateNodeData({ textAlign: value as any })}
+              className="h-7 w-7 p-0"
+            >
+              <Icon size={12} />
+            </Button>
+          ))}
+        </div>
+
+        {/* Font Family */}
+        <Select value={data.fontFamily || 'inherit'} onValueChange={(value) => updateNodeData({ fontFamily: value })}>
+          <SelectTrigger className="w-24 h-7">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="inherit">Default</SelectItem>
+            <SelectItem value="serif">Serif</SelectItem>
+            <SelectItem value="sans-serif">Sans</SelectItem>
+            <SelectItem value="monospace">Mono</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+    )
   }
 
   return (

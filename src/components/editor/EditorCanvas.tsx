@@ -33,6 +33,7 @@ import { TextBlockNode } from './Nodes/TextBlockNode';
 import { HeadingBlockNode } from './Nodes/HeadingBlockNode';
 import { ImageBlockNode } from './Nodes/ImageBlockNode';
 import { VideoEmbedBlockNode } from './Nodes/VideoEmbedBlockNode';
+import { PollBlockNode } from './Nodes/PollBlockNode';
 
 // Custom React Flow node components with Tiptap integration
 function CustomTextBlockNode({ data, selected }: { data: { nodeObject: NodeObject }, selected?: boolean }) {
@@ -84,6 +85,20 @@ function CustomVideoEmbedBlockNode({ data, selected }: { data: { nodeObject: Nod
 
   return (
     <VideoEmbedBlockNode
+      id={nodeObject.id}
+      data={nodeObject.data}
+      selected={isSelected}
+    />
+  );
+}
+
+function CustomPollBlockNode({ data, selected }: { data: { nodeObject: NodeObject }, selected?: boolean }) {
+  const { selectedNodeId } = useEditorStore();
+  const { nodeObject } = data;
+  const isSelected = selected || selectedNodeId === nodeObject.id;
+
+  return (
+    <PollBlockNode
       id={nodeObject.id}
       data={nodeObject.data}
       selected={isSelected}
@@ -236,6 +251,7 @@ const nodeTypes: NodeTypes = {
   headingBlock: CustomHeadingBlockNode,
   imageBlock: CustomImageBlockNode,
   videoEmbedBlock: CustomVideoEmbedBlockNode,
+  pollBlock: CustomPollBlockNode,
   customBlock: CustomBlockNode, // Legacy fallback for other block types
 };
 

@@ -23,9 +23,10 @@ import {
 
 interface HeadingBlockInspectorProps {
   nodeId: string
+  compact?: boolean
 }
 
-export const HeadingBlockInspector: React.FC<HeadingBlockInspectorProps> = ({ nodeId }) => {
+export const HeadingBlockInspector: React.FC<HeadingBlockInspectorProps> = ({ nodeId, compact = false }) => {
   const { nodes, updateNode } = useEditorStore()
   
   const node = nodes.find(n => n.id === nodeId)
@@ -45,6 +46,48 @@ export const HeadingBlockInspector: React.FC<HeadingBlockInspectorProps> = ({ no
     { value: 3, icon: Heading3, label: 'H3' },
     { value: 4, icon: Heading4, label: 'H4' },
   ]
+
+  // Compact mode for toolbar
+  if (compact) {
+    return (
+      <div className="flex items-center gap-3">
+        {/* Heading Level */}
+        <div className="flex gap-1">
+          {headingLevels.map(({ value, icon: Icon, label }) => (
+            <Button
+              key={value}
+              size="sm"
+              variant={data.level === value ? "default" : "outline"}
+              onClick={() => updateNodeData({ level: value })}
+              className="h-7 w-8 p-0 text-xs"
+              title={label}
+            >
+              {label}
+            </Button>
+          ))}
+        </div>
+
+        {/* Text Alignment */}
+        <div className="flex gap-1">
+          {[
+            { value: 'left', icon: AlignLeft },
+            { value: 'center', icon: AlignCenter },
+            { value: 'right', icon: AlignRight },
+          ].map(({ value, icon: Icon }) => (
+            <Button
+              key={value}
+              size="sm"
+              variant={data.textAlign === value ? "default" : "outline"}
+              onClick={() => updateNodeData({ textAlign: value as any })}
+              className="h-7 w-7 p-0"
+            >
+              <Icon size={12} />
+            </Button>
+          ))}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-4">

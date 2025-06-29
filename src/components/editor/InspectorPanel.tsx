@@ -15,6 +15,7 @@ import { HeadingBlockInspector } from './Inspector/HeadingBlockInspector';
 import { ImageBlockInspector } from './Inspector/ImageBlockInspector';
 import { VideoEmbedBlockInspector } from './Inspector/VideoEmbedBlockInspector';
 import { TableBlockInspector } from './Inspector/TableBlockInspector';
+import { PollBlockInspector } from './Inspector/PollBlockInspector';
 
 export function InspectorPanel() {
   const { 
@@ -79,6 +80,9 @@ export function InspectorPanel() {
       
       case 'tableBlock':
         return <TableBlockInspector nodeId={selectedNode.id} />;
+      
+      case 'pollBlock':
+        return <PollBlockInspector nodeId={selectedNode.id} data={selectedNode.data} />;
 
       case 'keyTakeawayBlock':
         return (
