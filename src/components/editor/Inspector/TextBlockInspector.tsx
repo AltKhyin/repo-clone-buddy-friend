@@ -7,8 +7,8 @@ import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Slider } from '@/components/ui/slider'
 import { Separator } from '@/components/ui/separator'
-import { Switch } from '@/components/ui/switch'
 import { useEditorStore } from '@/store/editorStore'
+import { SafeSwitch } from '../SafeSwitch'
 import { AlignLeft, AlignCenter, AlignRight, AlignJustify, Palette, Type } from 'lucide-react'
 
 interface TextBlockInspectorProps {
@@ -300,7 +300,7 @@ export const TextBlockInspector: React.FC<TextBlockInspectorProps> = ({ nodeId }
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <Label htmlFor="text-border-toggle" className="text-xs">Enable Border</Label>
-            <Switch
+            <SafeSwitch
               id="text-border-toggle"
               checked={(data.borderWidth || 0) > 0}
               onCheckedChange={(checked) => updateNodeData({ borderWidth: checked ? 1 : 0 })}

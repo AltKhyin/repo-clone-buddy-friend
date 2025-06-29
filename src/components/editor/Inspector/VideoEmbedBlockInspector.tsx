@@ -8,8 +8,8 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Slider } from '@/components/ui/slider'
 import { Separator } from '@/components/ui/separator'
-import { Switch } from '@/components/ui/switch'
 import { useEditorStore } from '@/store/editorStore'
+import { SafeSwitch } from '../SafeSwitch'
 import { 
   Video, 
   Palette, 
@@ -219,7 +219,7 @@ export const VideoEmbedBlockInspector: React.FC<VideoEmbedBlockInspectorProps> =
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <Label htmlFor="video-autoplay" className="text-xs">Autoplay</Label>
-            <Switch
+            <SafeSwitch
               id="video-autoplay"
               checked={data.autoplay || false}
               onCheckedChange={(checked) => updateNodeData({ autoplay: checked })}
@@ -348,7 +348,7 @@ export const VideoEmbedBlockInspector: React.FC<VideoEmbedBlockInspectorProps> =
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <Label htmlFor="video-border-toggle" className="text-xs">Enable Border</Label>
-            <Switch
+            <SafeSwitch
               id="video-border-toggle"
               checked={(data.borderWidth || 0) > 0}
               onCheckedChange={(checked) => updateNodeData({ borderWidth: checked ? 1 : 0 })}

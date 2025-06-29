@@ -7,8 +7,8 @@ import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Slider } from '@/components/ui/slider'
 import { Separator } from '@/components/ui/separator'
-import { Switch } from '@/components/ui/switch'
 import { useEditorStore } from '@/store/editorStore'
+import { SafeSwitch } from '../SafeSwitch'
 import { 
   AlignLeft, 
   AlignCenter, 
@@ -345,7 +345,7 @@ export const HeadingBlockInspector: React.FC<HeadingBlockInspectorProps> = ({ no
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <Label htmlFor="heading-border-toggle" className="text-xs">Enable Border</Label>
-            <Switch
+            <SafeSwitch
               id="heading-border-toggle"
               checked={(data.borderWidth || 0) > 0}
               onCheckedChange={(checked) => updateNodeData({ borderWidth: checked ? 1 : 0 })}

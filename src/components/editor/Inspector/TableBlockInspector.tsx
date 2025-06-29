@@ -4,10 +4,10 @@ import React from 'react'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { Switch } from '@/components/ui/switch'
 import { Slider } from '@/components/ui/slider'
 import { Separator } from '@/components/ui/separator'
 import { useEditorStore } from '@/store/editorStore'
+import { SafeSwitch } from '../SafeSwitch'
 import { 
   Table, 
   Plus, 
@@ -181,7 +181,7 @@ export const TableBlockInspector: React.FC<TableBlockInspectorProps> = ({ nodeId
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <Label htmlFor="table-sortable" className="text-xs">Enable Column Sorting</Label>
-            <Switch
+            <SafeSwitch
               id="table-sortable"
               checked={data.sortable || false}
               onCheckedChange={(checked) => updateNodeData({ sortable: checked })}
@@ -196,7 +196,7 @@ export const TableBlockInspector: React.FC<TableBlockInspectorProps> = ({ nodeId
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <Label htmlFor="table-alternating" className="text-xs">Alternating Row Colors</Label>
-            <Switch
+            <SafeSwitch
               id="table-alternating"
               checked={data.alternatingRowColors || false}
               onCheckedChange={(checked) => updateNodeData({ alternatingRowColors: checked })}
@@ -420,7 +420,7 @@ export const TableBlockInspector: React.FC<TableBlockInspectorProps> = ({ nodeId
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <Label htmlFor="table-border-toggle" className="text-xs">Enable Border</Label>
-            <Switch
+            <SafeSwitch
               id="table-border-toggle"
               checked={(data.borderWidth || 0) > 0}
               onCheckedChange={(checked) => updateNodeData({ borderWidth: checked ? 1 : 0 })}

@@ -7,9 +7,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { Trash2, Copy, Eye, EyeOff, Monitor, Smartphone, Sun, Moon, Grid, Ruler, Minus } from 'lucide-react';
+import { SafeSwitch } from './SafeSwitch';
 import { TextBlockInspector } from './Inspector/TextBlockInspector';
 import { HeadingBlockInspector } from './Inspector/HeadingBlockInspector';
 import { ImageBlockInspector } from './Inspector/ImageBlockInspector';
@@ -174,7 +174,7 @@ export function InspectorPanel() {
           <div className="flex items-center justify-between">
             <Label htmlFor="fullscreen-toggle" className="text-sm">Fullscreen</Label>
             <div className="flex items-center space-x-2">
-              <Switch
+              <SafeSwitch
                 id="fullscreen-toggle"
                 checked={isFullscreen}
                 onCheckedChange={toggleFullscreen}
@@ -211,7 +211,7 @@ export function InspectorPanel() {
           <div className="flex items-center justify-between">
             <Label htmlFor="grid-toggle" className="text-sm">Show Grid</Label>
             <div className="flex items-center space-x-2">
-              <Switch
+              <SafeSwitch
                 id="grid-toggle"
                 checked={showGrid}
                 onCheckedChange={toggleGrid}
@@ -224,7 +224,7 @@ export function InspectorPanel() {
           <div className="flex items-center justify-between">
             <Label htmlFor="rulers-toggle" className="text-sm">Show Rulers</Label>
             <div className="flex items-center space-x-2">
-              <Switch
+              <SafeSwitch
                 id="rulers-toggle"
                 checked={showRulers}
                 onCheckedChange={toggleRulers}
@@ -237,7 +237,7 @@ export function InspectorPanel() {
           <div className="flex items-center justify-between">
             <Label htmlFor="guidelines-toggle" className="text-sm">Show Guidelines</Label>
             <div className="flex items-center space-x-2">
-              <Switch
+              <SafeSwitch
                 id="guidelines-toggle"
                 checked={showGuidelines}
                 onCheckedChange={toggleGuidelines}

@@ -8,8 +8,8 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Slider } from '@/components/ui/slider'
 import { Separator } from '@/components/ui/separator'
-import { Switch } from '@/components/ui/switch'
 import { useEditorStore } from '@/store/editorStore'
+import { SafeSwitch } from '../SafeSwitch'
 import { 
   ImageIcon, 
   Palette, 
@@ -236,7 +236,7 @@ export const ImageBlockInspector: React.FC<ImageBlockInspectorProps> = ({ nodeId
         {/* Aspect Ratio Lock */}
         <div className="flex items-center justify-between">
           <Label className="text-xs">Lock Aspect Ratio</Label>
-          <Switch
+          <SafeSwitch
             checked={!data.height || !data.width}
             onCheckedChange={(checked) => {
               if (checked) {
@@ -364,7 +364,7 @@ export const ImageBlockInspector: React.FC<ImageBlockInspectorProps> = ({ nodeId
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <Label htmlFor="image-border-toggle" className="text-xs">Enable Border</Label>
-            <Switch
+            <SafeSwitch
               id="image-border-toggle"
               checked={(data.borderWidth || 0) > 0}
               onCheckedChange={(checked) => updateNodeData({ borderWidth: checked ? 1 : 0 })}
