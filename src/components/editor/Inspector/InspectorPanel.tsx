@@ -6,7 +6,6 @@ import { ContextAwareInspector } from './shared/ContextAwareInspector';
 import { Settings, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface InspectorPanelProps {
   className?: string;
@@ -51,7 +50,7 @@ export const InspectorPanel = React.memo(function InspectorPanel({
       </div>
 
       {/* Inspector Content */}
-      <ScrollArea className="flex-1">
+      <div className="flex-1 overflow-y-auto">
         <div className="p-4">
           {selectedNode ? (
             <ContextAwareInspector nodeId={selectedNodeId!} compact={false} />
@@ -65,7 +64,7 @@ export const InspectorPanel = React.memo(function InspectorPanel({
             </div>
           )}
         </div>
-      </ScrollArea>
+      </div>
 
       {/* Inspector Footer */}
       {selectedNode && (
