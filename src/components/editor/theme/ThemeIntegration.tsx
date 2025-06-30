@@ -42,51 +42,61 @@ export const useThemedStyles = (blockType: keyof CustomTheme['blockStyles']) => 
     // Generate CSS-in-JS styles based on theme
     return {
       // Typography styles
-      fontFamily: typography.fontFamilies[blockStyles.defaultFontFamily || 'primary']?.name,
-      fontSize: blockStyles.defaultSize
-        ? typography.scales.body[blockStyles.defaultSize as keyof typeof typography.scales.body]
-            ?.fontSize
-        : undefined,
-      lineHeight: blockStyles.lineHeight,
-      fontWeight: blockStyles.fontWeight,
-      letterSpacing: blockStyles.letterSpacing,
-      fontStyle: blockStyles.fontStyle,
+      fontFamily:
+        blockStyles?.defaultFontFamily && typography?.fontFamilies
+          ? typography.fontFamilies[blockStyles.defaultFontFamily] ||
+            typography.fontFamilies['primary']
+          : typography?.fontFamilies?.['primary']?.name,
+      fontSize:
+        blockStyles?.defaultSize && typography?.scales?.body
+          ? typography.scales.body[blockStyles.defaultSize as keyof typeof typography.scales.body]
+              ?.fontSize
+          : undefined,
+      lineHeight: blockStyles?.lineHeight,
+      fontWeight: blockStyles?.fontWeight,
+      letterSpacing: blockStyles?.letterSpacing,
+      fontStyle: blockStyles?.fontStyle,
 
       // Color styles
-      color: blockStyles.color || colors.neutral['700'],
-      backgroundColor: blockStyles.backgroundColor,
+      color: blockStyles?.color || colors?.neutral?.['700'],
+      backgroundColor: blockStyles?.backgroundColor,
 
       // Layout styles
-      padding: blockStyles.padding
-        ? layout.spacing[blockStyles.padding as keyof typeof layout.spacing] || blockStyles.padding
-        : undefined,
-      margin: blockStyles.margin
-        ? layout.spacing[blockStyles.margin as keyof typeof layout.spacing] || blockStyles.margin
-        : undefined,
-      marginBottom: blockStyles.marginBottom
-        ? layout.spacing[blockStyles.marginBottom as keyof typeof layout.spacing] ||
-          blockStyles.marginBottom
-        : undefined,
-      borderRadius: blockStyles.borderRadius
-        ? layout.borderRadius[blockStyles.borderRadius as keyof typeof layout.borderRadius] ||
-          blockStyles.borderRadius
-        : undefined,
+      padding:
+        blockStyles?.padding && layout?.spacing
+          ? layout.spacing[blockStyles.padding as keyof typeof layout.spacing] ||
+            blockStyles.padding
+          : undefined,
+      margin:
+        blockStyles?.margin && layout?.spacing
+          ? layout.spacing[blockStyles.margin as keyof typeof layout.spacing] || blockStyles.margin
+          : undefined,
+      marginBottom:
+        blockStyles?.marginBottom && layout?.spacing
+          ? layout.spacing[blockStyles.marginBottom as keyof typeof layout.spacing] ||
+            blockStyles.marginBottom
+          : undefined,
+      borderRadius:
+        blockStyles?.borderRadius && layout?.borderRadius
+          ? layout.borderRadius[blockStyles.borderRadius as keyof typeof layout.borderRadius] ||
+            blockStyles.borderRadius
+          : undefined,
 
       // Border styles
-      borderWidth: blockStyles.borderWidth,
-      borderStyle: blockStyles.borderStyle,
-      borderLeftWidth: blockStyles.borderLeft ? '4px' : undefined,
-      borderLeftColor: blockStyles.borderLeft ? colors.primary['500'] : undefined,
+      borderWidth: blockStyles?.borderWidth,
+      borderStyle: blockStyles?.borderStyle,
+      borderLeftWidth: blockStyles?.borderLeft ? '4px' : undefined,
+      borderLeftColor: blockStyles?.borderLeft ? colors?.primary?.['500'] : undefined,
 
       // Visual effects
-      opacity: blockStyles.opacity,
+      opacity: blockStyles?.opacity,
 
       // Block-specific styles
       ...(blockType === 'separatorBlock' && {
-        borderTopWidth: `${blockStyles.defaultThickness}px`,
-        borderTopStyle: blockStyles.defaultStyle,
-        borderTopColor: colors.neutral['300'],
-        opacity: blockStyles.opacity,
+        borderTopWidth: blockStyles?.defaultThickness ? `${blockStyles.defaultThickness}px` : '1px',
+        borderTopStyle: blockStyles?.defaultStyle || 'solid',
+        borderTopColor: colors?.neutral?.['300'] || '#d1d5db',
+        opacity: blockStyles?.opacity,
       }),
     };
   }, [currentTheme, blockType]);

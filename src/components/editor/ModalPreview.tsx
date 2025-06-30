@@ -215,10 +215,12 @@ export function ModalPreview({ trigger, className }: ModalPreviewProps) {
 
   // Get layout for current preview viewport
   const getLayoutForViewport = () => {
+    if (!layouts) return [];
+
     if (selectedViewport === 'mobile' || selectedViewport === 'tablet') {
-      return layouts.mobile.items;
+      return layouts.mobile?.items || [];
     }
-    return layouts.desktop.items;
+    return layouts.desktop?.items || [];
   };
 
   const defaultTrigger = (

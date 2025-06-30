@@ -42,13 +42,14 @@ export function HistoryIndicator({ className, compact = false }: HistoryIndicato
   const { history, historyIndex, undo, redo, nodes } = useEditorStore();
 
   const canUndo = historyIndex > 0;
-  const canRedo = historyIndex < history.length - 1;
-  const totalActions = history.length;
+  const canRedo = history && historyIndex < history.length - 1;
+  const totalActions = history?.length || 0;
   const currentPosition = historyIndex + 1;
 
   // Analyze history for action types
   const getActionDescription = (historyItem: any, index: number) => {
     if (index === 0) return 'Initial state';
+    if (!history || !history[index - 1]) return 'Unknown action';
 
     const prevItem = history[index - 1];
     const currentNodes = historyItem.nodes || [];
@@ -84,6 +85,7 @@ export function HistoryIndicator({ className, compact = false }: HistoryIndicato
 
   const getActionIcon = (historyItem: any, index: number) => {
     if (index === 0) return Clock;
+    if (!history || !history[index - 1]) return Clock;
 
     const prevItem = history[index - 1];
     const currentNodes = historyItem.nodes || [];
@@ -195,7 +197,7 @@ export function HistoryIndicator({ className, compact = false }: HistoryIndicato
 
             <div className="h-64 overflow-y-auto">
               <div className="space-y-1">
-                {history.map((historyItem, index) => {
+                {(history || []).map((historyItem, index) => {
                   const ActionIcon = getActionIcon(historyItem, index);
                   const description = getActionDescription(historyItem, index);
                   const isCurrent = index === historyIndex;

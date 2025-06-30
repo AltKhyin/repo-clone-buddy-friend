@@ -482,16 +482,20 @@ export function TopToolbar() {
                 <Minus size={14} />
                 {showGuidelines ? 'Hide Guidelines' : 'Show Guidelines'}
               </DropdownMenuItem>
-              {showGuidelines &&
-                guidelines &&
-                (guidelines.horizontal.length > 0 || guidelines.vertical.length > 0) && (
-                  <>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={clearGuidelines} className="text-destructive">
-                      Clear Guidelines ({guidelines.horizontal.length + guidelines.vertical.length})
-                    </DropdownMenuItem>
-                  </>
-                )}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={clearGuidelines}
+                className="text-destructive"
+                disabled={
+                  !showGuidelines ||
+                  !guidelines ||
+                  (guidelines.horizontal.length === 0 && guidelines.vertical.length === 0)
+                }
+                style={{ display: showGuidelines && guidelines ? 'flex' : 'none' }}
+              >
+                Clear Guidelines (
+                {guidelines ? guidelines.horizontal.length + guidelines.vertical.length : 0})
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
