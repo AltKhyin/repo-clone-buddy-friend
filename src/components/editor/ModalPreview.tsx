@@ -5,26 +5,26 @@ import { useEditorStore } from '@/store/editorStore';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogDescription, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogTrigger 
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
 } from '@/components/ui/dialog';
-import { ScrollArea } from '@/components/ui/scroll-area';
+
 import { Separator } from '@/components/ui/separator';
-import { 
-  Eye, 
-  Monitor, 
-  Smartphone, 
+import {
+  Eye,
+  Monitor,
+  Smartphone,
   Tablet,
   ExternalLink,
   Maximize2,
   Minimize2,
   RotateCcw,
-  Share
+  Share,
 } from 'lucide-react';
 
 interface ModalPreviewProps {
@@ -48,7 +48,7 @@ const PREVIEW_VIEWPORTS: PreviewViewport[] = [
     icon: Smartphone,
     width: 375,
     height: 667,
-    description: 'iPhone SE / Small mobile'
+    description: 'iPhone SE / Small mobile',
   },
   {
     id: 'tablet',
@@ -56,7 +56,7 @@ const PREVIEW_VIEWPORTS: PreviewViewport[] = [
     icon: Tablet,
     width: 768,
     height: 1024,
-    description: 'iPad / Standard tablet'
+    description: 'iPad / Standard tablet',
   },
   {
     id: 'desktop',
@@ -64,7 +64,7 @@ const PREVIEW_VIEWPORTS: PreviewViewport[] = [
     icon: Monitor,
     width: 1200,
     height: 800,
-    description: 'Standard desktop view'
+    description: 'Standard desktop view',
   },
   {
     id: 'full',
@@ -72,30 +72,28 @@ const PREVIEW_VIEWPORTS: PreviewViewport[] = [
     icon: Maximize2,
     width: -1, // Full width
     height: -1, // Full height
-    description: 'Full modal width'
-  }
+    description: 'Full modal width',
+  },
 ];
 
 export function ModalPreview({ trigger, className }: ModalPreviewProps) {
   const { nodes, layouts, currentViewport, canvasTheme } = useEditorStore();
   const [selectedViewport, setSelectedViewport] = React.useState<string>('desktop');
   const [isFullscreen, setIsFullscreen] = React.useState(false);
-  
-  const currentPreviewViewport = PREVIEW_VIEWPORTS.find(v => v.id === selectedViewport) || PREVIEW_VIEWPORTS[2];
+
+  const currentPreviewViewport =
+    PREVIEW_VIEWPORTS.find(v => v.id === selectedViewport) || PREVIEW_VIEWPORTS[2];
   const hasContent = nodes.length > 0;
 
   // Render block content based on type
   const renderBlockContent = (node: any) => {
-    const commonClasses = cn(
-      "rounded-lg transition-all duration-200",
-      "border border-transparent"
-    );
+    const commonClasses = cn('rounded-lg transition-all duration-200', 'border border-transparent');
 
     switch (node.type) {
       case 'textBlock':
         return (
-          <div 
-            className={cn(commonClasses, "p-4")}
+          <div
+            className={cn(commonClasses, 'p-4')}
             style={{
               fontSize: node.data.fontSize ? `${node.data.fontSize}px` : '16px',
               textAlign: node.data.textAlign || 'left',
@@ -110,8 +108,8 @@ export function ModalPreview({ trigger, className }: ModalPreviewProps) {
       case 'headingBlock':
         const HeadingTag = `h${node.data.level || 1}` as keyof JSX.IntrinsicElements;
         return (
-          <HeadingTag 
-            className={cn(commonClasses, "p-3")}
+          <HeadingTag
+            className={cn(commonClasses, 'p-3')}
             style={{
               textAlign: node.data.textAlign || 'left',
               color: node.data.color || (canvasTheme === 'dark' ? '#ffffff' : '#000000'),
@@ -125,7 +123,7 @@ export function ModalPreview({ trigger, className }: ModalPreviewProps) {
 
       case 'imageBlock':
         return (
-          <div className={cn(commonClasses, "overflow-hidden")}>
+          <div className={cn(commonClasses, 'overflow-hidden')}>
             {node.data.src ? (
               <img
                 src={node.data.src}
@@ -141,9 +139,7 @@ export function ModalPreview({ trigger, className }: ModalPreviewProps) {
               </div>
             )}
             {node.data.caption && (
-              <p className="text-sm text-muted-foreground mt-2 px-2">
-                {node.data.caption}
-              </p>
+              <p className="text-sm text-muted-foreground mt-2 px-2">{node.data.caption}</p>
             )}
           </div>
         );
@@ -151,11 +147,11 @@ export function ModalPreview({ trigger, className }: ModalPreviewProps) {
       case 'separatorBlock':
         return (
           <div className="py-4 flex items-center justify-center">
-            <div 
+            <div
               className="border-t transition-all duration-200"
               style={{
-                width: node.data.width === 'full' ? '100%' : 
-                       node.data.width === 'half' ? '50%' : '25%',
+                width:
+                  node.data.width === 'full' ? '100%' : node.data.width === 'half' ? '50%' : '25%',
                 borderTopWidth: `${node.data.thickness || 1}px`,
                 borderColor: node.data.color || (canvasTheme === 'dark' ? '#374151' : '#d1d5db'),
                 borderStyle: node.data.style || 'solid',
@@ -166,24 +162,40 @@ export function ModalPreview({ trigger, className }: ModalPreviewProps) {
 
       case 'keyTakeawayBlock':
         const themeColors = {
-          info: { bg: 'bg-blue-50 dark:bg-blue-950/30', border: 'border-blue-400', text: 'text-blue-900 dark:text-blue-100' },
-          success: { bg: 'bg-green-50 dark:bg-green-950/30', border: 'border-green-400', text: 'text-green-900 dark:text-green-100' },
-          warning: { bg: 'bg-yellow-50 dark:bg-yellow-950/30', border: 'border-yellow-400', text: 'text-yellow-900 dark:text-yellow-100' },
-          error: { bg: 'bg-red-50 dark:bg-red-950/30', border: 'border-red-400', text: 'text-red-900 dark:text-red-100' },
+          info: {
+            bg: 'bg-blue-50 dark:bg-blue-950/30',
+            border: 'border-blue-400',
+            text: 'text-blue-900 dark:text-blue-100',
+          },
+          success: {
+            bg: 'bg-green-50 dark:bg-green-950/30',
+            border: 'border-green-400',
+            text: 'text-green-900 dark:text-green-100',
+          },
+          warning: {
+            bg: 'bg-yellow-50 dark:bg-yellow-950/30',
+            border: 'border-yellow-400',
+            text: 'text-yellow-900 dark:text-yellow-100',
+          },
+          error: {
+            bg: 'bg-red-50 dark:bg-red-950/30',
+            border: 'border-red-400',
+            text: 'text-red-900 dark:text-red-100',
+          },
         };
         const theme = themeColors[node.data.theme as keyof typeof themeColors] || themeColors.info;
-        
+
         return (
-          <div className={cn(
-            commonClasses,
-            "p-4 border-l-4 rounded-lg",
-            theme.bg,
-            theme.border,
-            theme.text
-          )}>
-            <div className="font-semibold text-sm uppercase tracking-wide mb-2">
-              Key Takeaway
-            </div>
+          <div
+            className={cn(
+              commonClasses,
+              'p-4 border-l-4 rounded-lg',
+              theme.bg,
+              theme.border,
+              theme.text
+            )}
+          >
+            <div className="font-semibold text-sm uppercase tracking-wide mb-2">Key Takeaway</div>
             <div className="text-sm leading-relaxed">
               {node.data.content || 'Enter your key takeaway message here...'}
             </div>
@@ -192,7 +204,7 @@ export function ModalPreview({ trigger, className }: ModalPreviewProps) {
 
       default:
         return (
-          <div className={cn(commonClasses, "p-4 bg-muted")}>
+          <div className={cn(commonClasses, 'p-4 bg-muted')}>
             <div className="text-sm text-muted-foreground">
               {node.type} - Preview not implemented
             </div>
@@ -213,7 +225,7 @@ export function ModalPreview({ trigger, className }: ModalPreviewProps) {
     <Button
       variant="outline"
       size="sm"
-      className={cn("flex items-center gap-2", className)}
+      className={cn('flex items-center gap-2', className)}
       disabled={!hasContent}
     >
       <Eye size={16} />
@@ -223,14 +235,11 @@ export function ModalPreview({ trigger, className }: ModalPreviewProps) {
 
   return (
     <Dialog>
-      <DialogTrigger asChild>
-        {trigger || defaultTrigger}
-      </DialogTrigger>
-      
-      <DialogContent className={cn(
-        "max-w-7xl max-h-[90vh] flex flex-col",
-        isFullscreen && "w-[95vw] h-[95vh]"
-      )}>
+      <DialogTrigger asChild>{trigger || defaultTrigger}</DialogTrigger>
+
+      <DialogContent
+        className={cn('max-w-7xl max-h-[90vh] flex flex-col', isFullscreen && 'w-[95vw] h-[95vh]')}
+      >
         <DialogHeader>
           <div className="flex items-center justify-between">
             <div>
@@ -242,7 +251,7 @@ export function ModalPreview({ trigger, className }: ModalPreviewProps) {
                 Preview your content as it would appear to readers
               </DialogDescription>
             </div>
-            
+
             <div className="flex items-center gap-2">
               <Badge variant="outline">
                 {nodes.length} block{nodes.length !== 1 ? 's' : ''}
@@ -251,7 +260,7 @@ export function ModalPreview({ trigger, className }: ModalPreviewProps) {
                 variant="ghost"
                 size="sm"
                 onClick={() => setIsFullscreen(!isFullscreen)}
-                title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+                title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
               >
                 {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
               </Button>
@@ -264,12 +273,12 @@ export function ModalPreview({ trigger, className }: ModalPreviewProps) {
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium">Viewport:</span>
             <div className="flex bg-muted rounded-lg p-1">
-              {PREVIEW_VIEWPORTS.map((viewport) => {
+              {PREVIEW_VIEWPORTS.map(viewport => {
                 const IconComponent = viewport.icon;
                 return (
                   <Button
                     key={viewport.id}
-                    variant={selectedViewport === viewport.id ? "default" : "ghost"}
+                    variant={selectedViewport === viewport.id ? 'default' : 'ghost'}
                     size="sm"
                     onClick={() => setSelectedViewport(viewport.id)}
                     className="text-xs px-3 h-8"
@@ -282,12 +291,14 @@ export function ModalPreview({ trigger, className }: ModalPreviewProps) {
               })}
             </div>
           </div>
-          
+
           <Separator orientation="vertical" className="h-6" />
-          
+
           <div className="text-sm text-muted-foreground">
             {currentPreviewViewport.width > 0 && currentPreviewViewport.height > 0 && (
-              <>Size: {currentPreviewViewport.width} × {currentPreviewViewport.height}px</>
+              <>
+                Size: {currentPreviewViewport.width} × {currentPreviewViewport.height}px
+              </>
             )}
           </div>
         </div>
@@ -308,23 +319,27 @@ export function ModalPreview({ trigger, className }: ModalPreviewProps) {
             <div className="h-full flex justify-center overflow-auto">
               <div
                 className={cn(
-                  "w-full max-w-none mx-auto",
+                  'w-full max-w-none mx-auto',
                   canvasTheme === 'dark' ? 'bg-gray-900 text-white' : 'bg-white text-black'
                 )}
                 style={{
-                  width: currentPreviewViewport.width > 0 ? `${currentPreviewViewport.width}px` : '100%',
-                  minHeight: currentPreviewViewport.height > 0 ? `${currentPreviewViewport.height}px` : 'auto',
+                  width:
+                    currentPreviewViewport.width > 0 ? `${currentPreviewViewport.width}px` : '100%',
+                  minHeight:
+                    currentPreviewViewport.height > 0
+                      ? `${currentPreviewViewport.height}px`
+                      : 'auto',
                 }}
               >
-                <ScrollArea className="h-full">
+                <div className="h-full overflow-y-auto">
                   <div className="p-6 space-y-6">
                     {/* Render blocks in layout order */}
                     {getLayoutForViewport()
                       .sort((a, b) => a.y - b.y || a.x - b.x)
-                      .map((layoutItem) => {
+                      .map(layoutItem => {
                         const node = nodes.find(n => n.id === layoutItem.nodeId);
                         if (!node) return null;
-                        
+
                         return (
                           <div key={node.id} className="w-full">
                             {renderBlockContent(node)}
@@ -332,7 +347,7 @@ export function ModalPreview({ trigger, className }: ModalPreviewProps) {
                         );
                       })}
                   </div>
-                </ScrollArea>
+                </div>
               </div>
             </div>
           )}
@@ -344,7 +359,7 @@ export function ModalPreview({ trigger, className }: ModalPreviewProps) {
             <div className="text-xs text-muted-foreground">
               Viewing in {currentPreviewViewport.name.toLowerCase()} mode
             </div>
-            
+
             <div className="flex items-center gap-2">
               <Button variant="outline" size="sm">
                 <Share size={16} className="mr-2" />

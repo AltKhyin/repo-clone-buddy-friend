@@ -21,7 +21,7 @@ import {
 } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
+
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -298,7 +298,7 @@ const ColorPaletteEditor = React.memo(function ColorPaletteEditor({
   const activePalette = theme.colors[activeColorPalette as keyof typeof theme.colors];
 
   return (
-    <ScrollArea className="h-full">
+    <div className="h-full overflow-y-auto">
       <div className="p-4 space-y-4">
         {/* Palette Selector */}
         <div className="space-y-2">
@@ -371,7 +371,7 @@ const ColorPaletteEditor = React.memo(function ColorPaletteEditor({
           </div>
         </div>
       </div>
-    </ScrollArea>
+    </div>
   );
 });
 
@@ -388,7 +388,7 @@ const TypographyEditor = React.memo(function TypographyEditor({
   if (!theme) return null;
 
   return (
-    <ScrollArea className="h-full">
+    <div className="h-full overflow-y-auto">
       <div className="p-4 space-y-4">
         <div className="text-sm font-medium">Typography System</div>
 
@@ -447,7 +447,7 @@ const TypographyEditor = React.memo(function TypographyEditor({
           ))}
         </div>
       </div>
-    </ScrollArea>
+    </div>
   );
 });
 
@@ -461,7 +461,7 @@ const LayoutEditor = React.memo(function LayoutEditor({ theme, onChange }: Layou
   if (!theme) return null;
 
   return (
-    <ScrollArea className="h-full">
+    <div className="h-full overflow-y-auto">
       <div className="p-4 space-y-4">
         <div className="text-sm font-medium">Layout System</div>
 
@@ -525,7 +525,7 @@ const LayoutEditor = React.memo(function LayoutEditor({ theme, onChange }: Layou
           ))}
         </div>
       </div>
-    </ScrollArea>
+    </div>
   );
 });
 
@@ -542,7 +542,7 @@ const BlockStylesEditor = React.memo(function BlockStylesEditor({
   if (!theme) return null;
 
   return (
-    <ScrollArea className="h-full">
+    <div className="h-full overflow-y-auto">
       <div className="p-4 space-y-4">
         <div className="text-sm font-medium">Block Styles</div>
 
@@ -624,7 +624,7 @@ const BlockStylesEditor = React.memo(function BlockStylesEditor({
           </div>
         ))}
       </div>
-    </ScrollArea>
+    </div>
   );
 });
 
@@ -666,7 +666,7 @@ const ThemePreview = React.memo(function ThemePreview({
         </div>
       </div>
 
-      <ScrollArea className="flex-1">
+      <div className="flex-1 overflow-y-auto">
         <div className="p-4 space-y-4">
           {/* Color Palette Preview */}
           <div className="space-y-2">
@@ -780,7 +780,7 @@ const ThemePreview = React.memo(function ThemePreview({
             </div>
           </div>
         </div>
-      </ScrollArea>
+      </div>
     </div>
   );
 });

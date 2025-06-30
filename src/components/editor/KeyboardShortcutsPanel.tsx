@@ -6,22 +6,17 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogDescription, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogTrigger 
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
 } from '@/components/ui/dialog';
-import { ScrollArea } from '@/components/ui/scroll-area';
+
 import { Separator } from '@/components/ui/separator';
-import { 
-  Keyboard, 
-  Search, 
-  X,
-  Zap
-} from 'lucide-react';
+import { Keyboard, Search, X, Zap } from 'lucide-react';
 
 interface KeyboardShortcutsPanelProps {
   trigger?: React.ReactNode;
@@ -30,19 +25,15 @@ interface KeyboardShortcutsPanelProps {
   onOpenChange?: (open: boolean) => void;
 }
 
-export function KeyboardShortcutsPanel({ 
-  trigger, 
+export function KeyboardShortcutsPanel({
+  trigger,
   className,
   open,
-  onOpenChange
+  onOpenChange,
 }: KeyboardShortcutsPanelProps) {
-  const { 
-    shortcutCategories, 
-    formatShortcut, 
-    shortcutsEnabled, 
-    setShortcutsEnabled 
-  } = useKeyboardShortcuts();
-  
+  const { shortcutCategories, formatShortcut, shortcutsEnabled, setShortcutsEnabled } =
+    useKeyboardShortcuts();
+
   const [searchQuery, setSearchQuery] = React.useState('');
   const [selectedCategory, setSelectedCategory] = React.useState<string>('all');
 
@@ -52,36 +43,32 @@ export function KeyboardShortcutsPanel({
       .map(category => ({
         ...category,
         shortcuts: category.shortcuts.filter(shortcut => {
-          const matchesSearch = searchQuery === '' || 
+          const matchesSearch =
+            searchQuery === '' ||
             shortcut.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
             shortcut.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
             shortcut.keys.some(key => key.toLowerCase().includes(searchQuery.toLowerCase()));
-          
-          const matchesCategory = selectedCategory === 'all' || 
-            category.id === selectedCategory;
-          
+
+          const matchesCategory = selectedCategory === 'all' || category.id === selectedCategory;
+
           return matchesSearch && matchesCategory;
-        })
+        }),
       }))
       .filter(category => category.shortcuts.length > 0);
   }, [shortcutCategories, searchQuery, selectedCategory]);
 
   const totalShortcuts = shortcutCategories.reduce(
-    (total, category) => total + category.shortcuts.length, 
+    (total, category) => total + category.shortcuts.length,
     0
   );
 
   const enabledShortcuts = shortcutCategories.reduce(
-    (total, category) => total + category.shortcuts.filter(s => !s.disabled).length, 
+    (total, category) => total + category.shortcuts.filter(s => !s.disabled).length,
     0
   );
 
   const defaultTrigger = (
-    <Button
-      variant="outline"
-      size="sm"
-      className={cn("flex items-center gap-2", className)}
-    >
+    <Button variant="outline" size="sm" className={cn('flex items-center gap-2', className)}>
       <Keyboard size={16} />
       <span className="hidden sm:inline">Shortcuts</span>
       <Badge variant="secondary" className="text-xs">
@@ -92,10 +79,8 @@ export function KeyboardShortcutsPanel({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogTrigger asChild>
-        {trigger || defaultTrigger}
-      </DialogTrigger>
-      
+      <DialogTrigger asChild>{trigger || defaultTrigger}</DialogTrigger>
+
       <DialogContent className="max-w-4xl max-h-[80vh] flex flex-col">
         <DialogHeader>
           <div className="flex items-center justify-between">
@@ -105,20 +90,21 @@ export function KeyboardShortcutsPanel({
                 Keyboard Shortcuts
               </DialogTitle>
               <DialogDescription>
-                Master the editor with these keyboard shortcuts. Press ? anywhere in the editor to open this panel.
+                Master the editor with these keyboard shortcuts. Press ? anywhere in the editor to
+                open this panel.
               </DialogDescription>
             </div>
-            
+
             <div className="flex items-center gap-2">
-              <Badge variant={shortcutsEnabled ? "default" : "secondary"}>
-                {shortcutsEnabled ? "Enabled" : "Disabled"}
+              <Badge variant={shortcutsEnabled ? 'default' : 'secondary'}>
+                {shortcutsEnabled ? 'Enabled' : 'Disabled'}
               </Badge>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setShortcutsEnabled(!shortcutsEnabled)}
               >
-                {shortcutsEnabled ? "Disable" : "Enable"}
+                {shortcutsEnabled ? 'Disable' : 'Enable'}
               </Button>
             </div>
           </div>
@@ -127,11 +113,14 @@ export function KeyboardShortcutsPanel({
         {/* Search and Filter Controls */}
         <div className="flex gap-4 mb-4">
           <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={16} />
+            <Search
+              className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground"
+              size={16}
+            />
             <Input
               placeholder="Search shortcuts..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={e => setSearchQuery(e.target.value)}
               className="pl-10 pr-10"
             />
             {searchQuery && (
@@ -145,10 +134,10 @@ export function KeyboardShortcutsPanel({
               </Button>
             )}
           </div>
-          
+
           <div className="flex gap-1">
             <Button
-              variant={selectedCategory === 'all' ? "default" : "outline"}
+              variant={selectedCategory === 'all' ? 'default' : 'outline'}
               size="sm"
               onClick={() => setSelectedCategory('all')}
             >
@@ -157,7 +146,7 @@ export function KeyboardShortcutsPanel({
             {shortcutCategories.map(category => (
               <Button
                 key={category.id}
-                variant={selectedCategory === category.id ? "default" : "outline"}
+                variant={selectedCategory === category.id ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setSelectedCategory(category.id)}
               >
@@ -175,16 +164,20 @@ export function KeyboardShortcutsPanel({
               {enabledShortcuts} of {totalShortcuts} shortcuts active
             </span>
           </div>
-          
+
           {filteredCategories.length > 0 && (
             <div className="text-sm text-muted-foreground">
-              Showing {filteredCategories.reduce((total, cat) => total + cat.shortcuts.length, 0)} shortcut{filteredCategories.reduce((total, cat) => total + cat.shortcuts.length, 0) !== 1 ? 's' : ''}
+              Showing {filteredCategories.reduce((total, cat) => total + cat.shortcuts.length, 0)}{' '}
+              shortcut
+              {filteredCategories.reduce((total, cat) => total + cat.shortcuts.length, 0) !== 1
+                ? 's'
+                : ''}
             </div>
           )}
         </div>
 
         {/* Shortcuts List */}
-        <ScrollArea className="flex-1">
+        <div className="flex-1 overflow-y-auto">
           <div className="space-y-6">
             {filteredCategories.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
@@ -194,24 +187,23 @@ export function KeyboardShortcutsPanel({
               filteredCategories.map((category, categoryIndex) => (
                 <div key={category.id}>
                   {categoryIndex > 0 && <Separator className="mb-6" />}
-                  
+
                   <div className="space-y-3">
                     <div className="flex items-center gap-2">
                       <h3 className="font-semibold text-lg">{category.name}</h3>
                       <Badge variant="outline" className="text-xs">
-                        {category.shortcuts.length} shortcut{category.shortcuts.length !== 1 ? 's' : ''}
+                        {category.shortcuts.length} shortcut
+                        {category.shortcuts.length !== 1 ? 's' : ''}
                       </Badge>
                     </div>
-                    
+
                     <div className="grid gap-2">
                       {category.shortcuts.map(shortcut => (
                         <div
                           key={shortcut.id}
                           className={cn(
-                            "flex items-center justify-between p-3 rounded-lg border",
-                            shortcut.disabled 
-                              ? "opacity-50 bg-muted/30" 
-                              : "hover:bg-muted/50"
+                            'flex items-center justify-between p-3 rounded-lg border',
+                            shortcut.disabled ? 'opacity-50 bg-muted/30' : 'hover:bg-muted/50'
                           )}
                         >
                           <div className="flex-1">
@@ -228,11 +220,9 @@ export function KeyboardShortcutsPanel({
                                 </Badge>
                               )}
                             </div>
-                            <p className="text-sm text-muted-foreground">
-                              {shortcut.description}
-                            </p>
+                            <p className="text-sm text-muted-foreground">{shortcut.description}</p>
                           </div>
-                          
+
                           <div className="flex items-center gap-2">
                             <div className="flex items-center gap-1">
                               {shortcut.keys.map((key, index) => (
@@ -255,12 +245,14 @@ export function KeyboardShortcutsPanel({
               ))
             )}
           </div>
-        </ScrollArea>
+        </div>
 
         {/* Help Footer */}
         <div className="border-t pt-4 mt-4">
           <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <span>Press <kbd className="px-1 py-0.5 bg-muted rounded">?</kbd> to toggle this panel</span>
+            <span>
+              Press <kbd className="px-1 py-0.5 bg-muted rounded">?</kbd> to toggle this panel
+            </span>
             <span>Shortcuts work globally unless noted otherwise</span>
           </div>
         </div>

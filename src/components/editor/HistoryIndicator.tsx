@@ -5,16 +5,12 @@ import { useEditorStore } from '@/store/editorStore';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Popover, 
-  PopoverContent, 
-  PopoverTrigger 
-} from '@/components/ui/popover';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { 
-  Undo2, 
-  Redo2, 
-  History, 
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+
+import {
+  Undo2,
+  Redo2,
+  History,
   Clock,
   FileText,
   Image,
@@ -22,7 +18,7 @@ import {
   Minus,
   BarChart3,
   Lightbulb,
-  Quote
+  Quote,
 } from 'lucide-react';
 
 interface HistoryIndicatorProps {
@@ -43,13 +39,7 @@ const ACTION_ICONS = {
 };
 
 export function HistoryIndicator({ className, compact = false }: HistoryIndicatorProps) {
-  const { 
-    history, 
-    historyIndex, 
-    undo, 
-    redo, 
-    nodes 
-  } = useEditorStore();
+  const { history, historyIndex, undo, redo, nodes } = useEditorStore();
 
   const canUndo = historyIndex > 0;
   const canRedo = historyIndex < history.length - 1;
@@ -59,11 +49,11 @@ export function HistoryIndicator({ className, compact = false }: HistoryIndicato
   // Analyze history for action types
   const getActionDescription = (historyItem: any, index: number) => {
     if (index === 0) return 'Initial state';
-    
+
     const prevItem = history[index - 1];
     const currentNodes = historyItem.nodes || [];
     const prevNodes = prevItem?.nodes || [];
-    
+
     // Detect what changed
     if (currentNodes.length > prevNodes.length) {
       const addedNode = currentNodes.find(
@@ -71,41 +61,41 @@ export function HistoryIndicator({ className, compact = false }: HistoryIndicato
       );
       return `Added ${addedNode?.type?.replace('Block', '') || 'block'}`;
     }
-    
+
     if (currentNodes.length < prevNodes.length) {
       const deletedNode = prevNodes.find(
         (node: any) => !currentNodes.find((curr: any) => curr.id === node.id)
       );
       return `Deleted ${deletedNode?.type?.replace('Block', '') || 'block'}`;
     }
-    
+
     // Check for content changes
     const modifiedNode = currentNodes.find((node: any, nodeIndex: number) => {
       const prevNode = prevNodes[nodeIndex];
       return prevNode && JSON.stringify(node.data) !== JSON.stringify(prevNode.data);
     });
-    
+
     if (modifiedNode) {
       return `Modified ${modifiedNode.type?.replace('Block', '') || 'block'}`;
     }
-    
+
     return 'Layout change';
   };
 
   const getActionIcon = (historyItem: any, index: number) => {
     if (index === 0) return Clock;
-    
+
     const prevItem = history[index - 1];
     const currentNodes = historyItem.nodes || [];
     const prevNodes = prevItem?.nodes || [];
-    
+
     if (currentNodes.length > prevNodes.length) {
       const addedNode = currentNodes.find(
         (node: any) => !prevNodes.find((prev: any) => prev.id === node.id)
       );
       return ACTION_ICONS[addedNode?.type as keyof typeof ACTION_ICONS] || ACTION_ICONS.default;
     }
-    
+
     return ACTION_ICONS.default;
   };
 
@@ -119,7 +109,7 @@ export function HistoryIndicator({ className, compact = false }: HistoryIndicato
 
   if (compact) {
     return (
-      <div className={cn("flex items-center gap-1", className)}>
+      <div className={cn('flex items-center gap-1', className)}>
         <Button
           variant="ghost"
           size="sm"
@@ -130,7 +120,7 @@ export function HistoryIndicator({ className, compact = false }: HistoryIndicato
         >
           <Undo2 size={14} />
         </Button>
-        
+
         <Button
           variant="ghost"
           size="sm"
@@ -141,7 +131,7 @@ export function HistoryIndicator({ className, compact = false }: HistoryIndicato
         >
           <Redo2 size={14} />
         </Button>
-        
+
         <Badge variant="outline" className="text-xs">
           {currentPosition}/{totalActions}
         </Badge>
@@ -150,7 +140,7 @@ export function HistoryIndicator({ className, compact = false }: HistoryIndicato
   }
 
   return (
-    <div className={cn("flex items-center gap-2", className)}>
+    <div className={cn('flex items-center gap-2', className)}>
       {/* Undo Button */}
       <Button
         variant="outline"
@@ -192,7 +182,7 @@ export function HistoryIndicator({ className, compact = false }: HistoryIndicato
             </Badge>
           </Button>
         </PopoverTrigger>
-        
+
         <PopoverContent className="w-80" align="start">
           <div className="space-y-3">
             <div className="flex items-center gap-2 border-b pb-2">
@@ -203,22 +193,22 @@ export function HistoryIndicator({ className, compact = false }: HistoryIndicato
               </Badge>
             </div>
 
-            <ScrollArea className="h-64">
+            <div className="h-64 overflow-y-auto">
               <div className="space-y-1">
                 {history.map((historyItem, index) => {
                   const ActionIcon = getActionIcon(historyItem, index);
                   const description = getActionDescription(historyItem, index);
                   const isCurrent = index === historyIndex;
                   const isAccessible = index <= historyIndex;
-                  
+
                   return (
                     <div
                       key={index}
                       className={cn(
-                        "flex items-center gap-3 p-2 rounded-lg border text-sm transition-colors",
-                        isCurrent && "bg-primary/10 border-primary/30",
-                        !isAccessible && "opacity-50",
-                        isAccessible && !isCurrent && "hover:bg-muted/50 cursor-pointer"
+                        'flex items-center gap-3 p-2 rounded-lg border text-sm transition-colors',
+                        isCurrent && 'bg-primary/10 border-primary/30',
+                        !isAccessible && 'opacity-50',
+                        isAccessible && !isCurrent && 'hover:bg-muted/50 cursor-pointer'
                       )}
                       onClick={() => {
                         // Jump to this point in history
@@ -232,22 +222,20 @@ export function HistoryIndicator({ className, compact = false }: HistoryIndicato
                         }
                       }}
                     >
-                      <div className={cn(
-                        "flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center",
-                        isCurrent ? "bg-primary text-primary-foreground" : "bg-muted"
-                      )}>
+                      <div
+                        className={cn(
+                          'flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center',
+                          isCurrent ? 'bg-primary text-primary-foreground' : 'bg-muted'
+                        )}
+                      >
                         <ActionIcon size={14} />
                       </div>
-                      
+
                       <div className="flex-1 min-w-0">
-                        <div className="font-medium truncate">
-                          {description}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          {formatTimeAgo(index)}
-                        </div>
+                        <div className="font-medium truncate">{description}</div>
+                        <div className="text-xs text-muted-foreground">{formatTimeAgo(index)}</div>
                       </div>
-                      
+
                       {isCurrent && (
                         <Badge variant="default" className="text-xs">
                           Current
@@ -257,7 +245,7 @@ export function HistoryIndicator({ className, compact = false }: HistoryIndicato
                   );
                 })}
               </div>
-            </ScrollArea>
+            </div>
 
             <div className="border-t pt-2">
               <div className="flex items-center justify-between text-xs text-muted-foreground">

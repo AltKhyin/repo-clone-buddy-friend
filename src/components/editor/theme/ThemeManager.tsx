@@ -21,7 +21,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -401,7 +400,7 @@ const ThemeGrid = React.memo(function ThemeGrid({
   }
 
   return (
-    <ScrollArea className="h-full">
+    <div className="h-full overflow-y-auto">
       <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {themes.map(theme => (
           <ThemeCard
@@ -416,7 +415,7 @@ const ThemeGrid = React.memo(function ThemeGrid({
           />
         ))}
       </div>
-    </ScrollArea>
+    </div>
   );
 });
 

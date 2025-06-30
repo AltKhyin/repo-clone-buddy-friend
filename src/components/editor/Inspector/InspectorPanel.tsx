@@ -5,19 +5,20 @@ import { useEditorStore } from '@/store/editorStore';
 import { ContextAwareInspector } from './shared/ContextAwareInspector';
 import { Settings, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 
 interface InspectorPanelProps {
   className?: string;
 }
 
-export const InspectorPanel = React.memo(function InspectorPanel({ className }: InspectorPanelProps) {
+export const InspectorPanel = React.memo(function InspectorPanel({
+  className,
+}: InspectorPanelProps) {
   const { selectedNodeId, nodes, isInspectorVisible, toggleInspector } = useEditorStore();
-  
+
   // Get selected node
   const selectedNode = selectedNodeId ? nodes.find(n => n.id === selectedNodeId) : null;
-  
+
   // Don't render if inspector is hidden
   if (!isInspectorVisible) {
     return (
@@ -43,24 +44,16 @@ export const InspectorPanel = React.memo(function InspectorPanel({ className }: 
           <Settings size={18} className="text-primary" />
           <h2 className="font-semibold">Inspector</h2>
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={toggleInspector}
-          title="Hide Inspector"
-        >
+        <Button variant="ghost" size="sm" onClick={toggleInspector} title="Hide Inspector">
           <EyeOff size={16} />
         </Button>
       </div>
 
-      {/* Inspector Content */}
-      <ScrollArea className="flex-1">
+      {/* Inspector Content - Temporarily using div instead of ScrollArea to fix infinite loop */}
+      <div className="flex-1 overflow-y-auto">
         <div className="p-4">
           {selectedNode ? (
-            <ContextAwareInspector
-              nodeId={selectedNodeId!}
-              compact={false}
-            />
+            <ContextAwareInspector nodeId={selectedNodeId!} compact={false} />
           ) : (
             <div className="text-center py-8">
               <Settings size={48} className="mx-auto mb-4 text-muted-foreground" />
@@ -71,7 +64,7 @@ export const InspectorPanel = React.memo(function InspectorPanel({ className }: 
             </div>
           )}
         </div>
-      </ScrollArea>
+      </div>
 
       {/* Inspector Footer */}
       {selectedNode && (
