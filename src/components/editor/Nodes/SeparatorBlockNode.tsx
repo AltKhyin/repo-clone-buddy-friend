@@ -5,6 +5,11 @@ import { useEditorStore } from '@/store/editorStore';
 import { SeparatorBlockData } from '@/types/editor';
 import { cn } from '@/lib/utils';
 import { UnifiedNodeResizer } from '../components/UnifiedNodeResizer';
+import {
+  ThemedBlockWrapper,
+  useThemedStyles,
+  useThemedColors,
+} from '@/components/editor/theme/ThemeIntegration';
 
 interface SeparatorBlockNodeProps {
   id: string;
@@ -19,7 +24,7 @@ const WIDTH_CONFIGS = {
   quarter: 'w-1/4 mx-auto',
 } as const;
 
-// Style configuration mapping  
+// Style configuration mapping
 const STYLE_CONFIGS = {
   solid: 'border-solid',
   dashed: 'border-dashed',
@@ -28,18 +33,27 @@ const STYLE_CONFIGS = {
 
 export function SeparatorBlockNode({ id, data, selected }: SeparatorBlockNodeProps) {
   const { updateNode, canvasTheme } = useEditorStore();
-  
+
+  // Get theme-aware styles and colors
+  const themedStyles = useThemedStyles('separatorBlock');
+  const themedColors = useThemedColors();
+
   const handleClick = () => {
     const editorStore = useEditorStore.getState();
     editorStore.selectNode(id);
   };
-  
+
   // Generate dynamic border thickness class
   const thicknessClass = `border-t-${data.thickness || 1}`;
-  
-  // Color handling with theme fallback
-  const borderColor = data.color || (canvasTheme === 'dark' ? '#374151' : '#d1d5db');
-  
+
+  // Color handling with theme integration
+  const borderColor =
+    data.color ||
+    (themedColors ? themedColors.neutral['300'] : canvasTheme === 'dark' ? '#374151' : '#d1d5db');
+
+  // Get theme-aware spacing
+  const themePadding = themedStyles.padding || themedStyles.margin;
+
   return (
     <>
       <UnifiedNodeResizer
@@ -49,75 +63,84 @@ export function SeparatorBlockNode({ id, data, selected }: SeparatorBlockNodePro
           minHeight: 40,
           maxHeight: 100,
           minWidth: 100,
-          maxWidth: 800
+          maxWidth: 800,
         }}
       />
-      
-      <div
-        data-node-id={id}
-        onClick={handleClick}
+
+      <ThemedBlockWrapper
+        blockType="separatorBlock"
         className={cn(
-          'relative cursor-pointer transition-all duration-200 py-4 px-2',
+          'relative cursor-pointer transition-all duration-200',
           'min-h-[40px] flex items-center justify-center',
           // Selection state
           selected && 'ring-2 ring-primary ring-offset-2 rounded-lg',
           // Hover state
           'hover:bg-accent/10 rounded-lg'
         )}
+        style={{
+          padding: themePadding || '1rem 0.5rem',
+        }}
       >
-        {/* Separator Line */}
-        <div 
-          className={cn(
-            'border-t transition-all duration-200',
-            WIDTH_CONFIGS[data.width],
-            STYLE_CONFIGS[data.style],
-            thicknessClass
-          )}
-          style={{
-            borderTopColor: borderColor,
-            borderTopWidth: `${data.thickness || 1}px`
-          }}
-        />
-        
-        {/* Style Indicators (visible on selection/hover) */}
-        {selected && (
-          <>
-            {/* Selection Indicator */}
-            <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 text-xs bg-primary text-primary-foreground px-2 py-1 rounded z-10 whitespace-nowrap">
-              Separator ({data.style}, {data.width}, {data.thickness}px)
-            </div>
-            
-            {/* Style Preview Box */}
-            <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 bg-background border rounded px-2 py-1 shadow-md z-10">
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <div className="flex items-center gap-1">
-                  <span>Style:</span>
-                  <span className="font-medium capitalize">{data.style}</span>
-                </div>
-                <div className="w-px h-3 bg-border" />
-                <div className="flex items-center gap-1">
-                  <span>Width:</span>
-                  <span className="font-medium capitalize">{data.width}</span>
-                </div>
-                <div className="w-px h-3 bg-border" />
-                <div className="flex items-center gap-1">
-                  <span>Thickness:</span>
-                  <span className="font-medium">{data.thickness}px</span>
+        <div
+          data-node-id={id}
+          onClick={handleClick}
+          className="w-full h-full flex items-center justify-center"
+        >
+          {/* Separator Line */}
+          <div
+            className={cn(
+              'border-t transition-all duration-200',
+              WIDTH_CONFIGS[data.width],
+              STYLE_CONFIGS[data.style],
+              thicknessClass
+            )}
+            style={{
+              borderTopColor: borderColor,
+              borderTopWidth: `${data.thickness || 1}px`,
+              opacity: themedStyles.opacity || 1,
+            }}
+          />
+
+          {/* Style Indicators (visible on selection/hover) */}
+          {selected && (
+            <>
+              {/* Selection Indicator */}
+              <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 text-xs bg-primary text-primary-foreground px-2 py-1 rounded z-10 whitespace-nowrap">
+                Separator ({data.style}, {data.width}, {data.thickness}px)
+              </div>
+
+              {/* Style Preview Box */}
+              <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 bg-background border rounded px-2 py-1 shadow-md z-10">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-1">
+                    <span>Style:</span>
+                    <span className="font-medium capitalize">{data.style}</span>
+                  </div>
+                  <div className="w-px h-3 bg-border" />
+                  <div className="flex items-center gap-1">
+                    <span>Width:</span>
+                    <span className="font-medium capitalize">{data.width}</span>
+                  </div>
+                  <div className="w-px h-3 bg-border" />
+                  <div className="flex items-center gap-1">
+                    <span>Thickness:</span>
+                    <span className="font-medium">{data.thickness}px</span>
+                  </div>
                 </div>
               </div>
+            </>
+          )}
+
+          {/* Hover State Indicator */}
+          {!selected && (
+            <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+              <div className="text-xs text-muted-foreground bg-background/90 px-2 py-1 rounded border">
+                Click to edit separator
+              </div>
             </div>
-          </>
-        )}
-        
-        {/* Hover State Indicator */}
-        {!selected && (
-          <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-            <div className="text-xs text-muted-foreground bg-background/90 px-2 py-1 rounded border">
-              Click to edit separator
-            </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      </ThemedBlockWrapper>
     </>
   );
 }

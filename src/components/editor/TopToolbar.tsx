@@ -5,24 +5,31 @@ import { useEditorStore } from '@/store/editorStore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
-import { 
-  Trash2, 
-  Copy, 
-  Monitor, 
-  Smartphone, 
-  Sun, 
-  Moon, 
-  Grid, 
-  Ruler, 
+import {
+  Trash2,
+  Copy,
+  Monitor,
+  Smartphone,
+  Sun,
+  Moon,
+  Grid,
+  Ruler,
   Minus,
   Maximize,
   MinusSquare,
   ChevronDown,
   Eye,
-  EyeOff
+  EyeOff,
+  Palette,
 } from 'lucide-react';
 import { SafeSwitch } from './SafeSwitch';
 import { TextBlockInspector } from './Inspector/TextBlockInspector';
@@ -30,6 +37,7 @@ import { HeadingBlockInspector } from './Inspector/HeadingBlockInspector';
 import { HistoryIndicator } from './HistoryIndicator';
 import { KeyboardShortcutsPanel } from './KeyboardShortcutsPanel';
 import { ModalPreview } from './ModalPreview';
+import { ThemeManager } from './theme/ThemeManager';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -39,11 +47,11 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 export function TopToolbar() {
-  const { 
-    selectedNodeId, 
-    nodes, 
-    updateNode, 
-    deleteNode, 
+  const {
+    selectedNodeId,
+    nodes,
+    updateNode,
+    deleteNode,
     duplicateNode,
     selectNode,
     currentViewport,
@@ -59,7 +67,7 @@ export function TopToolbar() {
     toggleFullscreen,
     isFullscreen,
     guidelines,
-    clearGuidelines
+    clearGuidelines,
   } = useEditorStore();
 
   const selectedNode = selectedNodeId ? nodes.find(n => n.id === selectedNodeId) : null;
@@ -97,7 +105,7 @@ export function TopToolbar() {
             </div>
           </div>
         );
-      
+
       case 'headingBlock':
         return (
           <div className="flex items-center gap-4">
@@ -107,43 +115,49 @@ export function TopToolbar() {
             </div>
           </div>
         );
-      
+
       case 'imageBlock':
         return (
           <div className="flex items-center gap-4">
             <Input
               value={selectedNode.data.url || ''}
-              onChange={(e) => handleUpdateNode({
-                data: { ...selectedNode.data, url: e.target.value }
-              })}
+              onChange={e =>
+                handleUpdateNode({
+                  data: { ...selectedNode.data, url: e.target.value },
+                })
+              }
               placeholder="Image URL..."
               className="w-48 h-8"
             />
             <Input
               value={selectedNode.data.alt || ''}
-              onChange={(e) => handleUpdateNode({
-                data: { ...selectedNode.data, alt: e.target.value }
-              })}
+              onChange={e =>
+                handleUpdateNode({
+                  data: { ...selectedNode.data, alt: e.target.value },
+                })
+              }
               placeholder="Alt text..."
               className="w-32 h-8"
             />
           </div>
         );
-      
+
       case 'videoEmbedBlock':
         return (
           <div className="flex items-center gap-4">
             <Input
               value={selectedNode.data.url || ''}
-              onChange={(e) => handleUpdateNode({
-                data: { ...selectedNode.data, url: e.target.value }
-              })}
+              onChange={e =>
+                handleUpdateNode({
+                  data: { ...selectedNode.data, url: e.target.value },
+                })
+              }
               placeholder="Video URL..."
               className="w-48 h-8"
             />
           </div>
         );
-      
+
       case 'tableBlock':
         return (
           <div className="flex items-center gap-4">
@@ -155,7 +169,7 @@ export function TopToolbar() {
                 // Add row logic - simplified for toolbar
                 const newRows = [...(selectedNode.data.rows || []), ['New Cell']];
                 handleUpdateNode({
-                  data: { ...selectedNode.data, rows: newRows }
+                  data: { ...selectedNode.data, rows: newRows },
                 });
               }}
             >
@@ -168,9 +182,12 @@ export function TopToolbar() {
               onClick={() => {
                 // Add column logic - simplified for toolbar
                 const headers = [...(selectedNode.data.headers || []), 'New Header'];
-                const rows = (selectedNode.data.rows || []).map((row: any[]) => [...row, 'New Cell']);
+                const rows = (selectedNode.data.rows || []).map((row: any[]) => [
+                  ...row,
+                  'New Cell',
+                ]);
                 handleUpdateNode({
-                  data: { ...selectedNode.data, headers, rows }
+                  data: { ...selectedNode.data, headers, rows },
                 });
               }}
             >
@@ -178,15 +195,17 @@ export function TopToolbar() {
             </Button>
           </div>
         );
-      
+
       case 'pollBlock':
         return (
           <div className="flex items-center gap-4">
             <Input
               value={selectedNode.data.question || ''}
-              onChange={(e) => handleUpdateNode({
-                data: { ...selectedNode.data, question: e.target.value }
-              })}
+              onChange={e =>
+                handleUpdateNode({
+                  data: { ...selectedNode.data, question: e.target.value },
+                })
+              }
               placeholder="Poll question..."
               className="w-48 h-8"
             />
@@ -203,9 +222,11 @@ export function TopToolbar() {
               <Label className="text-xs">Authors:</Label>
               <Input
                 value={selectedNode.data.authors || ''}
-                onChange={(e) => handleUpdateNode({
-                  data: { ...selectedNode.data, authors: e.target.value }
-                })}
+                onChange={e =>
+                  handleUpdateNode({
+                    data: { ...selectedNode.data, authors: e.target.value },
+                  })
+                }
                 placeholder="Author, A. A..."
                 className="w-40 h-8"
               />
@@ -215,9 +236,11 @@ export function TopToolbar() {
               <Input
                 type="number"
                 value={selectedNode.data.year || ''}
-                onChange={(e) => handleUpdateNode({
-                  data: { ...selectedNode.data, year: parseInt(e.target.value) || 0 }
-                })}
+                onChange={e =>
+                  handleUpdateNode({
+                    data: { ...selectedNode.data, year: parseInt(e.target.value) || 0 },
+                  })
+                }
                 placeholder="2024"
                 className="w-20 h-8"
               />
@@ -226,9 +249,11 @@ export function TopToolbar() {
               <Label className="text-xs">Title:</Label>
               <Input
                 value={selectedNode.data.title || ''}
-                onChange={(e) => handleUpdateNode({
-                  data: { ...selectedNode.data, title: e.target.value }
-                })}
+                onChange={e =>
+                  handleUpdateNode({
+                    data: { ...selectedNode.data, title: e.target.value },
+                  })
+                }
                 placeholder="Article title..."
                 className="w-48 h-8"
               />
@@ -243,20 +268,24 @@ export function TopToolbar() {
               <Label className="text-xs">Message:</Label>
               <Input
                 value={selectedNode.data.content}
-                onChange={(e) => handleUpdateNode({
-                  data: { ...selectedNode.data, content: e.target.value }
-                })}
+                onChange={e =>
+                  handleUpdateNode({
+                    data: { ...selectedNode.data, content: e.target.value },
+                  })
+                }
                 placeholder="Key takeaway..."
                 className="w-48 h-8"
               />
             </div>
             <div className="flex items-center gap-2">
               <Label className="text-xs">Theme:</Label>
-              <Select 
+              <Select
                 value={selectedNode.data.theme}
-                onValueChange={(value) => handleUpdateNode({
-                  data: { ...selectedNode.data, theme: value }
-                })}
+                onValueChange={value =>
+                  handleUpdateNode({
+                    data: { ...selectedNode.data, theme: value },
+                  })
+                }
               >
                 <SelectTrigger className="w-24 h-8">
                   <SelectValue />
@@ -277,11 +306,13 @@ export function TopToolbar() {
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
               <Label className="text-xs">Style:</Label>
-              <Select 
+              <Select
                 value={selectedNode.data.style}
-                onValueChange={(value) => handleUpdateNode({
-                  data: { ...selectedNode.data, style: value }
-                })}
+                onValueChange={value =>
+                  handleUpdateNode({
+                    data: { ...selectedNode.data, style: value },
+                  })
+                }
               >
                 <SelectTrigger className="w-24 h-8">
                   <SelectValue />
@@ -295,11 +326,13 @@ export function TopToolbar() {
             </div>
             <div className="flex items-center gap-2">
               <Label className="text-xs">Width:</Label>
-              <Select 
+              <Select
                 value={selectedNode.data.width}
-                onValueChange={(value) => handleUpdateNode({
-                  data: { ...selectedNode.data, width: value }
-                })}
+                onValueChange={value =>
+                  handleUpdateNode({
+                    data: { ...selectedNode.data, width: value },
+                  })
+                }
               >
                 <SelectTrigger className="w-24 h-8">
                   <SelectValue />
@@ -323,9 +356,7 @@ export function TopToolbar() {
       default:
         return (
           <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">
-              {selectedNode.type} selected
-            </span>
+            <span className="text-xs text-muted-foreground">{selectedNode.type} selected</span>
           </div>
         );
     }
@@ -382,14 +413,14 @@ export function TopToolbar() {
         {/* Canvas Controls */}
         <div className="flex items-center gap-3">
           <Label className="text-xs text-muted-foreground">Canvas:</Label>
-          
+
           {/* Theme Toggle */}
           <Button
             size="sm"
             variant="outline"
             onClick={() => setCanvasTheme(canvasTheme === 'light' ? 'dark' : 'light')}
             className="h-7 px-2"
-            title="Toggle theme"
+            title="Toggle canvas theme"
           >
             {canvasTheme === 'light' ? (
               <Sun size={12} className="mr-1" />
@@ -398,6 +429,14 @@ export function TopToolbar() {
             )}
             {canvasTheme === 'light' ? 'Light' : 'Dark'}
           </Button>
+
+          {/* Advanced Theme Manager */}
+          <ThemeManager>
+            <Button size="sm" variant="outline" className="h-7 px-2" title="Manage themes">
+              <Palette size={12} className="mr-1" />
+              Themes
+            </Button>
+          </ThemeManager>
 
           {/* Fullscreen Toggle */}
           <Button
@@ -411,7 +450,7 @@ export function TopToolbar() {
               }
             }}
             className="h-7 px-2"
-            title={isFullscreen ? "Exit fullscreen (ESC)" : "Enter fullscreen mode"}
+            title={isFullscreen ? 'Exit fullscreen (ESC)' : 'Enter fullscreen mode'}
           >
             {isFullscreen ? (
               <MinusSquare size={12} className="mr-1" />
@@ -431,38 +470,28 @@ export function TopToolbar() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start">
-              <DropdownMenuItem 
-                onClick={toggleGrid}
-                className="flex items-center gap-2"
-              >
+              <DropdownMenuItem onClick={toggleGrid} className="flex items-center gap-2">
                 <Grid size={14} />
                 {showGrid ? 'Hide Grid' : 'Show Grid'}
               </DropdownMenuItem>
-              <DropdownMenuItem 
-                onClick={toggleRulers}
-                className="flex items-center gap-2"
-              >
+              <DropdownMenuItem onClick={toggleRulers} className="flex items-center gap-2">
                 <Ruler size={14} />
                 {showRulers ? 'Hide Rulers' : 'Show Rulers'}
               </DropdownMenuItem>
-              <DropdownMenuItem 
-                onClick={toggleGuidelines}
-                className="flex items-center gap-2"
-              >
+              <DropdownMenuItem onClick={toggleGuidelines} className="flex items-center gap-2">
                 <Minus size={14} />
                 {showGuidelines ? 'Hide Guidelines' : 'Show Guidelines'}
               </DropdownMenuItem>
-              {showGuidelines && guidelines && (guidelines.horizontal.length > 0 || guidelines.vertical.length > 0) && (
-                <>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem 
-                    onClick={clearGuidelines}
-                    className="text-destructive"
-                  >
-                    Clear Guidelines ({guidelines.horizontal.length + guidelines.vertical.length})
-                  </DropdownMenuItem>
-                </>
-              )}
+              {showGuidelines &&
+                guidelines &&
+                (guidelines.horizontal.length > 0 || guidelines.vertical.length > 0) && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={clearGuidelines} className="text-destructive">
+                      Clear Guidelines ({guidelines.horizontal.length + guidelines.vertical.length})
+                    </DropdownMenuItem>
+                  </>
+                )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -474,9 +503,10 @@ export function TopToolbar() {
           {/* Block Type and Actions */}
           <div className="flex items-center gap-3">
             <Label className="text-xs text-muted-foreground">
-              {selectedNode.type.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}:
+              {selectedNode.type.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
+              :
             </Label>
-            
+
             {/* Block Actions */}
             <Button
               size="sm"
@@ -487,7 +517,7 @@ export function TopToolbar() {
             >
               <Copy size={12} />
             </Button>
-            
+
             <Button
               size="sm"
               variant="outline"
