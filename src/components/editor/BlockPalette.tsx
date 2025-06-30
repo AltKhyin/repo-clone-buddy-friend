@@ -13,7 +13,7 @@ import {
   Quote, 
   Video, 
   Minus,
-  FileText 
+  FileText
 } from 'lucide-react';
 import { BlockType } from '@/types/editor';
 
@@ -65,13 +65,6 @@ const blockTypes: BlockType[] = [
     category: 'data',
     description: 'Data tables with sorting'
   },
-  {
-    id: 'diagramBlock',
-    label: 'Diagram',
-    icon: BarChart,
-    category: 'data',
-    description: 'CONSORT, PRISMA, flowcharts'
-  },
   
   // Interactive Blocks
   {
@@ -117,7 +110,7 @@ const categoryLabels = {
   visual: 'Visual'
 };
 
-function DraggableBlock({ block }: { block: BlockType }) {
+const DraggableBlock = React.memo(function DraggableBlock({ block }: { block: BlockType }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: `block-${block.id}`,
     data: {
@@ -151,9 +144,9 @@ function DraggableBlock({ block }: { block: BlockType }) {
       <p className="text-xs text-muted-foreground">{block.description}</p>
     </div>
   );
-}
+});
 
-export function BlockPalette() {
+export const BlockPalette = React.memo(function BlockPalette() {
   // Group blocks by category
   const blocksByCategory = blockTypes.reduce((acc, block) => {
     if (!acc[block.category]) {
@@ -188,4 +181,4 @@ export function BlockPalette() {
       </div>
     </div>
   );
-}
+});

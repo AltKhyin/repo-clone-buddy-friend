@@ -2,7 +2,6 @@
 
 import React, { useState } from 'react'
 import { Handle, Position, NodeProps } from '@xyflow/react'
-import { NodeResizer } from '@xyflow/react'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -11,6 +10,8 @@ import { CheckCircle2, Circle, BarChart3, Users } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useEditorStore } from '@/store/editorStore'
 import { PollBlockData } from '@/types/editor'
+import { UnifiedNodeResizer } from '../components/UnifiedNodeResizer'
+import { useUnifiedBlockStyling, getSelectionIndicatorProps } from '../utils/blockStyling'
 
 interface PollBlockNodeData {
   id: string
@@ -18,13 +19,37 @@ interface PollBlockNodeData {
   data: PollBlockData
 }
 
-export function PollBlockNode({ id, data, selected }: NodeProps<PollBlockNodeData>) {
+export const PollBlockNode = React.memo(function PollBlockNode({ id, data, selected }: NodeProps<PollBlockNodeData>) {
   const { updateNode, canvasTheme } = useEditorStore()
   const [userVotes, setUserVotes] = useState<Set<string>>(new Set())
   const [isVoting, setIsVoting] = useState(false)
 
+  // Get unified styling
+  const { selectionClasses, borderStyles } = useUnifiedBlockStyling(
+    'pollBlock',
+    selected,
+    { borderWidth: 0, borderColor: '#e5e7eb' } // Poll uses Card styling, no custom borders
+  )
+
   const isDarkMode = canvasTheme === 'dark'
   const pollData = data.data
+
+  // Guard clause for invalid poll data
+  if (!pollData || typeof pollData !== 'object') {
+    return (
+      <div className="p-4 border-2 border-dashed border-red-300 bg-red-50 rounded-lg">
+        <div className="text-red-600 text-sm font-medium">Invalid Poll Data</div>
+        <div className="text-red-500 text-xs">Poll data is missing or corrupted</div>
+      </div>
+    );
+  }
+
+  // Provide defaults for missing properties
+  const safeQuestion = pollData.question || 'Untitled Poll';
+  const safeOptions = Array.isArray(pollData.options) ? pollData.options : [];
+  const safeAllowMultiple = Boolean(pollData.allowMultiple);
+  const safeShowResults = pollData.showResults !== false; // default to true
+  const safeTotalVotes = Number(pollData.totalVotes) || 0;
 
   const handleVote = async (optionId: string) => {
     if (isVoting) return
@@ -33,10 +58,10 @@ export function PollBlockNode({ id, data, selected }: NodeProps<PollBlockNodeDat
     
     try {
       // Create a new copy of the poll data with updated votes
-      const updatedOptions = pollData.options.map(option => {
+      const updatedOptions = safeOptions.map(option => {
         if (option.id === optionId) {
           // If multiple votes allowed, toggle; otherwise, only vote if not already voted
-          const shouldAdd = pollData.allowMultiple ? !userVotes.has(optionId) : userVotes.size === 0
+          const shouldAdd = safeAllowMultiple ? !userVotes.has(optionId) : userVotes.size === 0
           const voteChange = shouldAdd ? 1 : (userVotes.has(optionId) ? -1 : 0)
           
           return {
@@ -45,7 +70,7 @@ export function PollBlockNode({ id, data, selected }: NodeProps<PollBlockNodeDat
           }
         }
         // For single-choice polls, remove votes from other options
-        else if (!pollData.allowMultiple && userVotes.has(option.id)) {
+        else if (!safeAllowMultiple && userVotes.has(option.id)) {
           return {
             ...option,
             votes: Math.max(0, option.votes - 1)
@@ -58,7 +83,7 @@ export function PollBlockNode({ id, data, selected }: NodeProps<PollBlockNodeDat
 
       // Update user votes
       const newUserVotes = new Set(userVotes)
-      if (pollData.allowMultiple) {
+      if (safeAllowMultiple) {
         if (newUserVotes.has(optionId)) {
           newUserVotes.delete(optionId)
         } else {
@@ -89,27 +114,43 @@ export function PollBlockNode({ id, data, selected }: NodeProps<PollBlockNodeDat
   }
 
   const getOptionPercentage = (votes: number) => {
-    if (pollData.totalVotes === 0) return 0
-    return Math.round((votes / pollData.totalVotes) * 100)
+    if (safeTotalVotes === 0) return 0
+    return Math.round((votes / safeTotalVotes) * 100)
   }
 
   const hasVoted = userVotes.size > 0
+  const selectionIndicatorProps = getSelectionIndicatorProps('pollBlock')
+
+  // Dynamic styles with unified border styling
+  const dynamicStyles = {
+    ...borderStyles,
+    minWidth: '320px',
+    maxWidth: '600px',
+    transition: 'all 0.2s ease-in-out',
+  } as React.CSSProperties
 
   return (
-    <div
-      className={cn(
-        'relative min-w-[320px] max-w-[600px]',
-        selected && 'ring-2 ring-blue-500 ring-offset-2',
-        isDarkMode ? 'ring-offset-gray-900' : 'ring-offset-white'
-      )}
-    >
-      <NodeResizer 
+    <>
+      <UnifiedNodeResizer 
         isVisible={selected}
-        minWidth={320}
-        minHeight={200}
-        maxWidth={600}
-        maxHeight={800}
+        nodeType="pollBlock"
+        customConstraints={{
+          minWidth: 320,
+          minHeight: 200,
+          maxWidth: 600,
+          maxHeight: 800
+        }}
       />
+      
+      <div
+        data-node-id={id}
+        className={`relative ${selectionClasses}`}
+        style={dynamicStyles}
+      >
+        {/* Unified Selection indicator */}
+        {selected && (
+          <div {...selectionIndicatorProps} />
+        )}
       
       <Handle
         type="target"
@@ -130,7 +171,7 @@ export function PollBlockNode({ id, data, selected }: NodeProps<PollBlockNodeDat
               'text-lg font-semibold',
               isDarkMode ? 'text-gray-100' : 'text-gray-900'
             )}>
-              {pollData.question || 'Untitled Poll'}
+              {safeQuestion}
             </CardTitle>
             <Badge variant="outline" className="flex items-center gap-1">
               <BarChart3 className="w-3 h-3" />
@@ -138,14 +179,14 @@ export function PollBlockNode({ id, data, selected }: NodeProps<PollBlockNodeDat
             </Badge>
           </div>
           
-          {pollData.totalVotes > 0 && (
+          {safeTotalVotes > 0 && (
             <div className={cn(
               'flex items-center gap-2 text-sm',
               isDarkMode ? 'text-gray-400' : 'text-gray-600'
             )}>
               <Users className="w-4 h-4" />
-              <span>{pollData.totalVotes} vote{pollData.totalVotes !== 1 ? 's' : ''}</span>
-              {pollData.allowMultiple && (
+              <span>{safeTotalVotes} vote{safeTotalVotes !== 1 ? 's' : ''}</span>
+              {safeAllowMultiple && (
                 <Badge variant="secondary" className="text-xs">
                   Multiple choice
                 </Badge>
@@ -155,10 +196,10 @@ export function PollBlockNode({ id, data, selected }: NodeProps<PollBlockNodeDat
         </CardHeader>
 
         <CardContent className="space-y-3">
-          {pollData.options.map((option) => {
+          {safeOptions.map((option) => {
             const percentage = getOptionPercentage(option.votes)
             const isSelected = userVotes.has(option.id)
-            const showResults = pollData.showResults && hasVoted
+            const showResults = safeShowResults && hasVoted
 
             return (
               <div
@@ -246,7 +287,7 @@ export function PollBlockNode({ id, data, selected }: NodeProps<PollBlockNodeDat
           })}
 
           {/* Vote button for non-results view */}
-          {!pollData.showResults && hasVoted && (
+          {!safeShowResults && hasVoted && (
             <div className="pt-2">
               <Button
                 variant="outline"
@@ -254,13 +295,13 @@ export function PollBlockNode({ id, data, selected }: NodeProps<PollBlockNodeDat
                 className="w-full"
                 disabled={isVoting}
               >
-                {isVoting ? 'Submitting...' : `View Results (${pollData.totalVotes} votes)`}
+                {isVoting ? 'Submitting...' : `View Results (${safeTotalVotes} votes)`}
               </Button>
             </div>
           )}
 
           {/* Empty state */}
-          {pollData.options.length === 0 && (
+          {safeOptions.length === 0 && (
             <div className={cn(
               'text-center py-8 text-sm',
               isDarkMode ? 'text-gray-400' : 'text-gray-500'
@@ -271,11 +312,12 @@ export function PollBlockNode({ id, data, selected }: NodeProps<PollBlockNodeDat
         </CardContent>
       </Card>
 
-      <Handle
-        type="source"
-        position={Position.Bottom}
-        className="!bg-blue-500 !border-blue-600 !w-3 !h-3"
-      />
-    </div>
+        <Handle
+          type="source"
+          position={Position.Bottom}
+          className="!bg-blue-500 !border-blue-600 !w-3 !h-3"
+        />
+      </div>
+    </>
   )
-}
+})

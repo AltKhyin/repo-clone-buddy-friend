@@ -8,6 +8,14 @@ import { useEditorStore } from '@/store/editorStore';
 import { BlockPalette } from '@/components/editor/BlockPalette';
 import { EditorCanvas } from '@/components/editor/EditorCanvas';
 import { TopToolbar } from '@/components/editor/TopToolbar';
+import { InlineCustomizationToolbar } from '@/components/editor/InlineCustomizationToolbar';
+import { InspectorPanel } from '@/components/editor/Inspector/InspectorPanel';
+import { PersistenceIndicator } from '@/components/editor/PersistenceIndicator';
+import { BackupRecoveryDialog } from '@/components/editor/BackupRecoveryDialog';
+import { KeyboardShortcutsPanel } from '@/components/editor/KeyboardShortcutsPanel';
+import { useEnhancedPersistence } from '@/hooks/useEnhancedPersistence';
+import { useCrashRecovery } from '@/hooks/useCrashRecovery';
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { Button } from '@/components/ui/button';
 import { getDefaultDataForBlockType } from '@/types/editor';
 import { useEditorSaveMutation, useEditorLoadQuery } from '../../packages/hooks/useEditorPersistence';
@@ -22,13 +30,37 @@ export default function EditorPage() {
     isDirty,
     lastSaved,
     isFullscreen,
+    isInspectorVisible,
     setPersistenceCallbacks,
-    handleFullscreenChange
+    handleFullscreenChange,
+    nodes,
+    layouts,
+    exportToJSON,
+    loadFromJSON
   } = useEditorStore();
 
   // Set up persistence hooks
   const saveMutation = useEditorSaveMutation();
   const { data: loadedData } = useEditorLoadQuery(reviewId);
+
+  // Enhanced persistence system
+  const currentContent = React.useMemo(() => {
+    if (!nodes.length && !Object.keys(layouts.desktop.items).length) return null;
+    return exportToJSON();
+  }, [nodes, layouts, exportToJSON]);
+
+  const { state: persistenceState, actions: persistenceActions } = useEnhancedPersistence(
+    reviewId,
+    currentContent,
+    isDirty
+  );
+
+  // Crash recovery system
+  const { state: recoveryState, actions: recoveryActions } = useCrashRecovery(reviewId);
+  const [showRecoveryDialog, setShowRecoveryDialog] = React.useState(false);
+
+  // Initialize keyboard shortcuts
+  const { showShortcutsPanel, setShowShortcutsPanel } = useKeyboardShortcuts();
 
   // Configure persistence callbacks once when component mounts or reviewId changes
   React.useEffect(() => {
@@ -69,6 +101,23 @@ export default function EditorPage() {
       document.removeEventListener('MSFullscreenChange', handleFullscreenChangeEvent);
     };
   }, [handleFullscreenChange]);
+
+  // Show recovery dialog when backup is detected
+  React.useEffect(() => {
+    if (recoveryState.hasBackup && !showRecoveryDialog) {
+      setShowRecoveryDialog(true);
+    }
+  }, [recoveryState.hasBackup, showRecoveryDialog]);
+
+  // Handle backup recovery
+  const handleRecovery = (recoveredContent: any) => {
+    try {
+      loadFromJSON(recoveredContent);
+      console.log('Successfully restored from backup');
+    } catch (error) {
+      console.error('Failed to load recovered content:', error);
+    }
+  };
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over, delta } = event;
@@ -137,21 +186,15 @@ export default function EditorPage() {
             </div>
             
             <div className="flex items-center space-x-4">
-              <div className="text-xs text-muted-foreground">
-                Last saved: {formatLastSaved(lastSaved)}
-              </div>
-              <div className="flex space-x-2">
-                <Button
-                  size="sm"
-                  onClick={handleSave}
-                  disabled={isSaving || !isDirty}
-                >
-                  {isSaving ? 'Saving...' : 'Save'}
-                </Button>
-                <Button size="sm" variant="outline">
-                  Export
-                </Button>
-              </div>
+              {/* Enhanced Persistence Indicator */}
+              <PersistenceIndicator 
+                state={persistenceState}
+                actions={persistenceActions}
+              />
+              
+              <Button size="sm" variant="outline">
+                Export
+              </Button>
             </div>
           </div>
         )}
@@ -159,15 +202,35 @@ export default function EditorPage() {
         {/* Top Toolbar */}
         <TopToolbar />
 
-        {/* Two-Panel Workspace (Palette + Canvas) */}
+        {/* Three-Panel Workspace (Palette + Canvas + Inspector) */}
         <div className="flex-1 flex overflow-hidden">
-          {!isFullscreen && <BlockPalette />}
+          <BlockPalette />
           <div className="flex-1 relative">
             <ReactFlowProvider>
               <EditorCanvas />
             </ReactFlowProvider>
           </div>
+          {isInspectorVisible && <InspectorPanel />}
         </div>
+
+        {/* Inline Customization Toolbar */}
+        <InlineCustomizationToolbar />
+
+        {/* Backup Recovery Dialog */}
+        <BackupRecoveryDialog
+          open={showRecoveryDialog}
+          onOpenChange={setShowRecoveryDialog}
+          state={recoveryState}
+          actions={recoveryActions}
+          onRecover={handleRecovery}
+          reviewId={reviewId || ''}
+        />
+
+        {/* Keyboard Shortcuts Help Panel */}
+        <KeyboardShortcutsPanel
+          open={showShortcutsPanel}
+          onOpenChange={setShowShortcutsPanel}
+        />
       </div>
     </DndContext>
   );

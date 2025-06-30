@@ -5,6 +5,8 @@ import { Handle, Position, NodeProps } from '@xyflow/react'
 import { VideoEmbedBlockData } from '@/types/editor'
 import { useEditorStore } from '@/store/editorStore'
 import { PlayCircle, ExternalLink, Video } from 'lucide-react'
+import { UnifiedNodeResizer } from '../components/UnifiedNodeResizer'
+import { useUnifiedBlockStyling, getSelectionIndicatorProps } from '../utils/blockStyling'
 
 interface VideoEmbedBlockNodeData extends VideoEmbedBlockData {
   // Additional display properties
@@ -23,11 +25,16 @@ export const VideoEmbedBlockNode: React.FC<NodeProps<VideoEmbedBlockNodeData>> =
 }) => {
   const { updateNode, canvasTheme } = useEditorStore()
 
+  // Get unified styling
+  const { selectionClasses, borderStyles } = useUnifiedBlockStyling(
+    'videoEmbedBlock',
+    selected,
+    { borderWidth: data.borderWidth, borderColor: data.borderColor }
+  )
+
   // Apply styling with theme awareness
   const paddingX = data.paddingX ?? 16
   const paddingY = data.paddingY ?? 16
-  const borderWidth = data.borderWidth ?? 0
-  const borderColor = data.borderColor ?? '#e5e7eb'
   const backgroundColor = data.backgroundColor ?? 'transparent'
   const borderRadius = data.borderRadius ?? 8
 
@@ -77,23 +84,36 @@ export const VideoEmbedBlockNode: React.FC<NodeProps<VideoEmbedBlockNodeData>> =
 
   const embedData = getEmbedData(data.url, data.platform)
 
+  // Dynamic styles with unified border styling
+  const dynamicStyles = {
+    padding: `${paddingY}px ${paddingX}px`,
+    backgroundColor: backgroundColor !== 'transparent' ? backgroundColor : undefined,
+    ...borderStyles,
+    borderRadius: `${borderRadius}px`,
+    minWidth: '300px',
+    maxWidth: '800px',
+    transition: 'all 0.2s ease-in-out',
+  } as React.CSSProperties
+
+  const selectionIndicatorProps = getSelectionIndicatorProps('videoEmbedBlock')
+
   return (
-    <div
-      className={`
-        bg-white border-2 rounded-lg shadow-sm transition-all duration-200 min-w-[300px] max-w-[800px]
-        ${selected ? 'border-blue-500 shadow-lg' : 'border-gray-200'}
-        ${canvasTheme === 'dark' ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-200'}
-      `}
-      style={{
-        padding: `${paddingY}px ${paddingX}px`,
-        borderWidth: borderWidth > 0 ? `${borderWidth}px` : undefined,
-        borderColor: borderWidth > 0 ? borderColor : undefined,
-        borderStyle: borderWidth > 0 ? 'solid' : 'none',
-        backgroundColor: backgroundColor !== 'transparent' ? backgroundColor : undefined,
-        borderRadius: `${borderRadius}px`,
-      }}
-      onClick={handleVideoClick}
-    >
+    <>
+      {/* Unified Node Resizer */}
+      <UnifiedNodeResizer 
+        isVisible={selected}
+        nodeType="videoEmbedBlock"
+      />
+      
+      <div
+        className={`relative cursor-pointer ${selectionClasses}`}
+        style={dynamicStyles}
+        onClick={handleVideoClick}
+      >
+        {/* Unified Selection indicator */}
+        {selected && (
+          <div {...selectionIndicatorProps} />
+        )}
       {/* Connection handles */}
       <Handle type="target" position={Position.Top} className="opacity-0" />
       <Handle type="source" position={Position.Bottom} className="opacity-0" />
@@ -221,10 +241,11 @@ export const VideoEmbedBlockNode: React.FC<NodeProps<VideoEmbedBlockNodeData>> =
         )}
       </div>
 
-      {/* Accessibility Label for Screen Readers */}
-      <span className="sr-only">
-        Video embed: {data.platform} video{data.caption ? ` - ${data.caption}` : ''}
-      </span>
-    </div>
+        {/* Accessibility Label for Screen Readers */}
+        <span className="sr-only">
+          Video embed: {data.platform} video{data.caption ? ` - ${data.caption}` : ''}
+        </span>
+      </div>
+    </>
   )
 }

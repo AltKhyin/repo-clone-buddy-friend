@@ -5,6 +5,9 @@ import { Handle, Position, NodeProps } from '@xyflow/react'
 import { ImageBlockData } from '@/types/editor'
 import { useEditorStore } from '@/store/editorStore'
 import { ImageIcon, ImageOff } from 'lucide-react'
+import { UnifiedNodeResizer } from '../components/UnifiedNodeResizer'
+import { useUnifiedBlockStyling, getSelectionIndicatorProps } from '../utils/blockStyling'
+import { useIntersectionObserver } from '@/hooks/useIntersectionObserver'
 
 interface ImageBlockNodeData extends ImageBlockData {
   // Additional display properties
@@ -15,7 +18,7 @@ interface ImageBlockNodeData extends ImageBlockData {
   backgroundColor?: string
 }
 
-export const ImageBlockNode: React.FC<NodeProps<ImageBlockNodeData>> = ({ 
+export const ImageBlockNode = React.memo<NodeProps<ImageBlockNodeData>>(({ 
   id, 
   data, 
   selected 
@@ -23,12 +26,24 @@ export const ImageBlockNode: React.FC<NodeProps<ImageBlockNodeData>> = ({
   const { updateNode, canvasTheme } = useEditorStore()
   const [imageError, setImageError] = React.useState(false)
   const [imageLoaded, setImageLoaded] = React.useState(false)
+  
+  // Intersection observer for lazy loading
+  const [containerRef, isInView] = useIntersectionObserver({
+    threshold: 0.1,
+    rootMargin: '100px',
+    triggerOnce: true
+  })
+
+  // Get unified styling
+  const { selectionClasses, borderStyles } = useUnifiedBlockStyling(
+    'imageBlock',
+    selected,
+    { borderWidth: data.borderWidth, borderColor: data.borderColor }
+  )
 
   // Apply styling with theme awareness
   const paddingX = data.paddingX ?? 16
   const paddingY = data.paddingY ?? 16
-  const borderWidth = data.borderWidth ?? 0
-  const borderColor = data.borderColor ?? '#e5e7eb'
   const backgroundColor = data.backgroundColor ?? 'transparent'
 
   // Convert image URL to WebP if supported and provide fallback
@@ -85,56 +100,45 @@ export const ImageBlockNode: React.FC<NodeProps<ImageBlockNodeData>> = ({
   const imageHeight = data.height ? `${data.height}px` : 'auto'
   const maxWidth = data.width ? Math.min(data.width, 600) : 600
 
-  // Theme-aware base classes
-  const getBaseClasses = () => {
-    let classes = `relative rounded-lg shadow-sm transition-all duration-200 min-w-[200px] max-w-[${maxWidth}px]`
-    
-    // Apply theme-aware background and border classes only if no custom border/background
-    if (backgroundColor === 'transparent' && borderWidth === 0) {
-      if (canvasTheme === 'dark') {
-        classes += ' bg-gray-800'
-      } else {
-        classes += ' bg-white'
-      }
-    }
-    
-    // Apply selection styles
-    if (selected) {
-      classes += ' border-blue-500 shadow-lg'
-      if (borderWidth === 0) {
-        classes += ' border-2'
-      }
-    } else if (borderWidth === 0) {
-      // Default border when no custom border is set
-      if (canvasTheme === 'dark') {
-        classes += ' border-gray-600 border-2'
-      } else {
-        classes += ' border-gray-200 border-2'
-      }
-    }
-    
-    return classes
-  }
+  // Dynamic styles with unified border styling
+  const dynamicStyles = {
+    padding: `${paddingY}px ${paddingX}px`,
+    backgroundColor: backgroundColor !== 'transparent' ? backgroundColor : undefined,
+    ...borderStyles,
+    borderRadius: data.borderRadius ? `${data.borderRadius}px` : '8px',
+    minWidth: '200px',
+    maxWidth: `${maxWidth}px`,
+    transition: 'all 0.2s ease-in-out',
+  } as React.CSSProperties
+
+  const selectionIndicatorProps = getSelectionIndicatorProps('imageBlock')
 
   return (
-    <div
-      data-testid="image-block-container"
-      className={getBaseClasses()}
-      style={{
-        padding: `${paddingY}px ${paddingX}px`,
-        borderWidth: borderWidth > 0 ? `${borderWidth}px` : undefined,
-        borderColor: borderWidth > 0 ? borderColor : undefined,
-        borderStyle: borderWidth > 0 ? 'solid' : 'none',
-        backgroundColor: backgroundColor !== 'transparent' ? backgroundColor : undefined,
-      }}
-      onClick={handleImageClick}
-    >
+    <>
+      {/* Unified Node Resizer */}
+      <UnifiedNodeResizer 
+        isVisible={selected}
+        nodeType="imageBlock"
+      />
+      
+      <div
+        ref={containerRef as React.RefObject<HTMLDivElement>}
+        data-node-id={id}
+        data-testid="image-block-container"
+        className={`relative cursor-pointer ${selectionClasses}`}
+        style={dynamicStyles}
+        onClick={handleImageClick}
+      >
+        {/* Unified Selection indicator */}
+        {selected && (
+          <div {...selectionIndicatorProps} />
+        )}
       {/* Connection handles */}
       <Handle type="target" position={Position.Top} className="opacity-0" />
       <Handle type="source" position={Position.Bottom} className="opacity-0" />
 
       <div className="relative">
-        {data.src ? (
+        {data.src && isInView ? (
           <>
             {/* Main Image */}
             <img
@@ -232,6 +236,25 @@ export const ImageBlockNode: React.FC<NodeProps<ImageBlockNodeData>> = ({
               </p>
             )}
           </>
+        ) : data.src && !isInView ? (
+          /* Placeholder while not in view */
+          <div 
+            className={`
+              flex items-center justify-center bg-gray-100 
+              ${canvasTheme === 'dark' ? 'bg-gray-700' : 'bg-gray-100'}
+            `}
+            style={{
+              width: imageWidth,
+              height: imageHeight || '200px',
+              borderRadius: data.borderRadius ? `${data.borderRadius}px` : '6px',
+              minHeight: '120px'
+            }}
+          >
+            <ImageIcon 
+              size={48} 
+              className={canvasTheme === 'dark' ? 'text-gray-500' : 'text-gray-400'} 
+            />
+          </div>
         ) : (
           /* Empty State */
           <div 
@@ -256,12 +279,13 @@ export const ImageBlockNode: React.FC<NodeProps<ImageBlockNodeData>> = ({
         )}
       </div>
 
-      {/* Accessibility Label for Screen Readers */}
-      {data.alt && (
-        <span className="sr-only">
-          Image: {data.alt}
-        </span>
-      )}
-    </div>
+        {/* Accessibility Label for Screen Readers */}
+        {data.alt && (
+          <span className="sr-only">
+            Image: {data.alt}
+          </span>
+        )}
+      </div>
+    </>
   )
-}
+})

@@ -11,7 +11,6 @@ vi.mock('lucide-react', () => ({
   Heading1: ({ size, className }: any) => <div data-testid="heading1-icon" data-size={size} className={className} />,
   Image: ({ size, className }: any) => <div data-testid="image-icon" data-size={size} className={className} />,
   Table: ({ size, className }: any) => <div data-testid="table-icon" data-size={size} className={className} />,
-  BarChart: ({ size, className }: any) => <div data-testid="barchart-icon" data-size={size} className={className} />,
   MessageSquare: ({ size, className }: any) => <div data-testid="messagesquare-icon" data-size={size} className={className} />,
   Lightbulb: ({ size, className }: any) => <div data-testid="lightbulb-icon" data-size={size} className={className} />,
   Quote: ({ size, className }: any) => <div data-testid="quote-icon" data-size={size} className={className} />,
@@ -90,7 +89,6 @@ describe('BlockPalette', () => {
 
       // Data category blocks
       expect(screen.getByText('Table')).toBeInTheDocument();
-      expect(screen.getByText('Diagram')).toBeInTheDocument();
     });
 
     it('should render all interactive blocks in correct category', () => {
@@ -140,7 +138,6 @@ describe('BlockPalette', () => {
       expect(screen.getByText('Structured headings (H1-H4)')).toBeInTheDocument();
       expect(screen.getByText('Images with captions and styling')).toBeInTheDocument();
       expect(screen.getByText('Data tables with sorting')).toBeInTheDocument();
-      expect(screen.getByText('CONSORT, PRISMA, flowcharts')).toBeInTheDocument();
       expect(screen.getByText('Interactive voting polls')).toBeInTheDocument();
       expect(screen.getByText('Highlighted key messages')).toBeInTheDocument();
       expect(screen.getByText('Academic citations')).toBeInTheDocument();
@@ -182,7 +179,6 @@ describe('BlockPalette', () => {
       );
 
       expect(screen.getByTestId('table-icon')).toBeInTheDocument();
-      expect(screen.getByTestId('barchart-icon')).toBeInTheDocument();
     });
 
     it('should render correct icons for interactive blocks', () => {
@@ -362,7 +358,6 @@ describe('BlockPalette', () => {
       expect(screen.getByText('Text Block')).toBeInTheDocument();
       expect(screen.getByText('Heading')).toBeInTheDocument();
       expect(screen.getByText('Table')).toBeInTheDocument();
-      expect(screen.getByText('Diagram')).toBeInTheDocument();
       expect(screen.getByText('Reference')).toBeInTheDocument();
       expect(screen.getByText('Key Takeaway')).toBeInTheDocument();
       expect(screen.getByText('Quote')).toBeInTheDocument();
@@ -381,7 +376,6 @@ describe('BlockPalette', () => {
       expect(screen.getByText('Heading')).toBeInTheDocument();
       expect(screen.getByText('Image')).toBeInTheDocument();
       expect(screen.getByText('Table')).toBeInTheDocument();
-      expect(screen.getByText('Diagram')).toBeInTheDocument();
       expect(screen.getByText('Poll')).toBeInTheDocument();
       expect(screen.getByText('Key Takeaway')).toBeInTheDocument();
       expect(screen.getByText('Reference')).toBeInTheDocument();

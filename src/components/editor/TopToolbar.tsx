@@ -1,4 +1,4 @@
-// ABOUTME: Google Docs-style horizontal top toolbar for editor controls and block inspector properties
+// ABOUTME: Multi-row top toolbar for editor controls and block inspector properties with flexible wrapping layout
 
 import React from 'react';
 import { useEditorStore } from '@/store/editorStore';
@@ -27,6 +27,9 @@ import {
 import { SafeSwitch } from './SafeSwitch';
 import { TextBlockInspector } from './Inspector/TextBlockInspector';
 import { HeadingBlockInspector } from './Inspector/HeadingBlockInspector';
+import { HistoryIndicator } from './HistoryIndicator';
+import { KeyboardShortcutsPanel } from './KeyboardShortcutsPanel';
+import { ModalPreview } from './ModalPreview';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -193,6 +196,46 @@ export function TopToolbar() {
           </div>
         );
 
+      case 'referenceBlock':
+        return (
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <Label className="text-xs">Authors:</Label>
+              <Input
+                value={selectedNode.data.authors || ''}
+                onChange={(e) => handleUpdateNode({
+                  data: { ...selectedNode.data, authors: e.target.value }
+                })}
+                placeholder="Author, A. A..."
+                className="w-40 h-8"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <Label className="text-xs">Year:</Label>
+              <Input
+                type="number"
+                value={selectedNode.data.year || ''}
+                onChange={(e) => handleUpdateNode({
+                  data: { ...selectedNode.data, year: parseInt(e.target.value) || 0 }
+                })}
+                placeholder="2024"
+                className="w-20 h-8"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <Label className="text-xs">Title:</Label>
+              <Input
+                value={selectedNode.data.title || ''}
+                onChange={(e) => handleUpdateNode({
+                  data: { ...selectedNode.data, title: e.target.value }
+                })}
+                placeholder="Article title..."
+                className="w-48 h-8"
+              />
+            </div>
+          </div>
+        );
+
       case 'keyTakeawayBlock':
         return (
           <div className="flex items-center gap-4">
@@ -229,6 +272,54 @@ export function TopToolbar() {
           </div>
         );
 
+      case 'separatorBlock':
+        return (
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <Label className="text-xs">Style:</Label>
+              <Select 
+                value={selectedNode.data.style}
+                onValueChange={(value) => handleUpdateNode({
+                  data: { ...selectedNode.data, style: value }
+                })}
+              >
+                <SelectTrigger className="w-24 h-8">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="solid">Solid</SelectItem>
+                  <SelectItem value="dashed">Dashed</SelectItem>
+                  <SelectItem value="dotted">Dotted</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center gap-2">
+              <Label className="text-xs">Width:</Label>
+              <Select 
+                value={selectedNode.data.width}
+                onValueChange={(value) => handleUpdateNode({
+                  data: { ...selectedNode.data, width: value }
+                })}
+              >
+                <SelectTrigger className="w-24 h-8">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="quarter">25%</SelectItem>
+                  <SelectItem value="half">50%</SelectItem>
+                  <SelectItem value="full">100%</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center gap-2">
+              <Label className="text-xs">Thickness:</Label>
+              <span className="text-xs text-muted-foreground">
+                {selectedNode.data.thickness || 1}px
+              </span>
+            </div>
+          </div>
+        );
+
       default:
         return (
           <div className="flex items-center gap-2">
@@ -241,126 +332,147 @@ export function TopToolbar() {
   };
 
   return (
-    <div className="h-12 border-b bg-background flex items-center px-4 gap-4 overflow-x-auto">
-      {/* Viewport Controls */}
-      <div className="flex items-center gap-2 border-r pr-4">
-        <Label className="text-xs text-muted-foreground">View:</Label>
-        <div className="flex bg-muted rounded-md p-1">
+    <div className="min-h-12 border-b bg-background flex flex-col px-4 py-2 gap-2">
+      {/* Row 1: Viewport and Canvas Controls */}
+      <div className="flex items-center gap-4 flex-wrap">
+        {/* Viewport Controls */}
+        <div className="flex items-center gap-2">
+          <Label className="text-xs text-muted-foreground">View:</Label>
+          <div className="flex bg-muted rounded-md p-1">
+            <Button
+              size="sm"
+              variant={currentViewport === 'desktop' ? 'default' : 'ghost'}
+              onClick={() => switchViewport('desktop')}
+              className="text-xs px-2 h-6 rounded-sm"
+              title="Desktop layout (12 columns)"
+            >
+              <Monitor size={12} className="mr-1" />
+              Desktop
+            </Button>
+            <Button
+              size="sm"
+              variant={currentViewport === 'mobile' ? 'default' : 'ghost'}
+              onClick={() => switchViewport('mobile')}
+              className="text-xs px-2 h-6 rounded-sm"
+              title="Mobile layout (4 columns)"
+            >
+              <Smartphone size={12} className="mr-1" />
+              Mobile
+            </Button>
+          </div>
+        </div>
+
+        <Separator orientation="vertical" className="h-6" />
+
+        {/* History Controls */}
+        <HistoryIndicator compact={true} />
+
+        <Separator orientation="vertical" className="h-6" />
+
+        {/* Keyboard Shortcuts */}
+        <KeyboardShortcutsPanel />
+
+        <Separator orientation="vertical" className="h-6" />
+
+        {/* Preview */}
+        <ModalPreview />
+
+        <Separator orientation="vertical" className="h-6" />
+
+        {/* Canvas Controls */}
+        <div className="flex items-center gap-3">
+          <Label className="text-xs text-muted-foreground">Canvas:</Label>
+          
+          {/* Theme Toggle */}
           <Button
             size="sm"
-            variant={currentViewport === 'desktop' ? 'default' : 'ghost'}
-            onClick={() => switchViewport('desktop')}
-            className="text-xs px-2 h-6 rounded-sm"
-            title="Desktop layout (12 columns)"
+            variant="outline"
+            onClick={() => setCanvasTheme(canvasTheme === 'light' ? 'dark' : 'light')}
+            className="h-7 px-2"
+            title="Toggle theme"
           >
-            <Monitor size={12} className="mr-1" />
-            Desktop
+            {canvasTheme === 'light' ? (
+              <Sun size={12} className="mr-1" />
+            ) : (
+              <Moon size={12} className="mr-1" />
+            )}
+            {canvasTheme === 'light' ? 'Light' : 'Dark'}
           </Button>
+
+          {/* Fullscreen Toggle */}
           <Button
             size="sm"
-            variant={currentViewport === 'mobile' ? 'default' : 'ghost'}
-            onClick={() => switchViewport('mobile')}
-            className="text-xs px-2 h-6 rounded-sm"
-            title="Mobile layout (4 columns)"
+            variant="outline"
+            onClick={async () => {
+              try {
+                await toggleFullscreen();
+              } catch (error) {
+                console.error('Fullscreen toggle failed:', error);
+              }
+            }}
+            className="h-7 px-2"
+            title={isFullscreen ? "Exit fullscreen (ESC)" : "Enter fullscreen mode"}
           >
-            <Smartphone size={12} className="mr-1" />
-            Mobile
+            {isFullscreen ? (
+              <MinusSquare size={12} className="mr-1" />
+            ) : (
+              <Maximize size={12} className="mr-1" />
+            )}
+            {isFullscreen ? 'Exit' : 'Full'}
           </Button>
+
+          {/* View Options Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button size="sm" variant="outline" className="h-7 px-2">
+                <Eye size={12} className="mr-1" />
+                View
+                <ChevronDown size={12} className="ml-1" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              <DropdownMenuItem 
+                onClick={toggleGrid}
+                className="flex items-center gap-2"
+              >
+                <Grid size={14} />
+                {showGrid ? 'Hide Grid' : 'Show Grid'}
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={toggleRulers}
+                className="flex items-center gap-2"
+              >
+                <Ruler size={14} />
+                {showRulers ? 'Hide Rulers' : 'Show Rulers'}
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={toggleGuidelines}
+                className="flex items-center gap-2"
+              >
+                <Minus size={14} />
+                {showGuidelines ? 'Hide Guidelines' : 'Show Guidelines'}
+              </DropdownMenuItem>
+              {showGuidelines && guidelines && (guidelines.horizontal.length > 0 || guidelines.vertical.length > 0) && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem 
+                    onClick={clearGuidelines}
+                    className="text-destructive"
+                  >
+                    Clear Guidelines ({guidelines.horizontal.length + guidelines.vertical.length})
+                  </DropdownMenuItem>
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
-      {/* Canvas Controls */}
-      <div className="flex items-center gap-3 border-r pr-4">
-        <Label className="text-xs text-muted-foreground">Canvas:</Label>
-        
-        {/* Theme Toggle */}
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => setCanvasTheme(canvasTheme === 'light' ? 'dark' : 'light')}
-          className="h-7 px-2"
-          title="Toggle theme"
-        >
-          {canvasTheme === 'light' ? (
-            <Sun size={12} className="mr-1" />
-          ) : (
-            <Moon size={12} className="mr-1" />
-          )}
-          {canvasTheme === 'light' ? 'Light' : 'Dark'}
-        </Button>
-
-        {/* Fullscreen Toggle */}
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={async () => {
-            try {
-              await toggleFullscreen();
-            } catch (error) {
-              console.error('Fullscreen toggle failed:', error);
-            }
-          }}
-          className="h-7 px-2"
-          title={isFullscreen ? "Exit fullscreen (ESC)" : "Enter fullscreen mode"}
-        >
-          {isFullscreen ? (
-            <MinusSquare size={12} className="mr-1" />
-          ) : (
-            <Maximize size={12} className="mr-1" />
-          )}
-          {isFullscreen ? 'Exit' : 'Full'}
-        </Button>
-
-        {/* View Options Dropdown */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button size="sm" variant="outline" className="h-7 px-2">
-              <Eye size={12} className="mr-1" />
-              View
-              <ChevronDown size={12} className="ml-1" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start">
-            <DropdownMenuItem 
-              onClick={toggleGrid}
-              className="flex items-center gap-2"
-            >
-              <Grid size={14} />
-              {showGrid ? 'Hide Grid' : 'Show Grid'}
-            </DropdownMenuItem>
-            <DropdownMenuItem 
-              onClick={toggleRulers}
-              className="flex items-center gap-2"
-            >
-              <Ruler size={14} />
-              {showRulers ? 'Hide Rulers' : 'Show Rulers'}
-            </DropdownMenuItem>
-            <DropdownMenuItem 
-              onClick={toggleGuidelines}
-              className="flex items-center gap-2"
-            >
-              <Minus size={14} />
-              {showGuidelines ? 'Hide Guidelines' : 'Show Guidelines'}
-            </DropdownMenuItem>
-            {showGuidelines && guidelines && (guidelines.horizontal.length > 0 || guidelines.vertical.length > 0) && (
-              <>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem 
-                  onClick={clearGuidelines}
-                  className="text-destructive"
-                >
-                  Clear Guidelines ({guidelines.horizontal.length + guidelines.vertical.length})
-                </DropdownMenuItem>
-              </>
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-
-      {/* Block Controls */}
-      {selectedNode ? (
-        <>
-          <div className="flex items-center gap-3 border-r pr-4">
+      {/* Row 2: Block Controls and Properties (only when block selected) */}
+      {selectedNode && (
+        <div className="flex items-center gap-4 flex-wrap min-h-8">
+          {/* Block Type and Actions */}
+          <div className="flex items-center gap-3">
             <Label className="text-xs text-muted-foreground">
               {selectedNode.type.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}:
             </Label>
@@ -387,13 +499,18 @@ export function TopToolbar() {
             </Button>
           </div>
 
-          {/* Block Properties */}
-          <div className="flex-1 flex items-center gap-4 min-w-0">
+          <Separator orientation="vertical" className="h-6" />
+
+          {/* Block Properties - can wrap to additional rows if needed */}
+          <div className="flex-1 flex items-center gap-4 min-w-0 flex-wrap">
             {renderCompactNodeEditor()}
           </div>
-        </>
-      ) : (
-        <div className="flex-1 flex items-center justify-center">
+        </div>
+      )}
+
+      {/* Row 3: No selection message (only when no block selected) */}
+      {!selectedNode && (
+        <div className="flex items-center justify-center min-h-8">
           <span className="text-xs text-muted-foreground">
             Select a block to edit its properties
           </span>

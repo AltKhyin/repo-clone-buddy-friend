@@ -16,6 +16,9 @@ import { ImageBlockInspector } from './Inspector/ImageBlockInspector';
 import { VideoEmbedBlockInspector } from './Inspector/VideoEmbedBlockInspector';
 import { TableBlockInspector } from './Inspector/TableBlockInspector';
 import { PollBlockInspector } from './Inspector/PollBlockInspector';
+import { ReferenceBlockInspector } from './Inspector/ReferenceBlockInspector';
+import { KeyTakeawayBlockInspector } from './Inspector/KeyTakeawayBlockInspector';
+import { SeparatorBlockInspector } from './Inspector/SeparatorBlockInspector';
 
 export function InspectorPanel() {
   const { 
@@ -84,42 +87,14 @@ export function InspectorPanel() {
       case 'pollBlock':
         return <PollBlockInspector nodeId={selectedNode.id} data={selectedNode.data} />;
 
+      case 'referenceBlock':
+        return <ReferenceBlockInspector nodeId={selectedNode.id} />;
+      
       case 'keyTakeawayBlock':
-        return (
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="takeaway-content">Message</Label>
-              <Textarea
-                id="takeaway-content"
-                value={selectedNode.data.content}
-                onChange={(e) => handleUpdateNode({
-                  data: { ...selectedNode.data, content: e.target.value }
-                })}
-                placeholder="Key takeaway message..."
-                rows={3}
-              />
-            </div>
-            <div>
-              <Label htmlFor="takeaway-theme">Theme</Label>
-              <Select 
-                value={selectedNode.data.theme}
-                onValueChange={(value) => handleUpdateNode({
-                  data: { ...selectedNode.data, theme: value }
-                })}
-              >
-                <SelectTrigger id="takeaway-theme">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="info">Info</SelectItem>
-                  <SelectItem value="success">Success</SelectItem>
-                  <SelectItem value="warning">Warning</SelectItem>
-                  <SelectItem value="error">Error</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        );
+        return <KeyTakeawayBlockInspector nodeId={selectedNode.id} />;
+      
+      case 'separatorBlock':
+        return <SeparatorBlockInspector nodeId={selectedNode.id} />;
 
       default:
         return (

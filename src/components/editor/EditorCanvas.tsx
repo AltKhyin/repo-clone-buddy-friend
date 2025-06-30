@@ -34,19 +34,30 @@ import { HeadingBlockNode } from './Nodes/HeadingBlockNode';
 import { ImageBlockNode } from './Nodes/ImageBlockNode';
 import { VideoEmbedBlockNode } from './Nodes/VideoEmbedBlockNode';
 import { PollBlockNode } from './Nodes/PollBlockNode';
+import { ReferenceBlockNode } from './Nodes/ReferenceBlockNode';
+import { KeyTakeawayBlockNode } from './Nodes/KeyTakeawayBlockNode';
+import { SeparatorBlockNode } from './Nodes/SeparatorBlockNode';
+import { DraggableNodeWrapper } from './DraggableNodeWrapper';
+import { DropZoneOverlay, DragPreview } from './DropZone';
+import { useDragDropReordering } from '@/hooks/useDragDropReordering';
 
-// Custom React Flow node components with Tiptap integration
+// Custom React Flow node components with drag-and-drop support
 function CustomTextBlockNode({ data, selected }: { data: { nodeObject: NodeObject }, selected?: boolean }) {
   const { selectedNodeId } = useEditorStore();
   const { nodeObject } = data;
   const isSelected = selected || selectedNodeId === nodeObject.id;
 
   return (
-    <TextBlockNode
-      id={nodeObject.id}
-      data={nodeObject.data}
-      selected={isSelected}
-    />
+    <DraggableNodeWrapper
+      nodeId={nodeObject.id}
+      isSelected={isSelected}
+    >
+      <TextBlockNode
+        id={nodeObject.id}
+        data={nodeObject.data}
+        selected={isSelected}
+      />
+    </DraggableNodeWrapper>
   );
 }
 
@@ -56,11 +67,16 @@ function CustomHeadingBlockNode({ data, selected }: { data: { nodeObject: NodeOb
   const isSelected = selected || selectedNodeId === nodeObject.id;
 
   return (
-    <HeadingBlockNode
-      id={nodeObject.id}
-      data={nodeObject.data}
-      selected={isSelected}
-    />
+    <DraggableNodeWrapper
+      nodeId={nodeObject.id}
+      isSelected={isSelected}
+    >
+      <HeadingBlockNode
+        id={nodeObject.id}
+        data={nodeObject.data}
+        selected={isSelected}
+      />
+    </DraggableNodeWrapper>
   );
 }
 
@@ -70,11 +86,16 @@ function CustomImageBlockNode({ data, selected }: { data: { nodeObject: NodeObje
   const isSelected = selected || selectedNodeId === nodeObject.id;
 
   return (
-    <ImageBlockNode
-      id={nodeObject.id}
-      data={nodeObject.data}
-      selected={isSelected}
-    />
+    <DraggableNodeWrapper
+      nodeId={nodeObject.id}
+      isSelected={isSelected}
+    >
+      <ImageBlockNode
+        id={nodeObject.id}
+        data={nodeObject.data}
+        selected={isSelected}
+      />
+    </DraggableNodeWrapper>
   );
 }
 
@@ -84,11 +105,16 @@ function CustomVideoEmbedBlockNode({ data, selected }: { data: { nodeObject: Nod
   const isSelected = selected || selectedNodeId === nodeObject.id;
 
   return (
-    <VideoEmbedBlockNode
-      id={nodeObject.id}
-      data={nodeObject.data}
-      selected={isSelected}
-    />
+    <DraggableNodeWrapper
+      nodeId={nodeObject.id}
+      isSelected={isSelected}
+    >
+      <VideoEmbedBlockNode
+        id={nodeObject.id}
+        data={nodeObject.data}
+        selected={isSelected}
+      />
+    </DraggableNodeWrapper>
   );
 }
 
@@ -98,11 +124,73 @@ function CustomPollBlockNode({ data, selected }: { data: { nodeObject: NodeObjec
   const isSelected = selected || selectedNodeId === nodeObject.id;
 
   return (
-    <PollBlockNode
-      id={nodeObject.id}
-      data={nodeObject.data}
-      selected={isSelected}
-    />
+    <DraggableNodeWrapper
+      nodeId={nodeObject.id}
+      isSelected={isSelected}
+    >
+      <PollBlockNode
+        id={nodeObject.id}
+        data={nodeObject.data}
+        selected={isSelected}
+      />
+    </DraggableNodeWrapper>
+  );
+}
+
+function CustomReferenceBlockNode({ data, selected }: { data: { nodeObject: NodeObject }, selected?: boolean }) {
+  const { selectedNodeId } = useEditorStore();
+  const { nodeObject } = data;
+  const isSelected = selected || selectedNodeId === nodeObject.id;
+
+  return (
+    <DraggableNodeWrapper
+      nodeId={nodeObject.id}
+      isSelected={isSelected}
+    >
+      <ReferenceBlockNode
+        id={nodeObject.id}
+        data={nodeObject.data}
+        selected={isSelected}
+      />
+    </DraggableNodeWrapper>
+  );
+}
+
+function CustomKeyTakeawayBlockNode({ data, selected }: { data: { nodeObject: NodeObject }, selected?: boolean }) {
+  const { selectedNodeId } = useEditorStore();
+  const { nodeObject } = data;
+  const isSelected = selected || selectedNodeId === nodeObject.id;
+
+  return (
+    <DraggableNodeWrapper
+      nodeId={nodeObject.id}
+      isSelected={isSelected}
+    >
+      <KeyTakeawayBlockNode
+        id={nodeObject.id}
+        data={nodeObject.data}
+        selected={isSelected}
+      />
+    </DraggableNodeWrapper>
+  );
+}
+
+function CustomSeparatorBlockNode({ data, selected }: { data: { nodeObject: NodeObject }, selected?: boolean }) {
+  const { selectedNodeId } = useEditorStore();
+  const { nodeObject } = data;
+  const isSelected = selected || selectedNodeId === nodeObject.id;
+
+  return (
+    <DraggableNodeWrapper
+      nodeId={nodeObject.id}
+      isSelected={isSelected}
+    >
+      <SeparatorBlockNode
+        id={nodeObject.id}
+        data={nodeObject.data}
+        selected={isSelected}
+      />
+    </DraggableNodeWrapper>
   );
 }
 
@@ -252,6 +340,9 @@ const nodeTypes: NodeTypes = {
   imageBlock: CustomImageBlockNode,
   videoEmbedBlock: CustomVideoEmbedBlockNode,
   pollBlock: CustomPollBlockNode,
+  referenceBlock: CustomReferenceBlockNode,
+  keyTakeawayBlock: CustomKeyTakeawayBlockNode,
+  separatorBlock: CustomSeparatorBlockNode,
   customBlock: CustomBlockNode, // Legacy fallback for other block types
 };
 
@@ -271,6 +362,17 @@ export function EditorCanvas() {
   const { isOver, setNodeRef } = useDroppable({
     id: 'editor-canvas'
   });
+
+  // Drag and drop reordering hooks
+  const {
+    dropZones,
+    dragState,
+    handleDropZoneHover,
+    handleDrop,
+    getDragFeedback,
+    isDragging,
+    draggedNodeId
+  } = useDragDropReordering();
 
   // Convert our editor nodes to React Flow nodes
   const reactFlowNodes = useMemo(() => {
@@ -299,7 +401,9 @@ export function EditorCanvas() {
 
         return {
           id: editorNode.id,
-          type: editorNode.type === 'textBlock' || editorNode.type === 'headingBlock' ? editorNode.type : 'customBlock',
+          type: ['textBlock', 'headingBlock', 'imageBlock', 'videoEmbedBlock', 'pollBlock', 'referenceBlock', 'keyTakeawayBlock', 'separatorBlock'].includes(editorNode.type) 
+            ? editorNode.type 
+            : 'customBlock',
           position: { x, y },
           data: { nodeObject: editorNode },
           width: width,
@@ -317,14 +421,16 @@ export function EditorCanvas() {
             nodeId: editorNode.id,
             x: Math.floor(defaultX / (columnWidth / 2)),
             y: Math.floor(defaultY / 20),
-            w: Math.floor(defaultWidth / (columnWidth / 2)),
-            h: Math.floor(defaultHeight / 20),
+            w: Math.min(12, Math.max(1, Math.floor(defaultWidth / (columnWidth / 2)))), // Ensure w is between 1-12
+            h: Math.max(1, Math.floor(defaultHeight / 20)), // Ensure h is at least 1
           }
         });
 
         return {
           id: editorNode.id,
-          type: editorNode.type === 'textBlock' || editorNode.type === 'headingBlock' ? editorNode.type : 'customBlock',
+          type: ['textBlock', 'headingBlock', 'imageBlock', 'videoEmbedBlock', 'pollBlock', 'referenceBlock', 'keyTakeawayBlock', 'separatorBlock'].includes(editorNode.type) 
+            ? editorNode.type 
+            : 'customBlock',
           position: { x: defaultX, y: defaultY },
           data: { nodeObject: editorNode },
           width: defaultWidth,
@@ -463,12 +569,29 @@ export function EditorCanvas() {
         </div>
       </div>
 
-      {/* Drop zone overlay */}
+      {/* Drop zone overlay for new blocks */}
       {isOver && (
         <div className="absolute inset-0 border-2 border-dashed border-primary bg-primary/5 rounded-lg flex items-center justify-center z-20 pointer-events-none">
           <p className="text-primary font-medium">Drop block here</p>
         </div>
       )}
+
+      {/* Drag-and-drop reordering overlays */}
+      <DropZoneOverlay
+        dropZones={dropZones}
+        isDragging={isDragging}
+        hoveredZoneId={dragState.hoveredNodeId}
+        dropZonePosition={dragState.dropZonePosition}
+        onDropZoneHover={handleDropZoneHover}
+        onDrop={handleDrop}
+      />
+
+      {/* Drag preview that follows cursor */}
+      <DragPreview
+        isDragging={isDragging}
+        draggedNode={editorNodes.find(node => node.id === draggedNodeId)}
+        position={dragState.draggedPosition}
+      />
 
       {/* React Flow Canvas */}
       <div ref={setNodeRef} className="w-full h-full" style={{ position: 'absolute', inset: 0 }}>

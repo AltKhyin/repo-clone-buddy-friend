@@ -1,11 +1,12 @@
 // ABOUTME: HeadingBlock component with Tiptap editing, heading level control, and deep customization
 
 import React, { memo, useCallback } from 'react'
-import { NodeResizer } from '@xyflow/react'
 import { EditorContent } from '@tiptap/react'
 import { useEditorStore } from '@/store/editorStore'
 import { useTiptapEditor } from '@/hooks/useTiptapEditor'
 import { TiptapBubbleMenu } from '@/components/editor/TiptapBubbleMenu'
+import { UnifiedNodeResizer } from '../components/UnifiedNodeResizer'
+import { useUnifiedBlockStyling, getSelectionIndicatorProps, getThemeAwareTextColor } from '../utils/blockStyling'
 
 interface HeadingBlockNodeProps {
   id: string
@@ -62,30 +63,34 @@ export const HeadingBlockNode = memo<HeadingBlockNodeProps>(({ id, data, selecte
     }
   }
 
+  // Get unified styling
+  const { selectionClasses, borderStyles } = useUnifiedBlockStyling(
+    'headingBlock',
+    selected,
+    { borderWidth: data.borderWidth, borderColor: data.borderColor }
+  )
+
   // Calculate dynamic styles based on customization data
   const paddingX = data.paddingX ?? 12
   const paddingY = data.paddingY ?? 8
-  const borderWidth = data.borderWidth ?? 0
 
   const dynamicStyles = {
     fontSize: getDefaultFontSize(data.level),
     textAlign: data.textAlign || 'left',
-    color: data.color || 'rgb(17, 24, 39)', // text-gray-900
+    color: getThemeAwareTextColor(canvasTheme, data.color),
     backgroundColor: data.backgroundColor || 'transparent',
     paddingLeft: `${paddingX}px`,
     paddingRight: `${paddingX}px`,
     paddingTop: `${paddingY}px`,
     paddingBottom: `${paddingY}px`,
     borderRadius: data.borderRadius ? `${data.borderRadius}px` : '6px',
-    borderWidth: borderWidth > 0 ? `${borderWidth}px` : '0px',
-    borderColor: data.borderColor || 'transparent',
-    borderStyle: borderWidth > 0 ? 'solid' : 'none',
     fontFamily: data.fontFamily || 'inherit',
     fontWeight: data.fontWeight || (data.level <= 2 ? 700 : 600),
     letterSpacing: data.letterSpacing ? `${data.letterSpacing}px` : '0px',
     textTransform: data.textTransform || 'none',
     textDecoration: data.textDecoration || 'none',
     minHeight: '50px',
+    ...borderStyles,
     minWidth: '150px',
     transition: 'all 0.2s ease-in-out',
     lineHeight: 1.3,
@@ -107,40 +112,26 @@ export const HeadingBlockNode = memo<HeadingBlockNodeProps>(({ id, data, selecte
   }
 
   const constraints = getSizeConstraints()
+  const selectionIndicatorProps = getSelectionIndicatorProps('headingBlock')
 
   return (
     <>
-      {/* Node Resizer for React Flow */}
-      <NodeResizer 
+      {/* Unified Node Resizer */}
+      <UnifiedNodeResizer 
         isVisible={selected}
-        minWidth={constraints.minWidth}
-        minHeight={constraints.minHeight}
-        maxWidth={constraints.maxWidth}
-        maxHeight={constraints.maxHeight}
-        handleStyle={{
-          width: '12px',
-          height: '12px',
-          borderRadius: '50%',
-          backgroundColor: 'rgb(99, 102, 241)', // indigo-500
-          border: '2px solid white',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-        }}
+        nodeType="headingBlock"
+        customConstraints={constraints}
       />
       
       <div
-        className={`
-          relative cursor-text transition-all duration-200 
-          ${selected 
-            ? 'ring-2 ring-indigo-500 ring-offset-2 shadow-lg' 
-            : 'hover:shadow-md'
-          }
-        `}
+        data-node-id={id}
+        className={`relative cursor-text ${selectionClasses}`}
         style={dynamicStyles}
         onClick={editorInstance.focusEditor}
       >
-        {/* Selection indicator */}
+        {/* Unified Selection indicator */}
         {selected && (
-          <div className="absolute -top-8 left-0 text-xs bg-indigo-500 text-white px-2 py-1 rounded-md z-10">
+          <div {...selectionIndicatorProps}>
             Heading {data.level}
           </div>
         )}

@@ -184,6 +184,7 @@ vi.mock('@/components/theme/CustomThemeProvider', () => ({
   CustomThemeProvider: ({ children }: { children: React.ReactNode }) => children,
 }))
 
+
 // Mock react-router-dom
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual('react-router-dom');

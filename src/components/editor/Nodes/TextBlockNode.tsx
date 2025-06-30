@@ -1,11 +1,12 @@
 // ABOUTME: TextBlock component with Tiptap rich text editing and deep customization options
 
 import React, { memo, useCallback } from 'react'
-import { NodeResizer } from '@xyflow/react'
 import { EditorContent } from '@tiptap/react'
 import { useEditorStore } from '@/store/editorStore'
 import { useTiptapEditor } from '@/hooks/useTiptapEditor'
 import { TiptapBubbleMenu } from '@/components/editor/TiptapBubbleMenu'
+import { UnifiedNodeResizer } from '../components/UnifiedNodeResizer'
+import { useUnifiedBlockStyling, getSelectionIndicatorProps, getThemeAwareTextColor } from '../utils/blockStyling'
 
 interface TextBlockNodeProps {
   id: string
@@ -49,67 +50,54 @@ export const TextBlockNode = memo<TextBlockNodeProps>(({ id, data, selected }) =
     editable: true
   })
 
+  // Get unified styling
+  const { selectionClasses, borderStyles } = useUnifiedBlockStyling(
+    'textBlock',
+    selected,
+    { borderWidth: data.borderWidth, borderColor: data.borderColor }
+  )
+
   // Calculate dynamic styles based on customization data
   const paddingX = data.paddingX ?? 16
   const paddingY = data.paddingY ?? 12
-  const borderWidth = data.borderWidth ?? 0
 
   const dynamicStyles = {
     fontSize: data.fontSize ? `${data.fontSize}px` : '16px',
     textAlign: data.textAlign || 'left',
-    color: data.color || 'inherit',
+    color: getThemeAwareTextColor(canvasTheme, data.color),
     backgroundColor: data.backgroundColor || 'transparent',
     paddingLeft: `${paddingX}px`,
     paddingRight: `${paddingX}px`,
     paddingTop: `${paddingY}px`,
     paddingBottom: `${paddingY}px`,
     borderRadius: data.borderRadius ? `${data.borderRadius}px` : '8px',
-    borderWidth: borderWidth > 0 ? `${borderWidth}px` : '0px',
-    borderColor: data.borderColor || 'rgb(229, 231, 235)',
-    borderStyle: borderWidth > 0 ? 'solid' : 'none',
     lineHeight: data.lineHeight || 1.6,
     fontFamily: data.fontFamily || 'inherit',
     fontWeight: data.fontWeight || 400,
     minHeight: '80px',
     minWidth: '200px',
-    transition: 'all 0.2s ease-in-out',
+    ...borderStyles,
   } as React.CSSProperties
+
+  const selectionIndicatorProps = getSelectionIndicatorProps('textBlock')
 
   return (
     <>
-      {/* Node Resizer for React Flow */}
-      <NodeResizer 
+      {/* Unified Node Resizer */}
+      <UnifiedNodeResizer 
         isVisible={selected}
-        minWidth={200}
-        minHeight={80}
-        maxWidth={800}
-        maxHeight={600}
-        handleStyle={{
-          width: '12px',
-          height: '12px',
-          borderRadius: '50%',
-          backgroundColor: 'rgb(59, 130, 246)',
-          border: '2px solid white',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-        }}
+        nodeType="textBlock"
       />
       
       <div
-        className={`
-          relative cursor-text transition-all duration-200 
-          ${selected 
-            ? 'ring-2 ring-primary ring-offset-2 shadow-lg' 
-            : 'hover:shadow-md'
-          }
-        `}
+        data-node-id={id}
+        className={`relative cursor-text ${selectionClasses}`}
         style={dynamicStyles}
         onClick={editorInstance.focusEditor}
       >
-        {/* Selection indicator */}
+        {/* Unified Selection indicator */}
         {selected && (
-          <div className="absolute -top-8 left-0 text-xs bg-primary text-primary-foreground px-2 py-1 rounded-md z-10">
-            Text Block
-          </div>
+          <div {...selectionIndicatorProps} />
         )}
 
         {/* Tiptap Editor Content */}

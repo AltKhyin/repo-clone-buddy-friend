@@ -11,9 +11,15 @@ vi.mock('@/store/editorStore', () => ({
   useEditorStore: vi.fn()
 }));
 
+// Mock the intersection observer hook
+vi.mock('@/hooks/useIntersectionObserver', () => ({
+  useIntersectionObserver: vi.fn(() => [{ current: null }, true]) // Always return as in view for tests
+}));
+
 // Mock React Flow components
 vi.mock('@xyflow/react', () => ({
   Handle: ({ children, ...props }: any) => <div data-testid="react-flow-handle" {...props}>{children}</div>,
+  NodeResizer: ({ children, ...props }: any) => <div data-testid="node-resizer" {...props}>{children}</div>,
   Position: {
     Top: 'top',
     Bottom: 'bottom',

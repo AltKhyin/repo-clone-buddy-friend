@@ -98,6 +98,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
     isSaving: false,
     lastSaved: null,
     isFullscreen: false,
+    isInspectorVisible: true,
     
     // Canvas State
     canvasTransform: initialCanvasTransform,
@@ -372,6 +373,10 @@ export const useEditorStore = create<EditorState>((set, get) => {
         // Don't update state if fullscreen failed
       }
     },
+
+    toggleInspector: () => {
+      set((state) => ({ isInspectorVisible: !state.isInspectorVisible }));
+    },
     
     // Handle browser fullscreen changes (ESC key, F11, etc.)
     handleFullscreenChange: () => {
@@ -484,6 +489,30 @@ export const useEditorStore = create<EditorState>((set, get) => {
     
   // ===== DATA PERSISTENCE =====
     
+    // Utility function to sanitize layout items before saving
+    sanitizeLayouts: (layouts: Layouts): Layouts => {
+      const sanitizeItems = (items: LayoutItem[]): LayoutItem[] => {
+        return items.map(item => ({
+          ...item,
+          x: Math.max(0, item.x),
+          y: Math.max(0, item.y),
+          w: Math.min(12, Math.max(1, item.w)), // Ensure w is between 1-12
+          h: Math.max(1, item.h), // Ensure h is at least 1
+        }));
+      };
+
+      return {
+        desktop: {
+          ...layouts.desktop,
+          items: sanitizeItems(layouts.desktop.items),
+        },
+        mobile: {
+          ...layouts.mobile,
+          items: sanitizeItems(layouts.mobile.items),
+        },
+      };
+    },
+    
     saveToDatabase: async () => {
       // Force immediate save (bypass debounce)
       const state = get();
@@ -492,10 +521,13 @@ export const useEditorStore = create<EditorState>((set, get) => {
       try {
         set({ isSaving: true });
         
+        // Sanitize layouts before saving to ensure validation passes
+        const sanitizedLayouts = get().sanitizeLayouts(state.layouts);
+        
         const structuredContent: StructuredContentV2 = {
           version: '2.0.0',
           nodes: state.nodes,
-          layouts: state.layouts,
+          layouts: sanitizedLayouts,
           metadata: {
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
@@ -534,10 +566,13 @@ export const useEditorStore = create<EditorState>((set, get) => {
           const data = await get().persistenceCallbacks!.load(reviewId);
           
           if (data?.structured_content) {
+            // Sanitize layouts when loading to handle any legacy invalid data
+            const sanitizedLayouts = get().sanitizeLayouts(data.structured_content.layouts);
+            
             // Load the content into the store
             set({
               nodes: data.structured_content.nodes,
-              layouts: data.structured_content.layouts,
+              layouts: sanitizedLayouts,
               selectedNodeId: null,
               isDirty: false,
               isSaving: false,
@@ -577,9 +612,12 @@ export const useEditorStore = create<EditorState>((set, get) => {
       try {
         const validatedContent = validateStructuredContent(json);
         
+        // Sanitize layouts when loading from JSON
+        const sanitizedLayouts = get().sanitizeLayouts(validatedContent.layouts);
+        
         set({
           nodes: validatedContent.nodes,
-          layouts: validatedContent.layouts,
+          layouts: sanitizedLayouts,
           isDirty: false,
           selectedNodeId: null,
         });

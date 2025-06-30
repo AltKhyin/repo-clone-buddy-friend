@@ -7,6 +7,8 @@ import { useEditorStore } from '@/store/editorStore'
 import { Table, Plus, Minus, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { UnifiedNodeResizer } from '../components/UnifiedNodeResizer'
+import { useUnifiedBlockStyling, getSelectionIndicatorProps, getThemeAwarePlaceholderClasses } from '../utils/blockStyling'
 
 interface TableBlockNodeData extends TableBlockData {
   // Additional display properties
@@ -27,11 +29,16 @@ export const TableBlockNode: React.FC<NodeProps<TableBlockNodeData>> = ({
   const [editingCell, setEditingCell] = useState<{ row: number, col: number } | null>(null)
   const [sortConfig, setSortConfig] = useState<{ column: number, direction: 'asc' | 'desc' } | null>(null)
 
+  // Get unified styling
+  const { selectionClasses, borderStyles } = useUnifiedBlockStyling(
+    'tableBlock',
+    selected,
+    { borderWidth: data.borderWidth, borderColor: data.borderColor }
+  )
+
   // Apply styling with theme awareness
   const paddingX = data.paddingX ?? 16
   const paddingY = data.paddingY ?? 16
-  const borderWidth = data.borderWidth ?? 0
-  const borderColor = data.borderColor ?? '#e5e7eb'
   const backgroundColor = data.backgroundColor ?? 'transparent'
   const borderRadius = data.borderRadius ?? 8
 
@@ -46,23 +53,61 @@ export const TableBlockNode: React.FC<NodeProps<TableBlockNodeData>> = ({
     })
   }
 
+  // Utility function to ensure all rows have the same number of columns
+  const normalizeTableGrid = (headers: string[], rows: string[][]) => {
+    const targetColumnCount = headers.length
+    
+    // Ensure all rows have exactly the same number of columns as headers
+    const normalizedRows = rows.map(row => {
+      const normalizedRow = [...row]
+      
+      // If row has fewer columns than headers, pad with empty strings
+      while (normalizedRow.length < targetColumnCount) {
+        normalizedRow.push('')
+      }
+      
+      // If row has more columns than headers, truncate
+      if (normalizedRow.length > targetColumnCount) {
+        normalizedRow.splice(targetColumnCount)
+      }
+      
+      return normalizedRow
+    })
+    
+    return normalizedRows
+  }
+
   const handleCellEdit = (rowIndex: number, colIndex: number, value: string) => {
-    const newRows = [...data.rows]
     if (rowIndex === -1) {
       // Editing header
       const newHeaders = [...data.headers]
       newHeaders[colIndex] = value
-      updateTableData({ headers: newHeaders })
+      // Ensure all rows match the header count after header edit
+      const normalizedRows = normalizeTableGrid(newHeaders, data.rows)
+      updateTableData({ headers: newHeaders, rows: normalizedRows })
     } else {
       // Editing data cell
+      const newRows = [...data.rows]
+      
+      // Ensure the row exists and has enough columns
+      while (newRows.length <= rowIndex) {
+        newRows.push(new Array(data.headers.length).fill(''))
+      }
+      while (newRows[rowIndex].length <= colIndex) {
+        newRows[rowIndex].push('')
+      }
+      
       newRows[rowIndex][colIndex] = value
-      updateTableData({ rows: newRows })
+      // Normalize to ensure grid consistency
+      const normalizedRows = normalizeTableGrid(data.headers, newRows)
+      updateTableData({ rows: normalizedRows })
     }
   }
 
   const addRow = () => {
     const newRow = new Array(data.headers.length).fill('')
-    updateTableData({ rows: [...data.rows, newRow] })
+    const normalizedRows = normalizeTableGrid(data.headers, [...data.rows, newRow])
+    updateTableData({ rows: normalizedRows })
   }
 
   const removeRow = (index: number) => {
@@ -74,15 +119,18 @@ export const TableBlockNode: React.FC<NodeProps<TableBlockNodeData>> = ({
 
   const addColumn = () => {
     const newHeaders = [...data.headers, `Column ${data.headers.length + 1}`]
-    const newRows = data.rows.map(row => [...row, ''])
-    updateTableData({ headers: newHeaders, rows: newRows })
+    // Normalize all existing rows to ensure they have the right number of columns
+    const normalizedRows = normalizeTableGrid(newHeaders, data.rows)
+    updateTableData({ headers: newHeaders, rows: normalizedRows })
   }
 
   const removeColumn = (index: number) => {
     if (data.headers.length > 1) {
       const newHeaders = data.headers.filter((_, i) => i !== index)
-      const newRows = data.rows.map(row => row.filter((_, i) => i !== index))
-      updateTableData({ headers: newHeaders, rows: newRows })
+      // Remove the column from all rows and normalize to ensure consistency
+      const rowsWithColumnRemoved = data.rows.map(row => row.filter((_, i) => i !== index))
+      const normalizedRows = normalizeTableGrid(newHeaders, rowsWithColumnRemoved)
+      updateTableData({ headers: newHeaders, rows: normalizedRows })
     }
   }
 
@@ -101,13 +149,19 @@ export const TableBlockNode: React.FC<NodeProps<TableBlockNodeData>> = ({
       const newHeaders = [...data.headers]
       ;[newHeaders[index], newHeaders[newIndex]] = [newHeaders[newIndex], newHeaders[index]]
       
-      const newRows = data.rows.map(row => {
+      const swappedRows = data.rows.map(row => {
         const newRow = [...row]
-        ;[newRow[index], newRow[newIndex]] = [newRow[newIndex], newRow[index]]
+        // Ensure the row has enough columns before swapping
+        while (newRow.length < data.headers.length) {
+          newRow.push('')
+        }
+        ;[newRow[index], newRow[newIndex]] = [newRow[newIndex] || '', newRow[index] || '']
         return newRow
       })
       
-      updateTableData({ headers: newHeaders, rows: newRows })
+      // Normalize to ensure all rows have consistent column count
+      const normalizedRows = normalizeTableGrid(newHeaders, swappedRows)
+      updateTableData({ headers: newHeaders, rows: normalizedRows })
     }
   }
 
@@ -161,23 +215,36 @@ export const TableBlockNode: React.FC<NodeProps<TableBlockNodeData>> = ({
     return {}
   }
 
+  // Dynamic styles with unified border styling
+  const dynamicStyles = {
+    padding: `${paddingY}px ${paddingX}px`,
+    backgroundColor: backgroundColor !== 'transparent' ? backgroundColor : undefined,
+    ...borderStyles,
+    borderRadius: `${borderRadius}px`,
+    minWidth: '400px',
+    maxWidth: '1000px',
+    transition: 'all 0.2s ease-in-out',
+  } as React.CSSProperties
+
+  const selectionIndicatorProps = getSelectionIndicatorProps('tableBlock')
+
   return (
-    <div
-      className={`
-        bg-white border-2 rounded-lg shadow-sm transition-all duration-200 min-w-[400px] max-w-[1000px]
-        ${selected ? 'border-blue-500 shadow-lg' : 'border-gray-200'}
-        ${canvasTheme === 'dark' ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-200'}
-      `}
-      style={{
-        padding: `${paddingY}px ${paddingX}px`,
-        borderWidth: borderWidth > 0 ? `${borderWidth}px` : undefined,
-        borderColor: borderWidth > 0 ? borderColor : undefined,
-        borderStyle: borderWidth > 0 ? 'solid' : 'none',
-        backgroundColor: backgroundColor !== 'transparent' ? backgroundColor : undefined,
-        borderRadius: `${borderRadius}px`,
-      }}
-      onClick={handleTableClick}
-    >
+    <>
+      {/* Unified Node Resizer */}
+      <UnifiedNodeResizer 
+        isVisible={selected}
+        nodeType="tableBlock"
+      />
+      
+      <div
+        className={`relative cursor-pointer ${selectionClasses}`}
+        style={dynamicStyles}
+        onClick={handleTableClick}
+      >
+        {/* Unified Selection indicator */}
+        {selected && (
+          <div {...selectionIndicatorProps} />
+        )}
       {/* Connection handles */}
       <Handle type="target" position={Position.Top} className="opacity-0" />
       <Handle type="source" position={Position.Bottom} className="opacity-0" />
@@ -383,7 +450,7 @@ export const TableBlockNode: React.FC<NodeProps<TableBlockNodeData>> = ({
                                 setEditingCell({ row: rowIndex, col: colIndex })
                               }}
                             >
-                              {cell || <span className="text-gray-400 italic">Click to edit</span>}
+                              {cell || <span className={getThemeAwarePlaceholderClasses(canvasTheme)}>Click to edit</span>}
                             </div>
                           )}
                         </td>
@@ -418,10 +485,11 @@ export const TableBlockNode: React.FC<NodeProps<TableBlockNodeData>> = ({
         )}
       </div>
 
-      {/* Accessibility Label for Screen Readers */}
-      <span className="sr-only">
-        Table with {data.headers.length} columns and {data.rows.length} rows
-      </span>
-    </div>
+        {/* Accessibility Label for Screen Readers */}
+        <span className="sr-only">
+          Table with {data.headers.length} columns and {data.rows.length} rows
+        </span>
+      </div>
+    </>
   )
 }
