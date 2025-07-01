@@ -1,9 +1,11 @@
-// ABOUTME: React Flow node component for preview boundary that's anchored in canvas coordinates
+// ABOUTME: React Flow node component for preview boundary that's anchored in canvas coordinates and supports intelligent viewport conversion
 
 import React, { useState } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useEditorStore } from '@/store/editorStore';
 import { Button } from '@/components/ui/button';
-import { Eye, EyeOff, Ruler } from 'lucide-react';
+import { Eye, EyeOff, Ruler, Smartphone, Monitor } from 'lucide-react';
+import { ensureMasterDerivedLayouts } from '@/store/layoutUtils';
 
 interface PreviewBoundaryNodeProps {
   data?: {
@@ -17,24 +19,31 @@ export const PreviewBoundaryNode: React.FC<PreviewBoundaryNodeProps> = ({ data =
   const isMobile = useIsMobile();
   const [isVisible, setIsVisible] = useState(true);
   const [measurementsVisible, setMeasurementsVisible] = useState(showMeasurements);
+  // Get editor state for viewport information
+  const { currentViewport, nodes, switchViewport, layouts } = useEditorStore();
 
-  // Layout configuration based on LayoutAwareRenderer
+  // Layout configuration based on current editor viewport (not screen size)
   const layoutConfig = {
     desktop: {
       columns: 12,
       gap: '2rem',
       maxWidth: '1200px', // Standard content width
       label: 'Desktop - 12 Columns',
+      backgroundColor: 'bg-blue-50',
+      borderColor: 'border-blue-400',
     },
     mobile: {
       columns: 1,
       gap: '1.5rem',
-      maxWidth: '100%',
+      maxWidth: '375px',   // Mobile device width
       label: 'Mobile - Single Column',
+      backgroundColor: 'bg-green-50',
+      borderColor: 'border-green-400',
     },
   };
 
-  const currentConfig = isMobile ? layoutConfig.mobile : layoutConfig.desktop;
+  // Use editor viewport, not screen size - this is the key improvement
+  const currentConfig = layoutConfig[currentViewport];
 
   // Generate grid column indicators
   const generateGridColumns = () => {
@@ -60,9 +69,11 @@ export const PreviewBoundaryNode: React.FC<PreviewBoundaryNodeProps> = ({ data =
 
   const boundaryClasses = [
     'preview-boundary',
-    isMobile ? 'preview-boundary-mobile' : 'preview-boundary-desktop',
-    'pointer-events-none border-2 border-dashed border-blue-400',
-    'bg-blue-50 bg-opacity-10',
+    `preview-boundary-${currentViewport}`,
+    'pointer-events-none border-2 border-dashed',
+    currentConfig.borderColor,
+    currentConfig.backgroundColor,
+    'bg-opacity-10',
     isVisible ? 'opacity-100' : 'opacity-0',
   ]
     .filter(Boolean)
@@ -70,9 +81,27 @@ export const PreviewBoundaryNode: React.FC<PreviewBoundaryNodeProps> = ({ data =
 
   return (
     <div className="relative" style={{ zIndex: -1 }}>
-      {/* Controls - positioned relative to the node */}
+      {/* Simplified Controls */}
       {showControls && (
-        <div className="absolute -top-12 right-0 z-50 flex space-x-2 pointer-events-auto">
+        <div className="absolute -top-12 right-0 z-50 flex space-x-1 pointer-events-auto">
+          {/* Viewport Toggle */}
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => switchViewport(currentViewport === 'desktop' ? 'mobile' : 'desktop')}
+            className={`bg-white border-gray-300 hover:bg-gray-50 ${
+              currentViewport === 'mobile' ? 'text-green-600 border-green-300' : 'text-blue-600 border-blue-300'
+            }`}
+            title={`Switch to ${currentViewport === 'desktop' ? 'Mobile' : 'Desktop'} view`}
+          >
+            {currentViewport === 'desktop' ? (
+              <Monitor className="w-4 h-4" />
+            ) : (
+              <Smartphone className="w-4 h-4" />
+            )}
+            <span className="ml-1 text-xs">{currentViewport}</span>
+          </Button>
+
           <Button
             size="sm"
             variant="outline"
@@ -81,7 +110,6 @@ export const PreviewBoundaryNode: React.FC<PreviewBoundaryNodeProps> = ({ data =
             title="Toggle Preview Boundary"
           >
             {isVisible ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-            <span className="ml-1 text-xs">Preview</span>
           </Button>
 
           <Button
@@ -118,21 +146,47 @@ export const PreviewBoundaryNode: React.FC<PreviewBoundaryNodeProps> = ({ data =
           {generateGridColumns()}
         </div>
 
-        {/* Dimension Label */}
-        <div className="absolute -top-8 left-0 bg-blue-600 text-white px-2 py-1 rounded text-xs font-medium">
-          {currentConfig.label}
+        {/* Dimension Label with Layout Type */}
+        <div 
+          className={`absolute -top-8 left-0 px-2 py-1 rounded text-xs font-medium text-white ${
+            currentViewport === 'mobile' ? 'bg-green-600' : 'bg-blue-600'
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            <span>{currentConfig.label}</span>
+            <span className="text-xs opacity-80">
+              ({currentViewport === 'desktop' ? 'Master' : 'Derived'})
+            </span>
+          </div>
         </div>
 
-        {/* Corner Markers */}
-        <div className="absolute -top-1 -left-1 w-3 h-3 bg-blue-600 rounded-full"></div>
-        <div className="absolute -top-1 -right-1 w-3 h-3 bg-blue-600 rounded-full"></div>
-        <div className="absolute -bottom-1 -left-1 w-3 h-3 bg-blue-600 rounded-full"></div>
-        <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-blue-600 rounded-full"></div>
+        {/* Corner Markers with Viewport-Specific Colors */}
+        <div className={`absolute -top-1 -left-1 w-3 h-3 rounded-full ${
+          currentViewport === 'mobile' ? 'bg-green-600' : 'bg-blue-600'
+        }`}></div>
+        <div className={`absolute -top-1 -right-1 w-3 h-3 rounded-full ${
+          currentViewport === 'mobile' ? 'bg-green-600' : 'bg-blue-600'
+        }`}></div>
+        <div className={`absolute -bottom-1 -left-1 w-3 h-3 rounded-full ${
+          currentViewport === 'mobile' ? 'bg-green-600' : 'bg-blue-600'
+        }`}></div>
+        <div className={`absolute -bottom-1 -right-1 w-3 h-3 rounded-full ${
+          currentViewport === 'mobile' ? 'bg-green-600' : 'bg-blue-600'
+        }`}></div>
 
-        {/* Measurements */}
+        {/* Enhanced Measurements with Viewport Details */}
         {measurementsVisible && (
-          <div className="absolute -bottom-8 left-0 text-xs text-gray-600 bg-white px-2 py-1 rounded border">
-            Max Width: {currentConfig.maxWidth} | Gap: {currentConfig.gap}
+          <div className="absolute -bottom-12 left-0 text-xs text-gray-600 bg-white px-2 py-1 rounded border space-y-1">
+            <div className="flex gap-4">
+              <span>Max Width: {currentConfig.maxWidth}</span>
+              <span>Gap: {currentConfig.gap}</span>
+              <span>Columns: {currentConfig.columns}</span>
+            </div>
+            <div className="flex gap-4 text-xs opacity-75">
+              <span>Viewport: {currentViewport}</span>
+              <span>Blocks: {nodes.length}</span>
+              <span>Type: {currentViewport === 'desktop' ? 'Master Layout' : 'Derived Layout'}</span>
+            </div>
           </div>
         )}
       </div>

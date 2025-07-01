@@ -19,10 +19,40 @@ export const LayoutConfigSchema = z.object({
   items: z.array(LayoutItemSchema),
 });
 
-export const LayoutsSchema = z.object({
+// Master layout schema (desktop - never auto-overwritten)
+export const MasterLayoutSchema = z.object({
+  type: z.literal('master'),
+  data: LayoutConfigSchema,
+  lastModified: z.string().datetime(),
+});
+
+// Derived layout schema (mobile - generated from master)
+export const DerivedLayoutSchema = z.object({
+  type: z.literal('derived'),
+  isGenerated: z.boolean(),
+  generatedFromHash: z.string().optional(),
+  data: LayoutConfigSchema,
+  hasCustomizations: z.boolean(),
+  lastModified: z.string().datetime(),
+});
+
+// Master/Derived layout system
+export const MasterDerivedLayoutsSchema = z.object({
+  desktop: MasterLayoutSchema,
+  mobile: DerivedLayoutSchema,
+});
+
+// Legacy layout schema for backward compatibility
+export const LegacyLayoutsSchema = z.object({
   desktop: LayoutConfigSchema,
   mobile: LayoutConfigSchema,
 });
+
+// Union schema that supports both old and new formats
+export const LayoutsSchema = z.union([
+  MasterDerivedLayoutsSchema,
+  LegacyLayoutsSchema,
+]);
 
 // ===== BLOCK DATA SCHEMAS =====
 
@@ -309,6 +339,14 @@ export const StructuredContentV2Schema = z.object({
 export type NodeObject = z.infer<typeof NodeSchema>;
 export type LayoutItem = z.infer<typeof LayoutItemSchema>;
 export type LayoutConfig = z.infer<typeof LayoutConfigSchema>;
+
+// Master/Derived layout types
+export type MasterLayout = z.infer<typeof MasterLayoutSchema>;
+export type DerivedLayout = z.infer<typeof DerivedLayoutSchema>;
+export type MasterDerivedLayouts = z.infer<typeof MasterDerivedLayoutsSchema>;
+export type LegacyLayouts = z.infer<typeof LegacyLayoutsSchema>;
+
+// Union type for backward compatibility
 export type Layouts = z.infer<typeof LayoutsSchema>;
 export type StructuredContentV2 = z.infer<typeof StructuredContentV2Schema>;
 
@@ -342,10 +380,7 @@ export interface EditorState {
 
   // Content State (structured_content v2.0)
   nodes: NodeObject[];
-  layouts: {
-    desktop: LayoutConfig;
-    mobile: LayoutConfig;
-  };
+  layouts: MasterDerivedLayouts;
 
   // Editor State
   selectedNodeId: string | null;
@@ -387,7 +422,12 @@ export interface EditorState {
   duplicateNode: (nodeId: string) => void;
   updateLayout: (nodeId: string, layout: LayoutItem, viewport: Viewport) => void;
   selectNode: (nodeId: string | null) => void;
+  
+  // Master/Derived Layout System
   switchViewport: (viewport: Viewport) => void;
+  generateMobileFromDesktop: () => void;
+  shouldRegenerateMobile: () => boolean;
+  resetMobileLayout: () => void;
   updateCanvasTransform: (transform: Partial<CanvasTransform>) => void;
   setCanvasTheme: (theme: 'light' | 'dark') => void;
   toggleGrid: () => void;

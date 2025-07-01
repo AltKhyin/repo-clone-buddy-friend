@@ -43,7 +43,7 @@ interface SpacingControlsProps {
 }
 
 // Enhanced spacing fields with categories
-const PADDING_FIELDS: SpacingField[] = [
+export const PADDING_FIELDS: SpacingField[] = [
   {
     key: 'paddingX',
     label: 'Horizontal Padding',
@@ -66,7 +66,7 @@ const PADDING_FIELDS: SpacingField[] = [
   },
 ];
 
-const MARGIN_FIELDS: SpacingField[] = [
+export const MARGIN_FIELDS: SpacingField[] = [
   {
     key: 'marginX',
     label: 'Horizontal Margin',
@@ -89,7 +89,7 @@ const MARGIN_FIELDS: SpacingField[] = [
   },
 ];
 
-const BORDER_FIELDS: SpacingField[] = [
+export const BORDER_FIELDS: SpacingField[] = [
   {
     key: 'borderRadius',
     label: 'Corner Radius',
@@ -112,10 +112,10 @@ const BORDER_FIELDS: SpacingField[] = [
   },
 ];
 
-const DEFAULT_SPACING_FIELDS: SpacingField[] = [...PADDING_FIELDS, ...BORDER_FIELDS];
+export const DEFAULT_SPACING_FIELDS: SpacingField[] = [...PADDING_FIELDS, ...BORDER_FIELDS];
 
 // Enhanced spacing presets
-const SPACING_PRESETS = [
+export const SPACING_PRESETS = [
   { name: 'None', values: { paddingX: 0, paddingY: 0, marginX: 0, marginY: 0 } },
   { name: 'Tight', values: { paddingX: 8, paddingY: 6, marginX: 4, marginY: 4 } },
   { name: 'Normal', values: { paddingX: 16, paddingY: 12, marginX: 8, marginY: 8 } },

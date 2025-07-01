@@ -3,6 +3,7 @@
 import { useState, useCallback, useMemo } from 'react';
 import { useEditorStore } from '@/store/editorStore';
 import { NodeObject, LayoutItem } from '@/types/editor';
+import { ensureMasterDerivedLayouts, getLayoutForViewport } from '@/store/layoutUtils';
 
 interface DragState {
   isDragging: boolean;
@@ -42,14 +43,25 @@ export function useDragDropReordering() {
 
   // Get current layout items sorted by logical order (top to bottom, left to right)
   const sortedLayoutItems = useMemo(() => {
-    const currentLayout = layouts[currentViewport];
-    return currentLayout.items.slice().sort((a, b) => {
-      // Primary sort by Y position, secondary by X position
-      if (Math.abs(a.y - b.y) < 50) { // Same row (within 50px tolerance)
-        return a.x - b.x;
+    try {
+      const masterDerivedLayouts = ensureMasterDerivedLayouts(layouts);
+      const currentLayout = getLayoutForViewport(masterDerivedLayouts, currentViewport);
+      
+      if (!currentLayout?.items) {
+        return [];
       }
-      return a.y - b.y;
-    });
+      
+      return currentLayout.items.slice().sort((a, b) => {
+        // Primary sort by Y position, secondary by X position
+        if (Math.abs(a.y - b.y) < 50) { // Same row (within 50px tolerance)
+          return a.x - b.x;
+        }
+        return a.y - b.y;
+      });
+    } catch (error) {
+      console.error('[useDragDropReordering] Error accessing layout items:', error);
+      return [];
+    }
   }, [layouts, currentViewport]);
 
   // Calculate drop zones between blocks

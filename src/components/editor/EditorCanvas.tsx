@@ -28,6 +28,7 @@ import { useDroppable } from '@dnd-kit/core';
 import { debounce } from 'lodash-es';
 import { useEditorStore } from '@/store/editorStore';
 import { NodeObject } from '@/types/editor';
+import { ensureMasterDerivedLayouts, getLayoutForViewport } from '@/store/layoutUtils';
 import { CanvasHelpers } from './CanvasHelpers';
 import { TextBlockNode } from './Nodes/TextBlockNode';
 import { HeadingBlockNode } from './Nodes/HeadingBlockNode';
@@ -374,15 +375,23 @@ export function EditorCanvas() {
 
   // Convert our editor nodes to React Flow nodes
   const reactFlowNodes = useMemo(() => {
-    const currentLayout = layouts[currentViewport];
-    const gridColumns = currentLayout.gridSettings.columns;
-    const gridWidth = 800; // Base grid width
-    const columnWidth = gridWidth / gridColumns;
-    const nodesToInit: Array<{ nodeId: string; layoutItem: any }> = [];
+    try {
+      const masterDerivedLayouts = ensureMasterDerivedLayouts(layouts);
+      const currentLayout = getLayoutForViewport(masterDerivedLayouts, currentViewport);
+      
+      if (!currentLayout) {
+        console.warn('[EditorCanvas] No layout found for viewport:', currentViewport);
+        return [];
+      }
+      
+      const gridColumns = currentLayout.gridSettings.columns;
+      const gridWidth = 800; // Base grid width
+      const columnWidth = gridWidth / gridColumns;
+      const nodesToInit: Array<{ nodeId: string; layoutItem: any }> = [];
 
-    const nodes = editorNodes.map((editorNode, index) => {
-      // Find layout position for this node
-      const layoutItem = currentLayout.items.find(item => item.nodeId === editorNode.id);
+      const nodes = editorNodes.map((editorNode, index) => {
+        // Find layout position for this node
+        const layoutItem = currentLayout.items.find(item => item.nodeId === editorNode.id);
 
       // Default positioning if no layout exists yet
       const defaultX = 50 + (index % 2) * 420; // Alternate columns
@@ -491,7 +500,11 @@ export function EditorCanvas() {
       },
     };
 
-    return [previewBoundaryNode, ...nodes];
+      return [previewBoundaryNode, ...nodes];
+    } catch (error) {
+      console.error('[EditorCanvas] Error converting nodes:', error);
+      return [];
+    }
   }, [editorNodes, layouts, currentViewport, updateLayout]);
 
   // React Flow state management
@@ -530,41 +543,53 @@ export function EditorCanvas() {
       changes.forEach(change => {
         if (change.type === 'position' && change.position && change.dragging === false) {
           // Only update layout when drag is complete
-          const gridColumns = layouts[currentViewport].gridSettings.columns;
-          const columnWidth = 800 / gridColumns;
+          try {
+            const masterDerivedLayouts = ensureMasterDerivedLayouts(layouts);
+            const currentLayout = getLayoutForViewport(masterDerivedLayouts, currentViewport);
+              const gridColumns = currentLayout.gridSettings.columns;
+            const columnWidth = 800 / gridColumns;
 
-          // Find node dimensions from the current React Flow state
-          const node = nodes.find(n => n.id === change.id);
-          const width = node?.width || 400;
-          const height = node?.height || 100;
+            // Find node dimensions from the current React Flow state
+            const node = nodes.find(n => n.id === change.id);
+            const width = node?.width || 400;
+            const height = node?.height || 100;
 
-          const newLayoutItem = {
-            nodeId: change.id,
-            x: Math.max(0, Math.round(change.position.x / (columnWidth / 2))),
-            y: Math.max(0, Math.round(change.position.y / 20)),
-            w: Math.max(1, Math.round(width / (columnWidth / 2))),
-            h: Math.max(1, Math.round(height / 20)),
-          };
+            const newLayoutItem = {
+              nodeId: change.id,
+              x: Math.max(0, Math.round(change.position.x / (columnWidth / 2))),
+              y: Math.max(0, Math.round(change.position.y / 20)),
+              w: Math.max(1, Math.round(width / (columnWidth / 2))),
+              h: Math.max(1, Math.round(height / 20)),
+            };
 
-          debouncedLayoutUpdate(change.id, newLayoutItem, currentViewport);
+            debouncedLayoutUpdate(change.id, newLayoutItem, currentViewport);
+          } catch (error) {
+            console.error('[EditorCanvas] Error handling position change:', error);
+          }
         }
 
         if (change.type === 'dimensions' && change.dimensions && change.resizing === false) {
           // Only update when resize is complete
           const node = nodes.find(n => n.id === change.id);
           if (node) {
-            const gridColumns = layouts[currentViewport].gridSettings.columns;
-            const columnWidth = 800 / gridColumns;
+            try {
+              const masterDerivedLayouts = ensureMasterDerivedLayouts(layouts);
+              const currentLayout = getLayoutForViewport(masterDerivedLayouts, currentViewport);
+              const gridColumns = currentLayout.gridSettings.columns;
+              const columnWidth = 800 / gridColumns;
 
-            const newLayoutItem = {
-              nodeId: change.id,
-              x: Math.max(0, Math.round(node.position.x / (columnWidth / 2))),
-              y: Math.max(0, Math.round(node.position.y / 20)),
-              w: Math.max(1, Math.round(change.dimensions.width / (columnWidth / 2))),
-              h: Math.max(1, Math.round(change.dimensions.height / 20)),
-            };
+              const newLayoutItem = {
+                nodeId: change.id,
+                x: Math.max(0, Math.round(node.position.x / (columnWidth / 2))),
+                y: Math.max(0, Math.round(node.position.y / 20)),
+                w: Math.max(1, Math.round(change.dimensions.width / (columnWidth / 2))),
+                h: Math.max(1, Math.round(change.dimensions.height / 20)),
+              };
 
-            debouncedLayoutUpdate(change.id, newLayoutItem, currentViewport);
+              debouncedLayoutUpdate(change.id, newLayoutItem, currentViewport);
+            } catch (error) {
+              console.error('[EditorCanvas] Error handling dimensions change:', error);
+            }
           }
         }
       });
@@ -579,15 +604,24 @@ export function EditorCanvas() {
 
   // Calculate grid settings based on viewport
   const getGridConfig = () => {
-    const currentLayout = layouts[currentViewport];
-    const gridColumns = currentLayout.gridSettings.columns;
-    const gridWidth = 800;
-    const columnWidth = gridWidth / gridColumns;
+    try {
+      const masterDerivedLayouts = ensureMasterDerivedLayouts(layouts);
+      const currentLayout = getLayoutForViewport(masterDerivedLayouts, currentViewport);
+      const gridColumns = currentLayout.gridSettings.columns;
+      const gridWidth = 800;
+      const columnWidth = gridWidth / gridColumns;
 
-    return {
-      gridGap: columnWidth,
-      rowHeight: 80,
-    };
+      return {
+        gridGap: columnWidth,
+        rowHeight: 80,
+      };
+    } catch (error) {
+      console.error('[EditorCanvas] Error getting grid config:', error);
+      return {
+        gridGap: 66, // Default for 12 columns
+        rowHeight: 80,
+      };
+    }
   };
 
   const gridConfig = getGridConfig();
@@ -604,7 +638,15 @@ export function EditorCanvas() {
             {currentViewport} View
           </div>
           <div className="text-xs text-muted-foreground">
-            {layouts[currentViewport].gridSettings.columns} columns • {gridConfig.gridGap}px grid
+            {(() => {
+              try {
+                const masterDerivedLayouts = ensureMasterDerivedLayouts(layouts);
+                const currentLayout = getLayoutForViewport(masterDerivedLayouts, currentViewport);
+                return `${currentLayout.gridSettings.columns} columns • ${gridConfig.gridGap}px grid`;
+              } catch (error) {
+                return 'Layout loading...';
+              }
+            })()}
           </div>
         </div>
       </div>

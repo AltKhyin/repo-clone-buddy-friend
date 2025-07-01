@@ -38,6 +38,7 @@ import {
   EditorCanvasErrorBoundary,
   InspectorErrorBoundary,
 } from '@/components/editor/error-boundaries';
+import { ensureMasterDerivedLayouts, getLayoutForViewport } from '@/store/layoutUtils';
 
 export default function EditorPage() {
   const { reviewId } = useParams<{ reviewId: string }>();
@@ -65,8 +66,21 @@ export default function EditorPage() {
 
   // Enhanced persistence system
   const currentContent = React.useMemo(() => {
-    if (!nodes.length && !Object.keys(layouts.desktop.items).length) return null;
-    return exportToJSON();
+    if (!nodes.length) return null;
+    
+    // Safely check if there are layout items in either desktop or mobile
+    try {
+      const safeLayouts = ensureMasterDerivedLayouts(layouts);
+      const hasDesktopItems = safeLayouts.desktop?.data?.items?.length > 0;
+      const hasMobileItems = safeLayouts.mobile?.data?.items?.length > 0;
+      
+      if (!hasDesktopItems && !hasMobileItems) return null;
+      
+      return exportToJSON();
+    } catch (error) {
+      console.error('[EditorPage] Error checking layouts:', error);
+      return null;
+    }
   }, [nodes, layouts, exportToJSON]);
 
   const { state: persistenceState, actions: persistenceActions } = useEnhancedPersistence(

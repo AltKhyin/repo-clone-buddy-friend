@@ -7,6 +7,7 @@ import {
   NodeObject,
   LayoutItem,
   Layouts,
+  MasterDerivedLayouts,
   Viewport,
   CanvasTransform,
   StructuredContentV2,
@@ -14,6 +15,17 @@ import {
   getDefaultDataForBlockType,
   validateStructuredContent,
 } from '@/types/editor';
+import {
+  ensureMasterDerivedLayouts,
+  createInitialLayouts,
+  generateMobileFromDesktop,
+  shouldRegenerateMobile,
+  markMobileAsGenerated,
+  updateDesktopLayout,
+  updateMobileLayout,
+  getLayoutForViewport,
+  convertToLegacyFormat,
+} from './layoutUtils';
 
 const AUTOSAVE_DELAY = 30000; // 30 seconds as per user requirements
 
@@ -23,16 +35,7 @@ const initialCanvasTransform: CanvasTransform = {
   zoom: 1,
 };
 
-const initialLayouts = {
-  desktop: {
-    gridSettings: { columns: 12 },
-    items: [],
-  },
-  mobile: {
-    gridSettings: { columns: 4 },
-    items: [],
-  },
-};
+const initialLayouts = createInitialLayouts();
 
 /**
  * Editor store following the same simple pattern as auth.ts.
@@ -203,23 +206,28 @@ export const useEditorStore = create<EditorState>((set, get) => {
 
     deleteNode: nodeId => {
       set(state => {
+        // Ensure we have master/derived layouts
+        const layouts = ensureMasterDerivedLayouts(state.layouts);
+        
         const updatedNodes = state.nodes.filter(n => n.id !== nodeId);
-        const updatedDesktopItems = state.layouts.desktop.items.filter(i => i.nodeId !== nodeId);
-        const updatedMobileItems = state.layouts.mobile.items.filter(i => i.nodeId !== nodeId);
+        const updatedDesktopItems = layouts.desktop.data.items.filter(i => i.nodeId !== nodeId);
+        const updatedMobileItems = layouts.mobile.data.items.filter(i => i.nodeId !== nodeId);
+
+        // Update both desktop and mobile layouts
+        const updatedDesktopLayout = updateDesktopLayout(layouts, {
+          ...layouts.desktop.data,
+          items: updatedDesktopItems,
+        });
+        
+        const updatedLayouts = updateMobileLayout(updatedDesktopLayout, {
+          ...layouts.mobile.data,
+          items: updatedMobileItems,
+        });
 
         const updatedState = {
           ...state,
           nodes: updatedNodes,
-          layouts: {
-            desktop: {
-              ...state.layouts.desktop,
-              items: updatedDesktopItems,
-            },
-            mobile: {
-              ...state.layouts.mobile,
-              items: updatedMobileItems,
-            },
-          },
+          layouts: updatedLayouts,
           selectedNodeId: state.selectedNodeId === nodeId ? null : state.selectedNodeId,
           isDirty: true,
         };
@@ -249,7 +257,12 @@ export const useEditorStore = create<EditorState>((set, get) => {
 
     updateLayout: (nodeId, layout, viewport) => {
       set(state => {
-        const currentItems = state.layouts[viewport].items;
+        // Ensure we have master/derived layouts
+        const layouts = ensureMasterDerivedLayouts(state.layouts);
+        
+        // Get the current layout config for the viewport
+        const currentLayoutConfig = getLayoutForViewport(layouts, viewport);
+        const currentItems = currentLayoutConfig.items;
         const existingIndex = currentItems.findIndex(i => i.nodeId === nodeId);
 
         let updatedItems;
@@ -262,15 +275,20 @@ export const useEditorStore = create<EditorState>((set, get) => {
           updatedItems = [...currentItems, { ...layout, nodeId }];
         }
 
+        // Create updated layout config
+        const updatedLayoutConfig = {
+          ...currentLayoutConfig,
+          items: updatedItems,
+        };
+
+        // Update the appropriate layout using utility functions
+        const updatedLayouts = viewport === 'desktop'
+          ? updateDesktopLayout(layouts, updatedLayoutConfig)
+          : updateMobileLayout(layouts, updatedLayoutConfig);
+
         const updatedState = {
           ...state,
-          layouts: {
-            ...state.layouts,
-            [viewport]: {
-              ...state.layouts[viewport],
-              items: updatedItems,
-            },
-          },
+          layouts: updatedLayouts,
           isDirty: true,
         };
 
@@ -289,54 +307,78 @@ export const useEditorStore = create<EditorState>((set, get) => {
 
     // ===== VIEWPORT ACTIONS =====
 
+    // ===== MASTER/DERIVED LAYOUT SYSTEM =====
+    
     switchViewport: viewport => {
       const state = get();
       if (state.currentViewport === viewport) return; // No change needed
 
-      const currentLayout = state.layouts[state.currentViewport];
-      const targetLayout = state.layouts[viewport];
+      // Check if switching to mobile and mobile layout needs generation
+      if (viewport === 'mobile') {
+        const layouts = ensureMasterDerivedLayouts(state.layouts);
+        if (!layouts.mobile.isGenerated && layouts.mobile.data.items.length === 0) {
+          console.log('[EditorStore] Auto-generating mobile layout from desktop');
+          get().generateMobileFromDesktop();
+        }
+      }
 
-      // Smart layout conversion: try to preserve relative positioning
-      const convertedItems = currentLayout.items.map(item => {
-        const currentColumns = currentLayout.gridSettings.columns;
-        const targetColumns = targetLayout.gridSettings.columns;
-
-        // Calculate relative position as percentage
-        const relativeX = item.x / currentColumns;
-        const relativeWidth = item.w / currentColumns;
-
-        // Convert to target viewport coordinates
-        const newX = Math.floor(relativeX * targetColumns);
-        const newWidth = Math.max(1, Math.floor(relativeWidth * targetColumns));
-
-        // Ensure the item fits within the target grid
-        const adjustedX = Math.min(newX, targetColumns - newWidth);
-        const adjustedWidth = Math.min(newWidth, targetColumns - adjustedX);
-
-        return {
-          ...item,
-          x: adjustedX,
-          w: adjustedWidth,
-        };
-      });
-
-      // Update the target layout with converted items if it's empty
-      const updatedLayouts = {
-        ...state.layouts,
-        [viewport]: {
-          ...targetLayout,
-          items: targetLayout.items.length === 0 ? convertedItems : targetLayout.items,
-        },
-      };
-
+      // Simple viewport switch - no layout conversion
       set({
         currentViewport: viewport,
-        layouts: updatedLayouts,
-        isDirty: true,
       });
 
-      // Auto-save after viewport switch
+      console.log(`[EditorStore] Switched to ${viewport} viewport (no conversion)`);
+    },
+
+    generateMobileFromDesktop: () => {
+      set(state => {
+        const layouts = ensureMasterDerivedLayouts(state.layouts);
+        
+        try {
+          const { mobileLayout, nodeUpdates } = generateMobileFromDesktop(
+            layouts.desktop.data,
+            state.nodes
+          );
+
+          // Apply node content adaptations for mobile
+          Object.entries(nodeUpdates).forEach(([nodeId, updates]) => {
+            if (Object.keys(updates).length > 0) {
+              get().updateNode(nodeId, updates);
+            }
+          });
+
+          // Mark mobile as generated from current desktop
+          const updatedLayouts = markMobileAsGenerated(layouts, mobileLayout);
+
+          console.log('[EditorStore] Generated mobile layout from desktop:', {
+            mobileItems: mobileLayout.items.length,
+            nodeUpdates: Object.keys(nodeUpdates).length,
+          });
+
+          return {
+            ...state,
+            layouts: updatedLayouts,
+            isDirty: true,
+          };
+        } catch (error) {
+          console.error('[EditorStore] Failed to generate mobile layout:', error);
+          return state;
+        }
+      });
+
+      // Auto-save after generation
       debouncedSave();
+    },
+
+    shouldRegenerateMobile: () => {
+      const state = get();
+      const layouts = ensureMasterDerivedLayouts(state.layouts);
+      return shouldRegenerateMobile(layouts);
+    },
+
+    resetMobileLayout: () => {
+      console.log('[EditorStore] Resetting mobile layout from desktop');
+      get().generateMobileFromDesktop();
     },
 
     updateCanvasTransform: transform => {
@@ -552,8 +594,10 @@ export const useEditorStore = create<EditorState>((set, get) => {
         saveMutex = true; // Lock to prevent concurrent saves
         set({ isSaving: true });
 
-        // Sanitize layouts before saving to ensure validation passes
-        const sanitizedLayouts = get().sanitizeLayouts(state.layouts);
+        // Convert to legacy format for backward compatibility and sanitize
+        const layouts = ensureMasterDerivedLayouts(state.layouts);
+        const legacyLayouts = convertToLegacyFormat(layouts);
+        const sanitizedLayouts = get().sanitizeLayouts(legacyLayouts);
 
         const structuredContent: StructuredContentV2 = {
           version: '2.0.0',
@@ -609,23 +653,27 @@ export const useEditorStore = create<EditorState>((set, get) => {
           if (data?.structured_content) {
             // Sanitize layouts when loading to handle any legacy invalid data
             const sanitizedLayouts = get().sanitizeLayouts(data.structured_content.layouts);
+            
+            // Migrate to master/derived format (auto-migrates legacy layouts)
+            const masterDerivedLayouts = ensureMasterDerivedLayouts(sanitizedLayouts);
 
             console.log('[EditorStore] Loading content into store:', {
               originalNodes: data.structured_content.nodes.length,
               sanitizedLayouts: Object.keys(sanitizedLayouts).length,
+              isMasterDerived: masterDerivedLayouts.desktop.type === 'master',
             });
 
             // Load the content into the store
             set({
               nodes: data.structured_content.nodes,
-              layouts: sanitizedLayouts,
+              layouts: masterDerivedLayouts,
               selectedNodeId: null,
               isDirty: false,
               isSaving: false,
               lastSaved: new Date(data.updated_at),
             });
 
-            console.log('[EditorStore] Content loaded successfully');
+            console.log('[EditorStore] Content loaded successfully with master/derived layouts');
           } else {
             console.log('[EditorStore] No existing content found, using empty state');
             // No existing content - start with empty state
@@ -663,10 +711,13 @@ export const useEditorStore = create<EditorState>((set, get) => {
 
         // Sanitize layouts when loading from JSON
         const sanitizedLayouts = get().sanitizeLayouts(validatedContent.layouts);
+        
+        // Migrate to master/derived format
+        const masterDerivedLayouts = ensureMasterDerivedLayouts(sanitizedLayouts);
 
         set({
           nodes: validatedContent.nodes,
-          layouts: sanitizedLayouts,
+          layouts: masterDerivedLayouts,
           isDirty: false,
           selectedNodeId: null,
         });
@@ -681,10 +732,15 @@ export const useEditorStore = create<EditorState>((set, get) => {
 
     exportToJSON: () => {
       const state = get();
+      
+      // Convert to legacy format for backward compatibility
+      const layouts = ensureMasterDerivedLayouts(state.layouts);
+      const legacyLayouts = convertToLegacyFormat(layouts);
+      
       return {
         version: '2.0.0' as const,
         nodes: state.nodes,
-        layouts: state.layouts,
+        layouts: legacyLayouts,
         metadata: {
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
@@ -780,7 +836,10 @@ export const usePersistenceState = () =>
   }));
 
 // Layout selectors
-export const useCurrentLayout = () => useEditorStore(state => state.layouts[state.currentViewport]);
+export const useCurrentLayout = () => useEditorStore(state => {
+  const layouts = ensureMasterDerivedLayouts(state.layouts);
+  return getLayoutForViewport(layouts, state.currentViewport);
+});
 
 // Stable action selectors (prevents function recreation)
 export const useEditorActions = () =>
