@@ -68,8 +68,8 @@ export const TextBlockNode = memo<TextBlockNodeProps>(({ id, data, selected }) =
   const themedStyles = useThemedStyles('textBlock');
 
   // Calculate dynamic styles based on customization data and theme
-  const paddingX = data.paddingX ?? 16;
-  const paddingY = data.paddingY ?? 12;
+  const paddingX = data.paddingX ?? 0;
+  const paddingY = data.paddingY ?? 0;
 
   const dynamicStyles = {
     fontSize: data.fontSize ? `${data.fontSize}px` : themedStyles.fontSize || '16px',
@@ -84,7 +84,7 @@ export const TextBlockNode = memo<TextBlockNodeProps>(({ id, data, selected }) =
     lineHeight: data.lineHeight || themedStyles.lineHeight || 1.6,
     fontFamily: data.fontFamily || themedStyles.fontFamily || 'inherit',
     fontWeight: data.fontWeight || themedStyles.fontWeight || 400,
-    minHeight: '80px',
+    ...(paddingY > 0 && { minHeight: '80px' }), // Only apply minHeight when there's padding
     minWidth: '200px',
     ...borderStyles,
   } as React.CSSProperties;
@@ -108,7 +108,7 @@ export const TextBlockNode = memo<TextBlockNodeProps>(({ id, data, selected }) =
           {/* Tiptap Editor Content */}
           <EditorContent
             editor={editorInstance.editor}
-            className="prose prose-sm max-w-none focus:outline-none"
+            className="prose prose-sm max-w-none focus:outline-none [&>*]:my-0 [&_p]:my-0 [&_h1]:my-0 [&_h2]:my-0 [&_h3]:my-0 [&_h4]:my-0 [&_h5]:my-0 [&_h6]:my-0"
             style={{
               fontFamily: dynamicStyles.fontFamily,
               fontSize: dynamicStyles.fontSize,

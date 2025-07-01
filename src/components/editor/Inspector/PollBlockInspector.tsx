@@ -1,100 +1,105 @@
 // ABOUTME: Inspector component for PollBlock with question editing, option management, and poll settings
 
-import React, { useState } from 'react'
-import { Label } from '@/components/ui/label'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
-import { Textarea } from '@/components/ui/textarea'
-import { Separator } from '@/components/ui/separator'
-import { SafeSwitch } from '@/components/editor/SafeSwitch'
-import { Badge } from '@/components/ui/badge'
-import { 
-  Plus, 
-  Trash2, 
-  GripVertical, 
-  BarChart3, 
+import React, { useState } from 'react';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { Separator } from '@/components/ui/separator';
+import { SafeSwitch } from '@/components/editor/SafeSwitch';
+import { Badge } from '@/components/ui/badge';
+import {
+  Plus,
+  Trash2,
+  GripVertical,
+  BarChart3,
   Users,
   Eye,
   EyeOff,
   CheckSquare,
-  Square
-} from 'lucide-react'
-import { cn } from '@/lib/utils'
-import { useEditorStore } from '@/store/editorStore'
-import { PollBlockData } from '@/types/editor'
-import { generateNodeId } from '@/types/editor'
+  Square,
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { useEditorStore } from '@/store/editorStore';
+import { PollBlockData } from '@/types/editor';
+import { generateNodeId } from '@/types/editor';
+import { SpacingControls } from '@/components/editor/Inspector/shared/SpacingControls';
 
 interface PollBlockInspectorProps {
-  nodeId: string
-  data: PollBlockData
+  nodeId: string;
 }
 
-export function PollBlockInspector({ nodeId, data }: PollBlockInspectorProps) {
-  const { updateNode } = useEditorStore()
-  const [newOptionText, setNewOptionText] = useState('')
+export function PollBlockInspector({ nodeId }: PollBlockInspectorProps) {
+  const { nodes, updateNode } = useEditorStore();
+  const [newOptionText, setNewOptionText] = useState('');
+
+  const node = nodes.find(n => n.id === nodeId);
+  if (!node || node.type !== 'pollBlock') return null;
+
+  const data = node.data;
 
   const updatePollData = (updates: Partial<PollBlockData>) => {
     updateNode(nodeId, {
-      data: { ...data, ...updates }
-    })
-  }
+      data: { ...data, ...updates },
+    });
+  };
 
   const handleQuestionChange = (question: string) => {
-    updatePollData({ question })
-  }
+    updatePollData({ question });
+  };
 
   const handleAddOption = () => {
-    if (!newOptionText.trim()) return
+    if (!newOptionText.trim()) return;
 
     const newOption = {
       id: generateNodeId(),
       text: newOptionText.trim(),
-      votes: 0
-    }
+      votes: 0,
+    };
 
     updatePollData({
-      options: [...data.options, newOption]
-    })
-    setNewOptionText('')
-  }
+      options: [...data.options, newOption],
+    });
+    setNewOptionText('');
+  };
 
   const handleUpdateOption = (optionId: string, text: string) => {
     const updatedOptions = data.options.map(option =>
       option.id === optionId ? { ...option, text } : option
-    )
-    updatePollData({ options: updatedOptions })
-  }
+    );
+    updatePollData({ options: updatedOptions });
+  };
 
   const handleDeleteOption = (optionId: string) => {
-    const updatedOptions = data.options.filter(option => option.id !== optionId)
-    const removedVotes = data.options.find(opt => opt.id === optionId)?.votes || 0
+    const updatedOptions = data.options.filter(option => option.id !== optionId);
+    const removedVotes = data.options.find(opt => opt.id === optionId)?.votes || 0;
     updatePollData({
       options: updatedOptions,
-      totalVotes: Math.max(0, data.totalVotes - removedVotes)
-    })
-  }
+      totalVotes: Math.max(0, data.totalVotes - removedVotes),
+    });
+  };
 
   const handleResetVotes = () => {
     const resetOptions = data.options.map(option => ({
       ...option,
-      votes: 0
-    }))
+      votes: 0,
+    }));
     updatePollData({
       options: resetOptions,
-      totalVotes: 0
-    })
-  }
+      totalVotes: 0,
+    });
+  };
 
   const handleToggleAllowMultiple = (allowMultiple: boolean) => {
-    updatePollData({ allowMultiple })
-  }
+    updatePollData({ allowMultiple });
+  };
 
   const handleToggleShowResults = (showResults: boolean) => {
-    updatePollData({ showResults })
-  }
+    updatePollData({ showResults });
+  };
 
-  const totalVotes = data.totalVotes || 0
-  const hasVotes = totalVotes > 0
+  const totalVotes = data.totalVotes || 0;
+  const hasVotes = totalVotes > 0;
 
   return (
     <div className="space-y-6">
@@ -115,7 +120,7 @@ export function PollBlockInspector({ nodeId, data }: PollBlockInspectorProps) {
         <Textarea
           id="poll-question"
           value={data.question || ''}
-          onChange={(e) => handleQuestionChange(e.target.value)}
+          onChange={e => handleQuestionChange(e.target.value)}
           placeholder="Enter your poll question..."
           className="min-h-[60px] text-sm"
         />
@@ -128,12 +133,7 @@ export function PollBlockInspector({ nodeId, data }: PollBlockInspectorProps) {
         <div className="flex items-center justify-between">
           <Label className="text-xs font-medium">Poll Options</Label>
           {hasVotes && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleResetVotes}
-              className="text-xs h-7"
-            >
+            <Button variant="outline" size="sm" onClick={handleResetVotes} className="text-xs h-7">
               Reset Votes
             </Button>
           )}
@@ -147,7 +147,7 @@ export function PollBlockInspector({ nodeId, data }: PollBlockInspectorProps) {
                 <GripVertical className="w-3 h-3 text-gray-400 flex-shrink-0" />
                 <Input
                   value={option.text}
-                  onChange={(e) => handleUpdateOption(option.id, e.target.value)}
+                  onChange={e => handleUpdateOption(option.id, e.target.value)}
                   placeholder={`Option ${index + 1}`}
                   className="text-sm"
                 />
@@ -165,7 +165,9 @@ export function PollBlockInspector({ nodeId, data }: PollBlockInspectorProps) {
               {hasVotes && (
                 <div className="flex items-center gap-2 ml-5 text-xs text-gray-600">
                   <Users className="w-3 h-3" />
-                  <span>{option.votes} vote{option.votes !== 1 ? 's' : ''}</span>
+                  <span>
+                    {option.votes} vote{option.votes !== 1 ? 's' : ''}
+                  </span>
                   {totalVotes > 0 && (
                     <span className="text-gray-500">
                       ({Math.round((option.votes / totalVotes) * 100)}%)
@@ -183,13 +185,13 @@ export function PollBlockInspector({ nodeId, data }: PollBlockInspectorProps) {
             <Plus className="w-3 h-3 text-gray-400 flex-shrink-0" />
             <Input
               value={newOptionText}
-              onChange={(e) => setNewOptionText(e.target.value)}
+              onChange={e => setNewOptionText(e.target.value)}
               placeholder="Add new option..."
               className="text-sm"
-              onKeyPress={(e) => {
+              onKeyPress={e => {
                 if (e.key === 'Enter') {
-                  e.preventDefault()
-                  handleAddOption()
+                  e.preventDefault();
+                  handleAddOption();
                 }
               }}
             />
@@ -229,9 +231,7 @@ export function PollBlockInspector({ nodeId, data }: PollBlockInspectorProps) {
             )}
             <div>
               <Label className="text-xs font-medium">Multiple Choice</Label>
-              <p className="text-xs text-gray-500">
-                Allow users to select multiple options
-              </p>
+              <p className="text-xs text-gray-500">Allow users to select multiple options</p>
             </div>
           </div>
           <SafeSwitch
@@ -251,9 +251,7 @@ export function PollBlockInspector({ nodeId, data }: PollBlockInspectorProps) {
             )}
             <div>
               <Label className="text-xs font-medium">Show Results</Label>
-              <p className="text-xs text-gray-500">
-                Display vote counts and percentages
-              </p>
+              <p className="text-xs text-gray-500">Display vote counts and percentages</p>
             </div>
           </div>
           <SafeSwitch
@@ -283,6 +281,17 @@ export function PollBlockInspector({ nodeId, data }: PollBlockInspectorProps) {
           </div>
         </>
       )}
+
+      {/* Spacing Controls */}
+      <Separator />
+      <SpacingControls
+        data={data}
+        onChange={updatePollData}
+        compact={true}
+        enableMargins={true}
+        enableBorders={true}
+        enablePresets={true}
+      />
     </div>
-  )
+  );
 }

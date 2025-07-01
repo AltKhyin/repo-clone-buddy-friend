@@ -17,12 +17,26 @@ export const ThemeProvider = React.memo(function ThemeProvider({
   scope,
 }: ThemeProviderProps) {
   const currentTheme = useCurrentTheme();
+  const editorScopeRef = React.useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (currentTheme) {
-      ThemeApplicator.applyThemeToDOM(currentTheme, scope);
+      // Apply theme only to editor scope to avoid conflicts with app theme
+      const targetScope = scope || editorScopeRef.current;
+      if (targetScope) {
+        ThemeApplicator.applyThemeToDOM(currentTheme, targetScope);
+      }
     }
   }, [currentTheme, scope]);
+
+  // If no scope provided, create a scoped container
+  if (!scope) {
+    return (
+      <div ref={editorScopeRef} className="editor-theme-scope">
+        {children}
+      </div>
+    );
+  }
 
   return <>{children}</>;
 });

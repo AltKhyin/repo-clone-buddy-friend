@@ -4,6 +4,7 @@ import React from 'react';
 import { useParams } from 'react-router-dom';
 import { DndContext, DragEndEvent, DragOverEvent } from '@dnd-kit/core';
 import { ReactFlowProvider } from '@xyflow/react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useEditorStore } from '@/store/editorStore';
 import { BlockPalette } from '@/components/editor/BlockPalette';
 import { EditorCanvas } from '@/components/editor/EditorCanvas';
@@ -22,6 +23,8 @@ import {
   useEditorSaveMutation,
   useEditorLoadQuery,
 } from '../../packages/hooks/useEditorPersistence';
+import { supabase } from '@/integrations/supabase/client';
+import { validateStructuredContent } from '@/types/editor';
 import {
   ThemeProvider,
   ThemeStyleInjector,
@@ -29,6 +32,12 @@ import {
 } from '@/components/editor/theme/ThemeIntegration';
 import { useThemeStore } from '@/store/themeStore';
 import { getThemePresets } from '@/components/editor/theme/themePresets';
+import {
+  EditorPageErrorBoundary,
+  BlockPaletteErrorBoundary,
+  EditorCanvasErrorBoundary,
+  InspectorErrorBoundary,
+} from '@/components/editor/error-boundaries';
 
 export default function EditorPage() {
   const { reviewId } = useParams<{ reviewId: string }>();
@@ -50,6 +59,7 @@ export default function EditorPage() {
   } = useEditorStore();
 
   // Set up persistence hooks
+  const queryClient = useQueryClient();
   const saveMutation = useEditorSaveMutation();
   const { data: loadedData } = useEditorLoadQuery(reviewId);
 
@@ -75,34 +85,98 @@ export default function EditorPage() {
   // Initialize theme system
   const { currentTheme, applyTheme } = useThemeStore();
 
-  // Configure persistence callbacks once when component mounts or reviewId changes
-  const stableSaveCallback = React.useCallback(
+  // Configure persistence callbacks with stable references to prevent infinite loops
+  const saveCallback = React.useCallback(
     async (reviewId: string, content: any) => {
       return saveMutation.mutateAsync({ reviewId, structuredContent: content });
     },
-    [saveMutation]
+    [saveMutation.mutateAsync]
   );
 
-  const stableLoadCallback = React.useCallback(
-    async (reviewId: string) => {
-      // Return the current loaded data from the query
-      return loadedData;
-    },
-    [loadedData]
-  );
+  const loadCallback = React.useCallback(async (reviewId: string) => {
+    // Directly query the database instead of relying on stale cached data
+    // This ensures we always get fresh data and avoid race conditions
+    console.log('[EditorPage] loadCallback called for reviewId:', reviewId);
 
-  React.useEffect(() => {
-    setPersistenceCallbacks({
-      save: stableSaveCallback,
-      load: stableLoadCallback,
-    });
-  }, [reviewId, setPersistenceCallbacks, stableSaveCallback, stableLoadCallback]);
-
-  React.useEffect(() => {
-    if (reviewId) {
-      loadFromDatabase(reviewId);
+    if (!reviewId) {
+      console.log('[EditorPage] No reviewId provided');
+      return null;
     }
-  }, [reviewId, loadFromDatabase]);
+
+    // Convert reviewId to number at database boundary
+    const numericReviewId = parseInt(reviewId, 10);
+    if (isNaN(numericReviewId)) {
+      console.error('[EditorPage] Invalid reviewId:', reviewId);
+      throw new Error(`Invalid reviewId: ${reviewId}`);
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('review_editor_content')
+        .select('*')
+        .eq('review_id', numericReviewId)
+        .single();
+
+      if (error) {
+        if (error.code === 'PGRST116') {
+          // No editor content exists yet - this is fine for new reviews
+          console.log('[EditorPage] No existing editor content found for review:', reviewId);
+          return null;
+        }
+        console.error('[EditorPage] Database error loading content:', error);
+        throw new Error(`Failed to load editor content: ${error.message}`);
+      }
+
+      // Validate the loaded content
+      if (data?.structured_content) {
+        try {
+          const validatedContent = validateStructuredContent(data.structured_content);
+          console.log('[EditorPage] Successfully loaded and validated content:', {
+            reviewId,
+            nodeCount: validatedContent.nodes.length,
+            hasLayouts: !!validatedContent.layouts,
+          });
+
+          return {
+            ...data,
+            structured_content: validatedContent,
+          };
+        } catch (validationError) {
+          console.error('[EditorPage] Content validation failed:', validationError);
+          throw new Error(`Invalid editor content format: ${validationError}`);
+        }
+      }
+
+      console.log('[EditorPage] Loaded data but no structured_content found');
+      return null;
+    } catch (error) {
+      console.error('[EditorPage] Failed to load from database:', error);
+      throw error;
+    }
+  }, []);
+
+  const persistenceCallbacks = React.useMemo(
+    () => ({
+      save: saveCallback,
+      load: loadCallback,
+    }),
+    [saveCallback, loadCallback]
+  );
+
+  // Set persistence callbacks first, then load data to avoid race conditions
+  React.useEffect(() => {
+    setPersistenceCallbacks(persistenceCallbacks);
+  }, [setPersistenceCallbacks, persistenceCallbacks]);
+
+  // Load data from database - ensure callbacks are set before loading
+  React.useEffect(() => {
+    if (reviewId && persistenceCallbacks.load) {
+      console.log('[EditorPage] Triggering loadFromDatabase for reviewId:', reviewId);
+      loadFromDatabase(reviewId).catch(error => {
+        console.error('[EditorPage] Failed to load review data:', error);
+      });
+    }
+  }, [reviewId, persistenceCallbacks.load, loadFromDatabase]);
 
   // Set up fullscreen event listeners
   React.useEffect(() => {
@@ -132,13 +206,18 @@ export default function EditorPage() {
     }
   }, [recoveryState.hasBackup, showRecoveryDialog]);
 
-  // Initialize theme system with default theme if none is selected
+  // Initialize theme system with safeguards to prevent conflicts
   React.useEffect(() => {
     if (!currentTheme) {
-      const defaultThemes = getThemePresets();
-      const academicTheme = defaultThemes.find(theme => theme.id === 'academic-theme');
-      if (academicTheme) {
-        applyTheme(academicTheme);
+      try {
+        const defaultThemes = getThemePresets();
+        const academicTheme = defaultThemes.find(theme => theme.id === 'academic-theme');
+        if (academicTheme) {
+          // Apply theme with editor-specific mode to avoid app-wide conflicts
+          applyTheme(academicTheme, 'scoped');
+        }
+      } catch (error) {
+        console.warn('Failed to initialize editor theme:', error);
       }
     }
   }, [currentTheme, applyTheme]);
@@ -202,68 +281,81 @@ export default function EditorPage() {
   };
 
   return (
-    <ThemeProvider>
-      <ThemeStyleInjector />
-      <ThemeFontLoader />
-      <DndContext onDragEnd={handleDragEnd}>
-        <div
-          className={`flex flex-col bg-background ${isFullscreen ? 'h-screen w-screen fixed inset-0 z-50' : 'h-screen'}`}
-        >
-          {/* Editor Header - Hide in fullscreen mode */}
-          {!isFullscreen && (
-            <div className="h-14 border-b flex items-center justify-between px-4">
-              <div className="flex items-center space-x-4">
-                <h1 className="text-lg font-semibold">Visual Composition Engine</h1>
-                <span className="text-sm text-muted-foreground">Review ID: {reviewId}</span>
-                {isDirty && (
-                  <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">
-                    Unsaved changes
-                  </span>
-                )}
+    <EditorPageErrorBoundary>
+      <ThemeProvider>
+        <ThemeStyleInjector />
+        <ThemeFontLoader />
+        <DndContext onDragEnd={handleDragEnd}>
+          <div
+            className={`flex flex-col bg-background ${isFullscreen ? 'h-screen w-screen fixed inset-0 z-50' : 'h-screen'}`}
+          >
+            {/* Editor Header - Hide in fullscreen mode */}
+            {!isFullscreen && (
+              <div className="h-14 border-b flex items-center justify-between px-4">
+                <div className="flex items-center space-x-4">
+                  <h1 className="text-lg font-semibold">Visual Composition Engine</h1>
+                  <span className="text-sm text-muted-foreground">Review ID: {reviewId}</span>
+                  {isDirty && (
+                    <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">
+                      Unsaved changes
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex items-center space-x-4">
+                  {/* Enhanced Persistence Indicator */}
+                  <PersistenceIndicator state={persistenceState} actions={persistenceActions} />
+
+                  <Button size="sm" variant="outline">
+                    Export
+                  </Button>
+                </div>
               </div>
+            )}
 
-              <div className="flex items-center space-x-4">
-                {/* Enhanced Persistence Indicator */}
-                <PersistenceIndicator state={persistenceState} actions={persistenceActions} />
+            {/* Top Toolbar */}
+            <TopToolbar />
 
-                <Button size="sm" variant="outline">
-                  Export
-                </Button>
+            {/* Three-Panel Workspace (Palette + Canvas + Inspector) */}
+            <div className="flex-1 flex overflow-hidden">
+              <BlockPaletteErrorBoundary>
+                <BlockPalette />
+              </BlockPaletteErrorBoundary>
+              <div className="flex-1 relative">
+                <ReactFlowProvider>
+                  <EditorCanvasErrorBoundary>
+                    <EditorCanvas />
+                  </EditorCanvasErrorBoundary>
+                </ReactFlowProvider>
               </div>
+              {isInspectorVisible && (
+                <InspectorErrorBoundary>
+                  <InspectorPanel />
+                </InspectorErrorBoundary>
+              )}
             </div>
-          )}
 
-          {/* Top Toolbar */}
-          <TopToolbar />
+            {/* Inline Customization Toolbar */}
+            <InlineCustomizationToolbar />
 
-          {/* Three-Panel Workspace (Palette + Canvas + Inspector) */}
-          <div className="flex-1 flex overflow-hidden">
-            <BlockPalette />
-            <div className="flex-1 relative">
-              <ReactFlowProvider>
-                <EditorCanvas />
-              </ReactFlowProvider>
-            </div>
-            {isInspectorVisible && <InspectorPanel />}
+            {/* Backup Recovery Dialog */}
+            <BackupRecoveryDialog
+              open={showRecoveryDialog}
+              onOpenChange={setShowRecoveryDialog}
+              state={recoveryState}
+              actions={recoveryActions}
+              onRecover={handleRecovery}
+              reviewId={reviewId || ''}
+            />
+
+            {/* Keyboard Shortcuts Help Panel */}
+            <KeyboardShortcutsPanel
+              open={showShortcutsPanel}
+              onOpenChange={setShowShortcutsPanel}
+            />
           </div>
-
-          {/* Inline Customization Toolbar */}
-          <InlineCustomizationToolbar />
-
-          {/* Backup Recovery Dialog */}
-          <BackupRecoveryDialog
-            open={showRecoveryDialog}
-            onOpenChange={setShowRecoveryDialog}
-            state={recoveryState}
-            actions={recoveryActions}
-            onRecover={handleRecovery}
-            reviewId={reviewId || ''}
-          />
-
-          {/* Keyboard Shortcuts Help Panel */}
-          <KeyboardShortcutsPanel open={showShortcutsPanel} onOpenChange={setShowShortcutsPanel} />
-        </div>
-      </DndContext>
-    </ThemeProvider>
+        </DndContext>
+      </ThemeProvider>
+    </EditorPageErrorBoundary>
   );
 }

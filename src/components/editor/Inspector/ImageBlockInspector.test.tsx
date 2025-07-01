@@ -8,7 +8,29 @@ import { useEditorStore } from '@/store/editorStore';
 
 // Mock the editorStore
 vi.mock('@/store/editorStore', () => ({
-  useEditorStore: vi.fn()
+  useEditorStore: vi.fn(),
+}));
+
+// Mock Supabase client
+vi.mock('@/integrations/supabase/client', () => ({
+  supabase: {
+    storage: {
+      from: () => ({
+        upload: vi.fn(),
+        getPublicUrl: vi.fn(),
+      }),
+    },
+  },
+}));
+
+// Mock UI components
+vi.mock('@/components/ui/progress', () => ({
+  Progress: ({ value }: any) => <div data-testid="progress" data-value={value} />,
+}));
+
+vi.mock('@/components/ui/alert', () => ({
+  Alert: ({ children }: any) => <div data-testid="alert">{children}</div>,
+  AlertDescription: ({ children }: any) => <div data-testid="alert-description">{children}</div>,
 }));
 
 // Mock Lucide React icons
@@ -21,7 +43,13 @@ vi.mock('lucide-react', () => ({
   RefreshCw: ({ size }: any) => <div data-testid="refresh-cw-icon" data-size={size} />,
   ChevronDown: ({ size }: any) => <div data-testid="chevron-down-icon" data-size={size} />,
   ChevronUp: ({ size }: any) => <div data-testid="chevron-up-icon" data-size={size} />,
-  Check: ({ size }: any) => <div data-testid="check-icon" data-size={size} />
+  Check: ({ size }: any) => <div data-testid="check-icon" data-size={size} />,
+  Crop: ({ size }: any) => <div data-testid="crop-icon" data-size={size} />,
+  FileImage: ({ size }: any) => <div data-testid="file-image-icon" data-size={size} />,
+  Loader2: ({ size }: any) => <div data-testid="loader2-icon" data-size={size} />,
+  CheckCircle: ({ size }: any) => <div data-testid="check-circle-icon" data-size={size} />,
+  AlertCircle: ({ size }: any) => <div data-testid="alert-circle-icon" data-size={size} />,
+  Trash2: ({ size }: any) => <div data-testid="trash2-icon" data-size={size} />,
 }));
 
 const mockUseEditorStore = useEditorStore as any;
@@ -41,13 +69,13 @@ const createMockImageNode = (overrides = {}) => ({
     backgroundColor: 'transparent',
     borderWidth: 0,
     borderColor: '#e5e7eb',
-    ...overrides
-  }
+    ...overrides,
+  },
 });
 
 const createMockStore = (nodes: any[] = []) => ({
   nodes,
-  updateNode: vi.fn()
+  updateNode: vi.fn(),
 });
 
 describe('ImageBlockInspector', () => {
@@ -101,7 +129,7 @@ describe('ImageBlockInspector', () => {
       const mockNode = createMockImageNode({
         src: 'https://example.com/test.jpg',
         alt: 'Test alt text',
-        caption: 'Test caption text'
+        caption: 'Test caption text',
       });
       mockUseEditorStore.mockReturnValue(createMockStore([mockNode]));
 
@@ -130,8 +158,8 @@ describe('ImageBlockInspector', () => {
       // Check that updateNode was called with the correct data
       expect(updateNodeMock).toHaveBeenCalledWith('image-1', {
         data: expect.objectContaining({
-          src: 'test.jpg'
-        })
+          src: 'test.jpg',
+        }),
       });
     });
 
@@ -149,8 +177,8 @@ describe('ImageBlockInspector', () => {
       // Check that updateNode was called with the correct data
       expect(updateNodeMock).toHaveBeenCalledWith('image-1', {
         data: expect.objectContaining({
-          alt: 'New alt text'
-        })
+          alt: 'New alt text',
+        }),
       });
     });
 
@@ -201,8 +229,8 @@ describe('ImageBlockInspector', () => {
       // Check that updateNode was called with the correct data
       expect(updateNodeMock).toHaveBeenCalledWith('image-1', {
         data: expect.objectContaining({
-          width: 800
-        })
+          width: 800,
+        }),
       });
     });
 
@@ -220,8 +248,8 @@ describe('ImageBlockInspector', () => {
 
       expect(updateNodeMock).toHaveBeenCalledWith('image-1', {
         data: expect.objectContaining({
-          width: undefined
-        })
+          width: undefined,
+        }),
       });
     });
 
@@ -311,8 +339,8 @@ describe('ImageBlockInspector', () => {
 
       expect(updateNodeMock).toHaveBeenCalledWith('image-1', {
         data: expect.objectContaining({
-          borderWidth: 1
-        })
+          borderWidth: 1,
+        }),
       });
     });
 
@@ -330,8 +358,8 @@ describe('ImageBlockInspector', () => {
 
       expect(updateNodeMock).toHaveBeenCalledWith('image-1', {
         data: expect.objectContaining({
-          backgroundColor: 'transparent'
-        })
+          backgroundColor: 'transparent',
+        }),
       });
     });
   });
@@ -344,7 +372,9 @@ describe('ImageBlockInspector', () => {
       render(<ImageBlockInspector nodeId="image-1" />);
 
       expect(screen.getByText('WebP Optimization')).toBeInTheDocument();
-      expect(screen.getByText(/Images are automatically optimized to WebP format/)).toBeInTheDocument();
+      expect(
+        screen.getByText(/Images are automatically optimized to WebP format/)
+      ).toBeInTheDocument();
       expect(screen.getByTestId('refresh-cw-icon')).toBeInTheDocument();
     });
   });
@@ -367,13 +397,13 @@ describe('ImageBlockInspector', () => {
 
     it('should validate image file extensions', () => {
       const validExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'];
-      
+
       validExtensions.forEach(ext => {
         const mockNode = createMockImageNode({ src: `https://example.com/image.${ext}` });
         mockUseEditorStore.mockReturnValue(createMockStore([mockNode]));
 
         render(<ImageBlockInspector nodeId="image-1" />);
-        
+
         expect(screen.queryByText(/Please enter a valid image URL/)).not.toBeInTheDocument();
       });
     });
@@ -405,7 +435,9 @@ describe('ImageBlockInspector', () => {
 
       render(<ImageBlockInspector nodeId="image-1" />);
 
-      expect(screen.getByText('Describes the image content for screen readers and SEO')).toBeInTheDocument();
+      expect(
+        screen.getByText('Describes the image content for screen readers and SEO')
+      ).toBeInTheDocument();
     });
   });
 });

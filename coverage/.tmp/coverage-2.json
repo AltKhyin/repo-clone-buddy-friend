@@ -1,1 +1,1346 @@
-{"result":[{"scriptId":"1211","url":"file:///mnt/c/Users/Igor%20Cogo%20Koehler/Desktop/Repo/Reposit%C3%B3rio%20EVIDENS/Reviews/Main%20Branch/repo-clone-buddy-friend/src/test-setup.ts","functions":[{"functionName":"","ranges":[{"startOffset":0,"endOffset":21001,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":13,"endOffset":21001,"count":1},{"startOffset":3679,"endOffset":3901,"count":0}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":337,"endOffset":405,"count":0}],"isBlockCoverage":false},{"functionName":"","ranges":[{"startOffset":444,"endOffset":733,"count":0}],"isBlockCoverage":false},{"functionName":"","ranges":[{"startOffset":760,"endOffset":1001,"count":0}],"isBlockCoverage":false},{"functionName":"","ranges":[{"startOffset":1030,"endOffset":1195,"count":0}],"isBlockCoverage":false},{"functionName":"","ranges":[{"startOffset":1228,"endOffset":1279,"count":0}],"isBlockCoverage":false},{"functionName":"","ranges":[{"startOffset":1311,"endOffset":1464,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":1342,"endOffset":1456,"count":0}],"isBlockCoverage":false},{"functionName":"","ranges":[{"startOffset":1517,"endOffset":1736,"count":0}],"isBlockCoverage":false},{"functionName":"","ranges":[{"startOffset":1767,"endOffset":2121,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":1900,"endOffset":1911,"count":0}],"isBlockCoverage":false},{"functionName":"","ranges":[{"startOffset":1941,"endOffset":2075,"count":0}],"isBlockCoverage":false},{"functionName":"","ranges":[{"startOffset":2103,"endOffset":2111,"count":0}],"isBlockCoverage":false},{"functionName":"","ranges":[{"startOffset":2673,"endOffset":2768,"count":0}],"isBlockCoverage":false},{"functionName":"","ranges":[{"startOffset":2851,"endOffset":2946,"count":0}],"isBlockCoverage":false},{"functionName":"","ranges":[{"startOffset":3131,"endOffset":3140,"count":0}],"isBlockCoverage":false},{"functionName":"","ranges":[{"startOffset":3688,"endOffset":3900,"count":0}],"isBlockCoverage":false},{"functionName":"","ranges":[{"startOffset":4064,"endOffset":4340,"count":0}],"isBlockCoverage":false},{"functionName":"","ranges":[{"startOffset":4494,"endOffset":4785,"count":0}],"isBlockCoverage":false},{"functionName":"createStorageMock","ranges":[{"startOffset":5208,"endOffset":5614,"count":2}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":5272,"endOffset":5297,"count":0}],"isBlockCoverage":false},{"functionName":"","ranges":[{"startOffset":5323,"endOffset":5380,"count":0}],"isBlockCoverage":false},{"functionName":"","ranges":[{"startOffset":5409,"endOffset":5458,"count":0}],"isBlockCoverage":false},{"functionName":"","ranges":[{"startOffset":5482,"endOffset":5563,"count":44}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":5527,"endOffset":5551,"count":0}],"isBlockCoverage":false},{"functionName":"","ranges":[{"startOffset":6219,"endOffset":6705,"count":22}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":6718,"endOffset":6847,"count":22}],"isBlockCoverage":true}]},{"scriptId":"1830","url":"file:///mnt/c/Users/Igor%20Cogo%20Koehler/Desktop/Repo/Reposit%C3%B3rio%20EVIDENS/Reviews/Main%20Branch/repo-clone-buddy-friend/src/test-utils/supabase-mocks.ts","functions":[{"functionName":"","ranges":[{"startOffset":0,"endOffset":39804,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":13,"endOffset":39804,"count":1}],"isBlockCoverage":true},{"functionName":"_define_property","ranges":[{"startOffset":592,"endOffset":890,"count":0}],"isBlockCoverage":false},{"functionName":"select","ranges":[{"startOffset":969,"endOffset":1019,"count":0}],"isBlockCoverage":false},{"functionName":"from","ranges":[{"startOffset":1024,"endOffset":1064,"count":0}],"isBlockCoverage":false},{"functionName":"eq","ranges":[{"startOffset":1069,"endOffset":1115,"count":0}],"isBlockCoverage":false},{"functionName":"neq","ranges":[{"startOffset":1120,"endOffset":1167,"count":0}],"isBlockCoverage":false},{"functionName":"gt","ranges":[{"startOffset":1172,"endOffset":1218,"count":0}],"isBlockCoverage":false},{"functionName":"lt","ranges":[{"startOffset":1223,"endOffset":1269,"count":0}],"isBlockCoverage":false},{"functionName":"gte","ranges":[{"startOffset":1274,"endOffset":1321,"count":0}],"isBlockCoverage":false},{"functionName":"lte","ranges":[{"startOffset":1326,"endOffset":1373,"count":0}],"isBlockCoverage":false},{"functionName":"like","ranges":[{"startOffset":1378,"endOffset":1428,"count":0}],"isBlockCoverage":false},{"functionName":"in","ranges":[{"startOffset":1433,"endOffset":1480,"count":0}],"isBlockCoverage":false},{"functionName":"order","ranges":[{"startOffset":1485,"endOffset":1536,"count":0}],"isBlockCoverage":false},{"functionName":"limit","ranges":[{"startOffset":1541,"endOffset":1582,"count":0}],"isBlockCoverage":false},{"functionName":"range","ranges":[{"startOffset":1587,"endOffset":1631,"count":0}],"isBlockCoverage":false},{"functionName":"single","ranges":[{"startOffset":1636,"endOffset":1673,"count":0}],"isBlockCoverage":false},{"functionName":"maybeSingle","ranges":[{"startOffset":1678,"endOffset":1720,"count":0}],"isBlockCoverage":false},{"functionName":"insert","ranges":[{"startOffset":1725,"endOffset":1766,"count":0}],"isBlockCoverage":false},{"functionName":"update","ranges":[{"startOffset":1771,"endOffset":1812,"count":0}],"isBlockCoverage":false},{"functionName":"delete","ranges":[{"startOffset":1817,"endOffset":1854,"count":0}],"isBlockCoverage":false},{"functionName":"mockResolvedValue","ranges":[{"startOffset":1895,"endOffset":2010,"count":0}],"isBlockCoverage":false},{"functionName":"mockRejectedValue","ranges":[{"startOffset":2052,"endOffset":2169,"count":0}],"isBlockCoverage":false},{"functionName":"then","ranges":[{"startOffset":2204,"endOffset":2568,"count":0}],"isBlockCoverage":false},{"functionName":"MockQueryBuilder","ranges":[{"startOffset":2573,"endOffset":2747,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":2854,"endOffset":2886,"count":0}],"isBlockCoverage":false},{"functionName":"createMockAuth","ranges":[{"startOffset":2959,"endOffset":6286,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":6390,"endOffset":6420,"count":0}],"isBlockCoverage":false},{"functionName":"createMockFunctions","ranges":[{"startOffset":6503,"endOffset":9169,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":9278,"endOffset":9313,"count":0}],"isBlockCoverage":false},{"functionName":"createMockDatabase","ranges":[{"startOffset":9394,"endOffset":10428,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":10536,"endOffset":10570,"count":0}],"isBlockCoverage":false},{"functionName":"createMockSupabaseClient","ranges":[{"startOffset":10657,"endOffset":12348,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":12462,"endOffset":12502,"count":0}],"isBlockCoverage":false},{"functionName":"mockSupabaseClient","ranges":[{"startOffset":12588,"endOffset":12634,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":12742,"endOffset":12776,"count":0}],"isBlockCoverage":false},{"functionName":"mockSupabaseFunctions","ranges":[{"startOffset":12866,"endOffset":13221,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":13332,"endOffset":13369,"count":0}],"isBlockCoverage":false},{"functionName":"resetSupabaseMocks","ranges":[{"startOffset":13438,"endOffset":13491,"count":22}],"isBlockCoverage":true},{"functionName":"get","ranges":[{"startOffset":13599,"endOffset":13633,"count":22}],"isBlockCoverage":true},{"functionName":"authenticated","ranges":[{"startOffset":13777,"endOffset":14092,"count":0}],"isBlockCoverage":false},{"functionName":"unauthenticated","ranges":[{"startOffset":14150,"endOffset":14319,"count":0}],"isBlockCoverage":false},{"functionName":"networkError","ranges":[{"startOffset":14360,"endOffset":14536,"count":0}],"isBlockCoverage":false},{"functionName":"databaseError","ranges":[{"startOffset":14579,"endOffset":14919,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":15032,"endOffset":15069,"count":0}],"isBlockCoverage":false}]},{"scriptId":"1831","url":"file:///mnt/c/Users/Igor%20Cogo%20Koehler/Desktop/Repo/Reposit%C3%B3rio%20EVIDENS/Reviews/Main%20Branch/repo-clone-buddy-friend/src/test-utils/test-data-factories.ts","functions":[{"functionName":"","ranges":[{"startOffset":0,"endOffset":24986,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":13,"endOffset":24986,"count":1}],"isBlockCoverage":true},{"functionName":"generateId","ranges":[{"startOffset":369,"endOffset":397,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":497,"endOffset":523,"count":0}],"isBlockCoverage":false},{"functionName":"generateUUID","ranges":[{"startOffset":548,"endOffset":574,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":676,"endOffset":704,"count":0}],"isBlockCoverage":false},{"functionName":"createMockUserProfile","ranges":[{"startOffset":791,"endOffset":1158,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":1269,"endOffset":1306,"count":0}],"isBlockCoverage":false},{"functionName":"createMockReview","ranges":[{"startOffset":1335,"endOffset":2035,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":2141,"endOffset":2173,"count":0}],"isBlockCoverage":false},{"functionName":"createMockCommunityPost","ranges":[{"startOffset":2209,"endOffset":2670,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":2783,"endOffset":2822,"count":0}],"isBlockCoverage":false},{"functionName":"createMockSuggestion","ranges":[{"startOffset":2855,"endOffset":3354,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":3464,"endOffset":3500,"count":0}],"isBlockCoverage":false},{"functionName":"createMockPoll","ranges":[{"startOffset":3527,"endOffset":4112,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":4216,"endOffset":4246,"count":0}],"isBlockCoverage":false},{"functionName":"createMockHomepageData","ranges":[{"startOffset":4281,"endOffset":5510,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":5622,"endOffset":5660,"count":0}],"isBlockCoverage":false},{"functionName":"createMockCommunityPageData","ranges":[{"startOffset":5700,"endOffset":6955,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":7072,"endOffset":7115,"count":0}],"isBlockCoverage":false},{"functionName":"createMockReviews","ranges":[{"startOffset":7209,"endOffset":7388,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":7495,"endOffset":7528,"count":0}],"isBlockCoverage":false},{"functionName":"createMockCommunityPosts","ranges":[{"startOffset":7565,"endOffset":7749,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":7863,"endOffset":7903,"count":0}],"isBlockCoverage":false},{"functionName":"createMockSuggestions","ranges":[{"startOffset":7937,"endOffset":8122,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":8233,"endOffset":8270,"count":0}],"isBlockCoverage":false},{"functionName":"resetIdCounter","ranges":[{"startOffset":8355,"endOffset":8381,"count":22}],"isBlockCoverage":true},{"functionName":"get","ranges":[{"startOffset":8485,"endOffset":8515,"count":22}],"isBlockCoverage":true}]},{"scriptId":"1832","url":"file:///mnt/c/Users/Igor%20Cogo%20Koehler/Desktop/Repo/Reposit%C3%B3rio%20EVIDENS/Reviews/Main%20Branch/repo-clone-buddy-friend/src/test-utils/custom-matchers.ts","functions":[{"functionName":"","ranges":[{"startOffset":0,"endOffset":20750,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":13,"endOffset":20750,"count":1}],"isBlockCoverage":true},{"functionName":"toHaveTailwindClass","ranges":[{"startOffset":471,"endOffset":859,"count":0}],"isBlockCoverage":false},{"functionName":"toBeAccessible","ranges":[{"startOffset":934,"endOffset":1837,"count":0}],"isBlockCoverage":false},{"functionName":"toBeValidQueryResult","ranges":[{"startOffset":1921,"endOffset":2409,"count":0}],"isBlockCoverage":false},{"functionName":"toBeValidMutationResult","ranges":[{"startOffset":2496,"endOffset":3092,"count":0}],"isBlockCoverage":false},{"functionName":"toBeInLoadingState","ranges":[{"startOffset":3169,"endOffset":4002,"count":0}],"isBlockCoverage":false},{"functionName":"toBeInErrorState","ranges":[{"startOffset":4077,"endOffset":4897,"count":0}],"isBlockCoverage":false},{"functionName":"toBeResponsive","ranges":[{"startOffset":4980,"endOffset":5454,"count":0}],"isBlockCoverage":false}]},{"scriptId":"1833","url":"file:///mnt/c/Users/Igor%20Cogo%20Koehler/Desktop/Repo/Reposit%C3%B3rio%20EVIDENS/Reviews/Main%20Branch/repo-clone-buddy-friend/packages/hooks/usePublicationActionMutation.test.ts","functions":[{"functionName":"","ranges":[{"startOffset":0,"endOffset":69185,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":13,"endOffset":69185,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":367,"endOffset":481,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":1079,"endOffset":24703,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":1120,"endOffset":1418,"count":22}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":1435,"endOffset":1474,"count":22}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":1511,"endOffset":10790,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":1578,"endOffset":2714,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":2128,"endOffset":2178,"count":2}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":2417,"endOffset":2517,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":2766,"endOffset":3950,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":3329,"endOffset":3379,"count":2}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":3653,"endOffset":3753,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":4001,"endOffset":5061,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":4566,"endOffset":4616,"count":2}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":4891,"endOffset":4991,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":5117,"endOffset":6264,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":5769,"endOffset":5819,"count":2}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":6094,"endOffset":6194,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":6315,"endOffset":7355,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":6897,"endOffset":6947,"count":2}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":7185,"endOffset":7285,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":7409,"endOffset":8403,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":7936,"endOffset":7986,"count":2}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":8233,"endOffset":8333,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":8455,"endOffset":9449,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":8980,"endOffset":9030,"count":2}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":9279,"endOffset":9379,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":9501,"endOffset":10252,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":9813,"endOffset":9863,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":10000,"endOffset":10083,"count":1},{"startOffset":10069,"endOffset":10082,"count":0}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":10298,"endOffset":10782,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":10452,"endOffset":10502,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":10649,"endOffset":10732,"count":1},{"startOffset":10718,"endOffset":10731,"count":0}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":10828,"endOffset":17325,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":10899,"endOffset":11998,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":11358,"endOffset":11408,"count":2}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":11647,"endOffset":11730,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":12062,"endOffset":13159,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":12523,"endOffset":12573,"count":2}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":12816,"endOffset":12899,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":13224,"endOffset":14957,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":13796,"endOffset":13846,"count":2}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":14608,"endOffset":14945,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":15020,"endOffset":16428,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":15479,"endOffset":15529,"count":2}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":15807,"endOffset":15890,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":16484,"endOffset":17317,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":16798,"endOffset":16848,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":17070,"endOffset":17153,"count":1},{"startOffset":17139,"endOffset":17152,"count":0}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":17359,"endOffset":19099,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":17411,"endOffset":18269,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":17505,"endOffset":17511,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":17807,"endOffset":17857,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":17994,"endOffset":18077,"count":1},{"startOffset":18063,"endOffset":18076,"count":0}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":18336,"endOffset":19091,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":18430,"endOffset":18436,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":18625,"endOffset":18675,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":18816,"endOffset":18899,"count":1},{"startOffset":18885,"endOffset":18898,"count":0}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":19130,"endOffset":22511,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":19188,"endOffset":19915,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":19261,"endOffset":19311,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":19969,"endOffset":20980,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":20042,"endOffset":20092,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":21027,"endOffset":21483,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":21100,"endOffset":21150,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":21537,"endOffset":22503,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":21975,"endOffset":22025,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":22557,"endOffset":24699,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":22618,"endOffset":23753,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":23187,"endOffset":23237,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":23815,"endOffset":24691,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":24269,"endOffset":24319,"count":1}],"isBlockCoverage":true}]},{"scriptId":"1834","url":"file:///mnt/c/Users/Igor%20Cogo%20Koehler/Desktop/Repo/Reposit%C3%B3rio%20EVIDENS/Reviews/Main%20Branch/repo-clone-buddy-friend/src/test-utils/index.ts","functions":[{"functionName":"","ranges":[{"startOffset":0,"endOffset":1913,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":13,"endOffset":1913,"count":1}],"isBlockCoverage":true}]},{"scriptId":"1835","url":"file:///mnt/c/Users/Igor%20Cogo%20Koehler/Desktop/Repo/Reposit%C3%B3rio%20EVIDENS/Reviews/Main%20Branch/repo-clone-buddy-friend/src/test-utils/render-helpers.tsx","functions":[{"functionName":"","ranges":[{"startOffset":0,"endOffset":20215,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":13,"endOffset":20215,"count":1}],"isBlockCoverage":true},{"functionName":"AllProviders","ranges":[{"startOffset":1275,"endOffset":4079,"count":0}],"isBlockCoverage":false},{"functionName":"renderWithProviders","ranges":[{"startOffset":4229,"endOffset":5277,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":5386,"endOffset":5421,"count":0}],"isBlockCoverage":false},{"functionName":"renderMinimal","ranges":[{"startOffset":5568,"endOffset":5640,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":5743,"endOffset":5772,"count":0}],"isBlockCoverage":false},{"functionName":"renderWithRouter","ranges":[{"startOffset":5905,"endOffset":6526,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":6632,"endOffset":6664,"count":0}],"isBlockCoverage":false},{"functionName":"renderWithQuery","ranges":[{"startOffset":6809,"endOffset":7455,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":7560,"endOffset":7591,"count":0}],"isBlockCoverage":false},{"functionName":"renderWithErrorBoundary","ranges":[{"startOffset":7676,"endOffset":9220,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":9333,"endOffset":9372,"count":0}],"isBlockCoverage":false}]},{"scriptId":"1902","url":"file:///mnt/c/Users/Igor%20Cogo%20Koehler/Desktop/Repo/Reposit%C3%B3rio%20EVIDENS/Reviews/Main%20Branch/repo-clone-buddy-friend/src/test-utils/query-client-wrapper.tsx","functions":[{"functionName":"","ranges":[{"startOffset":0,"endOffset":11442,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":13,"endOffset":11442,"count":1}],"isBlockCoverage":true},{"functionName":"createTestQueryClient","ranges":[{"startOffset":959,"endOffset":1850,"count":22}],"isBlockCoverage":true},{"functionName":"log","ranges":[{"startOffset":1771,"endOffset":1777,"count":0}],"isBlockCoverage":false},{"functionName":"warn","ranges":[{"startOffset":1797,"endOffset":1803,"count":0}],"isBlockCoverage":false},{"functionName":"error","ranges":[{"startOffset":1824,"endOffset":1830,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":1961,"endOffset":1998,"count":0}],"isBlockCoverage":false},{"functionName":"QueryWrapper","ranges":[{"startOffset":2023,"endOffset":2491,"count":22}],"isBlockCoverage":true},{"functionName":"get","ranges":[{"startOffset":2593,"endOffset":2621,"count":0}],"isBlockCoverage":false},{"functionName":"renderHookWithQuery","ranges":[{"startOffset":2766,"endOffset":3461,"count":22},{"startOffset":2816,"endOffset":2829,"count":0}],"isBlockCoverage":true},{"functionName":"wrapper","ranges":[{"startOffset":2878,"endOffset":3295,"count":22}],"isBlockCoverage":true},{"functionName":"get","ranges":[{"startOffset":3570,"endOffset":3605,"count":22}],"isBlockCoverage":true},{"functionName":"waitForQueriesToSettle","ranges":[{"startOffset":3700,"endOffset":3884,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":3996,"endOffset":4034,"count":0}],"isBlockCoverage":false},{"functionName":"mockQuerySuccess","ranges":[{"startOffset":4118,"endOffset":4198,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":4304,"endOffset":4336,"count":0}],"isBlockCoverage":false},{"functionName":"mockQueryError","ranges":[{"startOffset":4404,"endOffset":4513,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":4617,"endOffset":4647,"count":0}],"isBlockCoverage":false}]},{"scriptId":"1951","url":"file:///mnt/c/Users/Igor%20Cogo%20Koehler/Desktop/Repo/Reposit%C3%B3rio%20EVIDENS/Reviews/Main%20Branch/repo-clone-buddy-friend/src/test-utils/mock-providers.tsx","functions":[{"functionName":"","ranges":[{"startOffset":0,"endOffset":25032,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":13,"endOffset":25032,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":322,"endOffset":534,"count":0}],"isBlockCoverage":false},{"functionName":"MockAuthProvider","ranges":[{"startOffset":959,"endOffset":2284,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":2390,"endOffset":2422,"count":0}],"isBlockCoverage":false},{"functionName":"useMockAuth","ranges":[{"startOffset":2501,"endOffset":2711,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":2812,"endOffset":2839,"count":0}],"isBlockCoverage":false},{"functionName":"createMockSupabaseClient","ranges":[{"startOffset":2922,"endOffset":5121,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":5235,"endOffset":5275,"count":0}],"isBlockCoverage":false},{"functionName":"MockToastProvider","ranges":[{"startOffset":5350,"endOffset":5792,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":5899,"endOffset":5932,"count":0}],"isBlockCoverage":false},{"functionName":"MockThemeProvider","ranges":[{"startOffset":6043,"endOffset":7024,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":7131,"endOffset":7164,"count":0}],"isBlockCoverage":false},{"functionName":"useMockTheme","ranges":[{"startOffset":7233,"endOffset":7446,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":7548,"endOffset":7576,"count":0}],"isBlockCoverage":false},{"functionName":"MockPWAProvider","ranges":[{"startOffset":7647,"endOffset":8163,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":8268,"endOffset":8299,"count":0}],"isBlockCoverage":false},{"functionName":"MockAllProviders","ranges":[{"startOffset":8328,"endOffset":9899,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":10005,"endOffset":10037,"count":0}],"isBlockCoverage":false}]},{"scriptId":"1952","url":"file:///mnt/c/Users/Igor%20Cogo%20Koehler/Desktop/Repo/Reposit%C3%B3rio%20EVIDENS/Reviews/Main%20Branch/repo-clone-buddy-friend/src/components/ui/toaster.tsx","functions":[{"functionName":"","ranges":[{"startOffset":0,"endOffset":6495,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":13,"endOffset":6495,"count":1}],"isBlockCoverage":true},{"functionName":"Toaster","ranges":[{"startOffset":628,"endOffset":4149,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":4245,"endOffset":4268,"count":0}],"isBlockCoverage":false}]},{"scriptId":"1953","url":"file:///mnt/c/Users/Igor%20Cogo%20Koehler/Desktop/Repo/Reposit%C3%B3rio%20EVIDENS/Reviews/Main%20Branch/repo-clone-buddy-friend/src/components/ui/toast.tsx","functions":[{"functionName":"","ranges":[{"startOffset":0,"endOffset":17673,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":13,"endOffset":17673,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":1025,"endOffset":1599,"count":0}],"isBlockCoverage":false},{"functionName":"","ranges":[{"startOffset":2670,"endOffset":3180,"count":0}],"isBlockCoverage":false},{"functionName":"","ranges":[{"startOffset":3310,"endOffset":4267,"count":0}],"isBlockCoverage":false},{"functionName":"","ranges":[{"startOffset":4404,"endOffset":5598,"count":0}],"isBlockCoverage":false},{"functionName":"","ranges":[{"startOffset":5733,"endOffset":6196,"count":0}],"isBlockCoverage":false},{"functionName":"","ranges":[{"startOffset":6337,"endOffset":6804,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":6987,"endOffset":7016,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":7121,"endOffset":7150,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":7247,"endOffset":7268,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":7370,"endOffset":7396,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":7504,"endOffset":7536,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":7638,"endOffset":7664,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":7767,"endOffset":7794,"count":0}],"isBlockCoverage":false}]},{"scriptId":"1976","url":"file:///mnt/c/Users/Igor%20Cogo%20Koehler/Desktop/Repo/Reposit%C3%B3rio%20EVIDENS/Reviews/Main%20Branch/repo-clone-buddy-friend/src/lib/utils.ts","functions":[{"functionName":"","ranges":[{"startOffset":0,"endOffset":1344,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":13,"endOffset":1344,"count":1}],"isBlockCoverage":true},{"functionName":"cn","ranges":[{"startOffset":448,"endOffset":552,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":643,"endOffset":661,"count":0}],"isBlockCoverage":false}]},{"scriptId":"1978","url":"file:///mnt/c/Users/Igor%20Cogo%20Koehler/Desktop/Repo/Reposit%C3%B3rio%20EVIDENS/Reviews/Main%20Branch/repo-clone-buddy-friend/src/test-utils/test-constants.ts","functions":[{"functionName":"","ranges":[{"startOffset":0,"endOffset":19202,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":13,"endOffset":19202,"count":1}],"isBlockCoverage":true},{"functionName":"get","ranges":[{"startOffset":1674,"endOffset":1698,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":2196,"endOffset":2223,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":2487,"endOffset":2511,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":3224,"endOffset":3258,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":3840,"endOffset":3868,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":4242,"endOffset":4269,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":4512,"endOffset":4539,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":4802,"endOffset":4829,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":5110,"endOffset":5134,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":5410,"endOffset":5436,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":5712,"endOffset":5746,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":6040,"endOffset":6071,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":6362,"endOffset":6391,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":6881,"endOffset":6911,"count":0}],"isBlockCoverage":false}]},{"scriptId":"1979","url":"file:///mnt/c/Users/Igor%20Cogo%20Koehler/Desktop/Repo/Reposit%C3%B3rio%20EVIDENS/Reviews/Main%20Branch/repo-clone-buddy-friend/packages/hooks/usePublicationActionMutation.ts","functions":[{"functionName":"","ranges":[{"startOffset":0,"endOffset":6553,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":13,"endOffset":6553,"count":1}],"isBlockCoverage":true},{"functionName":"executePublicationAction","ranges":[{"startOffset":627,"endOffset":867,"count":31},{"startOffset":785,"endOffset":801,"count":29},{"startOffset":801,"endOffset":848,"count":3},{"startOffset":848,"endOffset":866,"count":14}],"isBlockCoverage":true},{"functionName":"usePublicationActionMutation","ranges":[{"startOffset":906,"endOffset":2008,"count":33}],"isBlockCoverage":true},{"functionName":"onSuccess","ranges":[{"startOffset":1088,"endOffset":1895,"count":14}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":1764,"endOffset":1883,"count":14},{"startOffset":1783,"endOffset":1871,"count":1},{"startOffset":1872,"endOffset":1883,"count":13}],"isBlockCoverage":true},{"functionName":"onError","ranges":[{"startOffset":1914,"endOffset":1998,"count":17}],"isBlockCoverage":true},{"functionName":"get","ranges":[{"startOffset":2126,"endOffset":2170,"count":33}],"isBlockCoverage":true}]}]}
+{
+  "result": [
+    {
+      "scriptId": "1211",
+      "url": "file:///mnt/c/Users/Igor%20Cogo%20Koehler/Desktop/Repo/Reposit%C3%B3rio%20EVIDENS/Reviews/Main%20Branch/repo-clone-buddy-friend/src/test-setup.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 21001, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [
+            { "startOffset": 13, "endOffset": 21001, "count": 1 },
+            { "startOffset": 3679, "endOffset": 3901, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 337, "endOffset": 405, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 444, "endOffset": 733, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 760, "endOffset": 1001, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1030, "endOffset": 1195, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1228, "endOffset": 1279, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1311, "endOffset": 1464, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1517, "endOffset": 1736, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1767, "endOffset": 2121, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 2673, "endOffset": 2768, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 2851, "endOffset": 2946, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 3131, "endOffset": 3140, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 3688, "endOffset": 3900, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 4064, "endOffset": 4340, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 4494, "endOffset": 4785, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "createStorageMock",
+          "ranges": [{ "startOffset": 5208, "endOffset": 5614, "count": 2 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 5272, "endOffset": 5297, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 5323, "endOffset": 5380, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 5409, "endOffset": 5458, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 5482, "endOffset": 5563, "count": 62 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 5527, "endOffset": 5551, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 6219, "endOffset": 6705, "count": 31 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 6718, "endOffset": 6847, "count": 31 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1830",
+      "url": "file:///mnt/c/Users/Igor%20Cogo%20Koehler/Desktop/Repo/Reposit%C3%B3rio%20EVIDENS/Reviews/Main%20Branch/repo-clone-buddy-friend/src/test-utils/supabase-mocks.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 39804, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 39804, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "_define_property",
+          "ranges": [{ "startOffset": 592, "endOffset": 890, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "select",
+          "ranges": [{ "startOffset": 969, "endOffset": 1019, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "from",
+          "ranges": [{ "startOffset": 1024, "endOffset": 1064, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "eq",
+          "ranges": [{ "startOffset": 1069, "endOffset": 1115, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "neq",
+          "ranges": [{ "startOffset": 1120, "endOffset": 1167, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "gt",
+          "ranges": [{ "startOffset": 1172, "endOffset": 1218, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "lt",
+          "ranges": [{ "startOffset": 1223, "endOffset": 1269, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "gte",
+          "ranges": [{ "startOffset": 1274, "endOffset": 1321, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "lte",
+          "ranges": [{ "startOffset": 1326, "endOffset": 1373, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "like",
+          "ranges": [{ "startOffset": 1378, "endOffset": 1428, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "in",
+          "ranges": [{ "startOffset": 1433, "endOffset": 1480, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "order",
+          "ranges": [{ "startOffset": 1485, "endOffset": 1536, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "limit",
+          "ranges": [{ "startOffset": 1541, "endOffset": 1582, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "range",
+          "ranges": [{ "startOffset": 1587, "endOffset": 1631, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "single",
+          "ranges": [{ "startOffset": 1636, "endOffset": 1673, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "maybeSingle",
+          "ranges": [{ "startOffset": 1678, "endOffset": 1720, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "insert",
+          "ranges": [{ "startOffset": 1725, "endOffset": 1766, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "update",
+          "ranges": [{ "startOffset": 1771, "endOffset": 1812, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "delete",
+          "ranges": [{ "startOffset": 1817, "endOffset": 1854, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "mockResolvedValue",
+          "ranges": [{ "startOffset": 1895, "endOffset": 2010, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "mockRejectedValue",
+          "ranges": [{ "startOffset": 2052, "endOffset": 2169, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "then",
+          "ranges": [{ "startOffset": 2204, "endOffset": 2568, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "MockQueryBuilder",
+          "ranges": [{ "startOffset": 2573, "endOffset": 2747, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 2854, "endOffset": 2886, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "createMockAuth",
+          "ranges": [{ "startOffset": 2959, "endOffset": 6286, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 6390, "endOffset": 6420, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "createMockFunctions",
+          "ranges": [{ "startOffset": 6503, "endOffset": 9169, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 9278, "endOffset": 9313, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "createMockDatabase",
+          "ranges": [{ "startOffset": 9394, "endOffset": 10428, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 10536, "endOffset": 10570, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "createMockSupabaseClient",
+          "ranges": [{ "startOffset": 10657, "endOffset": 12348, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 12462, "endOffset": 12502, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "mockSupabaseClient",
+          "ranges": [{ "startOffset": 12588, "endOffset": 12634, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 12742, "endOffset": 12776, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "mockSupabaseFunctions",
+          "ranges": [{ "startOffset": 12866, "endOffset": 13221, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 13332, "endOffset": 13369, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "resetSupabaseMocks",
+          "ranges": [{ "startOffset": 13438, "endOffset": 13491, "count": 31 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 13599, "endOffset": 13633, "count": 31 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "authenticated",
+          "ranges": [{ "startOffset": 13777, "endOffset": 14092, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "unauthenticated",
+          "ranges": [{ "startOffset": 14150, "endOffset": 14319, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "networkError",
+          "ranges": [{ "startOffset": 14360, "endOffset": 14536, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "databaseError",
+          "ranges": [{ "startOffset": 14579, "endOffset": 14919, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 15032, "endOffset": 15069, "count": 0 }],
+          "isBlockCoverage": false
+        }
+      ]
+    },
+    {
+      "scriptId": "1831",
+      "url": "file:///mnt/c/Users/Igor%20Cogo%20Koehler/Desktop/Repo/Reposit%C3%B3rio%20EVIDENS/Reviews/Main%20Branch/repo-clone-buddy-friend/src/test-utils/test-data-factories.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 24986, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 24986, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "generateId",
+          "ranges": [{ "startOffset": 369, "endOffset": 397, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 497, "endOffset": 523, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "generateUUID",
+          "ranges": [{ "startOffset": 548, "endOffset": 574, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 676, "endOffset": 704, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "createMockUserProfile",
+          "ranges": [{ "startOffset": 791, "endOffset": 1158, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1269, "endOffset": 1306, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "createMockReview",
+          "ranges": [{ "startOffset": 1335, "endOffset": 2035, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 2141, "endOffset": 2173, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "createMockCommunityPost",
+          "ranges": [{ "startOffset": 2209, "endOffset": 2670, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 2783, "endOffset": 2822, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "createMockSuggestion",
+          "ranges": [{ "startOffset": 2855, "endOffset": 3354, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 3464, "endOffset": 3500, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "createMockPoll",
+          "ranges": [{ "startOffset": 3527, "endOffset": 4112, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 4216, "endOffset": 4246, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "createMockHomepageData",
+          "ranges": [{ "startOffset": 4281, "endOffset": 5510, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 5622, "endOffset": 5660, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "createMockCommunityPageData",
+          "ranges": [{ "startOffset": 5700, "endOffset": 6955, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 7072, "endOffset": 7115, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "createMockReviews",
+          "ranges": [{ "startOffset": 7209, "endOffset": 7388, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 7495, "endOffset": 7528, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "createMockCommunityPosts",
+          "ranges": [{ "startOffset": 7565, "endOffset": 7749, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 7863, "endOffset": 7903, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "createMockSuggestions",
+          "ranges": [{ "startOffset": 7937, "endOffset": 8122, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 8233, "endOffset": 8270, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "resetIdCounter",
+          "ranges": [{ "startOffset": 8355, "endOffset": 8381, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 8485, "endOffset": 8515, "count": 0 }],
+          "isBlockCoverage": false
+        }
+      ]
+    },
+    {
+      "scriptId": "1832",
+      "url": "file:///mnt/c/Users/Igor%20Cogo%20Koehler/Desktop/Repo/Reposit%C3%B3rio%20EVIDENS/Reviews/Main%20Branch/repo-clone-buddy-friend/src/test-utils/custom-matchers.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 20750, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 20750, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "toHaveTailwindClass",
+          "ranges": [{ "startOffset": 471, "endOffset": 859, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "toBeAccessible",
+          "ranges": [{ "startOffset": 934, "endOffset": 1837, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "toBeValidQueryResult",
+          "ranges": [{ "startOffset": 1921, "endOffset": 2409, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "toBeValidMutationResult",
+          "ranges": [{ "startOffset": 2496, "endOffset": 3092, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "toBeInLoadingState",
+          "ranges": [{ "startOffset": 3169, "endOffset": 4002, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "toBeInErrorState",
+          "ranges": [{ "startOffset": 4077, "endOffset": 4897, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "toBeResponsive",
+          "ranges": [{ "startOffset": 4980, "endOffset": 5454, "count": 0 }],
+          "isBlockCoverage": false
+        }
+      ]
+    },
+    {
+      "scriptId": "1833",
+      "url": "file:///mnt/c/Users/Igor%20Cogo%20Koehler/Desktop/Repo/Reposit%C3%B3rio%20EVIDENS/Reviews/Main%20Branch/repo-clone-buddy-friend/src/store/editorStore.test.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 65413, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 65413, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 327, "endOffset": 367, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "debounce",
+          "ranges": [{ "startOffset": 352, "endOffset": 360, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "randomUUID",
+          "ranges": [{ "startOffset": 831, "endOffset": 983, "count": 25 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "Math.random",
+          "ranges": [{ "startOffset": 1131, "endOffset": 1232, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1258, "endOffset": 22807, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1279, "endOffset": 1508, "count": 31 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1541, "endOffset": 2956, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1595, "endOffset": 2264, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 2317, "endOffset": 2666, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 2728, "endOffset": 2948, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 2991, "endOffset": 10378, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 3025, "endOffset": 5092, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 3094, "endOffset": 3863, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 3940, "endOffset": 4346, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 4411, "endOffset": 5080, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 5126, "endOffset": 7156, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 5183, "endOffset": 6013, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 6072, "endOffset": 6647, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 6704, "endOffset": 7144, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 7190, "endOffset": 9165, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 7242, "endOffset": 7734, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 7806, "endOffset": 8300, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 8371, "endOffset": 9153, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 9202, "endOffset": 10370, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 9262, "endOffset": 10018, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 10078, "endOffset": 10358, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 10415, "endOffset": 13341, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 10454, "endOffset": 13333, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 10514, "endOffset": 11377, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 11433, "endOffset": 12419, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 12488, "endOffset": 13321, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13381, "endOffset": 14480, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13418, "endOffset": 14472, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13470, "endOffset": 13918, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13980, "endOffset": 14460, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 14519, "endOffset": 16508, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 14560, "endOffset": 15297, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 14617, "endOffset": 14899, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 14959, "endOffset": 15285, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 15342, "endOffset": 16500, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 15408, "endOffset": 15871, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 15940, "endOffset": 16488, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 16548, "endOffset": 19245, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 16584, "endOffset": 18041, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 16649, "endOffset": 17614, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 17270, "endOffset": 17279, "count": 2 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 17676, "endOffset": 18029, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 18075, "endOffset": 19237, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 18138, "endOffset": 18905, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 18968, "endOffset": 19225, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 19281, "endOffset": 21957, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 19320, "endOffset": 21175, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 19381, "endOffset": 20804, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 20864, "endOffset": 21163, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 21105, "endOffset": 21137, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 21211, "endOffset": 21949, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 21285, "endOffset": 21937, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 21994, "endOffset": 22803, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 22026, "endOffset": 22795, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 22091, "endOffset": 22783, "count": 1 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1834",
+      "url": "file:///mnt/c/Users/Igor%20Cogo%20Koehler/Desktop/Repo/Reposit%C3%B3rio%20EVIDENS/Reviews/Main%20Branch/repo-clone-buddy-friend/src/store/editorStore.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 71599, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 71599, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1301, "endOffset": 24089, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [
+            { "startOffset": 1403, "endOffset": 2808, "count": 38 },
+            { "startOffset": 1472, "endOffset": 1489, "count": 0 },
+            { "startOffset": 1498, "endOffset": 2170, "count": 0 },
+            { "startOffset": 2172, "endOffset": 2802, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "addNode",
+          "ranges": [
+            { "startOffset": 3759, "endOffset": 4540, "count": 23 },
+            { "startOffset": 3899, "endOffset": 3913, "count": 0 },
+            { "startOffset": 3951, "endOffset": 4032, "count": 14 },
+            { "startOffset": 4017, "endOffset": 4031, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 4093, "endOffset": 4528, "count": 23 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "updateNode",
+          "ranges": [{ "startOffset": 4562, "endOffset": 5315, "count": 3 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [
+            { "startOffset": 4599, "endOffset": 5303, "count": 3 },
+            { "startOffset": 4727, "endOffset": 4740, "count": 1 },
+            { "startOffset": 4740, "endOffset": 5302, "count": 2 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 4666, "endOffset": 4686, "count": 2 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "deleteNode",
+          "ranges": [{ "startOffset": 5337, "endOffset": 6463, "count": 3 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [
+            { "startOffset": 5365, "endOffset": 6451, "count": 3 },
+            { "startOffset": 6242, "endOffset": 6264, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 5432, "endOffset": 5452, "count": 3 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 5534, "endOffset": 5558, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 5638, "endOffset": 5662, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "duplicateNode",
+          "ranges": [
+            { "startOffset": 6488, "endOffset": 6883, "count": 2 },
+            { "startOffset": 6637, "endOffset": 6882, "count": 1 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 6583, "endOffset": 6603, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "updateLayout",
+          "ranges": [{ "startOffset": 6945, "endOffset": 8369, "count": 6 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [
+            { "startOffset": 6991, "endOffset": 8357, "count": 6 },
+            { "startOffset": 7232, "endOffset": 7543, "count": 1 },
+            { "startOffset": 7543, "endOffset": 7838, "count": 5 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 7131, "endOffset": 7155, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "selectNode",
+          "ranges": [{ "startOffset": 8432, "endOffset": 8526, "count": 5 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "switchViewport",
+          "ranges": [
+            { "startOffset": 8592, "endOffset": 10501, "count": 4 },
+            { "startOffset": 8691, "endOffset": 8698, "count": 0 },
+            { "startOffset": 10214, "endOffset": 10234, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 8985, "endOffset": 9922, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "updateCanvasTransform",
+          "ranges": [{ "startOffset": 10534, "endOffset": 10755, "count": 3 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 10565, "endOffset": 10743, "count": 3 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "setCanvasTheme",
+          "ranges": [{ "startOffset": 10781, "endOffset": 10870, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "toggleGrid",
+          "ranges": [{ "startOffset": 10892, "endOffset": 11002, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "toggleRulers",
+          "ranges": [{ "startOffset": 11026, "endOffset": 11140, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "toggleGuidelines",
+          "ranges": [{ "startOffset": 11168, "endOffset": 11290, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "toggleFullscreen",
+          "ranges": [{ "startOffset": 11318, "endOffset": 13348, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "toggleInspector",
+          "ranges": [{ "startOffset": 13375, "endOffset": 13505, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "handleFullscreenChange",
+          "ranges": [{ "startOffset": 13605, "endOffset": 13951, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "addGuideline",
+          "ranges": [{ "startOffset": 13975, "endOffset": 14326, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "removeGuideline",
+          "ranges": [{ "startOffset": 14353, "endOffset": 14615, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "clearGuidelines",
+          "ranges": [{ "startOffset": 14642, "endOffset": 14808, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "copyNodes",
+          "ranges": [{ "startOffset": 14870, "endOffset": 15083, "count": 3 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 14967, "endOffset": 14994, "count": 3 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "pasteNodes",
+          "ranges": [
+            { "startOffset": 15105, "endOffset": 15454, "count": 2 },
+            { "startOffset": 15182, "endOffset": 15453, "count": 1 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 15275, "endOffset": 15442, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "undo",
+          "ranges": [{ "startOffset": 15509, "endOffset": 15924, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "redo",
+          "ranges": [{ "startOffset": 15940, "endOffset": 16366, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "pushToHistory",
+          "ranges": [
+            { "startOffset": 16391, "endOffset": 17000, "count": 1 },
+            { "startOffset": 16816, "endOffset": 16867, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "sanitizeLayouts",
+          "ranges": [{ "startOffset": 17134, "endOffset": 17855, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "sanitizeItems",
+          "ranges": [{ "startOffset": 17181, "endOffset": 17512, "count": 2 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 17225, "endOffset": 17496, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "saveToDatabase",
+          "ranges": [{ "startOffset": 17881, "endOffset": 19560, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "loadFromDatabase",
+          "ranges": [{ "startOffset": 19588, "endOffset": 21808, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "loadFromJSON",
+          "ranges": [
+            { "startOffset": 21832, "endOffset": 22551, "count": 2 },
+            { "startOffset": 22424, "endOffset": 22541, "count": 1 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "exportToJSON",
+          "ranges": [{ "startOffset": 22575, "endOffset": 22972, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "exportToPDF",
+          "ranges": [{ "startOffset": 22995, "endOffset": 23120, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "setPersistenceCallbacks",
+          "ranges": [{ "startOffset": 23190, "endOffset": 23296, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "reset",
+          "ranges": [{ "startOffset": 23346, "endOffset": 23935, "count": 32 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "setError",
+          "ranges": [{ "startOffset": 23955, "endOffset": 24080, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 24194, "endOffset": 24224, "count": 102 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1845",
+      "url": "file:///mnt/c/Users/Igor%20Cogo%20Koehler/Desktop/Repo/Reposit%C3%B3rio%20EVIDENS/Reviews/Main%20Branch/repo-clone-buddy-friend/src/types/editor.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 48178, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 48178, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 863, "endOffset": 895, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1258, "endOffset": 1292, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1520, "endOffset": 1549, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 2660, "endOffset": 2695, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 4207, "endOffset": 4245, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 5077, "endOffset": 5113, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 5811, "endOffset": 5847, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 6504, "endOffset": 6539, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 7032, "endOffset": 7074, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 7615, "endOffset": 7655, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 8110, "endOffset": 8146, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 8984, "endOffset": 9025, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 9576, "endOffset": 9616, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 11805, "endOffset": 11831, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 12524, "endOffset": 12565, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "validateStructuredContent",
+          "ranges": [
+            { "startOffset": 12677, "endOffset": 12989, "count": 2 },
+            { "startOffset": 12763, "endOffset": 12987, "count": 1 },
+            { "startOffset": 12960, "endOffset": 12987, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 12920, "endOffset": 12934, "count": 2 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 13104, "endOffset": 13145, "count": 2 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "validateNode",
+          "ranges": [{ "startOffset": 13170, "endOffset": 13447, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 13549, "endOffset": 13577, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "generateNodeId",
+          "ranges": [
+            { "startOffset": 13637, "endOffset": 14085, "count": 25 },
+            { "startOffset": 13833, "endOffset": 14084, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13940, "endOffset": 14081, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 14189, "endOffset": 14219, "count": 25 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "getDefaultDataForBlockType",
+          "ranges": [
+            { "startOffset": 14258, "endOffset": 16449, "count": 15 },
+            { "startOffset": 14304, "endOffset": 14419, "count": 11 },
+            { "startOffset": 14428, "endOffset": 14549, "count": 2 },
+            { "startOffset": 14558, "endOffset": 14690, "count": 1 },
+            { "startOffset": 14699, "endOffset": 15003, "count": 1 },
+            { "startOffset": 15012, "endOffset": 15593, "count": 0 },
+            { "startOffset": 15602, "endOffset": 15741, "count": 0 },
+            { "startOffset": 15750, "endOffset": 15939, "count": 0 },
+            { "startOffset": 15948, "endOffset": 16079, "count": 0 },
+            { "startOffset": 16088, "endOffset": 16208, "count": 0 },
+            { "startOffset": 16217, "endOffset": 16401, "count": 0 },
+            { "startOffset": 16410, "endOffset": 16441, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 16565, "endOffset": 16607, "count": 15 }],
+          "isBlockCoverage": true
+        }
+      ]
+    }
+  ]
+}

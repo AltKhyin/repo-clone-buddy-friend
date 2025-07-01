@@ -3,6 +3,9 @@
 import React from 'react';
 import { useEditorStore } from '@/store/editorStore';
 import { ContextAwareInspector } from './shared/ContextAwareInspector';
+import { TableBlockInspector } from './TableBlockInspector';
+import { PollBlockInspector } from './PollBlockInspector';
+import { ImageBlockInspector } from './ImageBlockInspector';
 import { Settings, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -53,7 +56,20 @@ export const InspectorPanel = React.memo(function InspectorPanel({
       <div className="flex-1 overflow-y-auto">
         <div className="p-4">
           {selectedNode ? (
-            <ContextAwareInspector nodeId={selectedNodeId!} compact={false} />
+            <>
+              {/* Route to specific inspectors for complex blocks */}
+              {selectedNode.type === 'tableBlock' && (
+                <TableBlockInspector nodeId={selectedNodeId!} />
+              )}
+              {selectedNode.type === 'pollBlock' && <PollBlockInspector nodeId={selectedNodeId!} />}
+              {selectedNode.type === 'imageBlock' && (
+                <ImageBlockInspector nodeId={selectedNodeId!} />
+              )}
+              {/* Use ContextAwareInspector for simpler blocks */}
+              {!['tableBlock', 'pollBlock', 'imageBlock'].includes(selectedNode.type) && (
+                <ContextAwareInspector nodeId={selectedNodeId!} compact={false} />
+              )}
+            </>
           ) : (
             <div className="text-center py-8">
               <Settings size={48} className="mx-auto mb-4 text-muted-foreground" />

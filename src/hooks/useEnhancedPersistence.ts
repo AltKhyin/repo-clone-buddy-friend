@@ -47,7 +47,7 @@ export function useEnhancedPersistence(
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const saveMutation = useEditorSaveMutation();
-  
+
   // State tracking
   const [persistenceState, setPersistenceState] = React.useState<PersistenceState>({
     isSaving: false,
@@ -73,49 +73,70 @@ export function useEnhancedPersistence(
   }, []);
 
   // LocalStorage backup functions
-  const saveToLocalStorage = useCallback(async (data: StructuredContentV2) => {
-    if (!reviewId) return;
+  const saveToLocalStorage = useCallback(
+    async (data: StructuredContentV2) => {
+      if (!reviewId) return;
 
-    try {
-      setPersistenceState(prev => ({ ...prev, isBackingUp: true, backupError: null }));
+      try {
+        setPersistenceState(prev => ({ ...prev, isBackingUp: true, backupError: null }));
 
-      // Validate content before backup
-      const validatedContent = validateStructuredContent(data);
-      
-      const backupKey = getBackupKey(reviewId);
-      const backup = {
-        content: validatedContent,
-        timestamp: new Date().toISOString(),
-        reviewId,
-      };
+        // Validate content before backup
+        const validatedContent = validateStructuredContent(data);
 
-      // Save to localStorage
-      localStorage.setItem(backupKey, JSON.stringify(backup));
+        const backupKey = getBackupKey(reviewId);
+        const backup = {
+          content: validatedContent,
+          timestamp: new Date().toISOString(),
+          reviewId,
+        };
 
-      // Update metadata
-      const metadata: BackupMetadata = {
-        reviewId,
-        timestamp: backup.timestamp,
-        version: validatedContent.version,
-      };
-      localStorage.setItem(BACKUP_METADATA_KEY, JSON.stringify(metadata));
+        // Check backup size before saving to localStorage
+        const backupString = JSON.stringify(backup);
+        const backupSize = backupString.length;
+        const maxSize = 5 * 1024 * 1024; // 5MB limit
 
-      setPersistenceState(prev => ({ 
-        ...prev, 
-        isBackingUp: false, 
-        lastBackup: new Date(),
-        backupError: null 
-      }));
+        if (backupSize > maxSize) {
+          console.warn(
+            `Backup too large (${Math.round(backupSize / 1024)}KB), skipping localStorage backup for review ${reviewId}`
+          );
+          setPersistenceState(prev => ({
+            ...prev,
+            isBackingUp: false,
+            backupError: new Error(
+              `Backup too large: ${Math.round(backupSize / 1024)}KB exceeds 5MB limit`
+            ),
+          }));
+          return;
+        }
 
-    } catch (error) {
-      console.error('LocalStorage backup failed:', error);
-      setPersistenceState(prev => ({ 
-        ...prev, 
-        isBackingUp: false, 
-        backupError: error as Error 
-      }));
-    }
-  }, [reviewId, getBackupKey]);
+        // Save to localStorage
+        localStorage.setItem(backupKey, backupString);
+
+        // Update metadata
+        const metadata: BackupMetadata = {
+          reviewId,
+          timestamp: backup.timestamp,
+          version: validatedContent.version,
+        };
+        localStorage.setItem(BACKUP_METADATA_KEY, JSON.stringify(metadata));
+
+        setPersistenceState(prev => ({
+          ...prev,
+          isBackingUp: false,
+          lastBackup: new Date(),
+          backupError: null,
+        }));
+      } catch (error) {
+        console.error('LocalStorage backup failed:', error);
+        setPersistenceState(prev => ({
+          ...prev,
+          isBackingUp: false,
+          backupError: error as Error,
+        }));
+      }
+    },
+    [reviewId, getBackupKey]
+  );
 
   const restoreFromBackup = useCallback((): StructuredContentV2 | null => {
     if (!reviewId) return null;
@@ -123,7 +144,7 @@ export function useEnhancedPersistence(
     try {
       const backupKey = getBackupKey(reviewId);
       const backupData = localStorage.getItem(backupKey);
-      
+
       if (!backupData) return null;
 
       const backup = JSON.parse(backupData);
@@ -142,7 +163,7 @@ export function useEnhancedPersistence(
     const backupKey = getBackupKey(reviewId);
     localStorage.removeItem(backupKey);
     localStorage.removeItem(BACKUP_METADATA_KEY);
-    
+
     setPersistenceState(prev => ({ ...prev, lastBackup: null }));
   }, [reviewId, getBackupKey]);
 
@@ -159,77 +180,79 @@ export function useEnhancedPersistence(
         const serverContentStr = JSON.stringify(currentCache);
         if (serverContentStr !== lastSaveContentRef.current) {
           setPersistenceState(prev => ({ ...prev, conflictDetected: true }));
-          
+
           toast({
-            title: "Conflict Detected",
-            description: "The document has been modified elsewhere. Please resolve the conflict.",
-            variant: "destructive",
+            title: 'Conflict Detected',
+            description: 'The document has been modified elsewhere. Please resolve the conflict.',
+            variant: 'destructive',
           });
           return;
         }
       }
 
-      const result = await saveMutation.mutateAsync({ 
-        reviewId, 
-        structuredContent: content 
+      const result = await saveMutation.mutateAsync({
+        reviewId,
+        structuredContent: content,
       });
 
       // Update tracking
       lastSaveContentRef.current = JSON.stringify(result);
-      
-      setPersistenceState(prev => ({ 
-        ...prev, 
-        isSaving: false, 
+
+      setPersistenceState(prev => ({
+        ...prev,
+        isSaving: false,
         lastSaved: new Date(),
         hasUnsavedChanges: false,
         saveError: null,
-        conflictDetected: false 
+        conflictDetected: false,
       }));
 
       // Clear backup after successful save
       clearBackup();
 
       toast({
-        title: "Saved",
-        description: "Your changes have been saved successfully.",
+        title: 'Saved',
+        description: 'Your changes have been saved successfully.',
         duration: 2000,
       });
-
     } catch (error) {
       console.error('Save failed:', error);
-      setPersistenceState(prev => ({ 
-        ...prev, 
-        isSaving: false, 
-        saveError: error as Error 
+      setPersistenceState(prev => ({
+        ...prev,
+        isSaving: false,
+        saveError: error as Error,
       }));
 
       toast({
-        title: "Save Failed",
-        description: "Failed to save changes. They are backed up locally.",
-        variant: "destructive",
+        title: 'Save Failed',
+        description: 'Failed to save changes. They are backed up locally.',
+        variant: 'destructive',
       });
     }
   }, [reviewId, content, queryClient, saveMutation, toast, clearBackup]);
 
   // Conflict resolution
-  const resolveConflict = useCallback(async (useLocal: boolean) => {
-    if (!reviewId || !content) return;
+  const resolveConflict = useCallback(
+    async (useLocal: boolean) => {
+      if (!reviewId || !content) return;
 
-    if (useLocal) {
-      // Force save local version
-      setPersistenceState(prev => ({ ...prev, conflictDetected: false }));
-      await forceSave();
-    } else {
-      // Reload from server
-      queryClient.invalidateQueries({ queryKey: ['editor-content', reviewId] });
-      setPersistenceState(prev => ({ ...prev, conflictDetected: false }));
-      
-      toast({
-        title: "Conflict Resolved",
-        description: "Document reloaded from server.",
-      });
-    }
-  }, [reviewId, content, forceSave, queryClient, toast]);
+      if (useLocal) {
+        // Force save local version
+        setPersistenceState(prev => ({ ...prev, conflictDetected: false }));
+        await forceSave();
+      } else {
+        // Reload from server
+        queryClient.invalidateQueries({ queryKey: ['editor-content', reviewId] });
+        setPersistenceState(prev => ({ ...prev, conflictDetected: false }));
+
+        toast({
+          title: 'Conflict Resolved',
+          description: 'Document reloaded from server.',
+        });
+      }
+    },
+    [reviewId, content, forceSave, queryClient, toast]
+  );
 
   // Auto-save logic
   useEffect(() => {
@@ -295,7 +318,7 @@ export function useEnhancedPersistence(
         if (content && reviewId) {
           saveToLocalStorage(content);
         }
-        
+
         e.preventDefault();
         e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
         return e.returnValue;
@@ -303,11 +326,11 @@ export function useEnhancedPersistence(
     };
 
     window.addEventListener('beforeunload', handleBeforeUnload);
-    
+
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
       isUnloadingRef.current = true;
-      
+
       // Clear timers
       if (autoSaveTimerRef.current) {
         clearTimeout(autoSaveTimerRef.current);

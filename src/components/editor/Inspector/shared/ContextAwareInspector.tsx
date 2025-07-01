@@ -7,11 +7,11 @@ import { InspectorSection } from './InspectorSection';
 import { ColorControl } from './ColorControl';
 import { SpacingControls } from './SpacingControls';
 import { TypographyControls } from './TypographyControls';
-import { 
-  Palette, 
-  Move, 
-  Type, 
-  Settings, 
+import {
+  Palette,
+  Move,
+  Type,
+  Settings,
   Eye,
   Lightbulb,
   Hash,
@@ -19,7 +19,7 @@ import {
   BarChart3,
   Quote,
   FileText,
-  Minus
+  Minus,
 } from 'lucide-react';
 
 interface InspectorContext {
@@ -90,23 +90,35 @@ const BLOCK_CONFIGS = {
     sections: ['typography', 'colors', 'spacing'],
     typographyType: 'quote' as const,
   },
+  tableBlock: {
+    icon: BarChart3,
+    name: 'Table Block',
+    sections: ['colors', 'spacing'],
+    typographyType: null,
+  },
+  videoEmbedBlock: {
+    icon: Image,
+    name: 'Video Embed',
+    sections: ['spacing'],
+    typographyType: null,
+  },
 };
 
-export const ContextAwareInspector = React.memo(function ContextAwareInspector({ nodeId, compact = false }: ContextAwareInspectorProps) {
+export const ContextAwareInspector = React.memo(function ContextAwareInspector({
+  nodeId,
+  compact = false,
+}: ContextAwareInspectorProps) {
   const { nodes, updateNode, currentViewport } = useEditorStore();
-  
+
   const node = nodes.find(n => n.id === nodeId);
   const blockConfig = node ? BLOCK_CONFIGS[node.type as keyof typeof BLOCK_CONFIGS] : null;
 
   // Generate inspector context
   const context: InspectorContext = useMemo(() => {
     if (!node) return null;
-    
+
     const nodeIndex = nodes.findIndex(n => n.id === nodeId);
-    const neighborBlocks = [
-      nodes[nodeIndex - 1]?.type,
-      nodes[nodeIndex + 1]?.type
-    ].filter(Boolean);
+    const neighborBlocks = [nodes[nodeIndex - 1]?.type, nodes[nodeIndex + 1]?.type].filter(Boolean);
 
     return {
       blockType: node.type,
@@ -117,8 +129,8 @@ export const ContextAwareInspector = React.memo(function ContextAwareInspector({
       contentAnalysis: {
         hasText: ['textBlock', 'headingBlock', 'quoteBlock'].includes(node.type),
         hasMedia: ['imageBlock', 'videoEmbedBlock'].includes(node.type),
-        complexity: node.type === 'tableBlock' || node.type === 'pollBlock' ? 'complex' : 'simple'
-      }
+        complexity: node.type === 'tableBlock' || node.type === 'pollBlock' ? 'complex' : 'simple',
+      },
     };
   }, [node, nodes, nodeId, currentViewport]);
 
@@ -155,26 +167,26 @@ export const ContextAwareInspector = React.memo(function ContextAwareInspector({
             <ColorControl
               label="Text Color"
               value={node.data.color}
-              onChange={(color) => handleDataUpdate({ color })}
+              onChange={color => handleDataUpdate({ color })}
               compact={compact}
             />
           )}
-          
+
           {/* Background color for all blocks */}
           <ColorControl
             label="Background Color"
             value={node.data.backgroundColor}
-            onChange={(backgroundColor) => handleDataUpdate({ backgroundColor })}
+            onChange={backgroundColor => handleDataUpdate({ backgroundColor })}
             allowTransparent
             compact={compact}
           />
-          
+
           {/* Border color if block supports borders */}
           {Object.prototype.hasOwnProperty.call(node.data, 'borderColor') && (
             <ColorControl
               label="Border Color"
               value={node.data.borderColor}
-              onChange={(borderColor) => handleDataUpdate({ borderColor })}
+              onChange={borderColor => handleDataUpdate({ borderColor })}
               compact={compact}
             />
           )}
@@ -194,13 +206,13 @@ export const ContextAwareInspector = React.memo(function ContextAwareInspector({
 
     // Add border radius for blocks that support it
     if (Object.prototype.hasOwnProperty.call(node.data, 'borderRadius')) {
-      spacingFields.push({ 
-        key: 'borderRadius', 
-        label: 'Border Radius', 
-        min: 0, 
-        max: 32, 
-        step: 1, 
-        unit: 'px' 
+      spacingFields.push({
+        key: 'borderRadius',
+        label: 'Border Radius',
+        min: 0,
+        max: 32,
+        step: 1,
+        unit: 'px',
       });
     }
 
@@ -233,7 +245,14 @@ export const ContextAwareInspector = React.memo(function ContextAwareInspector({
     // Add complexity-based sections
     if (context.contentAnalysis?.complexity === 'complex') {
       sections.push(
-        <InspectorSection key="advanced" title="Advanced Settings" icon={Settings} compact={compact} collapsible defaultCollapsed>
+        <InspectorSection
+          key="advanced"
+          title="Advanced Settings"
+          icon={Settings}
+          compact={compact}
+          collapsible
+          defaultCollapsed
+        >
           <div className="text-sm text-muted-foreground">
             Advanced block-specific settings will be available here.
           </div>
@@ -256,7 +275,7 @@ export const ContextAwareInspector = React.memo(function ContextAwareInspector({
       {renderTypographySection()}
       {renderColorsSection()}
       {renderSpacingSection()}
-      
+
       {/* Contextual Sections */}
       {renderContextualSections()}
     </div>

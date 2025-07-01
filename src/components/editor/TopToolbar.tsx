@@ -26,9 +26,6 @@ import {
   Minus,
   Maximize,
   MinusSquare,
-  ChevronDown,
-  Eye,
-  EyeOff,
   Palette,
 } from 'lucide-react';
 import { SafeSwitch } from './SafeSwitch';
@@ -38,15 +35,8 @@ import { HistoryIndicator } from './HistoryIndicator';
 import { KeyboardShortcutsPanel } from './KeyboardShortcutsPanel';
 import { ModalPreview } from './ModalPreview';
 import { ThemeManager } from './theme/ThemeManager';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 
-export function TopToolbar() {
+export const TopToolbar = React.memo(function TopToolbar() {
   const {
     selectedNodeId,
     nodes,
@@ -72,24 +62,27 @@ export function TopToolbar() {
 
   const selectedNode = selectedNodeId ? nodes.find(n => n.id === selectedNodeId) : null;
 
-  const handleUpdateNode = (updates: any) => {
-    if (selectedNodeId) {
-      updateNode(selectedNodeId, updates);
-    }
-  };
+  const handleUpdateNode = React.useCallback(
+    (updates: any) => {
+      if (selectedNodeId) {
+        updateNode(selectedNodeId, updates);
+      }
+    },
+    [selectedNodeId, updateNode]
+  );
 
-  const handleDeleteNode = () => {
+  const handleDeleteNode = React.useCallback(() => {
     if (selectedNodeId) {
       deleteNode(selectedNodeId);
       selectNode(null);
     }
-  };
+  }, [selectedNodeId, deleteNode, selectNode]);
 
-  const handleDuplicateNode = () => {
+  const handleDuplicateNode = React.useCallback(() => {
     if (selectedNodeId) {
       duplicateNode(selectedNodeId);
     }
-  };
+  }, [selectedNodeId, duplicateNode]);
 
   const renderCompactNodeEditor = () => {
     if (!selectedNode) return null;
@@ -460,44 +453,49 @@ export function TopToolbar() {
             {isFullscreen ? 'Exit' : 'Full'}
           </Button>
 
-          {/* View Options Dropdown */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button size="sm" variant="outline" className="h-7 px-2">
-                <Eye size={12} className="mr-1" />
-                View
-                <ChevronDown size={12} className="ml-1" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start">
-              <DropdownMenuItem onClick={toggleGrid} className="flex items-center gap-2">
-                <Grid size={14} />
-                {showGrid ? 'Hide Grid' : 'Show Grid'}
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={toggleRulers} className="flex items-center gap-2">
-                <Ruler size={14} />
-                {showRulers ? 'Hide Rulers' : 'Show Rulers'}
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={toggleGuidelines} className="flex items-center gap-2">
-                <Minus size={14} />
-                {showGuidelines ? 'Hide Guidelines' : 'Show Guidelines'}
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={clearGuidelines}
-                className="text-destructive"
-                disabled={
-                  !showGuidelines ||
-                  !guidelines ||
-                  (guidelines.horizontal.length === 0 && guidelines.vertical.length === 0)
-                }
-                style={{ display: showGuidelines && guidelines ? 'flex' : 'none' }}
-              >
-                Clear Guidelines (
-                {guidelines ? guidelines.horizontal.length + guidelines.vertical.length : 0})
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {/* View Options Button Group - Fixed: Replaced DropdownMenu to eliminate infinite loop */}
+          <div className="flex items-center gap-1 bg-muted rounded-md p-1">
+            <Button
+              size="sm"
+              variant={showGrid ? 'default' : 'ghost'}
+              onClick={toggleGrid}
+              className="h-6 px-2 text-xs"
+              title={showGrid ? 'Hide Grid' : 'Show Grid'}
+            >
+              <Grid size={12} />
+            </Button>
+            <Button
+              size="sm"
+              variant={showRulers ? 'default' : 'ghost'}
+              onClick={toggleRulers}
+              className="h-6 px-2 text-xs"
+              title={showRulers ? 'Hide Rulers' : 'Show Rulers'}
+            >
+              <Ruler size={12} />
+            </Button>
+            <Button
+              size="sm"
+              variant={showGuidelines ? 'default' : 'ghost'}
+              onClick={toggleGuidelines}
+              className="h-6 px-2 text-xs"
+              title={showGuidelines ? 'Hide Guidelines' : 'Show Guidelines'}
+            >
+              <Minus size={12} />
+            </Button>
+            {showGuidelines &&
+              guidelines &&
+              (guidelines.horizontal.length > 0 || guidelines.vertical.length > 0) && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={clearGuidelines}
+                  className="h-6 px-2 text-xs text-destructive hover:text-destructive"
+                  title={`Clear ${guidelines.horizontal.length + guidelines.vertical.length} guidelines`}
+                >
+                  <Trash2 size={12} />
+                </Button>
+              )}
+          </div>
         </div>
       </div>
 
@@ -552,4 +550,4 @@ export function TopToolbar() {
       )}
     </div>
   );
-}
+});

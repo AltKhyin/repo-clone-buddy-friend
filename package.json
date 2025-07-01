@@ -16,6 +16,8 @@
     "test:ui": "vitest --ui",
     "test:related": "vitest run --related",
     "test:staged": "vitest run --reporter=verbose --run",
+    "validate:inspectors": "node scripts/validate-inspector-components.js",
+    "test:pre-commit": "npm run test && npm run validate:inspectors",
     "prepare": "husky"
   },
   "dependencies": {

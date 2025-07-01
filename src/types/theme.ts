@@ -228,6 +228,37 @@ export const CustomThemeSchema = z.object({
       backgroundColor: z.string().optional(),
       padding: z.string(),
     }),
+    imageBlock: z.object({
+      borderRadius: z.string(),
+      borderWidth: z.string(),
+      borderColor: z.string().optional(),
+      backgroundColor: z.string().optional(),
+      padding: z.string(),
+      maxWidth: z.string(),
+    }),
+    videoEmbedBlock: z.object({
+      borderRadius: z.string(),
+      backgroundColor: z.string().optional(),
+      padding: z.string(),
+      aspectRatio: z.string(),
+      borderWidth: z.string(),
+    }),
+    tableBlock: z.object({
+      borderWidth: z.string(),
+      borderStyle: z.enum(['solid', 'dashed', 'dotted']),
+      headerBackground: z.string().optional(),
+      alternateRowBackground: z.string().optional(),
+      cellPadding: z.string(),
+      fontSize: z.string(),
+    }),
+    pollBlock: z.object({
+      borderRadius: z.string(),
+      backgroundColor: z.string().optional(),
+      optionBackground: z.string().optional(),
+      resultBarColor: z.string().optional(),
+      padding: z.string(),
+      spacing: z.string(),
+    }),
   }),
 });
 

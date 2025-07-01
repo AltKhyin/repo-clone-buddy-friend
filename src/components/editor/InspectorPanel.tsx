@@ -5,10 +5,28 @@ import { useEditorStore } from '@/store/editorStore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
-import { Trash2, Copy, Eye, EyeOff, Monitor, Smartphone, Sun, Moon, Grid, Ruler, Minus } from 'lucide-react';
+import {
+  Trash2,
+  Copy,
+  Eye,
+  EyeOff,
+  Monitor,
+  Smartphone,
+  Sun,
+  Moon,
+  Grid,
+  Ruler,
+  Minus,
+} from 'lucide-react';
 import { SafeSwitch } from './SafeSwitch';
 import { TextBlockInspector } from './Inspector/TextBlockInspector';
 import { HeadingBlockInspector } from './Inspector/HeadingBlockInspector';
@@ -19,13 +37,14 @@ import { PollBlockInspector } from './Inspector/PollBlockInspector';
 import { ReferenceBlockInspector } from './Inspector/ReferenceBlockInspector';
 import { KeyTakeawayBlockInspector } from './Inspector/KeyTakeawayBlockInspector';
 import { SeparatorBlockInspector } from './Inspector/SeparatorBlockInspector';
+import { QuoteBlockInspector } from './Inspector/QuoteBlockInspector';
 
-export function InspectorPanel() {
-  const { 
-    selectedNodeId, 
-    nodes, 
-    updateNode, 
-    deleteNode, 
+export const InspectorPanel = React.memo(function InspectorPanel() {
+  const {
+    selectedNodeId,
+    nodes,
+    updateNode,
+    deleteNode,
     duplicateNode,
     selectNode,
     currentViewport,
@@ -41,29 +60,32 @@ export function InspectorPanel() {
     toggleFullscreen,
     isFullscreen,
     guidelines,
-    clearGuidelines
+    clearGuidelines,
   } = useEditorStore();
 
   const selectedNode = selectedNodeId ? nodes.find(n => n.id === selectedNodeId) : null;
 
-  const handleUpdateNode = (updates: any) => {
-    if (selectedNodeId) {
-      updateNode(selectedNodeId, updates);
-    }
-  };
+  const handleUpdateNode = React.useCallback(
+    (updates: any) => {
+      if (selectedNodeId) {
+        updateNode(selectedNodeId, updates);
+      }
+    },
+    [selectedNodeId, updateNode]
+  );
 
-  const handleDeleteNode = () => {
+  const handleDeleteNode = React.useCallback(() => {
     if (selectedNodeId) {
       deleteNode(selectedNodeId);
       selectNode(null);
     }
-  };
+  }, [selectedNodeId, deleteNode, selectNode]);
 
-  const handleDuplicateNode = () => {
+  const handleDuplicateNode = React.useCallback(() => {
     if (selectedNodeId) {
       duplicateNode(selectedNodeId);
     }
-  };
+  }, [selectedNodeId, duplicateNode]);
 
   const renderNodeEditor = () => {
     if (!selectedNode) return null;
@@ -71,30 +93,33 @@ export function InspectorPanel() {
     switch (selectedNode.type) {
       case 'textBlock':
         return <TextBlockInspector nodeId={selectedNode.id} />;
-      
+
       case 'headingBlock':
         return <HeadingBlockInspector nodeId={selectedNode.id} />;
-      
+
       case 'imageBlock':
         return <ImageBlockInspector nodeId={selectedNode.id} />;
-      
+
       case 'videoEmbedBlock':
         return <VideoEmbedBlockInspector nodeId={selectedNode.id} />;
-      
+
       case 'tableBlock':
         return <TableBlockInspector nodeId={selectedNode.id} />;
-      
+
       case 'pollBlock':
         return <PollBlockInspector nodeId={selectedNode.id} data={selectedNode.data} />;
 
       case 'referenceBlock':
         return <ReferenceBlockInspector nodeId={selectedNode.id} />;
-      
+
       case 'keyTakeawayBlock':
         return <KeyTakeawayBlockInspector nodeId={selectedNode.id} />;
-      
+
       case 'separatorBlock':
         return <SeparatorBlockInspector nodeId={selectedNode.id} />;
+
+      case 'quoteBlock':
+        return <QuoteBlockInspector nodeId={selectedNode.id} />;
 
       default:
         return (
@@ -136,35 +161,44 @@ export function InspectorPanel() {
             </Button>
           </div>
         </div>
-        
+
         {/* Viewport info */}
         <div className="text-xs text-muted-foreground bg-muted/50 rounded px-2 py-1">
-          Current: {currentViewport === 'desktop' ? '12' : '4'} column grid • 
-          Layouts auto-convert when switching
+          Current: {currentViewport === 'desktop' ? '12' : '4'} column grid • Layouts auto-convert
+          when switching
         </div>
-        
+
         <Separator className="my-3" />
-        
+
         {/* Canvas Controls */}
         <div className="space-y-3">
-          <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Canvas</h3>
-          
+          <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+            Canvas
+          </h3>
+
           {/* Fullscreen Toggle */}
           <div className="flex items-center justify-between">
-            <Label htmlFor="fullscreen-toggle" className="text-sm">Fullscreen</Label>
+            <Label htmlFor="fullscreen-toggle" className="text-sm">
+              Fullscreen
+            </Label>
             <div className="flex items-center space-x-2">
               <SafeSwitch
                 id="fullscreen-toggle"
                 checked={isFullscreen}
                 onCheckedChange={toggleFullscreen}
               />
-              <Monitor size={14} className={isFullscreen ? 'text-foreground' : 'text-muted-foreground'} />
+              <Monitor
+                size={14}
+                className={isFullscreen ? 'text-foreground' : 'text-muted-foreground'}
+              />
             </div>
           </div>
-          
+
           {/* Theme Toggle */}
           <div className="flex items-center justify-between">
-            <Label htmlFor="canvas-theme" className="text-sm">Theme</Label>
+            <Label htmlFor="canvas-theme" className="text-sm">
+              Theme
+            </Label>
             <Button
               id="canvas-theme"
               size="sm"
@@ -185,58 +219,63 @@ export function InspectorPanel() {
               )}
             </Button>
           </div>
-          
+
           {/* Grid Toggle */}
           <div className="flex items-center justify-between">
-            <Label htmlFor="grid-toggle" className="text-sm">Show Grid</Label>
+            <Label htmlFor="grid-toggle" className="text-sm">
+              Show Grid
+            </Label>
             <div className="flex items-center space-x-2">
-              <SafeSwitch
-                id="grid-toggle"
-                checked={showGrid}
-                onCheckedChange={toggleGrid}
-              />
+              <SafeSwitch id="grid-toggle" checked={showGrid} onCheckedChange={toggleGrid} />
               <Grid size={14} className={showGrid ? 'text-foreground' : 'text-muted-foreground'} />
             </div>
           </div>
-          
+
           {/* Rulers Toggle */}
           <div className="flex items-center justify-between">
-            <Label htmlFor="rulers-toggle" className="text-sm">Show Rulers</Label>
+            <Label htmlFor="rulers-toggle" className="text-sm">
+              Show Rulers
+            </Label>
             <div className="flex items-center space-x-2">
-              <SafeSwitch
-                id="rulers-toggle"
-                checked={showRulers}
-                onCheckedChange={toggleRulers}
+              <SafeSwitch id="rulers-toggle" checked={showRulers} onCheckedChange={toggleRulers} />
+              <Ruler
+                size={14}
+                className={showRulers ? 'text-foreground' : 'text-muted-foreground'}
               />
-              <Ruler size={14} className={showRulers ? 'text-foreground' : 'text-muted-foreground'} />
             </div>
           </div>
-          
+
           {/* Guidelines Toggle */}
           <div className="flex items-center justify-between">
-            <Label htmlFor="guidelines-toggle" className="text-sm">Show Guidelines</Label>
+            <Label htmlFor="guidelines-toggle" className="text-sm">
+              Show Guidelines
+            </Label>
             <div className="flex items-center space-x-2">
               <SafeSwitch
                 id="guidelines-toggle"
                 checked={showGuidelines}
                 onCheckedChange={toggleGuidelines}
               />
-              <Minus size={14} className={showGuidelines ? 'text-foreground' : 'text-muted-foreground'} />
+              <Minus
+                size={14}
+                className={showGuidelines ? 'text-foreground' : 'text-muted-foreground'}
+              />
             </div>
           </div>
-          
-          
+
           {/* Clear Guidelines Button */}
-          {showGuidelines && guidelines && (guidelines.horizontal.length > 0 || guidelines.vertical.length > 0) && (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={clearGuidelines}
-              className="w-full justify-center text-xs h-7"
-            >
-              Clear All Guidelines ({guidelines.horizontal.length + guidelines.vertical.length})
-            </Button>
-          )}
+          {showGuidelines &&
+            guidelines &&
+            (guidelines.horizontal.length > 0 || guidelines.vertical.length > 0) && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={clearGuidelines}
+                className="w-full justify-center text-xs h-7"
+              >
+                Clear All Guidelines ({guidelines.horizontal.length + guidelines.vertical.length})
+              </Button>
+            )}
         </div>
       </div>
 
@@ -247,11 +286,11 @@ export function InspectorPanel() {
             {/* Block Info */}
             <div>
               <h3 className="font-medium text-sm mb-2">
-                {selectedNode.type.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
+                {selectedNode.type
+                  .replace(/([A-Z])/g, ' $1')
+                  .replace(/^./, str => str.toUpperCase())}
               </h3>
-              <p className="text-xs text-muted-foreground">
-                ID: {selectedNode.id.slice(0, 8)}...
-              </p>
+              <p className="text-xs text-muted-foreground">ID: {selectedNode.id.slice(0, 8)}...</p>
             </div>
 
             <Separator />
@@ -291,13 +330,11 @@ export function InspectorPanel() {
             <div className="py-8">
               <Eye size={32} className="mx-auto text-muted-foreground mb-4" />
               <h3 className="font-medium text-sm mb-2">No Selection</h3>
-              <p className="text-xs text-muted-foreground">
-                Select a block to edit its properties
-              </p>
+              <p className="text-xs text-muted-foreground">Select a block to edit its properties</p>
             </div>
           </div>
         )}
       </div>
     </div>
   );
-}
+});

@@ -2,16 +2,17 @@
 
 import { create } from 'zustand';
 import { debounce } from 'lodash-es';
-import { 
-  EditorState, 
-  NodeObject, 
-  LayoutItem, 
-  Viewport, 
-  CanvasTransform, 
+import {
+  EditorState,
+  NodeObject,
+  LayoutItem,
+  Layouts,
+  Viewport,
+  CanvasTransform,
   StructuredContentV2,
   generateNodeId,
   getDefaultDataForBlockType,
-  validateStructuredContent 
+  validateStructuredContent,
 } from '@/types/editor';
 
 const AUTOSAVE_DELAY = 30000; // 30 seconds as per user requirements
@@ -36,17 +37,21 @@ const initialLayouts = {
 /**
  * Editor store following the same simple pattern as auth.ts.
  * Manages all editor state for the Visual Composition Engine.
- * No middleware dependencies - manual immutable updates.
+ * Optimized with selective subscriptions and stable selectors.
  */
 export const useEditorStore = create<EditorState>((set, get) => {
-  // Debounced save function
+  // Save operation mutex to prevent race conditions
+  let saveMutex = false;
+
+  // Debounced save function with race condition protection
   const debouncedSave = debounce(async () => {
     const state = get();
-    if (!state.reviewId || !state.isDirty) return;
-    
+    if (!state.reviewId || !state.isDirty || saveMutex) return;
+
     try {
+      saveMutex = true; // Lock to prevent concurrent saves
       set({ isSaving: true });
-      
+
       const structuredContent: StructuredContentV2 = {
         version: '2.0.0',
         nodes: state.nodes,
@@ -57,10 +62,33 @@ export const useEditorStore = create<EditorState>((set, get) => {
           editorVersion: '1.0.0',
         },
       };
-      
+
+      console.log('[EditorStore] About to validate content:', {
+        hasVersion: !!structuredContent.version,
+        version: structuredContent.version,
+        nodesType: typeof structuredContent.nodes,
+        nodesArray: Array.isArray(structuredContent.nodes),
+        nodeCount: structuredContent.nodes?.length || 0,
+        layoutsType: typeof structuredContent.layouts,
+        layoutsKeys: Object.keys(structuredContent.layouts || {}),
+        hasDesktop: !!structuredContent.layouts?.desktop,
+        hasMobile: !!structuredContent.layouts?.mobile,
+        hasMetadata: !!structuredContent.metadata,
+        sample: JSON.stringify(structuredContent).substring(0, 200) + '...',
+      });
+
       // Validate before saving
-      validateStructuredContent(structuredContent);
-      
+      try {
+        validateStructuredContent(structuredContent);
+        console.log('[EditorStore] Validation successful');
+      } catch (validationError) {
+        console.error('[EditorStore] Validation failed:', {
+          error: validationError,
+          structuredContent,
+        });
+        throw validationError;
+      }
+
       // Call the actual save function if available
       if (state.persistenceCallbacks?.save) {
         await state.persistenceCallbacks.save(state.reviewId, structuredContent);
@@ -68,16 +96,18 @@ export const useEditorStore = create<EditorState>((set, get) => {
         console.warn('Auto-save skipped: No persistence save callback configured');
         return; // Don't update state if we can't save
       }
-      
-      set({ 
-        isDirty: false, 
-        isSaving: false, 
-        lastSaved: new Date() 
+
+      set({
+        isDirty: false,
+        isSaving: false,
+        lastSaved: new Date(),
       });
     } catch (error) {
       console.error('Save failed:', error);
       set({ isSaving: false });
       // TODO: Show error toast when we integrate with UI
+    } finally {
+      saveMutex = false; // Always release the mutex
     }
   }, AUTOSAVE_DELAY);
 
@@ -86,11 +116,11 @@ export const useEditorStore = create<EditorState>((set, get) => {
     reviewId: null,
     title: '',
     description: '',
-    
+
     // Content State
     nodes: [],
     layouts: initialLayouts,
-    
+
     // Editor State
     selectedNodeId: null,
     currentViewport: 'desktop',
@@ -99,7 +129,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
     lastSaved: null,
     isFullscreen: false,
     isInspectorVisible: true,
-    
+
     // Canvas State
     canvasTransform: initialCanvasTransform,
     canvasTheme: 'light' as const,
@@ -110,73 +140,73 @@ export const useEditorStore = create<EditorState>((set, get) => {
       horizontal: [],
       vertical: [],
     },
-    
+
     // Clipboard State
     clipboardData: null,
-    
+
     // History State
     history: [],
     historyIndex: -1,
-    
+
     // Persistence Callbacks
     persistenceCallbacks: null,
-    
+
     // ===== NODE ACTIONS =====
-    
-    addNode: (nodeData) => {
+
+    addNode: nodeData => {
       const newNode: NodeObject = {
         id: generateNodeId(),
         type: nodeData.type || 'textBlock',
         data: nodeData.data || getDefaultDataForBlockType(nodeData.type || 'textBlock'),
         ...nodeData,
       } as NodeObject;
-      
-      set((state) => {
+
+      set(state => {
         const updatedState = {
           ...state,
           nodes: [...state.nodes, newNode],
           selectedNodeId: newNode.id,
           isDirty: true,
         };
-        
+
         // Auto-save after adding node
         debouncedSave();
-        
+
         return updatedState;
       });
     },
-    
+
     updateNode: (nodeId, updates) => {
-      set((state) => {
+      set(state => {
         const nodeIndex = state.nodes.findIndex(n => n.id === nodeId);
         if (nodeIndex === -1) return state;
-        
+
         const updatedNodes = [...state.nodes];
-        updatedNodes[nodeIndex] = { 
-          ...updatedNodes[nodeIndex], 
+        updatedNodes[nodeIndex] = {
+          ...updatedNodes[nodeIndex],
           ...updates,
           id: nodeId, // Ensure ID is preserved
         } as NodeObject;
-        
+
         const updatedState = {
           ...state,
           nodes: updatedNodes,
           isDirty: true,
         };
-        
+
         // Auto-save after updating node
         debouncedSave();
-        
+
         return updatedState;
       });
     },
-    
-    deleteNode: (nodeId) => {
-      set((state) => {
+
+    deleteNode: nodeId => {
+      set(state => {
         const updatedNodes = state.nodes.filter(n => n.id !== nodeId);
         const updatedDesktopItems = state.layouts.desktop.items.filter(i => i.nodeId !== nodeId);
         const updatedMobileItems = state.layouts.mobile.items.filter(i => i.nodeId !== nodeId);
-        
+
         const updatedState = {
           ...state,
           nodes: updatedNodes,
@@ -193,35 +223,35 @@ export const useEditorStore = create<EditorState>((set, get) => {
           selectedNodeId: state.selectedNodeId === nodeId ? null : state.selectedNodeId,
           isDirty: true,
         };
-        
+
         // Auto-save after deleting node
         debouncedSave();
-        
+
         return updatedState;
       });
     },
-    
-    duplicateNode: (nodeId) => {
+
+    duplicateNode: nodeId => {
       const state = get();
       const originalNode = state.nodes.find(n => n.id === nodeId);
       if (!originalNode) return;
-      
+
       // Create duplicate with new ID
       const duplicateNode: NodeObject = {
         ...originalNode,
         id: generateNodeId(),
       };
-      
+
       get().addNode(duplicateNode);
     },
-    
+
     // ===== LAYOUT ACTIONS =====
-    
+
     updateLayout: (nodeId, layout, viewport) => {
-      set((state) => {
+      set(state => {
         const currentItems = state.layouts[viewport].items;
         const existingIndex = currentItems.findIndex(i => i.nodeId === nodeId);
-        
+
         let updatedItems;
         if (existingIndex >= 0) {
           // Update existing layout item
@@ -231,7 +261,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
           // Add new layout item
           updatedItems = [...currentItems, { ...layout, nodeId }];
         }
-        
+
         const updatedState = {
           ...state,
           layouts: {
@@ -243,53 +273,53 @@ export const useEditorStore = create<EditorState>((set, get) => {
           },
           isDirty: true,
         };
-        
+
         // Auto-save after layout update
         debouncedSave();
-        
+
         return updatedState;
       });
     },
-    
+
     // ===== SELECTION ACTIONS =====
-    
-    selectNode: (nodeId) => {
+
+    selectNode: nodeId => {
       set({ selectedNodeId: nodeId });
     },
-    
+
     // ===== VIEWPORT ACTIONS =====
-    
-    switchViewport: (viewport) => {
+
+    switchViewport: viewport => {
       const state = get();
       if (state.currentViewport === viewport) return; // No change needed
-      
+
       const currentLayout = state.layouts[state.currentViewport];
       const targetLayout = state.layouts[viewport];
-      
+
       // Smart layout conversion: try to preserve relative positioning
       const convertedItems = currentLayout.items.map(item => {
         const currentColumns = currentLayout.gridSettings.columns;
         const targetColumns = targetLayout.gridSettings.columns;
-        
+
         // Calculate relative position as percentage
         const relativeX = item.x / currentColumns;
         const relativeWidth = item.w / currentColumns;
-        
+
         // Convert to target viewport coordinates
         const newX = Math.floor(relativeX * targetColumns);
         const newWidth = Math.max(1, Math.floor(relativeWidth * targetColumns));
-        
+
         // Ensure the item fits within the target grid
         const adjustedX = Math.min(newX, targetColumns - newWidth);
         const adjustedWidth = Math.min(newWidth, targetColumns - adjustedX);
-        
+
         return {
           ...item,
           x: adjustedX,
           w: adjustedWidth,
         };
       });
-      
+
       // Update the target layout with converted items if it's empty
       const updatedLayouts = {
         ...state.layouts,
@@ -298,43 +328,43 @@ export const useEditorStore = create<EditorState>((set, get) => {
           items: targetLayout.items.length === 0 ? convertedItems : targetLayout.items,
         },
       };
-      
-      set({ 
+
+      set({
         currentViewport: viewport,
         layouts: updatedLayouts,
         isDirty: true,
       });
-      
+
       // Auto-save after viewport switch
       debouncedSave();
     },
-    
-    updateCanvasTransform: (transform) => {
-      set((state) => ({
+
+    updateCanvasTransform: transform => {
+      set(state => ({
         canvasTransform: { ...state.canvasTransform, ...transform },
       }));
     },
-    
-    setCanvasTheme: (theme) => {
+
+    setCanvasTheme: theme => {
       set({ canvasTheme: theme });
     },
-    
+
     toggleGrid: () => {
-      set((state) => ({ showGrid: !state.showGrid }));
+      set(state => ({ showGrid: !state.showGrid }));
     },
-    
+
     toggleRulers: () => {
-      set((state) => ({ showRulers: !state.showRulers }));
+      set(state => ({ showRulers: !state.showRulers }));
     },
-    
+
     toggleGuidelines: () => {
-      set((state) => ({ showGuidelines: !state.showGuidelines }));
+      set(state => ({ showGuidelines: !state.showGuidelines }));
     },
-    
+
     toggleFullscreen: async () => {
       const state = get();
       const newFullscreenState = !state.isFullscreen;
-      
+
       try {
         if (newFullscreenState) {
           // Enter browser fullscreen mode
@@ -365,7 +395,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
             await (document as any).mozCancelFullScreen();
           }
         }
-        
+
         // Update internal state
         set({ isFullscreen: newFullscreenState });
       } catch (error) {
@@ -375,9 +405,9 @@ export const useEditorStore = create<EditorState>((set, get) => {
     },
 
     toggleInspector: () => {
-      set((state) => ({ isInspectorVisible: !state.isInspectorVisible }));
+      set(state => ({ isInspectorVisible: !state.isInspectorVisible }));
     },
-    
+
     // Handle browser fullscreen changes (ESC key, F11, etc.)
     handleFullscreenChange: () => {
       const isActuallyFullscreen = !!(
@@ -386,29 +416,29 @@ export const useEditorStore = create<EditorState>((set, get) => {
         (document as any).msFullscreenElement ||
         (document as any).mozFullScreenElement
       );
-      
+
       // Sync internal state with actual browser fullscreen state
       set({ isFullscreen: isActuallyFullscreen });
     },
-    
+
     addGuideline: (type, position) => {
-      set((state) => ({
+      set(state => ({
         guidelines: {
           ...state.guidelines,
           [type]: [...state.guidelines[type], position].sort((a, b) => a - b),
         },
       }));
     },
-    
+
     removeGuideline: (type, position) => {
-      set((state) => ({
+      set(state => ({
         guidelines: {
           ...state.guidelines,
           [type]: state.guidelines[type].filter(p => p !== position),
         },
       }));
     },
-    
+
     clearGuidelines: () => {
       set({
         guidelines: {
@@ -417,19 +447,19 @@ export const useEditorStore = create<EditorState>((set, get) => {
         },
       });
     },
-    
+
     // ===== CLIPBOARD ACTIONS =====
-    
-    copyNodes: (nodeIds) => {
+
+    copyNodes: nodeIds => {
       const state = get();
       const nodesToCopy = state.nodes.filter(n => nodeIds.includes(n.id));
       set({ clipboardData: nodesToCopy });
     },
-    
+
     pasteNodes: () => {
       const state = get();
       if (!state.clipboardData) return;
-      
+
       // Create new nodes with new IDs
       state.clipboardData.forEach(node => {
         get().addNode({
@@ -438,9 +468,9 @@ export const useEditorStore = create<EditorState>((set, get) => {
         });
       });
     },
-    
+
     // ===== HISTORY ACTIONS =====
-    
+
     undo: () => {
       const state = get();
       if (state.historyIndex > 0) {
@@ -453,7 +483,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
         });
       }
     },
-    
+
     redo: () => {
       const state = get();
       if (state.historyIndex < state.history.length - 1) {
@@ -466,7 +496,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
         });
       }
     },
-    
+
     pushToHistory: () => {
       const state = get();
       const currentState: StructuredContentV2 = {
@@ -474,21 +504,21 @@ export const useEditorStore = create<EditorState>((set, get) => {
         nodes: state.nodes,
         layouts: state.layouts,
       };
-      
+
       // Limit history to 50 entries
       const newHistory = [...state.history.slice(0, state.historyIndex + 1), currentState];
       if (newHistory.length > 50) {
         newHistory.shift();
       }
-      
+
       set({
         history: newHistory,
         historyIndex: newHistory.length - 1,
       });
     },
-    
-  // ===== DATA PERSISTENCE =====
-    
+
+    // ===== DATA PERSISTENCE =====
+
     // Utility function to sanitize layout items before saving
     sanitizeLayouts: (layouts: Layouts): Layouts => {
       const sanitizeItems = (items: LayoutItem[]): LayoutItem[] => {
@@ -512,18 +542,19 @@ export const useEditorStore = create<EditorState>((set, get) => {
         },
       };
     },
-    
+
     saveToDatabase: async () => {
       // Force immediate save (bypass debounce)
       const state = get();
-      if (!state.reviewId) return;
-      
+      if (!state.reviewId || saveMutex) return;
+
       try {
+        saveMutex = true; // Lock to prevent concurrent saves
         set({ isSaving: true });
-        
+
         // Sanitize layouts before saving to ensure validation passes
         const sanitizedLayouts = get().sanitizeLayouts(state.layouts);
-        
+
         const structuredContent: StructuredContentV2 = {
           version: '2.0.0',
           nodes: state.nodes,
@@ -534,41 +565,56 @@ export const useEditorStore = create<EditorState>((set, get) => {
             editorVersion: '1.0.0',
           },
         };
-        
+
         // Validate before saving
         validateStructuredContent(structuredContent);
-        
+
         // Call the actual save function - this will be set by the component using persistence hooks
         if (state.persistenceCallbacks?.save) {
           await state.persistenceCallbacks.save(state.reviewId, structuredContent);
         } else {
           console.warn('No persistence save callback configured');
         }
-        
-        set({ 
-          isDirty: false, 
-          isSaving: false, 
-          lastSaved: new Date() 
+
+        set({
+          isDirty: false,
+          isSaving: false,
+          lastSaved: new Date(),
         });
       } catch (error) {
         console.error('Save failed:', error);
         set({ isSaving: false });
         throw error;
+      } finally {
+        saveMutex = false; // Always release the mutex
       }
     },
-    
-    loadFromDatabase: async (reviewId) => {
+
+    loadFromDatabase: async reviewId => {
       try {
+        console.log('[EditorStore] Starting loadFromDatabase for reviewId:', reviewId);
         set({ reviewId, isSaving: true });
-        
+
         // Call the actual load function - this will be set by the component using persistence hooks
         if (get().persistenceCallbacks?.load) {
+          console.log('[EditorStore] Calling persistence load callback');
           const data = await get().persistenceCallbacks!.load(reviewId);
-          
+          console.log('[EditorStore] Load callback returned:', {
+            hasData: !!data,
+            hasStructuredContent: !!data?.structured_content,
+            nodeCount: data?.structured_content?.nodes?.length || 0,
+            updatedAt: data?.updated_at,
+          });
+
           if (data?.structured_content) {
             // Sanitize layouts when loading to handle any legacy invalid data
             const sanitizedLayouts = get().sanitizeLayouts(data.structured_content.layouts);
-            
+
+            console.log('[EditorStore] Loading content into store:', {
+              originalNodes: data.structured_content.nodes.length,
+              sanitizedLayouts: Object.keys(sanitizedLayouts).length,
+            });
+
             // Load the content into the store
             set({
               nodes: data.structured_content.nodes,
@@ -578,7 +624,10 @@ export const useEditorStore = create<EditorState>((set, get) => {
               isSaving: false,
               lastSaved: new Date(data.updated_at),
             });
+
+            console.log('[EditorStore] Content loaded successfully');
           } else {
+            console.log('[EditorStore] No existing content found, using empty state');
             // No existing content - start with empty state
             set({
               nodes: [],
@@ -590,7 +639,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
             });
           }
         } else {
-          console.warn('No persistence load callback configured');
+          console.warn('[EditorStore] No persistence load callback configured');
           // Fallback to empty state
           set({
             nodes: [],
@@ -602,26 +651,26 @@ export const useEditorStore = create<EditorState>((set, get) => {
           });
         }
       } catch (error) {
-        console.error('Load failed:', error);
+        console.error('[EditorStore] Load failed:', error);
         set({ isSaving: false });
         throw error;
       }
     },
-    
-    loadFromJSON: (json) => {
+
+    loadFromJSON: json => {
       try {
         const validatedContent = validateStructuredContent(json);
-        
+
         // Sanitize layouts when loading from JSON
         const sanitizedLayouts = get().sanitizeLayouts(validatedContent.layouts);
-        
+
         set({
           nodes: validatedContent.nodes,
           layouts: sanitizedLayouts,
           isDirty: false,
           selectedNodeId: null,
         });
-        
+
         // Push to history after loading
         get().pushToHistory();
       } catch (error) {
@@ -629,7 +678,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
         throw error;
       }
     },
-    
+
     exportToJSON: () => {
       const state = get();
       return {
@@ -643,20 +692,20 @@ export const useEditorStore = create<EditorState>((set, get) => {
         },
       };
     },
-    
+
     exportToPDF: async () => {
       // TODO: Implement PDF export functionality
       console.log('Exporting to PDF...');
     },
-    
+
     // ===== PERSISTENCE =====
-    
-    setPersistenceCallbacks: (callbacks) => {
+
+    setPersistenceCallbacks: callbacks => {
       set({ persistenceCallbacks: callbacks });
     },
-    
+
     // ===== UTILITIES =====
-    
+
     reset: () => {
       set({
         reviewId: null,
@@ -676,10 +725,80 @@ export const useEditorStore = create<EditorState>((set, get) => {
         persistenceCallbacks: null,
       });
     },
-    
-    setError: (error) => {
+
+    setError: error => {
       // TODO: Implement error state management
       console.error('Editor error:', error);
     },
   };
 });
+
+// ===== OPTIMIZED SELECTORS FOR PERFORMANCE =====
+
+/**
+ * Stable selectors for selective subscriptions to prevent unnecessary re-renders.
+ * Use these in components that only need specific parts of the editor state.
+ */
+
+// Node-related selectors
+export const useSelectedNode = () =>
+  useEditorStore(state => {
+    if (!state.selectedNodeId) return null;
+    return state.nodes.find(n => n.id === state.selectedNodeId) || null;
+  });
+
+export const useNodeCount = () => useEditorStore(state => state.nodes.length);
+
+export const useNodeById = (nodeId: string | null) =>
+  useEditorStore(state => (nodeId ? state.nodes.find(n => n.id === nodeId) || null : null));
+
+// Canvas state selectors
+export const useCanvasState = () =>
+  useEditorStore(state => ({
+    canvasTransform: state.canvasTransform,
+    canvasTheme: state.canvasTheme,
+    showGrid: state.showGrid,
+    showRulers: state.showRulers,
+    showGuidelines: state.showGuidelines,
+    guidelines: state.guidelines,
+  }));
+
+// UI state selectors
+export const useUIState = () =>
+  useEditorStore(state => ({
+    currentViewport: state.currentViewport,
+    isFullscreen: state.isFullscreen,
+    isInspectorVisible: state.isInspectorVisible,
+  }));
+
+// Persistence state selectors
+export const usePersistenceState = () =>
+  useEditorStore(state => ({
+    isDirty: state.isDirty,
+    isSaving: state.isSaving,
+    lastSaved: state.lastSaved,
+  }));
+
+// Layout selectors
+export const useCurrentLayout = () => useEditorStore(state => state.layouts[state.currentViewport]);
+
+// Stable action selectors (prevents function recreation)
+export const useEditorActions = () =>
+  useEditorStore(state => ({
+    addNode: state.addNode,
+    updateNode: state.updateNode,
+    deleteNode: state.deleteNode,
+    selectNode: state.selectNode,
+    duplicateNode: state.duplicateNode,
+  }));
+
+export const useCanvasActions = () =>
+  useEditorStore(state => ({
+    toggleGrid: state.toggleGrid,
+    toggleRulers: state.toggleRulers,
+    toggleGuidelines: state.toggleGuidelines,
+    toggleFullscreen: state.toggleFullscreen,
+    toggleInspector: state.toggleInspector,
+    setCanvasTheme: state.setCanvasTheme,
+    clearGuidelines: state.clearGuidelines,
+  }));

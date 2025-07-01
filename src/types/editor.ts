@@ -39,6 +39,8 @@ export const TextBlockDataSchema = z.object({
   backgroundColor: z.string().optional(),
   paddingX: z.number().optional(),
   paddingY: z.number().optional(),
+  marginX: z.number().optional(),
+  marginY: z.number().optional(),
   borderRadius: z.number().optional(),
   borderWidth: z.number().default(0),
   borderColor: z.string().optional(),
@@ -52,6 +54,8 @@ export const HeadingBlockDataSchema = z.object({
   color: z.string().optional(),
   fontFamily: z.string().optional(),
   fontWeight: z.number().optional(),
+  fontSize: z.number().optional(), // Added missing typography
+  lineHeight: z.number().optional(), // Added missing typography
   letterSpacing: z.number().optional(),
   textTransform: z.enum(['none', 'uppercase', 'lowercase', 'capitalize']).optional(),
   textDecoration: z.enum(['none', 'underline', 'line-through']).optional(),
@@ -59,6 +63,8 @@ export const HeadingBlockDataSchema = z.object({
   backgroundColor: z.string().optional(),
   paddingX: z.number().optional(),
   paddingY: z.number().optional(),
+  marginX: z.number().optional(),
+  marginY: z.number().optional(),
   borderRadius: z.number().optional(),
   borderWidth: z.number().default(0),
   borderColor: z.string().optional(),
@@ -74,33 +80,74 @@ export const ImageBlockDataSchema = z.object({
   // Spacing and styling
   paddingX: z.number().optional(),
   paddingY: z.number().optional(),
+  marginX: z.number().optional(),
+  marginY: z.number().optional(),
   backgroundColor: z.string().optional(),
   borderWidth: z.number().default(0),
   borderColor: z.string().optional(),
+  // Caption styling properties
+  textAlign: z.enum(['left', 'center', 'right', 'justify']).optional(),
+  color: z.string().optional(),
+  fontSize: z.number().optional(),
+  fontFamily: z.string().optional(),
+  fontWeight: z.number().optional(),
 });
 
 export const TableBlockDataSchema = z.object({
   headers: z.array(z.string()),
   rows: z.array(z.array(z.string())),
-  headerStyle: z.object({
-    backgroundColor: z.string().optional(),
-    textColor: z.string().optional(),
-  }).optional(),
+  headerStyle: z
+    .object({
+      backgroundColor: z.string().optional(),
+      textColor: z.string().optional(),
+    })
+    .optional(),
   alternatingRowColors: z.boolean().optional(),
   sortable: z.boolean().default(true),
+  // Spacing and styling properties
+  paddingX: z.number().optional(),
+  paddingY: z.number().optional(),
+  marginX: z.number().optional(),
+  marginY: z.number().optional(),
+  backgroundColor: z.string().optional(),
+  borderRadius: z.number().optional(),
+  borderWidth: z.number().default(0),
+  borderColor: z.string().optional(),
+  // Table content styling properties
+  textAlign: z.enum(['left', 'center', 'right', 'justify']).optional(),
+  color: z.string().optional(),
+  fontSize: z.number().optional(),
+  fontFamily: z.string().optional(),
+  fontWeight: z.number().optional(),
 });
-
 
 export const PollBlockDataSchema = z.object({
   question: z.string(),
-  options: z.array(z.object({
-    id: z.string(),
-    text: z.string(),
-    votes: z.number().default(0),
-  })),
+  options: z.array(
+    z.object({
+      id: z.string(),
+      text: z.string(),
+      votes: z.number().default(0),
+    })
+  ),
   allowMultiple: z.boolean().default(false),
   showResults: z.boolean().default(true),
   totalVotes: z.number().default(0),
+  // Universal styling properties
+  paddingX: z.number().optional(),
+  paddingY: z.number().optional(),
+  marginX: z.number().optional(),
+  marginY: z.number().optional(),
+  backgroundColor: z.string().optional(),
+  borderRadius: z.number().optional(),
+  borderWidth: z.number().default(0),
+  borderColor: z.string().optional(),
+  // Typography for question and options
+  textAlign: z.enum(['left', 'center', 'right', 'justify']).optional(),
+  color: z.string().optional(),
+  fontSize: z.number().optional(),
+  fontFamily: z.string().optional(),
+  fontWeight: z.number().optional(),
 });
 
 export const KeyTakeawayBlockDataSchema = z.object({
@@ -108,6 +155,18 @@ export const KeyTakeawayBlockDataSchema = z.object({
   icon: z.string().optional(),
   theme: z.enum(['info', 'success', 'warning', 'error']).default('info'),
   backgroundColor: z.string().optional(),
+  // Universal styling properties
+  paddingX: z.number().optional(),
+  paddingY: z.number().optional(),
+  borderRadius: z.number().optional(),
+  borderWidth: z.number().default(0),
+  borderColor: z.string().optional(),
+  // Typography for content
+  textAlign: z.enum(['left', 'center', 'right', 'justify']).optional(),
+  color: z.string().optional(),
+  fontSize: z.number().optional(),
+  fontFamily: z.string().optional(),
+  fontWeight: z.number().optional(),
 });
 
 export const ReferenceBlockDataSchema = z.object({
@@ -118,6 +177,21 @@ export const ReferenceBlockDataSchema = z.object({
   doi: z.string().optional(),
   url: z.string().url().optional(),
   formatted: z.string().optional(), // APA formatted citation
+  // Universal styling properties
+  paddingX: z.number().optional(),
+  paddingY: z.number().optional(),
+  marginX: z.number().optional(),
+  marginY: z.number().optional(),
+  backgroundColor: z.string().optional(),
+  borderRadius: z.number().optional(),
+  borderWidth: z.number().default(0),
+  borderColor: z.string().optional(),
+  // Typography for reference text
+  textAlign: z.enum(['left', 'center', 'right', 'justify']).optional(),
+  color: z.string().optional(),
+  fontSize: z.number().optional(),
+  fontFamily: z.string().optional(),
+  fontWeight: z.number().optional(),
 });
 
 export const QuoteBlockDataSchema = z.object({
@@ -125,6 +199,20 @@ export const QuoteBlockDataSchema = z.object({
   citation: z.string().optional(),
   style: z.enum(['default', 'large-quote']).default('default'),
   borderColor: z.string().optional(),
+  // Universal styling properties
+  paddingX: z.number().optional(),
+  paddingY: z.number().optional(),
+  marginX: z.number().optional(),
+  marginY: z.number().optional(),
+  backgroundColor: z.string().optional(),
+  borderRadius: z.number().optional(),
+  borderWidth: z.number().default(0),
+  // Typography for quote content
+  textAlign: z.enum(['left', 'center', 'right', 'justify']).optional(),
+  color: z.string().optional(),
+  fontSize: z.number().optional(),
+  fontFamily: z.string().optional(),
+  fontWeight: z.number().optional(),
 });
 
 export const VideoEmbedBlockDataSchema = z.object({
@@ -135,10 +223,18 @@ export const VideoEmbedBlockDataSchema = z.object({
   // Spacing and styling
   paddingX: z.number().optional(),
   paddingY: z.number().optional(),
+  marginX: z.number().optional(),
+  marginY: z.number().optional(),
   backgroundColor: z.string().optional(),
   borderWidth: z.number().default(0),
   borderColor: z.string().optional(),
   borderRadius: z.number().optional(),
+  // Caption styling properties
+  textAlign: z.enum(['left', 'center', 'right', 'justify']).optional(),
+  color: z.string().optional(),
+  fontSize: z.number().optional(),
+  fontFamily: z.string().optional(),
+  fontWeight: z.number().optional(),
 });
 
 export const SeparatorBlockDataSchema = z.object({
@@ -146,21 +242,50 @@ export const SeparatorBlockDataSchema = z.object({
   color: z.string().optional(),
   thickness: z.number().min(1).max(10).default(1),
   width: z.enum(['full', 'half', 'quarter']).default('full'),
+  // Universal styling properties for separator container
+  paddingX: z.number().optional(),
+  paddingY: z.number().optional(),
+  marginX: z.number().optional(),
+  marginY: z.number().optional(),
+  backgroundColor: z.string().optional(),
+  borderRadius: z.number().optional(),
+  borderWidth: z.number().default(0),
+  borderColor: z.string().optional(),
 });
 
 // ===== MASTER NODE SCHEMA =====
 
 export const NodeSchema = z.discriminatedUnion('type', [
   z.object({ id: z.string().uuid(), type: z.literal('textBlock'), data: TextBlockDataSchema }),
-  z.object({ id: z.string().uuid(), type: z.literal('headingBlock'), data: HeadingBlockDataSchema }),
+  z.object({
+    id: z.string().uuid(),
+    type: z.literal('headingBlock'),
+    data: HeadingBlockDataSchema,
+  }),
   z.object({ id: z.string().uuid(), type: z.literal('imageBlock'), data: ImageBlockDataSchema }),
   z.object({ id: z.string().uuid(), type: z.literal('tableBlock'), data: TableBlockDataSchema }),
   z.object({ id: z.string().uuid(), type: z.literal('pollBlock'), data: PollBlockDataSchema }),
-  z.object({ id: z.string().uuid(), type: z.literal('keyTakeawayBlock'), data: KeyTakeawayBlockDataSchema }),
-  z.object({ id: z.string().uuid(), type: z.literal('referenceBlock'), data: ReferenceBlockDataSchema }),
+  z.object({
+    id: z.string().uuid(),
+    type: z.literal('keyTakeawayBlock'),
+    data: KeyTakeawayBlockDataSchema,
+  }),
+  z.object({
+    id: z.string().uuid(),
+    type: z.literal('referenceBlock'),
+    data: ReferenceBlockDataSchema,
+  }),
   z.object({ id: z.string().uuid(), type: z.literal('quoteBlock'), data: QuoteBlockDataSchema }),
-  z.object({ id: z.string().uuid(), type: z.literal('videoEmbedBlock'), data: VideoEmbedBlockDataSchema }),
-  z.object({ id: z.string().uuid(), type: z.literal('separatorBlock'), data: SeparatorBlockDataSchema }),
+  z.object({
+    id: z.string().uuid(),
+    type: z.literal('videoEmbedBlock'),
+    data: VideoEmbedBlockDataSchema,
+  }),
+  z.object({
+    id: z.string().uuid(),
+    type: z.literal('separatorBlock'),
+    data: SeparatorBlockDataSchema,
+  }),
 ]);
 
 // ===== ROOT SCHEMA =====
@@ -170,11 +295,13 @@ export const StructuredContentV2Schema = z.object({
   nodes: z.array(NodeSchema),
   layouts: LayoutsSchema,
   globalStyles: z.record(z.any()).optional(),
-  metadata: z.object({
-    createdAt: z.string().datetime(),
-    updatedAt: z.string().datetime(),
-    editorVersion: z.string(),
-  }).optional(),
+  metadata: z
+    .object({
+      createdAt: z.string().datetime(),
+      updatedAt: z.string().datetime(),
+      editorVersion: z.string(),
+    })
+    .optional(),
 });
 
 // ===== EXPORTED TYPES =====
@@ -182,6 +309,7 @@ export const StructuredContentV2Schema = z.object({
 export type NodeObject = z.infer<typeof NodeSchema>;
 export type LayoutItem = z.infer<typeof LayoutItemSchema>;
 export type LayoutConfig = z.infer<typeof LayoutConfigSchema>;
+export type Layouts = z.infer<typeof LayoutsSchema>;
 export type StructuredContentV2 = z.infer<typeof StructuredContentV2Schema>;
 
 // Block-specific types
@@ -211,14 +339,14 @@ export interface EditorState {
   reviewId: string | null;
   title: string;
   description: string;
-  
+
   // Content State (structured_content v2.0)
   nodes: NodeObject[];
   layouts: {
     desktop: LayoutConfig;
     mobile: LayoutConfig;
   };
-  
+
   // Editor State
   selectedNodeId: string | null;
   currentViewport: Viewport;
@@ -227,7 +355,7 @@ export interface EditorState {
   lastSaved: Date | null;
   isFullscreen: boolean;
   isInspectorVisible: boolean;
-  
+
   // Canvas State
   canvasTransform: CanvasTransform;
   canvasTheme: 'light' | 'dark';
@@ -238,20 +366,20 @@ export interface EditorState {
     horizontal: number[];
     vertical: number[];
   };
-  
+
   // Clipboard State
   clipboardData: NodeObject[] | null;
-  
+
   // History State (for undo/redo)
   history: StructuredContentV2[];
   historyIndex: number;
-  
+
   // Persistence Callbacks
   persistenceCallbacks: {
     save: (reviewId: string, content: StructuredContentV2) => Promise<any>;
     load: (reviewId: string) => Promise<any>;
   } | null;
-  
+
   // Actions
   addNode: (node: Partial<NodeObject>) => void;
   updateNode: (nodeId: string, updates: Partial<NodeObject>) => void;
@@ -270,29 +398,29 @@ export interface EditorState {
   addGuideline: (type: 'horizontal' | 'vertical', position: number) => void;
   removeGuideline: (type: 'horizontal' | 'vertical', position: number) => void;
   clearGuidelines: () => void;
-  
+
   // Clipboard actions
   copyNodes: (nodeIds: string[]) => void;
   pasteNodes: () => void;
-  
+
   // History actions
   undo: () => void;
   redo: () => void;
   pushToHistory: () => void;
-  
+
   // Data persistence
   saveToDatabase: () => Promise<void>;
   loadFromDatabase: (reviewId: string) => Promise<void>;
   loadFromJSON: (json: StructuredContentV2) => void;
   exportToJSON: () => StructuredContentV2;
   exportToPDF: () => Promise<void>;
-  
+
   // Persistence
   setPersistenceCallbacks: (callbacks: {
     save: (reviewId: string, content: StructuredContentV2) => Promise<any>;
     load: (reviewId: string) => Promise<any>;
   }) => void;
-  
+
   // Utilities
   reset: () => void;
   setError: (error: string | null) => void;
@@ -309,7 +437,6 @@ export interface BlockType {
 }
 
 // ===== MEDICAL TEMPLATE TYPES =====
-
 
 // ===== VALIDATION UTILITIES =====
 
@@ -342,11 +469,11 @@ export const generateNodeId = (): string => {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
     return crypto.randomUUID();
   }
-  
+
   // Fallback UUID v4 implementation
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-    const r = Math.random() * 16 | 0;
-    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
     return v.toString(16);
   });
 };
@@ -354,38 +481,151 @@ export const generateNodeId = (): string => {
 export const getDefaultDataForBlockType = (blockType: string): any => {
   switch (blockType) {
     case 'textBlock':
-      return { htmlContent: '<p>Enter your text here...</p>' };
+      return {
+        htmlContent: '<p>Enter your text here...</p>',
+        paddingX: 0,
+        paddingY: 0,
+        marginX: 0,
+        marginY: 0,
+        backgroundColor: 'transparent',
+        borderRadius: 0,
+        borderWidth: 0,
+        borderColor: 'transparent',
+      };
     case 'headingBlock':
-      return { htmlContent: 'Heading', level: 1 as const };
+      return {
+        htmlContent: 'Heading',
+        level: 1 as const,
+        paddingX: 0,
+        paddingY: 0,
+        marginX: 0,
+        marginY: 0,
+        backgroundColor: 'transparent',
+        borderRadius: 0,
+        borderWidth: 0,
+        borderColor: 'transparent',
+      };
     case 'imageBlock':
-      return { src: '', alt: '', caption: '' };
+      return {
+        src: '',
+        alt: '',
+        caption: '',
+        paddingX: 0,
+        paddingY: 0,
+        marginX: 0,
+        marginY: 0,
+        backgroundColor: 'transparent',
+        borderRadius: 0,
+        borderWidth: 0,
+        borderColor: 'transparent',
+      };
     case 'tableBlock':
-      return { headers: ['Column 1', 'Column 2'], rows: [['', '']] };
+      return {
+        headers: ['Column 1', 'Column 2'],
+        rows: [['', '']],
+        headerStyle: {
+          backgroundColor: '#f3f4f6',
+          textColor: '#374151',
+        },
+        alternatingRowColors: false,
+        sortable: true,
+        paddingX: 0,
+        paddingY: 0,
+        backgroundColor: 'transparent',
+        borderRadius: 8,
+        borderWidth: 0,
+        borderColor: '#e5e7eb',
+      };
     case 'pollBlock':
-      return { 
-        question: 'Your question here', 
+      return {
+        question: 'Your question here',
         options: [
           { id: generateNodeId(), text: 'Option 1', votes: 0 },
-          { id: generateNodeId(), text: 'Option 2', votes: 0 }
+          { id: generateNodeId(), text: 'Option 2', votes: 0 },
         ],
         allowMultiple: false,
         showResults: true,
-        totalVotes: 0
+        totalVotes: 0,
+        // Default styling properties
+        paddingX: 0,
+        paddingY: 0,
+        marginX: 0,
+        marginY: 0,
+        backgroundColor: 'transparent',
+        borderRadius: 8,
+        borderWidth: 0,
+        borderColor: '#e5e7eb',
       };
     case 'keyTakeawayBlock':
-      return { content: 'Key takeaway message', theme: 'info' as const };
+      return {
+        content: 'Key takeaway message',
+        theme: 'info' as const,
+        // Default styling properties
+        paddingX: 0,
+        paddingY: 0,
+        borderRadius: 8,
+        borderWidth: 0,
+        borderColor: '#e5e7eb',
+      };
     case 'referenceBlock':
-      return { authors: '', year: new Date().getFullYear(), title: '', source: '' };
+      return {
+        authors: '',
+        year: new Date().getFullYear(),
+        title: '',
+        source: '',
+        // Default styling properties
+        paddingX: 0,
+        paddingY: 0,
+        marginX: 0,
+        marginY: 0,
+        backgroundColor: 'transparent',
+        borderRadius: 8,
+        borderWidth: 0,
+        borderColor: '#e5e7eb',
+      };
     case 'quoteBlock':
-      return { content: 'Quote text here', style: 'default' as const };
+      return {
+        content: 'Quote text here',
+        style: 'default' as const,
+        // Default styling properties
+        paddingX: 0,
+        paddingY: 0,
+        marginX: 0,
+        marginY: 0,
+        backgroundColor: 'transparent',
+        borderRadius: 8,
+        borderWidth: 0,
+        borderColor: '#e5e7eb',
+      };
     case 'videoEmbedBlock':
-      return { url: '', platform: 'youtube' as const };
+      return {
+        url: '',
+        platform: 'youtube' as const,
+        // Default styling properties
+        paddingX: 0,
+        paddingY: 0,
+        marginX: 0,
+        marginY: 0,
+        backgroundColor: 'transparent',
+        borderRadius: 8,
+        borderWidth: 0,
+        borderColor: '#e5e7eb',
+      };
     case 'separatorBlock':
-      return { 
-        style: 'solid' as const, 
-        thickness: 1, 
+      return {
+        style: 'solid' as const,
+        thickness: 1,
         width: 'full' as const,
-        color: undefined
+        color: undefined,
+        // Default styling properties
+        paddingX: 0,
+        paddingY: 0,
+        marginX: 0,
+        marginY: 0,
+        backgroundColor: 'transparent',
+        borderRadius: 8,
+        borderWidth: 0,
+        borderColor: '#e5e7eb',
       };
     default:
       return {};

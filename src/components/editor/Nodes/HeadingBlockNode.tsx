@@ -90,8 +90,8 @@ export const HeadingBlockNode = memo<HeadingBlockNodeProps>(({ id, data, selecte
   });
 
   // Calculate dynamic styles based on customization data and theme
-  const paddingX = data.paddingX ?? 12;
-  const paddingY = data.paddingY ?? 8;
+  const paddingX = data.paddingX ?? 0;
+  const paddingY = data.paddingY ?? 0;
 
   const dynamicStyles = {
     fontSize: getThemeFontSize(data.level),

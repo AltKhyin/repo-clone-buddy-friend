@@ -4,14 +4,12 @@ import React from 'react';
 import { useEditorStore } from '@/store/editorStore';
 import { SeparatorBlockData } from '@/types/editor';
 import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Slider } from '@/components/ui/slider';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { RotateCcw, Palette, Minus } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { SliderControl, ColorControl } from './shared/UnifiedControls';
 
 interface SeparatorBlockInspectorProps {
   nodeId: string;
@@ -19,45 +17,45 @@ interface SeparatorBlockInspectorProps {
 
 // Style options with visual previews
 const STYLE_OPTIONS = [
-  { 
-    value: 'solid', 
-    label: 'Solid', 
+  {
+    value: 'solid',
+    label: 'Solid',
     description: 'Continuous straight line',
-    preview: 'border-solid border-t-2'
+    preview: 'border-solid border-t-2',
   },
-  { 
-    value: 'dashed', 
-    label: 'Dashed', 
+  {
+    value: 'dashed',
+    label: 'Dashed',
     description: 'Evenly spaced dashes',
-    preview: 'border-dashed border-t-2'
+    preview: 'border-dashed border-t-2',
   },
-  { 
-    value: 'dotted', 
-    label: 'Dotted', 
+  {
+    value: 'dotted',
+    label: 'Dotted',
     description: 'Small dots',
-    preview: 'border-dotted border-t-2'
+    preview: 'border-dotted border-t-2',
   },
 ] as const;
 
 // Width options with descriptions
 const WIDTH_OPTIONS = [
-  { 
-    value: 'quarter', 
-    label: 'Quarter (25%)', 
+  {
+    value: 'quarter',
+    label: 'Quarter (25%)',
     description: 'Narrow separator, centered',
-    preview: 'w-1/4'
+    preview: 'w-1/4',
   },
-  { 
-    value: 'half', 
-    label: 'Half (50%)', 
+  {
+    value: 'half',
+    label: 'Half (50%)',
     description: 'Medium separator, centered',
-    preview: 'w-1/2'
+    preview: 'w-1/2',
   },
-  { 
-    value: 'full', 
-    label: 'Full (100%)', 
+  {
+    value: 'full',
+    label: 'Full (100%)',
     description: 'Full width separator',
-    preview: 'w-full'
+    preview: 'w-full',
   },
 ] as const;
 
@@ -75,37 +73,28 @@ const COLOR_PRESETS = [
 
 export function SeparatorBlockInspector({ nodeId }: SeparatorBlockInspectorProps) {
   const { nodes, updateNode, canvasTheme } = useEditorStore();
-  const [customColor, setCustomColor] = React.useState('');
-  
+
   const node = nodes.find(n => n.id === nodeId);
   if (!node || node.type !== 'separatorBlock') return null;
-  
+
   const data = node.data as SeparatorBlockData;
-  
+
   const updateData = (updates: Partial<SeparatorBlockData>) => {
     updateNode(nodeId, {
-      data: { ...data, ...updates }
+      data: { ...data, ...updates },
     });
   };
-  
+
   // Reset to defaults
   const handleResetDefaults = () => {
     updateData({
       style: 'solid',
       thickness: 1,
       width: 'full',
-      color: undefined
+      color: undefined,
     });
-    setCustomColor('');
   };
-  
-  // Apply custom color
-  const handleCustomColorApply = () => {
-    if (customColor) {
-      updateData({ color: customColor });
-    }
-  };
-  
+
   // Current color with fallback
   const currentColor = data.color || (canvasTheme === 'dark' ? '#374151' : '#d1d5db');
 
@@ -119,12 +108,7 @@ export function SeparatorBlockInspector({ nodeId }: SeparatorBlockInspectorProps
             <Badge variant="outline" className="text-xs">
               {data.style} • {data.width} • {data.thickness}px
             </Badge>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={handleResetDefaults}
-              className="h-7 px-2"
-            >
+            <Button size="sm" variant="outline" onClick={handleResetDefaults} className="h-7 px-2">
               <RotateCcw size={12} />
             </Button>
           </div>
@@ -139,18 +123,16 @@ export function SeparatorBlockInspector({ nodeId }: SeparatorBlockInspectorProps
       {/* Style Selection */}
       <div className="space-y-4">
         <h4 className="font-medium text-sm">Line Style</h4>
-        
+
         <div className="grid grid-cols-1 gap-2">
-          {STYLE_OPTIONS.map((style) => (
+          {STYLE_OPTIONS.map(style => (
             <button
               key={style.value}
               onClick={() => updateData({ style: style.value })}
               className={cn(
                 'flex items-center gap-3 p-3 rounded-lg border text-left transition-all',
                 'hover:bg-accent/50',
-                data.style === style.value 
-                  ? 'border-primary bg-primary/5' 
-                  : 'border-border'
+                data.style === style.value ? 'border-primary bg-primary/5' : 'border-border'
               )}
             >
               <div className="flex-1">
@@ -158,7 +140,7 @@ export function SeparatorBlockInspector({ nodeId }: SeparatorBlockInspectorProps
                 <div className="text-xs text-muted-foreground">{style.description}</div>
               </div>
               <div className="w-16 h-8 flex items-center justify-center">
-                <div 
+                <div
                   className={cn('w-12 h-0', style.preview)}
                   style={{ borderColor: currentColor }}
                 />
@@ -173,18 +155,16 @@ export function SeparatorBlockInspector({ nodeId }: SeparatorBlockInspectorProps
       {/* Width Selection */}
       <div className="space-y-4">
         <h4 className="font-medium text-sm">Separator Width</h4>
-        
+
         <div className="grid grid-cols-1 gap-2">
-          {WIDTH_OPTIONS.map((width) => (
+          {WIDTH_OPTIONS.map(width => (
             <button
               key={width.value}
               onClick={() => updateData({ width: width.value })}
               className={cn(
                 'flex items-center gap-3 p-3 rounded-lg border text-left transition-all',
                 'hover:bg-accent/50',
-                data.width === width.value 
-                  ? 'border-primary bg-primary/5' 
-                  : 'border-border'
+                data.width === width.value ? 'border-primary bg-primary/5' : 'border-border'
               )}
             >
               <div className="flex-1">
@@ -192,7 +172,7 @@ export function SeparatorBlockInspector({ nodeId }: SeparatorBlockInspectorProps
                 <div className="text-xs text-muted-foreground">{width.description}</div>
               </div>
               <div className="w-16 h-8 flex items-center justify-center">
-                <div 
+                <div
                   className={cn('h-0 border-t-2', width.preview)}
                   style={{ borderColor: currentColor }}
                 />
@@ -206,114 +186,58 @@ export function SeparatorBlockInspector({ nodeId }: SeparatorBlockInspectorProps
 
       {/* Thickness Control */}
       <div className="space-y-4">
-        <h4 className="font-medium text-sm">Line Thickness</h4>
-        
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="thickness">Thickness</Label>
-            <Badge variant="outline" className="text-xs">
-              {data.thickness || 1}px
-            </Badge>
-          </div>
-          
-          <Slider
-            id="thickness"
-            min={1}
-            max={10}
-            step={1}
-            value={[data.thickness || 1]}
-            onValueChange={(value) => updateData({ thickness: value[0] })}
-            className="w-full"
-          />
-          
-          <div className="flex justify-between text-xs text-muted-foreground">
-            <span>1px (Thin)</span>
-            <span>10px (Thick)</span>
-          </div>
-          
-          {/* Thickness Preview */}
-          <div className="p-3 bg-muted rounded-lg">
-            <div className="text-xs text-muted-foreground mb-2">Thickness Preview:</div>
-            <div className="flex items-center justify-center">
-              <div 
-                className="w-20 border-t"
-                style={{ 
-                  borderTopWidth: `${data.thickness || 1}px`,
-                  borderTopColor: currentColor,
-                  borderTopStyle: data.style 
-                }}
-              />
-            </div>
+        <SliderControl
+          label="Line Thickness"
+          value={data.thickness || 1}
+          onChange={value => updateData({ thickness: value })}
+          min={1}
+          max={10}
+          step={1}
+          unit="px"
+          icon={Minus}
+          description="Adjust the visual weight of the separator line"
+          quickValues={[1, 2, 3, 5, 8, 10]}
+        />
+
+        {/* Thickness Preview */}
+        <div className="p-3 bg-muted rounded-lg">
+          <div className="text-xs text-muted-foreground mb-2">Thickness Preview:</div>
+          <div className="flex items-center justify-center">
+            <div
+              className="w-20 border-t"
+              style={{
+                borderTopWidth: `${data.thickness || 1}px`,
+                borderTopColor: currentColor,
+                borderTopStyle: data.style,
+              }}
+            />
           </div>
         </div>
       </div>
 
       <Separator />
 
-      {/* Color Selection */}
-      <div className="space-y-4">
-        <h4 className="font-medium text-sm">Line Color</h4>
-        
-        {/* Color Presets */}
-        <div className="space-y-2">
-          <Label>Quick Colors</Label>
-          <div className="grid grid-cols-4 gap-2">
-            {COLOR_PRESETS.map((color) => (
-              <button
-                key={color.value}
-                onClick={() => updateData({ color: color.value })}
-                className={cn(
-                  'p-2 rounded border text-center transition-all text-xs',
-                  'hover:bg-accent/50',
-                  data.color === color.value 
-                    ? 'border-primary ring-2 ring-primary/20' 
-                    : 'border-border'
-                )}
-                title={color.label}
-              >
-                <div className={cn('w-full h-4 rounded', color.preview)} />
-                <div className="mt-1 truncate">{color.label}</div>
-              </button>
-            ))}
-          </div>
-        </div>
-        
-        {/* Custom Color */}
-        <div className="space-y-2">
-          <Label htmlFor="customColor">Custom Color</Label>
-          <div className="flex gap-2">
-            <Input
-              id="customColor"
-              type="color"
-              value={customColor || currentColor}
-              onChange={(e) => setCustomColor(e.target.value)}
-              className="w-20 h-10 p-1 border-2"
-            />
-            <Input
-              value={customColor || data.color || ''}
-              onChange={(e) => setCustomColor(e.target.value)}
-              placeholder="#d1d5db"
-              className="flex-1"
-            />
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={handleCustomColorApply}
-              disabled={!customColor}
-              className="px-3"
-            >
-              Apply
-            </Button>
-          </div>
-        </div>
-      </div>
+      {/* Color Control */}
+      <ColorControl
+        label="Line Color"
+        value={data.color}
+        onChange={color => updateData({ color })}
+        presets={COLOR_PRESETS.map(preset => ({
+          name: preset.label,
+          value: preset.value,
+          category: 'separator',
+        }))}
+        allowTransparent={false}
+        allowCustom={true}
+        compact={false}
+      />
 
       <Separator />
 
       {/* Live Preview */}
       <div className="space-y-4">
         <h4 className="font-medium text-sm">Live Preview</h4>
-        
+
         <div className="space-y-3">
           {/* Small Preview */}
           <div className="p-4 bg-muted rounded-lg">
@@ -321,41 +245,39 @@ export function SeparatorBlockInspector({ nodeId }: SeparatorBlockInspectorProps
               Preview of your separator:
             </div>
             <div className="flex items-center justify-center py-2">
-              <div 
+              <div
                 className={cn(
                   'border-t',
                   data.width === 'quarter' && 'w-1/4',
                   data.width === 'half' && 'w-1/2',
                   data.width === 'full' && 'w-full'
                 )}
-                style={{ 
+                style={{
                   borderTopWidth: `${data.thickness || 1}px`,
                   borderTopColor: currentColor,
-                  borderTopStyle: data.style 
+                  borderTopStyle: data.style,
                 }}
               />
             </div>
           </div>
-          
+
           {/* Context Preview */}
           <div className="p-4 bg-muted rounded-lg">
-            <div className="text-xs text-muted-foreground mb-3 text-center">
-              In context:
-            </div>
+            <div className="text-xs text-muted-foreground mb-3 text-center">In context:</div>
             <div className="space-y-3">
               <div className="text-sm">Content above separator</div>
               <div className="flex items-center justify-center py-2">
-                <div 
+                <div
                   className={cn(
                     'border-t',
                     data.width === 'quarter' && 'w-1/4',
                     data.width === 'half' && 'w-1/2',
                     data.width === 'full' && 'w-full'
                   )}
-                  style={{ 
+                  style={{
                     borderTopWidth: `${data.thickness || 1}px`,
                     borderTopColor: currentColor,
-                    borderTopStyle: data.style 
+                    borderTopStyle: data.style,
                   }}
                 />
               </div>

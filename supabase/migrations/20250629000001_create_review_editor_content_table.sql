@@ -6,7 +6,7 @@
 -- Create review_editor_content table
 CREATE TABLE IF NOT EXISTS public.review_editor_content (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    review_id UUID NOT NULL,
+    review_id INTEGER NOT NULL,
     structured_content JSONB NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS public.review_editor_content (
     -- Foreign key constraint
     CONSTRAINT fk_review_editor_content_review_id 
         FOREIGN KEY (review_id) 
-        REFERENCES public.reviews(id) 
+        REFERENCES public."Reviews"(id) 
         ON DELETE CASCADE,
     
     -- Ensure only one editor content per review
@@ -38,7 +38,7 @@ CREATE POLICY "Users can view their own review editor content"
     FOR SELECT 
     USING (
         EXISTS (
-            SELECT 1 FROM public.reviews r 
+            SELECT 1 FROM public."Reviews" r 
             WHERE r.id = review_editor_content.review_id 
             AND r.created_by = auth.uid()
         )
@@ -50,7 +50,7 @@ CREATE POLICY "Users can create editor content for their reviews"
     FOR INSERT 
     WITH CHECK (
         EXISTS (
-            SELECT 1 FROM public.reviews r 
+            SELECT 1 FROM public."Reviews" r 
             WHERE r.id = review_editor_content.review_id 
             AND r.created_by = auth.uid()
         )
@@ -62,7 +62,7 @@ CREATE POLICY "Users can update their own review editor content"
     FOR UPDATE 
     USING (
         EXISTS (
-            SELECT 1 FROM public.reviews r 
+            SELECT 1 FROM public."Reviews" r 
             WHERE r.id = review_editor_content.review_id 
             AND r.created_by = auth.uid()
         )
@@ -74,7 +74,7 @@ CREATE POLICY "Users can delete their own review editor content"
     FOR DELETE 
     USING (
         EXISTS (
-            SELECT 1 FROM public.reviews r 
+            SELECT 1 FROM public."Reviews" r 
             WHERE r.id = review_editor_content.review_id 
             AND r.created_by = auth.uid()
         )

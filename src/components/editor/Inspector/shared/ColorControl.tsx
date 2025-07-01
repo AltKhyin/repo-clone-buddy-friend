@@ -33,14 +33,14 @@ const DEFAULT_PRESETS: ColorPreset[] = [
   { name: 'Gray', value: '#6b7280', category: 'grays' },
   { name: 'Light Gray', value: '#d1d5db', category: 'grays' },
   { name: 'White', value: '#ffffff', category: 'grays' },
-  
+
   // Primary Colors
   { name: 'Blue', value: '#3b82f6', category: 'primary' },
   { name: 'Indigo', value: '#6366f1', category: 'primary' },
   { name: 'Purple', value: '#8b5cf6', category: 'primary' },
   { name: 'Pink', value: '#ec4899', category: 'primary' },
   { name: 'Red', value: '#ef4444', category: 'primary' },
-  
+
   // Secondary Colors
   { name: 'Orange', value: '#f97316', category: 'secondary' },
   { name: 'Yellow', value: '#eab308', category: 'secondary' },
@@ -57,9 +57,11 @@ export function ColorControl({
   allowTransparent = false,
   allowCustom = true,
   compact = false,
-  className
+  className,
 }: ColorControlProps) {
-  const [customColor, setCustomColor] = useState(value || '#000000');
+  const [customColor, setCustomColor] = useState(
+    value && value !== 'transparent' ? value : '#000000'
+  );
   const [isPickerOpen, setIsPickerOpen] = useState(false);
 
   const handlePresetSelect = (presetValue: string) => {
@@ -78,7 +80,7 @@ export function ColorControl({
   };
 
   const renderColorSwatch = (color: string, size: 'sm' | 'md' = 'md') => (
-    <div 
+    <div
       className={cn(
         'rounded border-2 border-gray-200 shadow-sm',
         size === 'sm' ? 'w-4 h-4' : 'w-6 h-6'
@@ -90,13 +92,8 @@ export function ColorControl({
   return (
     <div className={cn('space-y-2', className)}>
       <div className="flex items-center justify-between">
-        <Label className={cn(
-          'font-medium',
-          compact ? 'text-xs' : 'text-sm'
-        )}>
-          {label}
-        </Label>
-        
+        <Label className={cn('font-medium', compact ? 'text-xs' : 'text-sm')}>{label}</Label>
+
         {value && (
           <Button
             variant="ghost"
@@ -115,10 +112,7 @@ export function ColorControl({
           <PopoverTrigger asChild>
             <Button
               variant="outline"
-              className={cn(
-                'flex items-center gap-2 h-8',
-                compact ? 'px-2' : 'px-3'
-              )}
+              className={cn('flex items-center gap-2 h-8', compact ? 'px-2' : 'px-3')}
             >
               {value ? (
                 renderColorSwatch(value, 'sm')
@@ -128,7 +122,7 @@ export function ColorControl({
               <Palette size={12} />
             </Button>
           </PopoverTrigger>
-          
+
           <PopoverContent className="w-64 p-3" align="start">
             <div className="space-y-3">
               {/* Transparency Option */}
@@ -160,7 +154,7 @@ export function ColorControl({
                       {category}
                     </Label>
                     <div className="grid grid-cols-5 gap-1">
-                      {categoryPresets.map((preset) => (
+                      {categoryPresets.map(preset => (
                         <Button
                           key={preset.value}
                           variant="outline"
@@ -189,13 +183,13 @@ export function ColorControl({
                   <div className="flex items-center gap-2">
                     <input
                       type="color"
-                      value={customColor}
-                      onChange={(e) => handleCustomColorChange(e.target.value)}
+                      value={customColor !== 'transparent' ? customColor : '#000000'}
+                      onChange={e => handleCustomColorChange(e.target.value)}
                       className="w-8 h-8 rounded border border-gray-200 cursor-pointer"
                     />
                     <Input
                       value={customColor}
-                      onChange={(e) => handleCustomColorChange(e.target.value)}
+                      onChange={e => handleCustomColorChange(e.target.value)}
                       placeholder="#000000"
                       className="h-8 text-xs font-mono"
                     />
@@ -210,12 +204,9 @@ export function ColorControl({
         {allowCustom && (
           <Input
             value={value || ''}
-            onChange={(e) => onChange(e.target.value || undefined)}
+            onChange={e => onChange(e.target.value || undefined)}
             placeholder="Color value"
-            className={cn(
-              'font-mono',
-              compact ? 'h-8 text-xs' : 'h-8 text-sm'
-            )}
+            className={cn('font-mono', compact ? 'h-8 text-xs' : 'h-8 text-sm')}
           />
         )}
       </div>
