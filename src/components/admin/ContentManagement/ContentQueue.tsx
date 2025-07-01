@@ -1,4 +1,3 @@
-
 // ABOUTME: Main content queue interface with filtering, search, and infinite scroll pagination
 
 import React, { useState } from 'react';
@@ -6,6 +5,7 @@ import { useContentQueueQuery } from '../../../../packages/hooks/useContentQueue
 import { FilterPanel } from './FilterPanel';
 import { ReviewCard } from './ReviewCard';
 import { BulkOperations } from './BulkOperations';
+import { CreateReviewButton } from './CreateReviewButton';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { AlertCircle, RefreshCw } from 'lucide-react';
@@ -17,7 +17,7 @@ export const ContentQueue = () => {
     authorId: '',
     reviewerId: '',
   });
-  
+
   const [selectedReviews, setSelectedReviews] = useState<number[]>([]);
 
   const {
@@ -40,27 +40,21 @@ export const ContentQueue = () => {
   };
 
   const handleSelectReview = (reviewId: number, selected: boolean) => {
-    setSelectedReviews(prev => 
-      selected 
-        ? [...prev, reviewId]
-        : prev.filter(id => id !== reviewId)
+    setSelectedReviews(prev =>
+      selected ? [...prev, reviewId] : prev.filter(id => id !== reviewId)
     );
   };
 
   const handleSelectAll = () => {
     const allIds = allReviews.map(review => review.id);
-    setSelectedReviews(
-      selectedReviews.length === allIds.length ? [] : allIds
-    );
+    setSelectedReviews(selectedReviews.length === allIds.length ? [] : allIds);
   };
 
   if (isError) {
     return (
       <div className="text-center py-12">
         <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">
-          Error Loading Content Queue
-        </h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">Error Loading Content Queue</h3>
         <p className="text-gray-600 mb-4">
           {error instanceof Error ? error.message : 'Failed to load content queue'}
         </p>
@@ -75,15 +69,11 @@ export const ContentQueue = () => {
   return (
     <div className="space-y-6">
       {/* Filter Panel */}
-      <FilterPanel 
-        filters={filters} 
-        onFiltersChange={handleFilterChange}
-        summary={stats}
-      />
+      <FilterPanel filters={filters} onFiltersChange={handleFilterChange} summary={stats} />
 
       {/* Bulk Operations */}
       {selectedReviews.length > 0 && (
-        <BulkOperations 
+        <BulkOperations
           selectedReviews={selectedReviews}
           onComplete={() => setSelectedReviews([])}
         />
@@ -93,22 +83,13 @@ export const ContentQueue = () => {
       <div className="bg-white rounded-lg border">
         <div className="p-4 border-b border-gray-200">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold">
-              Content Queue ({allReviews.length} items)
-            </h2>
+            <h2 className="text-lg font-semibold">Content Queue ({allReviews.length} items)</h2>
             <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleSelectAll}
-              >
+              <CreateReviewButton />
+              <Button variant="outline" size="sm" onClick={handleSelectAll}>
                 {selectedReviews.length === allReviews.length ? 'Deselect All' : 'Select All'}
               </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => refetch()}
-              >
+              <Button variant="outline" size="sm" onClick={() => refetch()}>
                 <RefreshCw className="h-4 w-4" />
               </Button>
             </div>
@@ -128,12 +109,12 @@ export const ContentQueue = () => {
               No content found matching your filters.
             </div>
           ) : (
-            allReviews.map((review) => (
+            allReviews.map(review => (
               <ReviewCard
                 key={review.id}
                 review={review}
                 isSelected={selectedReviews.includes(review.id)}
-                onSelect={(selected) => handleSelectReview(review.id, selected)}
+                onSelect={selected => handleSelectReview(review.id, selected)}
               />
             ))
           )}
@@ -142,11 +123,7 @@ export const ContentQueue = () => {
         {/* Load More Button */}
         {hasNextPage && (
           <div className="p-4 border-t border-gray-200 text-center">
-            <Button
-              variant="outline"
-              onClick={() => fetchNextPage()}
-              disabled={isFetchingNextPage}
-            >
+            <Button variant="outline" onClick={() => fetchNextPage()} disabled={isFetchingNextPage}>
               {isFetchingNextPage ? (
                 <>
                   <RefreshCw className="h-4 w-4 mr-2 animate-spin" />

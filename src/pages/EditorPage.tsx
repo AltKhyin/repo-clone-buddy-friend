@@ -19,12 +19,14 @@ import { useCrashRecovery } from '@/hooks/useCrashRecovery';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { Button } from '@/components/ui/button';
 import { getDefaultDataForBlockType } from '@/types/editor';
+import { ArrowLeft } from 'lucide-react';
 import {
   useEditorSaveMutation,
   useEditorLoadQuery,
 } from '../../packages/hooks/useEditorPersistence';
 import { supabase } from '@/integrations/supabase/client';
 import { validateStructuredContent } from '@/types/editor';
+import { Link } from 'react-router-dom';
 import {
   ThemeProvider,
   ThemeStyleInjector,
@@ -67,15 +69,15 @@ export default function EditorPage() {
   // Enhanced persistence system
   const currentContent = React.useMemo(() => {
     if (!nodes.length) return null;
-    
+
     // Safely check if there are layout items in either desktop or mobile
     try {
       const safeLayouts = ensureMasterDerivedLayouts(layouts);
       const hasDesktopItems = safeLayouts.desktop?.data?.items?.length > 0;
       const hasMobileItems = safeLayouts.mobile?.data?.items?.length > 0;
-      
+
       if (!hasDesktopItems && !hasMobileItems) return null;
-      
+
       return exportToJSON();
     } catch (error) {
       console.error('[EditorPage] Error checking layouts:', error);
@@ -307,7 +309,15 @@ export default function EditorPage() {
             {!isFullscreen && (
               <div className="h-14 border-b flex items-center justify-between px-4">
                 <div className="flex items-center space-x-4">
-                  <h1 className="text-lg font-semibold">Visual Composition Engine</h1>
+                  {/* Back to Management Navigation */}
+                  <Link to={`/admin/review/${reviewId}`}>
+                    <Button variant="ghost" size="sm">
+                      <ArrowLeft className="h-4 w-4 mr-2" />
+                      Back to Management
+                    </Button>
+                  </Link>
+                  <div className="h-4 w-px bg-gray-300" />
+                  <h1 className="text-lg font-semibold">Content Editor</h1>
                   <span className="text-sm text-muted-foreground">Review ID: {reviewId}</span>
                   {isDirty && (
                     <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">

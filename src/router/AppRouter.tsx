@@ -1,23 +1,19 @@
-
 // ABOUTME: Main application router with all route definitions including admin protected routes
-import {
-  createBrowserRouter,
-  RouterProvider,
-} from "react-router-dom";
-import AppShell from "@/components/shell/AppShell";
-import Index from "@/pages/Index";
-import CommunityPage from "@/pages/CommunityPage";
-import CreatePostPage from "@/pages/CreatePostPage";
-import ArchivePage from "@/pages/ArchivePage";
-import ReviewDetailPage from "@/pages/ReviewDetailPage";
-import ErrorBoundary from "@/components/ErrorBoundary";
-import CommunityPostDetail from "@/pages/CommunityPostDetail";
-import SavePost from "@/components/community/SavePost";
-import ProfilePage from "@/pages/ProfilePage";
-import SettingsPage from "@/pages/SettingsPage";
-import SuggestionPage from "@/pages/SuggestionPage";
-import UnauthorizedPage from "@/pages/UnauthorizedPage";
-import LoginPage from "@/pages/LoginPage";
+import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import AppShell from '@/components/shell/AppShell';
+import Index from '@/pages/Index';
+import CommunityPage from '@/pages/CommunityPage';
+import CreatePostPage from '@/pages/CreatePostPage';
+import ArchivePage from '@/pages/ArchivePage';
+import ReviewDetailPage from '@/pages/ReviewDetailPage';
+import ErrorBoundary from '@/components/ErrorBoundary';
+import CommunityPostDetail from '@/pages/CommunityPostDetail';
+import SavePost from '@/components/community/SavePost';
+import ProfilePage from '@/pages/ProfilePage';
+import SettingsPage from '@/pages/SettingsPage';
+import SuggestionPage from '@/pages/SuggestionPage';
+import UnauthorizedPage from '@/pages/UnauthorizedPage';
+import LoginPage from '@/pages/LoginPage';
 import { AdminProtectedRoute } from '@/components/routes/AdminProtectedRoute';
 import { RoleProtectedRoute } from '@/components/routes/RoleProtectedRoute';
 import { AdminLayout } from '@/components/admin/AdminLayout';
@@ -28,13 +24,14 @@ import AdminTagManagement from '@/pages/AdminTagManagement';
 import AdminLayoutManagement from '@/pages/AdminLayoutManagement';
 import AdminAnalytics from '@/pages/AdminAnalytics';
 import EditorPage from '@/pages/EditorPage';
+import ReviewManagementPage from '@/pages/ReviewManagementPage';
 
 const router = createBrowserRouter([
   {
-    path: "/",
+    path: '/',
     element: <AppShell />,
     errorElement: (
-      <ErrorBoundary 
+      <ErrorBoundary
         tier="root"
         context="aplicação completa"
         showDetails={process.env.NODE_ENV === 'development'}
@@ -55,64 +52,64 @@ const router = createBrowserRouter([
         element: <Index />,
       },
       {
-        path: "comunidade",
+        path: 'comunidade',
         element: <CommunityPage />,
       },
       {
-        path: "comunidade/criar",
+        path: 'comunidade/criar',
         element: <CreatePostPage />,
       },
       {
-        path: "comunidade/:postId",
+        path: 'comunidade/:postId',
         element: <CommunityPostDetail />,
       },
       {
-        path: "acervo",
+        path: 'acervo',
         element: <ArchivePage />,
       },
       {
-        path: "reviews/:slug",
+        path: 'reviews/:slug',
         element: <ReviewDetailPage />,
       },
       {
-        path: "perfil/:userId",
+        path: 'perfil/:userId',
         element: <ProfilePage />,
       },
       // Redirect /perfil to current user's profile
       {
-        path: "perfil",
+        path: 'perfil',
         element: <ProfilePage />,
       },
       {
-        path: "definicoes",
+        path: 'definicoes',
         element: <SettingsPage />,
       },
       // Legacy redirect for old configuracoes path
       {
-        path: "configuracoes",
+        path: 'configuracoes',
         element: <SettingsPage />,
       },
       {
-        path: "sugestoes",
+        path: 'sugestoes',
         element: <SuggestionPage />,
       },
       {
-        path: "acesso-negado",
+        path: 'acesso-negado',
         element: <UnauthorizedPage />,
       },
       // Legacy redirect for old nao-autorizado path
       {
-        path: "nao-autorizado",
+        path: 'nao-autorizado',
         element: <UnauthorizedPage />,
       },
       {
-        path: "login",
+        path: 'login',
         element: <LoginPage />,
       },
-      
+
       // Admin Routes - English maintained for internal tools
       {
-        path: "/admin",
+        path: '/admin',
         element: (
           <AdminProtectedRoute requiredRoles={['admin', 'editor']}>
             <AdminLayout />
@@ -124,31 +121,35 @@ const router = createBrowserRouter([
             element: <AdminDashboard />,
           },
           {
-            path: "content",
+            path: 'content',
             element: <ContentManagement />,
           },
           {
-            path: "users",
+            path: 'users',
             element: <AdminUserManagement />,
           },
           {
-            path: "tags",
+            path: 'tags',
             element: <AdminTagManagement />,
           },
           {
-            path: "layout",
+            path: 'layout',
             element: <AdminLayoutManagement />,
           },
           {
-            path: "analytics",
+            path: 'analytics',
             element: <AdminAnalytics />,
+          },
+          {
+            path: 'review/:reviewId',
+            element: <ReviewManagementPage />,
           },
         ],
       },
-      
+
       // Editor Routes - Protected for admin and editor roles
       {
-        path: "/editor/:reviewId",
+        path: '/editor/:reviewId',
         element: (
           <RoleProtectedRoute requiredRoles={['admin', 'editor']}>
             <EditorPage />
@@ -158,7 +159,7 @@ const router = createBrowserRouter([
     ],
   },
   {
-    path: "/salvar-post",
+    path: '/salvar-post',
     element: <SavePost />,
   },
 ]);
