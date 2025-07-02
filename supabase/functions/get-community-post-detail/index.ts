@@ -1,17 +1,20 @@
-
 // ABOUTME: Edge function for fetching individual community post details with user-specific data (votes, save status).
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.0';
 import { corsHeaders, handleCorsPreflightRequest } from '../_shared/cors.ts';
-import { createSuccessResponse, createErrorResponse, authenticateUser } from '../_shared/api-helpers.ts';
+import {
+  createSuccessResponse,
+  createErrorResponse,
+  authenticateUser,
+} from '../_shared/api-helpers.ts';
 import { checkRateLimit, rateLimitHeaders, RateLimitError } from '../_shared/rate-limit.ts';
 
 interface PostDetailRequest {
   post_id: number;
 }
 
-serve(async (req) => {
+serve(async req => {
   // STEP 1: CORS Preflight Handling
   if (req.method === 'OPTIONS') {
     return handleCorsPreflightRequest();
@@ -33,7 +36,7 @@ serve(async (req) => {
     // STEP 4: Authentication (optional for this endpoint)
     let user = null;
     const authHeader = req.headers.get('Authorization');
-    
+
     if (authHeader) {
       try {
         user = await authenticateUser(supabase, authHeader);
@@ -45,7 +48,7 @@ serve(async (req) => {
 
     // STEP 5: Input Validation
     let postId: number;
-    
+
     if (req.method === 'GET') {
       // Handle GET request with URL parameter
       const url = new URL(req.url);
@@ -69,14 +72,16 @@ serve(async (req) => {
     // STEP 6: Core Business Logic
     const { data: post, error: postError } = await supabase
       .from('CommunityPosts')
-      .select(`
+      .select(
+        `
         *,
-        author:Practitioners!author_id (
+        author:Practitioners!CommunityPosts_author_id_fkey (
           id,
           full_name,
           avatar_url
         )
-      `)
+      `
+      )
       .eq('id', postId)
       .single();
 
@@ -96,7 +101,7 @@ serve(async (req) => {
         .eq('post_id', postId)
         .eq('practitioner_id', user.id)
         .single();
-      
+
       userVote = voteData?.vote_type || null;
 
       // Check if post is saved by user
@@ -106,7 +111,7 @@ serve(async (req) => {
         .eq('post_id', postId)
         .eq('practitioner_id', user.id)
         .single();
-      
+
       isSaved = !!savedData;
 
       // Check if user can moderate (admin/editor role)
@@ -115,7 +120,7 @@ serve(async (req) => {
         .select('role')
         .eq('id', user.id)
         .single();
-      
+
       userCanModerate = userData?.role === 'admin' || userData?.role === 'editor';
     }
 
@@ -145,17 +150,16 @@ serve(async (req) => {
       author: post.author || {
         id: post.author_id || null,
         full_name: 'Usuário removido',
-        avatar_url: null
+        avatar_url: null,
       },
       user_vote: userVote,
       reply_count: replyCount || 0,
       is_saved: isSaved,
-      user_can_moderate: userCanModerate
+      user_can_moderate: userCanModerate,
     };
 
     // STEP 7: Standardized Success Response
     return createSuccessResponse(response, rateLimitHeaders(rateLimitResult));
-
   } catch (error) {
     // STEP 8: Centralized Error Handling
     console.error('Error in get-community-post-detail:', error);

@@ -1,4 +1,3 @@
-
 // ABOUTME: TanStack Query hook for fetching a post with its complete comment tree - enhanced debugging and error handling.
 
 import { useQuery } from '@tanstack/react-query';
@@ -18,27 +17,33 @@ interface PostWithCommentsData {
 const fetchPostWithComments = async (postId: number): Promise<PostWithCommentsData> => {
   console.log('=== fetchPostWithComments START ===');
   console.log('Input postId:', postId, 'Type:', typeof postId);
-  
+
   if (!postId || postId <= 0) {
     console.error('Invalid postId provided:', postId);
     throw new Error(`Invalid post ID: ${postId}. Expected a positive number.`);
   }
 
   // Get the authenticated user ID for personalized data
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
   if (authError) {
     console.error('Auth error:', authError);
   }
-  
+
   const userId = user?.id || '00000000-0000-0000-0000-000000000000';
   console.log('Current user ID:', userId);
 
   // Strategy 1: Try edge function approach
   try {
     console.log('Attempting edge function approach...');
-    const { data: postData, error: postError } = await supabase.functions.invoke('get-community-post-detail', {
-      body: { post_id: postId }
-    });
+    const { data: postData, error: postError } = await supabase.functions.invoke(
+      'get-community-post-detail',
+      {
+        body: { post_id: postId },
+      }
+    );
 
     if (postError) {
       console.error('Edge function error:', postError);
@@ -57,11 +62,10 @@ const fetchPostWithComments = async (postId: number): Promise<PostWithCommentsDa
     console.log('Extracted post data:', actualPostData);
 
     // Fetch comments using the optimized RPC function
-    const { data: comments, error: commentsError } = await supabase
-      .rpc('get_comments_for_post', {
-        p_post_id: postId,
-        p_user_id: userId
-      });
+    const { data: comments, error: commentsError } = await supabase.rpc('get_comments_for_post', {
+      p_post_id: postId,
+      p_user_id: userId,
+    });
 
     if (commentsError) {
       console.error('Comments RPC error:', commentsError);
@@ -70,30 +74,31 @@ const fetchPostWithComments = async (postId: number): Promise<PostWithCommentsDa
     }
 
     console.log('Comments fetched successfully:', comments?.length || 0, 'comments');
-    
+
     return {
       post: actualPostData as CommunityPost,
-      comments: (comments || []) as CommunityPost[]
+      comments: (comments || []) as CommunityPost[],
     };
-    
   } catch (edgeFunctionError) {
     console.error('Edge function approach failed, trying direct query:', edgeFunctionError);
-    
+
     // Strategy 2: Fallback to direct database query with vote data
     try {
       console.log('Attempting direct database query with vote data...');
-      
+
       // Get basic post data
       const { data: post, error: postError } = await supabase
         .from('CommunityPosts')
-        .select(`
+        .select(
+          `
           *,
-          author:Practitioners!author_id (
+          author:Practitioners!CommunityPosts_author_id_fkey (
             id,
             full_name,
             avatar_url
           )
-        `)
+        `
+        )
         .eq('id', postId)
         .is('parent_post_id', null) // Ensure it's a top-level post
         .single();
@@ -109,11 +114,11 @@ const fetchPostWithComments = async (postId: number): Promise<PostWithCommentsDa
       }
 
       console.log('Post fetched successfully via direct query:', post);
-      
+
       // Get user's vote data if authenticated
       let userVote = null;
       let isSaved = false;
-      
+
       if (user) {
         // Get user's vote on this post
         const { data: voteData } = await supabase
@@ -122,7 +127,7 @@ const fetchPostWithComments = async (postId: number): Promise<PostWithCommentsDa
           .eq('post_id', postId)
           .eq('practitioner_id', user.id)
           .single();
-        
+
         userVote = voteData?.vote_type || null;
 
         // Check if post is saved by user
@@ -132,32 +137,31 @@ const fetchPostWithComments = async (postId: number): Promise<PostWithCommentsDa
           .eq('post_id', postId)
           .eq('practitioner_id', user.id)
           .single();
-        
+
         isSaved = !!savedData;
       }
-      
+
       // Get reply count for the post
       const { count: replyCount } = await supabase
         .from('CommunityPosts')
         .select('id', { count: 'exact' })
         .eq('parent_post_id', postId);
-      
+
       // Enhance post with vote data
       const enhancedPost = {
         ...post,
         user_vote: userVote,
         reply_count: replyCount || 0,
-        is_saved: isSaved
+        is_saved: isSaved,
       };
-      
+
       console.log('Enhanced post with vote data:', enhancedPost);
 
       // Fetch comments using the optimized RPC function
-      const { data: comments, error: commentsError } = await supabase
-        .rpc('get_comments_for_post', {
-          p_post_id: postId,
-          p_user_id: userId
-        });
+      const { data: comments, error: commentsError } = await supabase.rpc('get_comments_for_post', {
+        p_post_id: postId,
+        p_user_id: userId,
+      });
 
       if (commentsError) {
         console.error('Comments RPC error (fallback):', commentsError);
@@ -168,39 +172,40 @@ const fetchPostWithComments = async (postId: number): Promise<PostWithCommentsDa
       console.log('=== fetchPostWithComments SUCCESS ===');
       return {
         post: enhancedPost as CommunityPost,
-        comments: (comments || []) as CommunityPost[]
+        comments: (comments || []) as CommunityPost[],
       };
-      
     } catch (directQueryError) {
       console.error('Direct query also failed:', directQueryError);
-      
+
       // Strategy 3: Final fallback - try to get just basic post data
       console.log('Attempting minimal post query as last resort...');
-      
+
       const { data: minimalPost, error: minimalError } = await supabase
         .from('CommunityPosts')
         .select('*')
         .eq('id', postId)
         .single();
-        
+
       if (minimalError || !minimalPost) {
         console.error('All fetch strategies failed. Final error:', minimalError);
-        throw new Error(`Post with ID ${postId} could not be found using any method. This may indicate the post doesn't exist or you don't have permission to view it.`);
+        throw new Error(
+          `Post with ID ${postId} could not be found using any method. This may indicate the post doesn't exist or you don't have permission to view it.`
+        );
       }
-      
+
       console.log('Minimal post data retrieved as fallback:', minimalPost);
-      
+
       // Add minimal vote data structure for compatibility
       const minimalEnhancedPost = {
         ...minimalPost,
         user_vote: null,
         reply_count: 0,
-        is_saved: false
+        is_saved: false,
       };
-      
+
       return {
         post: minimalEnhancedPost as CommunityPost,
-        comments: []
+        comments: [],
       };
     }
   }
@@ -213,7 +218,7 @@ const fetchPostWithComments = async (postId: number): Promise<PostWithCommentsDa
  */
 export const usePostWithCommentsQuery = (postId: number) => {
   console.log('usePostWithCommentsQuery called with postId:', postId, 'Type:', typeof postId);
-  
+
   return useQuery({
     queryKey: ['postWithComments', postId],
     queryFn: () => {
@@ -227,7 +232,7 @@ export const usePostWithCommentsQuery = (postId: number) => {
       return failureCount < 3; // Retry up to 3 times
     },
     meta: {
-      errorMessage: `Failed to load post details for ID: ${postId}`
-    }
+      errorMessage: `Failed to load post details for ID: ${postId}`,
+    },
   });
 };

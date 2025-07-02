@@ -1,4 +1,3 @@
-
 // ABOUTME: Content analytics Edge Function for admin dashboard data following the simplified pattern that works
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.0';
@@ -8,7 +7,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-Deno.serve(async (req) => {
+Deno.serve(async req => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -28,9 +27,10 @@ Deno.serve(async (req) => {
     }
 
     // Set the auth header for this request
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    );
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
 
     if (authError || !user) {
       throw new Error('Invalid authentication');
@@ -45,7 +45,7 @@ Deno.serve(async (req) => {
     // Parse request parameters
     const url = new URL(req.url);
     const timeRange = url.searchParams.get('timeRange') || '30d';
-    
+
     console.log('Content analytics request:', { timeRange, userRole });
 
     // Calculate date range
@@ -55,19 +55,21 @@ Deno.serve(async (req) => {
 
     // Fetch content stats
     const { data: contentStats } = await supabase.rpc('get_content_analytics');
-    
+
     // Fetch recent content activity
     const { data: recentActivity, error: activityError } = await supabase
       .from('Reviews')
-      .select(`
+      .select(
+        `
         id,
         title,
         status,
         created_at,
         published_at,
         view_count,
-        Practitioners!author_id(full_name)
-      `)
+        Practitioners!Reviews_author_id_fkey(full_name)
+      `
+      )
       .gte('created_at', startDate.toISOString())
       .order('created_at', { ascending: false })
       .limit(20);
@@ -95,14 +97,16 @@ Deno.serve(async (req) => {
     // Fetch top performing content
     const { data: topContent, error: topError } = await supabase
       .from('Reviews')
-      .select(`
+      .select(
+        `
         id,
         title,
         view_count,
         status,
         published_at,
-        Practitioners!author_id(full_name)
-      `)
+        Practitioners!Reviews_author_id_fkey(full_name)
+      `
+      )
       .eq('status', 'published')
       .order('view_count', { ascending: false })
       .limit(10);
@@ -116,13 +120,13 @@ Deno.serve(async (req) => {
         totalReviews: 0,
         publishedReviews: 0,
         draftReviews: 0,
-        totalPosts: 0
+        totalPosts: 0,
       },
       recentActivity: recentActivity || [],
       statusDistribution: statusCounts,
       topPerforming: topContent || [],
       timeRange,
-      generatedAt: new Date().toISOString()
+      generatedAt: new Date().toISOString(),
     };
 
     console.log('Content analytics response:', {
@@ -134,20 +138,25 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
-
   } catch (error) {
     console.error('Content analytics error:', error);
-    
-    const errorMessage = error.message || 'Unknown error occurred';
-    const statusCode = errorMessage.includes('authentication') ? 401 :
-                      errorMessage.includes('permissions') ? 403 : 500;
 
-    return new Response(JSON.stringify({ 
-      error: errorMessage,
-      details: 'Content analytics fetch failed'
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: statusCode,
-    });
+    const errorMessage = error.message || 'Unknown error occurred';
+    const statusCode = errorMessage.includes('authentication')
+      ? 401
+      : errorMessage.includes('permissions')
+        ? 403
+        : 500;
+
+    return new Response(
+      JSON.stringify({
+        error: errorMessage,
+        details: 'Content analytics fetch failed',
+      }),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: statusCode,
+      }
+    );
   }
 });

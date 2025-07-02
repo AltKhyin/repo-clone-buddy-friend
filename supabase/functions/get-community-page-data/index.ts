@@ -1,13 +1,16 @@
-
 // ABOUTME: Community page data Edge Function following [DOC_5] mandatory 7-step pattern
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.0';
 import { corsHeaders, handleCorsPreflightRequest } from '../_shared/cors.ts';
-import { createSuccessResponse, createErrorResponse, authenticateUser } from '../_shared/api-helpers.ts';
+import {
+  createSuccessResponse,
+  createErrorResponse,
+  authenticateUser,
+} from '../_shared/api-helpers.ts';
 import { checkRateLimit, rateLimitHeaders, RateLimitError } from '../_shared/rate-limit.ts';
 
-serve(async (req) => {
+serve(async req => {
   // STEP 1: CORS Preflight Handling (MANDATORY FIRST)
   if (req.method === 'OPTIONS') {
     return handleCorsPreflightRequest();
@@ -20,7 +23,7 @@ serve(async (req) => {
 
   try {
     console.log('Starting community page data fetch...');
-    
+
     // STEP 2: Manual Authentication (requires verify_jwt = false in config.toml)
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -29,7 +32,7 @@ serve(async (req) => {
 
     // Get user ID for personalization and rate limiting
     let userId = '00000000-0000-0000-0000-000000000000'; // Default UUID for anonymous
-    
+
     const authHeader = req.headers.get('Authorization');
     if (authHeader) {
       try {
@@ -66,31 +69,35 @@ serve(async (req) => {
     console.log(`Fetching community page data: page=${page}, limit=${actualLimit}, user=${userId}`);
 
     // STEP 5: Core Business Logic Execution
-    
+
     // Fetch main feed posts with fallback strategy
     let posts = [];
     try {
       console.log('Attempting to use optimized RPC function...');
-      const { data: rpcPosts, error: rpcError } = await supabase.rpc('get_community_feed_with_details', {
-        p_user_id: userId,
-        p_limit: actualLimit,
-        p_offset: offset,
-      });
-      
+      const { data: rpcPosts, error: rpcError } = await supabase.rpc(
+        'get_community_feed_with_details',
+        {
+          p_user_id: userId,
+          p_limit: actualLimit,
+          p_offset: offset,
+        }
+      );
+
       if (rpcError) {
         console.warn('RPC function not available, falling back to manual query:', rpcError);
         throw new Error('RPC not available');
       }
-      
+
       posts = rpcPosts || [];
       console.log(`Successfully fetched ${posts.length} community posts via RPC`);
     } catch (rpcError) {
       console.log('Using fallback query strategy...');
-      
+
       // Fallback: Manual query with joins
       const { data: fallbackPosts, error: fallbackError } = await supabase
         .from('CommunityPosts')
-        .select(`
+        .select(
+          `
           id,
           title,
           content,
@@ -103,12 +110,13 @@ serve(async (req) => {
           flair_text,
           flair_color,
           author_id,
-          Practitioners!author_id (
+          Practitioners!CommunityPosts_author_id_fkey (
             id,
             full_name,
             avatar_url
           )
-        `)
+        `
+        )
         .is('parent_post_id', null)
         .order('is_pinned', { ascending: false })
         .order('created_at', { ascending: false })
@@ -132,13 +140,15 @@ serve(async (req) => {
         is_locked: post.is_locked || false,
         flair_text: post.flair_text,
         flair_color: post.flair_color,
-        author: post.Practitioners ? {
-          id: post.Practitioners.id,
-          full_name: post.Practitioners.full_name,
-          avatar_url: post.Practitioners.avatar_url
-        } : null,
+        author: post.Practitioners
+          ? {
+              id: post.Practitioners.id,
+              full_name: post.Practitioners.full_name,
+              avatar_url: post.Practitioners.avatar_url,
+            }
+          : null,
         user_vote: null, // Will need separate query for user votes in fallback
-        reply_count: 0 // Will need separate query for reply counts in fallback
+        reply_count: 0, // Will need separate query for reply counts in fallback
       }));
 
       console.log(`Successfully fetched ${posts.length} community posts via fallback query`);
@@ -168,7 +178,7 @@ serve(async (req) => {
         created_at: post.created_at,
         author: post.author || null,
         flair_text: post.flair_text || undefined,
-        is_pinned: post.is_pinned || false
+        is_pinned: post.is_pinned || false,
       }));
 
     // Fetch sidebar configuration
@@ -183,13 +193,13 @@ serve(async (req) => {
         'Seja respeitoso com outros membros',
         'Mantenha discussões relevantes ao tema',
         'Não faça spam ou autopromoção',
-        'Use linguagem apropriada'
+        'Use linguagem apropriada',
       ],
       links: [
         { title: 'Guia da Comunidade', url: '/comunidade/info' },
-        { title: 'FAQ', url: '/faq' }
+        { title: 'FAQ', url: '/faq' },
       ],
-      featuredPollId: null
+      featuredPollId: null,
     };
 
     if (sidebarSettings?.value) {
@@ -205,7 +215,8 @@ serve(async (req) => {
     if (sidebarConfig.featuredPollId) {
       const { data: poll } = await supabase
         .from('Polls')
-        .select(`
+        .select(
+          `
           id,
           question,
           total_votes,
@@ -214,24 +225,27 @@ serve(async (req) => {
             option_text,
             vote_count
           )
-        `)
+        `
+        )
         .eq('id', sidebarConfig.featuredPollId)
         .single();
-      
+
       featuredPoll = poll;
     }
 
     // Fetch recent activity
     const { data: recentActivity } = await supabase
       .from('CommunityPosts')
-      .select(`
+      .select(
+        `
         id,
         title,
         created_at,
-        Practitioners!author_id (
+        Practitioners!CommunityPosts_author_id_fkey (
           full_name
         )
-      `)
+      `
+      )
       .order('created_at', { ascending: false })
       .limit(3);
 
@@ -241,22 +255,21 @@ serve(async (req) => {
       pagination: {
         page,
         limit: actualLimit,
-        hasMore: (posts || []).length === actualLimit
+        hasMore: (posts || []).length === actualLimit,
       },
       sidebarData: {
         rules: sidebarConfig.rules,
         links: sidebarConfig.links,
         trendingDiscussions,
         featuredPoll,
-        recentActivity: recentActivity || []
-      }
+        recentActivity: recentActivity || [],
+      },
     };
 
     console.log('Successfully prepared community page data');
 
     // STEP 6: Standardized Success Response
     return createSuccessResponse(response, rateLimitHeaders(rateLimitResult));
-
   } catch (error) {
     // STEP 7: Centralized Error Handling
     console.error('Community page data fetch error:', error);

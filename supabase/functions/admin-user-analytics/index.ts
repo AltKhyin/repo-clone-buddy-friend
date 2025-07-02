@@ -1,4 +1,3 @@
-
 // ABOUTME: User analytics Edge Function for admin dashboard user insights following the simplified pattern that works
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.0';
@@ -8,7 +7,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-Deno.serve(async (req) => {
+Deno.serve(async req => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -28,9 +27,10 @@ Deno.serve(async (req) => {
     }
 
     // Set the auth header for this request
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    );
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
 
     if (authError || !user) {
       throw new Error('Invalid authentication');
@@ -46,7 +46,7 @@ Deno.serve(async (req) => {
     const url = new URL(req.url);
     const timeRange = url.searchParams.get('timeRange') || '30d';
     const includeDetails = url.searchParams.get('includeDetails') === 'true';
-    
+
     console.log('User analytics request:', { timeRange, includeDetails });
 
     // Calculate date range
@@ -60,11 +60,13 @@ Deno.serve(async (req) => {
     // Fetch user registration trends
     const { data: registrationTrends, error: trendsError } = await supabase
       .from('Practitioners')
-      .select(`
+      .select(
+        `
         created_at,
         role,
         subscription_tier
-      `)
+      `
+      )
       .gte('created_at', startDate.toISOString())
       .order('created_at', { ascending: true });
 
@@ -82,16 +84,18 @@ Deno.serve(async (req) => {
     // Fetch user activity metrics
     const { data: recentActivity, error: activityError } = await supabase
       .from('CommunityPosts')
-      .select(`
+      .select(
+        `
         author_id,
         created_at,
-        Practitioners!author_id(
+        Practitioners!CommunityPosts_author_id_fkey(
           full_name,
           role,
           subscription_tier,
           contribution_score
         )
-      `)
+      `
+      )
       .gte('created_at', startDate.toISOString())
       .order('created_at', { ascending: false });
 
@@ -127,14 +131,16 @@ Deno.serve(async (req) => {
     if (includeDetails) {
       const { data: contributors, error: contributorsError } = await supabase
         .from('Practitioners')
-        .select(`
+        .select(
+          `
           id,
           full_name,
           role,
           subscription_tier,
           contribution_score,
           created_at
-        `)
+        `
+        )
         .order('contribution_score', { ascending: false })
         .limit(20);
 
@@ -150,50 +156,55 @@ Deno.serve(async (req) => {
         totalUsers: 0,
         activeToday: 0,
         newThisWeek: 0,
-        premiumUsers: 0
+        premiumUsers: 0,
       },
       trends: {
         dailyRegistrations: Object.entries(dailyRegistrations).map(([date, count]) => ({
           date,
-          count
+          count,
         })),
-        totalInPeriod: (registrationTrends || []).length
+        totalInPeriod: (registrationTrends || []).length,
       },
       engagement: {
         activeUsers: activeUserIds.size,
         activityByRole: engagementByRole,
-        totalPosts: (recentActivity || []).length
+        totalPosts: (recentActivity || []).length,
       },
       subscriptions: subscriptionDistribution,
       topContributors,
       timeRange,
-      generatedAt: new Date().toISOString()
+      generatedAt: new Date().toISOString(),
     };
 
     console.log('User analytics response:', {
       summaryKeys: Object.keys(result.summary),
       trendsCount: result.trends.dailyRegistrations.length,
       activeUsers: result.engagement.activeUsers,
-      timeRange: result.timeRange
+      timeRange: result.timeRange,
     });
 
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
-
   } catch (error) {
     console.error('User analytics error:', error);
-    
-    const errorMessage = error.message || 'Unknown error occurred';
-    const statusCode = errorMessage.includes('authentication') ? 401 :
-                      errorMessage.includes('permissions') ? 403 : 500;
 
-    return new Response(JSON.stringify({ 
-      error: errorMessage,
-      details: 'User analytics fetch failed'
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: statusCode,
-    });
+    const errorMessage = error.message || 'Unknown error occurred';
+    const statusCode = errorMessage.includes('authentication')
+      ? 401
+      : errorMessage.includes('permissions')
+        ? 403
+        : 500;
+
+    return new Response(
+      JSON.stringify({
+        error: errorMessage,
+        details: 'User analytics fetch failed',
+      }),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: statusCode,
+      }
+    );
   }
 });

@@ -109,7 +109,7 @@ serve(async req => {
           view_count,
           author_id,
           status,
-          author:Practitioners!author_id(
+          author:Practitioners!Reviews_author_id_fkey(
             id,
             full_name,
             avatar_url
@@ -151,7 +151,7 @@ serve(async req => {
           view_count,
           author_id,
           status,
-          author:Practitioners!author_id(
+          author:Practitioners!Reviews_author_id_fkey(
             id,
             full_name,
             avatar_url
@@ -198,7 +198,7 @@ serve(async req => {
           view_count,
           author_id,
           status,
-          author:Practitioners!author_id(
+          author:Practitioners!Reviews_author_id_fkey(
             id,
             full_name,
             avatar_url

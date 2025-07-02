@@ -42,7 +42,7 @@ const fetchReviewManagementData = async (reviewId: string): Promise<ReviewManage
     .select(
       `
       *,
-      author:Practitioners(id, full_name, avatar_url),
+      author:Practitioners!Reviews_author_id_fkey(id, full_name, avatar_url),
       tags:ReviewTags(
         tag:Tags(id, tag_name, color)
       )

@@ -1,4 +1,3 @@
-
 // ABOUTME: Content queue Edge Function using simplified pattern proven to work in production
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.0';
@@ -8,7 +7,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-Deno.serve(async (req) => {
+Deno.serve(async req => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -28,9 +27,10 @@ Deno.serve(async (req) => {
     }
 
     // Set the auth header for this request
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    );
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
 
     if (authError || !user) {
       throw new Error('Invalid authentication');
@@ -61,9 +61,7 @@ Deno.serve(async (req) => {
     console.log('Content queue request:', params);
 
     // Build the base query
-    let query = supabase
-      .from('Reviews')
-      .select(`
+    let query = supabase.from('Reviews').select(`
         id,
         title,
         description,
@@ -79,12 +77,12 @@ Deno.serve(async (req) => {
         reviewer_id,
         publication_notes,
         view_count,
-        Practitioners!author_id(
+        Practitioners!Reviews_author_id_fkey(
           id,
           full_name,
           avatar_url
         ),
-        ReviewerProfile:Practitioners!reviewer_id(
+        ReviewerProfile:Practitioners!Reviews_reviewer_id_fkey(
           id,
           full_name,
           avatar_url
@@ -127,9 +125,7 @@ Deno.serve(async (req) => {
     }
 
     // Get total count for pagination
-    let countQuery = supabase
-      .from('Reviews')
-      .select('id', { count: 'exact', head: true });
+    let countQuery = supabase.from('Reviews').select('id', { count: 'exact', head: true });
 
     // Apply same filters for count
     if (params.status && params.status !== 'all') {
@@ -160,8 +156,7 @@ Deno.serve(async (req) => {
     }
 
     // Get summary statistics
-    const { data: statusStats } = await supabase
-      .rpc('get_content_analytics');
+    const { data: statusStats } = await supabase.rpc('get_content_analytics');
 
     // Prepare response
     const total = count || 0;
@@ -195,20 +190,25 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify(response), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
-
   } catch (error) {
     console.error('Content queue error:', error);
-    
-    const errorMessage = error.message || 'Unknown error occurred';
-    const statusCode = errorMessage.includes('authentication') ? 401 :
-                      errorMessage.includes('permissions') ? 403 : 500;
 
-    return new Response(JSON.stringify({ 
-      error: errorMessage,
-      details: 'Content queue fetch failed'
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: statusCode,
-    });
+    const errorMessage = error.message || 'Unknown error occurred';
+    const statusCode = errorMessage.includes('authentication')
+      ? 401
+      : errorMessage.includes('permissions')
+        ? 403
+        : 500;
+
+    return new Response(
+      JSON.stringify({
+        error: errorMessage,
+        details: 'Content queue fetch failed',
+      }),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: statusCode,
+      }
+    );
   }
 });
