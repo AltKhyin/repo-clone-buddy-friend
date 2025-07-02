@@ -70,11 +70,6 @@ verify_jwt = false
 [functions.get-trending-discussions]
 verify_jwt = false
 
-[functions.moderate-community-post]
-verify_jwt = false
-
-[functions.reward-content]
-verify_jwt = false
 
 [functions.save-post]
 verify_jwt = false
