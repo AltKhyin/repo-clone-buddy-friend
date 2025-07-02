@@ -1,10 +1,13 @@
-
 // ABOUTME: Edge function for fetching individual review details by slug with access control.
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.0';
 import { corsHeaders, handleCorsPreflightRequest } from '../_shared/cors.ts';
-import { createSuccessResponse, createErrorResponse, authenticateUser } from '../_shared/api-helpers.ts';
+import {
+  createSuccessResponse,
+  createErrorResponse,
+  authenticateUser,
+} from '../_shared/api-helpers.ts';
 import { checkRateLimit, rateLimitHeaders, RateLimitError } from '../_shared/rate-limit.ts';
 
 interface ReviewDetailResponse {
@@ -25,7 +28,7 @@ interface ReviewDetailResponse {
   tags: string[];
 }
 
-serve(async (req) => {
+serve(async req => {
   // STEP 1: CORS Preflight Handling
   if (req.method === 'OPTIONS') {
     return handleCorsPreflightRequest();
@@ -67,7 +70,7 @@ serve(async (req) => {
     const authHeader = req.headers.get('Authorization');
     let userId = null;
     let userSubscriptionTier = 'free';
-    
+
     if (authHeader) {
       try {
         const user = await authenticateUser(supabase, authHeader);
@@ -84,16 +87,17 @@ serve(async (req) => {
     // Try to parse as ID first, then fall back to title-based lookup
     const parsedId = parseInt(slug, 10);
     const isNumericId = !isNaN(parsedId) && parsedId > 0;
-    
+
     let basicReview = null;
     let basicError = null;
-    
+
     if (isNumericId) {
       console.log(`Looking up review by ID: ${parsedId}`);
       // Try ID-based lookup first
-      const result = await supabase
+      let query = supabase
         .from('Reviews')
-        .select(`
+        .select(
+          `
           id,
           title,
           description,
@@ -103,28 +107,39 @@ serve(async (req) => {
           access_level,
           community_post_id,
           view_count,
+          author_id,
+          status,
           author:Practitioners!author_id(
             id,
             full_name,
             avatar_url
           )
-        `)
-        .eq('status', 'published')
-        .eq('id', parsedId)
-        .maybeSingle();
-      
+        `
+        )
+        .eq('id', parsedId);
+
+      // Allow access to published reviews OR draft reviews by the author
+      if (userId) {
+        query = query.or(`status.eq.published,and(status.eq.draft,author_id.eq.${userId})`);
+      } else {
+        query = query.eq('status', 'published');
+      }
+
+      const result = await query.maybeSingle();
+
       basicReview = result.data;
       basicError = result.error;
     }
-    
+
     // Fall back to title-based lookup if ID lookup failed or wasn't attempted
     if (!basicReview && !basicError) {
       const decodedSlug = decodeURIComponent(slug);
       console.log(`Looking up review by title: ${decodedSlug}`);
-      
-      const result = await supabase
+
+      let query = supabase
         .from('Reviews')
-        .select(`
+        .select(
+          `
           id,
           title,
           description,
@@ -134,16 +149,26 @@ serve(async (req) => {
           access_level,
           community_post_id,
           view_count,
+          author_id,
+          status,
           author:Practitioners!author_id(
             id,
             full_name,
             avatar_url
           )
-        `)
-        .eq('status', 'published')
-        .eq('title', decodedSlug)
-        .maybeSingle();
-      
+        `
+        )
+        .eq('title', decodedSlug);
+
+      // Allow access to published reviews OR draft reviews by the author
+      if (userId) {
+        query = query.or(`status.eq.published,and(status.eq.draft,author_id.eq.${userId})`);
+      } else {
+        query = query.eq('status', 'published');
+      }
+
+      const result = await query.maybeSingle();
+
       basicReview = result.data;
       basicError = result.error;
     }
@@ -156,11 +181,12 @@ serve(async (req) => {
     if (!basicReview) {
       const decodedSlug = decodeURIComponent(slug);
       console.log(`No review found with title: ${decodedSlug}`);
-      
+
       // Let's also try a LIKE search to be more flexible
-      const { data: fuzzyReview } = await supabase
+      let fuzzyQuery = supabase
         .from('Reviews')
-        .select(`
+        .select(
+          `
           id,
           title,
           description,
@@ -170,15 +196,27 @@ serve(async (req) => {
           access_level,
           community_post_id,
           view_count,
+          author_id,
+          status,
           author:Practitioners!author_id(
             id,
             full_name,
             avatar_url
           )
-        `)
-        .eq('status', 'published')
-        .ilike('title', `%${decodedSlug.replace(/\[.*?\]\s*/, '')}%`) // Remove [mockdata] prefix and search
-        .maybeSingle();
+        `
+        )
+        .ilike('title', `%${decodedSlug.replace(/\[.*?\]\s*/, '')}%`); // Remove [mockdata] prefix and search
+
+      // Allow access to published reviews OR draft reviews by the author
+      if (userId) {
+        fuzzyQuery = fuzzyQuery.or(
+          `status.eq.published,and(status.eq.draft,author_id.eq.${userId})`
+        );
+      } else {
+        fuzzyQuery = fuzzyQuery.eq('status', 'published');
+      }
+
+      const { data: fuzzyReview } = await fuzzyQuery.maybeSingle();
 
       if (!fuzzyReview) {
         throw new Error('REVIEW_NOT_FOUND: Review not found');
@@ -194,14 +232,15 @@ serve(async (req) => {
       review.author = {
         id: review.author_id || 'unknown',
         full_name: 'Autor removido',
-        avatar_url: null
+        avatar_url: null,
       };
     }
 
     // STEP 6: Access Control Validation
     const isPublic = review.access_level === 'public';
     const isFreeUser = userId && review.access_level === 'free_users_only';
-    const isPaying = userId && userSubscriptionTier === 'paying' && review.access_level === 'paying_users_only';
+    const isPaying =
+      userId && userSubscriptionTier === 'paying' && review.access_level === 'paying_users_only';
     const hasAccess = isPublic || isFreeUser || isPaying;
 
     if (!hasAccess) {
@@ -213,9 +252,11 @@ serve(async (req) => {
     try {
       const { data: tagData } = await supabase
         .from('ReviewTags')
-        .select(`
+        .select(
+          `
           Tags(tag_name)
-        `)
+        `
+        )
         .eq('review_id', review.id);
 
       if (tagData) {
@@ -248,14 +289,13 @@ serve(async (req) => {
       access_level: review.access_level,
       community_post_id: review.community_post_id,
       view_count: review.view_count,
-      tags
+      tags,
     };
 
     console.log(`Successfully fetched review: ${review.title} with ${tags.length} tags`);
 
     // STEP 9: Standardized Success Response
     return createSuccessResponse(response, rateLimitHeaders(rateLimitResult));
-
   } catch (error) {
     // STEP 10: Centralized Error Handling
     console.error('Review detail fetch error:', error);

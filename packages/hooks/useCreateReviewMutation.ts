@@ -39,6 +39,25 @@ const createReview = async (data: CreateReviewData): Promise<CreateReviewRespons
     console.warn('Failed to refresh session, proceeding with current token:', refreshError);
   }
 
+  // Log current session and JWT claims for debugging
+  const currentSession = await supabase.auth.getSession();
+  console.log('[createReview] Current session:', {
+    user: currentSession.data.session?.user?.id,
+    email: currentSession.data.session?.user?.email,
+    role: currentSession.data.session?.user?.role,
+    app_metadata: currentSession.data.session?.user?.app_metadata,
+    user_metadata: currentSession.data.session?.user?.user_metadata,
+  });
+
+  // Also try to get user claims directly
+  const { data: userWithSession } = await supabase.auth.getUser();
+  console.log('[createReview] User from getUser():', {
+    id: userWithSession.user?.id,
+    email: userWithSession.user?.email,
+    app_metadata: userWithSession.user?.app_metadata,
+    user_metadata: userWithSession.user?.user_metadata,
+  });
+
   // Log the data being inserted for debugging
   const insertData = {
     author_id: user.id,
