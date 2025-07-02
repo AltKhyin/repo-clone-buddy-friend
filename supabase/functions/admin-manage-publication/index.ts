@@ -1,4 +1,3 @@
-
 // ABOUTME: Publication management Edge Function for admin content workflow following the simplified pattern that works
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.0';
@@ -8,7 +7,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-Deno.serve(async (req) => {
+Deno.serve(async req => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -28,9 +27,10 @@ Deno.serve(async (req) => {
     }
 
     // Set the auth header for this request
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    );
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
 
     if (authError || !user) {
       throw new Error('Invalid authentication');
@@ -44,7 +44,7 @@ Deno.serve(async (req) => {
 
     // Parse request body
     const payload = await req.json();
-    
+
     if (!payload.action || !payload.reviewId) {
       throw new Error('Action and reviewId are required');
     }
@@ -53,10 +53,10 @@ Deno.serve(async (req) => {
       throw new Error('Scheduled date is required for schedule action');
     }
 
-    console.log('Publication management request:', { 
-      action: payload.action, 
+    console.log('Publication management request:', {
+      action: payload.action,
       reviewId: payload.reviewId,
-      userRole 
+      userRole,
     });
 
     // First, verify the review exists and get current state
@@ -80,7 +80,7 @@ Deno.serve(async (req) => {
           published_at: new Date().toISOString(),
           reviewer_id: user.id,
           reviewed_at: new Date().toISOString(),
-          review_status: 'approved'
+          review_status: 'approved',
         };
         historyAction = 'published';
         break;
@@ -91,7 +91,7 @@ Deno.serve(async (req) => {
           scheduled_publish_at: payload.scheduledDate,
           reviewer_id: user.id,
           reviewed_at: new Date().toISOString(),
-          review_status: 'approved'
+          review_status: 'approved',
         };
         historyAction = 'scheduled';
         break;
@@ -101,7 +101,7 @@ Deno.serve(async (req) => {
           review_status: 'rejected',
           reviewer_id: user.id,
           reviewed_at: new Date().toISOString(),
-          publication_notes: payload.notes
+          publication_notes: payload.notes,
         };
         historyAction = 'rejected';
         break;
@@ -111,9 +111,31 @@ Deno.serve(async (req) => {
           review_status: 'changes_requested',
           reviewer_id: user.id,
           reviewed_at: new Date().toISOString(),
-          publication_notes: payload.notes
+          publication_notes: payload.notes,
         };
         historyAction = 'changes_requested';
+        break;
+
+      case 'archive':
+        updateData = {
+          status: 'archived',
+          archived_at: new Date().toISOString(),
+          reviewer_id: user.id,
+          reviewed_at: new Date().toISOString(),
+          publication_notes: payload.notes,
+        };
+        historyAction = 'archived';
+        break;
+
+      case 'unpublish':
+        updateData = {
+          status: 'draft',
+          published_at: null,
+          reviewer_id: user.id,
+          reviewed_at: new Date().toISOString(),
+          publication_notes: payload.notes,
+        };
+        historyAction = 'unpublished';
         break;
 
       default:
@@ -133,20 +155,18 @@ Deno.serve(async (req) => {
     }
 
     // Log the action in publication history
-    const { error: historyError } = await supabase
-      .from('Publication_History')
-      .insert({
-        review_id: payload.reviewId,
-        action: historyAction,
-        performed_by: user.id,
-        notes: payload.notes,
-        metadata: {
-          ...payload.metadata,
-          scheduled_date: payload.scheduledDate,
-          previous_status: currentReview.status,
-          previous_review_status: currentReview.review_status
-        }
-      });
+    const { error: historyError } = await supabase.from('Publication_History').insert({
+      review_id: payload.reviewId,
+      action: historyAction,
+      performed_by: user.id,
+      notes: payload.notes,
+      metadata: {
+        ...payload.metadata,
+        scheduled_date: payload.scheduledDate,
+        previous_status: currentReview.status,
+        previous_review_status: currentReview.review_status,
+      },
+    });
 
     if (historyError) {
       console.error('Failed to log publication history:', historyError);
@@ -160,11 +180,11 @@ Deno.serve(async (req) => {
       p_resource_id: payload.reviewId.toString(),
       p_old_values: currentReview,
       p_new_values: updatedReview,
-      p_metadata: { 
+      p_metadata: {
         source: 'admin_panel',
         action: payload.action,
-        notes: payload.notes
-      }
+        notes: payload.notes,
+      },
     });
 
     const result = {
@@ -174,32 +194,37 @@ Deno.serve(async (req) => {
       newStatus: updatedReview.status,
       scheduledDate: payload.scheduledDate,
       notes: payload.notes,
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
     };
 
     console.log('Publication management response:', {
       reviewId: result.reviewId,
       action: result.action,
-      statusChange: `${result.previousStatus} -> ${result.newStatus}`
+      statusChange: `${result.previousStatus} -> ${result.newStatus}`,
     });
 
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
-
   } catch (error) {
     console.error('Publication management error:', error);
-    
-    const errorMessage = error.message || 'Unknown error occurred';
-    const statusCode = errorMessage.includes('authentication') ? 401 :
-                      errorMessage.includes('permissions') ? 403 : 500;
 
-    return new Response(JSON.stringify({ 
-      error: errorMessage,
-      details: 'Publication management operation failed'
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: statusCode,
-    });
+    const errorMessage = error.message || 'Unknown error occurred';
+    const statusCode = errorMessage.includes('authentication')
+      ? 401
+      : errorMessage.includes('permissions')
+        ? 403
+        : 500;
+
+    return new Response(
+      JSON.stringify({
+        error: errorMessage,
+        details: 'Publication management operation failed',
+      }),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: statusCode,
+      }
+    );
   }
 });

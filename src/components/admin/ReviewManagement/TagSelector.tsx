@@ -104,8 +104,8 @@ export const TagSelector: React.FC<TagSelectorProps> = ({
     return (
       <div
         key={tag.id}
-        className={`flex items-center space-x-2 py-2 px-3 rounded-md transition-colors hover:bg-muted/50 ${
-          level > 0 ? 'ml-6 border-l-2 border-muted' : ''
+        className={`flex items-center space-x-3 py-3 px-3 rounded-md transition-colors hover:bg-muted/50 touch-target ${
+          level > 0 ? 'ml-4 sm:ml-6 border-l-2 border-muted' : ''
         }`}
       >
         <Checkbox
@@ -113,11 +113,12 @@ export const TagSelector: React.FC<TagSelectorProps> = ({
           checked={isSelected}
           onCheckedChange={() => handleTagToggle(tag.id)}
           aria-label={`Select ${tag.tag_name}`}
+          className="touch-target"
         />
 
         {tag.color && (
           <div
-            className="w-3 h-3 rounded-full border border-gray-300"
+            className="w-4 h-4 rounded-full border border-gray-300 flex-shrink-0"
             style={{ backgroundColor: tag.color }}
             data-testid={`tag-color-${tag.id}`}
           />
@@ -128,14 +129,14 @@ export const TagSelector: React.FC<TagSelectorProps> = ({
             <TooltipTrigger asChild>
               <label
                 htmlFor={`tag-${tag.id}`}
-                className="flex-1 text-sm font-medium cursor-pointer"
+                className="flex-1 text-base sm:text-sm font-medium cursor-pointer leading-relaxed break-words touch-target"
               >
                 {tag.tag_name}
               </label>
             </TooltipTrigger>
             {hasDescription && (
               <TooltipContent>
-                <p className="max-w-xs">{tag.description}</p>
+                <p className="max-w-xs text-sm">{tag.description}</p>
               </TooltipContent>
             )}
           </Tooltip>
@@ -188,14 +189,19 @@ export const TagSelector: React.FC<TagSelectorProps> = ({
   }
 
   return (
-    <div className="space-y-4 p-4 border rounded-lg sm:p-6" data-testid="tag-selector">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 p-3 border rounded-lg sm:p-6" data-testid="tag-selector">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h3 className="font-medium flex items-center gap-2">
           <Tag className="h-5 w-5" />
           Tags
         </h3>
         {pendingChanges && (
-          <Button onClick={handleSave} size="sm" disabled={updateTagsMutation.isPending}>
+          <Button
+            onClick={handleSave}
+            size="sm"
+            disabled={updateTagsMutation.isPending}
+            className="w-full sm:w-auto"
+          >
             <Save className="h-4 w-4 mr-2" />
             Save Tags
           </Button>
@@ -209,7 +215,7 @@ export const TagSelector: React.FC<TagSelectorProps> = ({
           placeholder="Search tags..."
           value={searchTerm}
           onChange={e => setSearchTerm(e.target.value)}
-          className="pl-10"
+          className="pl-10 text-base sm:text-sm"
           aria-label="Search tags"
         />
       </div>
@@ -227,10 +233,14 @@ export const TagSelector: React.FC<TagSelectorProps> = ({
         <div className="flex flex-wrap gap-2 min-h-[2rem]">
           {getSelectedTagNames().length > 0 ? (
             getSelectedTagNames().map((tagName, index) => (
-              <Badge key={index} variant="secondary" className="gap-1">
-                {tagName}
+              <Badge
+                key={index}
+                variant="secondary"
+                className="gap-1 text-sm py-1 px-2 touch-target"
+              >
+                <span className="break-all">{tagName}</span>
                 <X
-                  className="h-3 w-3 cursor-pointer"
+                  className="h-3 w-3 cursor-pointer hover:text-destructive transition-colors touch-target"
                   onClick={() => {
                     const tag = tags?.find(t => t.tag_name === tagName);
                     if (tag) handleTagToggle(tag.id);
@@ -245,9 +255,13 @@ export const TagSelector: React.FC<TagSelectorProps> = ({
       </div>
 
       {/* Tag List */}
-      <div className="space-y-1 max-h-96 overflow-y-auto" role="group" aria-label="Tag selection">
+      <div
+        className="space-y-1 max-h-80 sm:max-h-96 overflow-y-auto border rounded-md p-2"
+        role="group"
+        aria-label="Tag selection"
+      >
         {filteredTags.length === 0 && searchTerm.trim() ? (
-          <div className="text-center py-8 text-muted-foreground">
+          <div className="text-center py-8 text-muted-foreground text-sm">
             No tags found matching your search
           </div>
         ) : (

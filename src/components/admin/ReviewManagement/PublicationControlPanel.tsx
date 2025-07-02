@@ -5,9 +5,11 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ReviewManagementData } from '../../../../packages/hooks/useReviewManagementQuery';
+import { usePublicationActionMutation } from '../../../../packages/hooks/usePublicationActionMutation';
 import { PublishScheduleModal } from './PublishScheduleModal';
 import { PublicationHistoryPanel } from './PublicationHistoryPanel';
-import { Send, Calendar, Archive, Eye, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Send, Calendar, Archive, Eye, AlertTriangle, CheckCircle, Loader2 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 interface PublicationControlPanelProps {
   review: ReviewManagementData;
@@ -15,16 +17,48 @@ interface PublicationControlPanelProps {
 
 export const PublicationControlPanel: React.FC<PublicationControlPanelProps> = ({ review }) => {
   const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const { toast } = useToast();
+  const publicationMutation = usePublicationActionMutation();
 
   const handlePublishNow = async () => {
-    // TODO: Implement with existing usePublicationActionMutation
-    console.log('Publishing review:', review.id);
+    try {
+      await publicationMutation.mutateAsync({
+        reviewId: review.id,
+        action: 'publish',
+      });
+
+      toast({
+        title: 'Success',
+        description: 'Review published successfully!',
+      });
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Failed to publish review',
+        variant: 'destructive',
+      });
+    }
   };
 
   const handleArchive = async () => {
     if (confirm('Are you sure you want to archive this review?')) {
-      // TODO: Implement with existing usePublicationActionMutation
-      console.log('Archiving review:', review.id);
+      try {
+        await publicationMutation.mutateAsync({
+          reviewId: review.id,
+          action: 'archive',
+        });
+
+        toast({
+          title: 'Success',
+          description: 'Review archived successfully!',
+        });
+      } catch (error) {
+        toast({
+          title: 'Error',
+          description: error instanceof Error ? error.message : 'Failed to archive review',
+          variant: 'destructive',
+        });
+      }
     }
   };
 
@@ -87,14 +121,23 @@ export const PublicationControlPanel: React.FC<PublicationControlPanelProps> = (
         <div className="space-y-2">
           {review.status === 'draft' && (
             <>
-              <Button onClick={handlePublishNow} className="w-full">
-                <Send className="h-4 w-4 mr-2" />
-                Publish Now
+              <Button
+                onClick={handlePublishNow}
+                className="w-full"
+                disabled={publicationMutation.isPending}
+              >
+                {publicationMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Send className="h-4 w-4 mr-2" />
+                )}
+                {publicationMutation.isPending ? 'Publishing...' : 'Publish Now'}
               </Button>
               <Button
                 onClick={() => setShowScheduleModal(true)}
                 variant="outline"
                 className="w-full"
+                disabled={publicationMutation.isPending}
               >
                 <Calendar className="h-4 w-4 mr-2" />
                 Schedule Publication
@@ -103,16 +146,33 @@ export const PublicationControlPanel: React.FC<PublicationControlPanelProps> = (
           )}
 
           {review.status === 'scheduled' && (
-            <Button onClick={handlePublishNow} className="w-full">
-              <Send className="h-4 w-4 mr-2" />
-              Publish Now (Override Schedule)
+            <Button
+              onClick={handlePublishNow}
+              className="w-full"
+              disabled={publicationMutation.isPending}
+            >
+              {publicationMutation.isPending ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4 mr-2" />
+              )}
+              {publicationMutation.isPending ? 'Publishing...' : 'Publish Now (Override Schedule)'}
             </Button>
           )}
 
           {(review.status === 'published' || review.status === 'scheduled') && (
-            <Button onClick={handleArchive} variant="destructive" className="w-full">
-              <Archive className="h-4 w-4 mr-2" />
-              Archive Review
+            <Button
+              onClick={handleArchive}
+              variant="destructive"
+              className="w-full"
+              disabled={publicationMutation.isPending}
+            >
+              {publicationMutation.isPending ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Archive className="h-4 w-4 mr-2" />
+              )}
+              {publicationMutation.isPending ? 'Archiving...' : 'Archive Review'}
             </Button>
           )}
         </div>

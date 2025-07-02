@@ -199,8 +199,8 @@ export const CoverImageUpload: React.FC<CoverImageUploadProps> = ({
   }
 
   return (
-    <div className="space-y-4 p-4 border rounded-lg sm:p-6" data-testid="cover-image-upload">
-      <h3 className="font-medium flex items-center gap-2">
+    <div className="space-y-4 p-3 border rounded-lg sm:p-6" data-testid="cover-image-upload">
+      <h3 className="font-medium flex items-center gap-2 text-base sm:text-lg">
         <Upload className="h-5 w-5" />
         Upload Cover Image
       </h3>
@@ -214,7 +214,7 @@ export const CoverImageUpload: React.FC<CoverImageUploadProps> = ({
       <div
         {...getRootProps()}
         className={`
-          border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer
+          border-2 border-dashed rounded-lg p-4 sm:p-8 text-center transition-colors cursor-pointer
           ${
             isDragActive
               ? 'border-primary bg-primary/5'
@@ -224,14 +224,14 @@ export const CoverImageUpload: React.FC<CoverImageUploadProps> = ({
       >
         <input {...getInputProps()} aria-label="Upload cover image" />
 
-        <div className="flex flex-col items-center gap-4">
-          <FileImage className="h-12 w-12 text-muted-foreground" />
+        <div className="flex flex-col items-center gap-3 sm:gap-4">
+          <FileImage className="h-8 w-8 sm:h-12 sm:w-12 text-muted-foreground" />
 
           <div className="space-y-2">
-            <p className="text-sm font-medium">
+            <p className="text-sm sm:text-base font-medium">
               {isDragActive ? 'Drop image here' : 'Drag and drop an image here, or click to browse'}
             </p>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs sm:text-sm text-muted-foreground">
               Supports JPEG, PNG, WebP, GIF (max 10MB)
             </p>
           </div>
@@ -243,6 +243,7 @@ export const CoverImageUpload: React.FC<CoverImageUploadProps> = ({
             disabled={isUploading}
             role="button"
             aria-label="Browse files"
+            className="w-full sm:w-auto touch-target"
           >
             <Upload className="h-4 w-4 mr-2" />
             Browse Files
