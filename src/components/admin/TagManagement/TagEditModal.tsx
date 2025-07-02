@@ -1,13 +1,29 @@
-
 // ABOUTME: Modal component for editing existing tags with validation and parent reassignment
 
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useTagManagementQuery, useTagOperationMutation, type TagWithStats } from '../../../../packages/hooks/useTagManagementQuery';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  useTagManagementQuery,
+  useTagOperationMutation,
+  type TagWithStats,
+} from '../../../../packages/hooks/useTagManagementQuery';
 
 interface TagEditModalProps {
   isOpen: boolean;
@@ -33,7 +49,7 @@ export const TagEditModal = ({ isOpen, onClose, tag }: TagEditModalProps) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!tagName.trim() || !tag) {
       return;
     }
@@ -44,9 +60,9 @@ export const TagEditModal = ({ isOpen, onClose, tag }: TagEditModalProps) => {
         action: 'update',
         tagId: tag.id,
         name: tagName.trim(),
-        parentId: selectedParentId
+        parentId: selectedParentId,
       });
-      
+
       onClose();
     } catch (error) {
       console.error('Failed to update tag:', error);
@@ -83,18 +99,16 @@ export const TagEditModal = ({ isOpen, onClose, tag }: TagEditModalProps) => {
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Editar Tag</DialogTitle>
-          <DialogDescription>
-            Modifique o nome ou hierarquia da tag selecionada.
-          </DialogDescription>
+          <DialogDescription>Modifique o nome ou hierarquia da tag selecionada.</DialogDescription>
         </DialogHeader>
-        
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="editTagName">Nome da Tag *</Label>
             <Input
               id="editTagName"
               value={tagName}
-              onChange={(e) => setTagName(e.target.value)}
+              onChange={e => setTagName(e.target.value)}
               placeholder="Digite o nome da tag..."
               required
               disabled={isSubmitting}
@@ -103,9 +117,11 @@ export const TagEditModal = ({ isOpen, onClose, tag }: TagEditModalProps) => {
 
           <div className="space-y-2">
             <Label htmlFor="editParentTag">Tag Pai</Label>
-            <Select 
-              value={selectedParentId?.toString() || "none"} 
-              onValueChange={(value) => setSelectedParentId(value === "none" ? null : parseInt(value))}
+            <Select
+              value={selectedParentId?.toString() || 'none'}
+              onValueChange={value =>
+                setSelectedParentId(value === 'none' ? null : parseInt(value))
+              }
               disabled={isSubmitting}
             >
               <SelectTrigger>
@@ -122,7 +138,7 @@ export const TagEditModal = ({ isOpen, onClose, tag }: TagEditModalProps) => {
             </Select>
           </div>
 
-          <div className="text-sm text-gray-600 bg-gray-50 p-3 rounded-md">
+          <div className="text-sm text-secondary bg-surface-muted p-3 rounded-md">
             <strong>Usos atuais:</strong> {tag.usage_count} conteúdos
           </div>
 

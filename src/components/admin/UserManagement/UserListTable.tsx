@@ -1,4 +1,3 @@
-
 // ABOUTME: Advanced user list table with filtering, pagination, and bulk operations for admin user management
 
 import React, { useState } from 'react';
@@ -24,15 +23,15 @@ import {
 } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import { 
-  Search, 
-  Filter, 
-  MoreHorizontal, 
-  Users, 
+import {
+  Search,
+  Filter,
+  MoreHorizontal,
+  Users,
   UserCheck,
   Shield,
   Calendar,
-  Award
+  Award,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -56,7 +55,7 @@ interface UserManagementFilters {
 export const UserListTable = () => {
   const [filters, setFilters] = useState<UserManagementFilters>({
     page: 1,
-    limit: 20
+    limit: 20,
   });
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
@@ -73,7 +72,7 @@ export const UserListTable = () => {
     setFilters(prev => ({
       ...prev,
       search: searchTerm || undefined,
-      page: 1 // Reset to first page on search
+      page: 1, // Reset to first page on search
     }));
   };
 
@@ -82,7 +81,7 @@ export const UserListTable = () => {
     setFilters(prev => ({
       ...prev,
       [key]: value || undefined,
-      page: 1 // Reset to first page on filter change
+      page: 1, // Reset to first page on filter change
     }));
   };
 
@@ -112,7 +111,7 @@ export const UserListTable = () => {
   // Handle user actions
   const handleUserAction = (userId: string, action: 'view' | 'assign-role' | 'edit') => {
     setSelectedUserId(userId);
-    
+
     switch (action) {
       case 'view':
         setShowUserDetail(true);
@@ -128,14 +127,24 @@ export const UserListTable = () => {
 
   // Format user role for display
   const formatRole = (role: string) => {
-    const roleVariant = role === 'admin' ? 'destructive' : 
-                       role === 'editor' ? 'default' : 
-                       role === 'moderator' ? 'secondary' : 'outline';
-    
-    const roleLabel = role === 'admin' ? 'Admin' :
-                     role === 'editor' ? 'Editor' :
-                     role === 'moderator' ? 'Moderador' : 'Praticante';
-    
+    const roleVariant =
+      role === 'admin'
+        ? 'destructive'
+        : role === 'editor'
+          ? 'default'
+          : role === 'moderator'
+            ? 'secondary'
+            : 'outline';
+
+    const roleLabel =
+      role === 'admin'
+        ? 'Admin'
+        : role === 'editor'
+          ? 'Editor'
+          : role === 'moderator'
+            ? 'Moderador'
+            : 'Praticante';
+
     return <Badge variant={roleVariant}>{roleLabel}</Badge>;
   };
 
@@ -143,15 +152,15 @@ export const UserListTable = () => {
   const formatSubscriptionTier = (tier: string) => {
     const tierVariant = tier === 'premium' ? 'default' : 'secondary';
     const tierLabel = tier === 'premium' ? 'Premium' : 'Gratuito';
-    
+
     return <Badge variant={tierVariant}>{tierLabel}</Badge>;
   };
 
   if (error) {
     return (
-      <Card>
+      <Card className="bg-surface border-border shadow-sm">
         <CardContent className="p-6">
-          <div className="text-center text-red-600">
+          <div className="text-center text-red-600 dark:text-red-400">
             Erro ao carregar usuários: {error.message}
           </div>
         </CardContent>
@@ -164,9 +173,9 @@ export const UserListTable = () => {
   return (
     <div className="space-y-6">
       {/* Filter and Search Section */}
-      <Card>
+      <Card className="bg-surface border-border shadow-sm">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-xl font-semibold text-foreground">
             <Users className="h-5 w-5" />
             Gestão de Usuários
           </CardTitle>
@@ -175,17 +184,20 @@ export const UserListTable = () => {
           {/* Search and Filters */}
           <div className="flex flex-col md:flex-row gap-4">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-secondary" />
               <Input
                 placeholder="Buscar usuários por nome..."
                 className="pl-9"
                 value={filters.search || ''}
-                onChange={(e) => handleSearch(e.target.value)}
+                onChange={e => handleSearch(e.target.value)}
               />
             </div>
-            
+
             <div className="flex gap-2">
-              <Select value={filters.role || 'all'} onValueChange={(value) => handleFilterChange('role', value === 'all' ? '' : value)}>
+              <Select
+                value={filters.role || 'all'}
+                onValueChange={value => handleFilterChange('role', value === 'all' ? '' : value)}
+              >
                 <SelectTrigger className="w-40">
                   <SelectValue placeholder="Filtrar por papel" />
                 </SelectTrigger>
@@ -198,7 +210,12 @@ export const UserListTable = () => {
                 </SelectContent>
               </Select>
 
-              <Select value={filters.subscription_tier || 'all'} onValueChange={(value) => handleFilterChange('subscription_tier', value === 'all' ? '' : value)}>
+              <Select
+                value={filters.subscription_tier || 'all'}
+                onValueChange={value =>
+                  handleFilterChange('subscription_tier', value === 'all' ? '' : value)
+                }
+              >
                 <SelectTrigger className="w-40">
                   <SelectValue placeholder="Filtrar por plano" />
                 </SelectTrigger>
@@ -213,15 +230,11 @@ export const UserListTable = () => {
 
           {/* Bulk Operations */}
           {hasSelectedUsers && (
-            <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-200">
-              <span className="text-sm text-blue-700">
+            <div className="flex items-center justify-between p-3 bg-surface-muted rounded-lg border border-border">
+              <span className="text-sm text-primary">
                 {selectedUserIds.length} usuário(s) selecionado(s)
               </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowBulkOperations(true)}
-              >
+              <Button variant="outline" size="sm" onClick={() => setShowBulkOperations(true)}>
                 Operações em Massa
               </Button>
             </div>
@@ -230,7 +243,7 @@ export const UserListTable = () => {
       </Card>
 
       {/* User Table */}
-      <Card>
+      <Card className="bg-surface border-border shadow-sm">
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <Table>
@@ -238,7 +251,10 @@ export const UserListTable = () => {
                 <TableRow>
                   <TableHead className="w-12">
                     <Checkbox
-                      checked={userListData?.users?.length > 0 && selectedUserIds.length === userListData.users.length}
+                      checked={
+                        userListData?.users?.length > 0 &&
+                        selectedUserIds.length === userListData.users.length
+                      }
                       onCheckedChange={handleSelectAll}
                     />
                   </TableHead>
@@ -258,24 +274,26 @@ export const UserListTable = () => {
                       <TableCell colSpan={7} className="text-center py-8">
                         <div className="flex items-center justify-center">
                           <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
-                          <span className="ml-2">Carregando usuários...</span>
+                          <span className="ml-2 text-foreground">Carregando usuários...</span>
                         </div>
                       </TableCell>
                     </TableRow>
                   ))
                 ) : userListData?.users?.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={7} className="text-center py-8 text-secondary">
                       Nenhum usuário encontrado
                     </TableCell>
                   </TableRow>
                 ) : (
-                  userListData?.users?.map((user) => (
+                  userListData?.users?.map(user => (
                     <TableRow key={user.id}>
                       <TableCell>
                         <Checkbox
                           checked={selectedUserIds.includes(user.id)}
-                          onCheckedChange={(checked) => handleUserSelection(user.id, checked as boolean)}
+                          onCheckedChange={checked =>
+                            handleUserSelection(user.id, checked as boolean)
+                          }
                         />
                       </TableCell>
                       <TableCell>
@@ -284,25 +302,25 @@ export const UserListTable = () => {
                             {user.full_name?.charAt(0)?.toUpperCase() || 'U'}
                           </div>
                           <div>
-                            <div className="font-medium">{user.full_name || 'Nome não informado'}</div>
-                            <div className="text-sm text-muted-foreground">ID: {user.id.slice(0, 8)}...</div>
+                            <div className="font-medium text-foreground">
+                              {user.full_name || 'Nome não informado'}
+                            </div>
+                            <div className="text-sm text-secondary">
+                              ID: {user.id.slice(0, 8)}...
+                            </div>
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell>
-                        {formatRole(user.role)}
-                      </TableCell>
-                      <TableCell>
-                        {formatSubscriptionTier(user.subscription_tier)}
-                      </TableCell>
+                      <TableCell>{formatRole(user.role)}</TableCell>
+                      <TableCell>{formatSubscriptionTier(user.subscription_tier)}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1">
-                          <Award className="h-4 w-4 text-yellow-500" />
+                          <Award className="h-4 w-4 text-yellow-500 dark:text-yellow-400" />
                           {user.contribution_score}
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                        <div className="flex items-center gap-1 text-sm text-secondary">
                           <Calendar className="h-3 w-3" />
                           {new Date(user.created_at).toLocaleDateString('pt-BR')}
                         </div>
@@ -318,7 +336,9 @@ export const UserListTable = () => {
                             <DropdownMenuItem onClick={() => handleUserAction(user.id, 'view')}>
                               Ver Detalhes
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleUserAction(user.id, 'assign-role')}>
+                            <DropdownMenuItem
+                              onClick={() => handleUserAction(user.id, 'assign-role')}
+                            >
                               Gerenciar Papéis
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
@@ -336,36 +356,42 @@ export const UserListTable = () => {
           </div>
 
           {/* Pagination */}
-          {userListData?.pagination && userListData.pagination.total > userListData.pagination.limit && (
-            <div className="flex items-center justify-between p-4 border-t">
-              <div className="text-sm text-muted-foreground">
-                Mostrando {((userListData.pagination.page - 1) * userListData.pagination.limit) + 1} a{' '}
-                {Math.min(userListData.pagination.page * userListData.pagination.limit, userListData.pagination.total)} de{' '}
-                {userListData.pagination.total} usuários
+          {userListData?.pagination &&
+            userListData.pagination.total > userListData.pagination.limit && (
+              <div className="flex items-center justify-between p-4 border-t border-border">
+                <div className="text-sm text-secondary">
+                  Mostrando {(userListData.pagination.page - 1) * userListData.pagination.limit + 1}{' '}
+                  a{' '}
+                  {Math.min(
+                    userListData.pagination.page * userListData.pagination.limit,
+                    userListData.pagination.total
+                  )}{' '}
+                  de {userListData.pagination.total} usuários
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handlePageChange(userListData.pagination.page - 1)}
+                    disabled={userListData.pagination.page <= 1}
+                  >
+                    Anterior
+                  </Button>
+                  <span className="text-sm text-foreground">
+                    Página {userListData.pagination.page} de{' '}
+                    {Math.ceil(userListData.pagination.total / userListData.pagination.limit)}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handlePageChange(userListData.pagination.page + 1)}
+                    disabled={!userListData.pagination.hasMore}
+                  >
+                    Próxima
+                  </Button>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handlePageChange(userListData.pagination.page - 1)}
-                  disabled={userListData.pagination.page <= 1}
-                >
-                  Anterior
-                </Button>
-                <span className="text-sm">
-                  Página {userListData.pagination.page} de {Math.ceil(userListData.pagination.total / userListData.pagination.limit)}
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handlePageChange(userListData.pagination.page + 1)}
-                  disabled={!userListData.pagination.hasMore}
-                >
-                  Próxima
-                </Button>
-              </div>
-            </div>
-          )}
+            )}
         </CardContent>
       </Card>
 
@@ -375,7 +401,7 @@ export const UserListTable = () => {
           <UserDetailModal
             userId={selectedUserId}
             open={showUserDetail}
-            onOpenChange={(open) => {
+            onOpenChange={open => {
               setShowUserDetail(open);
               if (!open) setSelectedUserId(null);
             }}
@@ -383,7 +409,7 @@ export const UserListTable = () => {
           <RoleAssignmentModal
             userId={selectedUserId}
             open={showRoleAssignment}
-            onOpenChange={(open) => {
+            onOpenChange={open => {
               setShowRoleAssignment(open);
               if (!open) setSelectedUserId(null);
             }}

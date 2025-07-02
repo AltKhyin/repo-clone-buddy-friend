@@ -1,4 +1,3 @@
-
 // ABOUTME: Individual review workflow management interface with preview and action controls
 
 import React, { useState } from 'react';
@@ -22,12 +21,10 @@ interface ReviewWorkflowProps {
 export const ReviewWorkflow = ({ review, onClose }: ReviewWorkflowProps) => {
   const [notes, setNotes] = useState('');
   const [activeTab, setActiveTab] = useState('preview');
-  
+
   const publicationMutation = usePublicationActionMutation();
 
-  const handleAction = async (
-    action: 'approve' | 'reject' | 'schedule' | 'publish_now'
-  ) => {
+  const handleAction = async (action: 'approve' | 'reject' | 'schedule' | 'publish_now') => {
     if (!notes.trim() && (action === 'reject' || action === 'approve')) {
       toast.error('Please provide notes for this action');
       return;
@@ -43,18 +40,26 @@ export const ReviewWorkflow = ({ review, onClose }: ReviewWorkflowProps) => {
       toast.success(`Review successfully ${action.replace('_', ' ')}`);
       onClose();
     } catch (error) {
-      toast.error(`Failed to ${action.replace('_', ' ')}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      toast.error(
+        `Failed to ${action.replace('_', ' ')}: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   };
 
   const getStatusBadgeVariant = (status: string) => {
     switch (status) {
-      case 'draft': return 'secondary';
-      case 'under_review': return 'default';
-      case 'scheduled': return 'outline';
-      case 'published': return 'default';
-      case 'archived': return 'secondary';
-      default: return 'secondary';
+      case 'draft':
+        return 'secondary';
+      case 'under_review':
+        return 'default';
+      case 'scheduled':
+        return 'outline';
+      case 'published':
+        return 'default';
+      case 'archived':
+        return 'secondary';
+      default:
+        return 'secondary';
     }
   };
 
@@ -63,17 +68,16 @@ export const ReviewWorkflow = ({ review, onClose }: ReviewWorkflowProps) => {
       {/* Review Header */}
       <div className="flex items-start justify-between">
         <div className="flex-1 min-w-0">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">
-            {review.title}
-          </h2>
-          <div className="flex items-center gap-4 text-sm text-gray-600">
+          <h2 className="text-2xl font-bold text-foreground mb-2">{review.title}</h2>
+          <div className="flex items-center gap-4 text-sm text-secondary">
             <Badge variant={getStatusBadgeVariant(review.review_status)}>
               {review.review_status.replace('_', ' ')}
             </Badge>
-            {review.author && (
-              <span>by {review.author.full_name}</span>
-            )}
-            <span>Created {formatDistanceToNow(new Date(review.created_at), { addSuffix: true, locale: ptBR })}</span>
+            {review.author && <span>by {review.author.full_name}</span>}
+            <span>
+              Created{' '}
+              {formatDistanceToNow(new Date(review.created_at), { addSuffix: true, locale: ptBR })}
+            </span>
           </div>
         </div>
         <Button variant="outline" onClick={onClose}>
@@ -99,39 +103,45 @@ export const ReviewWorkflow = ({ review, onClose }: ReviewWorkflowProps) => {
         </TabsList>
 
         <TabsContent value="preview" className="space-y-4">
-          <Card>
+          <Card className="bg-surface border-border shadow-sm">
             <CardHeader>
-              <CardTitle>Content Preview</CardTitle>
+              <CardTitle className="text-xl font-semibold text-foreground">
+                Content Preview
+              </CardTitle>
             </CardHeader>
             <CardContent>
               {review.description ? (
-                <div className="prose prose-sm max-w-none">
+                <div className="prose prose-sm max-w-none text-foreground">
                   <p>{review.description}</p>
                 </div>
               ) : (
-                <p className="text-gray-500 italic">No description available</p>
+                <p className="text-secondary italic">No description available</p>
               )}
             </CardContent>
           </Card>
         </TabsContent>
 
         <TabsContent value="review" className="space-y-4">
-          <Card>
+          <Card className="bg-surface border-border shadow-sm">
             <CardHeader>
-              <CardTitle>Review Notes</CardTitle>
+              <CardTitle className="text-xl font-semibold text-foreground">Review Notes</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <Textarea
                 placeholder="Add your review notes here..."
                 value={notes}
-                onChange={(e) => setNotes(e.target.value)}
+                onChange={e => setNotes(e.target.value)}
                 rows={6}
               />
-              
+
               {review.publication_notes && (
-                <div className="p-3 bg-yellow-50 border border-yellow-200 rounded">
-                  <h4 className="font-medium text-yellow-800 mb-1">Previous Notes:</h4>
-                  <p className="text-yellow-700 text-sm">{review.publication_notes}</p>
+                <div className="p-3 bg-yellow-50 border border-yellow-200 rounded dark:bg-yellow-900 dark:border-yellow-700">
+                  <h4 className="font-medium text-yellow-800 mb-1 dark:text-yellow-200">
+                    Previous Notes:
+                  </h4>
+                  <p className="text-yellow-700 text-sm dark:text-yellow-300">
+                    {review.publication_notes}
+                  </p>
                 </div>
               )}
 
@@ -173,52 +183,74 @@ export const ReviewWorkflow = ({ review, onClose }: ReviewWorkflowProps) => {
         </TabsContent>
 
         <TabsContent value="history">
-          <Card>
+          <Card className="bg-surface border-border shadow-sm">
             <CardHeader>
-              <CardTitle>Publication History</CardTitle>
+              <CardTitle className="text-xl font-semibold text-foreground">
+                Publication History
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
                 <div className="flex items-center gap-3 text-sm">
                   <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                  <span className="text-gray-600">
-                    Created {formatDistanceToNow(new Date(review.created_at), { addSuffix: true, locale: ptBR })}
+                  <span className="text-secondary">
+                    Created{' '}
+                    {formatDistanceToNow(new Date(review.created_at), {
+                      addSuffix: true,
+                      locale: ptBR,
+                    })}
                   </span>
                 </div>
-                
+
                 {review.review_requested_at && (
                   <div className="flex items-center gap-3 text-sm">
                     <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                    <span className="text-gray-600">
-                      Submitted for review {formatDistanceToNow(new Date(review.review_requested_at), { addSuffix: true, locale: ptBR })}
+                    <span className="text-secondary">
+                      Submitted for review{' '}
+                      {formatDistanceToNow(new Date(review.review_requested_at), {
+                        addSuffix: true,
+                        locale: ptBR,
+                      })}
                     </span>
                   </div>
                 )}
-                
+
                 {review.reviewed_at && (
                   <div className="flex items-center gap-3 text-sm">
                     <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    <span className="text-gray-600">
-                      Reviewed {formatDistanceToNow(new Date(review.reviewed_at), { addSuffix: true, locale: ptBR })}
+                    <span className="text-secondary">
+                      Reviewed{' '}
+                      {formatDistanceToNow(new Date(review.reviewed_at), {
+                        addSuffix: true,
+                        locale: ptBR,
+                      })}
                       {review.reviewer && ` by ${review.reviewer.full_name}`}
                     </span>
                   </div>
                 )}
-                
+
                 {review.scheduled_publish_at && (
                   <div className="flex items-center gap-3 text-sm">
                     <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                    <span className="text-gray-600">
-                      Scheduled for {formatDistanceToNow(new Date(review.scheduled_publish_at), { addSuffix: true, locale: ptBR })}
+                    <span className="text-secondary">
+                      Scheduled for{' '}
+                      {formatDistanceToNow(new Date(review.scheduled_publish_at), {
+                        addSuffix: true,
+                        locale: ptBR,
+                      })}
                     </span>
                   </div>
                 )}
-                
+
                 {review.published_at && (
                   <div className="flex items-center gap-3 text-sm">
                     <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
-                    <span className="text-gray-600">
-                      Published {formatDistanceToNow(new Date(review.published_at), { addSuffix: true, locale: ptBR })}
+                    <span className="text-secondary">
+                      Published{' '}
+                      {formatDistanceToNow(new Date(review.published_at), {
+                        addSuffix: true,
+                        locale: ptBR,
+                      })}
                     </span>
                   </div>
                 )}

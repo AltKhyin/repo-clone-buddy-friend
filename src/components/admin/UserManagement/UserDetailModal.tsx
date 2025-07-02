@@ -1,8 +1,10 @@
-
 // ABOUTME: Detailed user management modal with comprehensive user information and editing capabilities
 
 import React, { useState } from 'react';
-import { useUserDetailQuery, useUpdateUserMutation } from '../../../../packages/hooks/useUserManagementQuery';
+import {
+  useUserDetailQuery,
+  useUpdateUserMutation,
+} from '../../../../packages/hooks/useUserManagementQuery';
 import { useUserRolesQuery } from '../../../../packages/hooks/useRoleManagementQuery';
 import {
   Dialog,
@@ -18,15 +20,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  User, 
-  Shield, 
-  Calendar, 
-  Award, 
-  Settings,
-  Save,
-  Loader2
-} from 'lucide-react';
+import { User, Shield, Calendar, Award, Settings, Save, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface UserDetailModalProps {
@@ -41,7 +35,7 @@ export const UserDetailModal = ({ userId, open, onOpenChange }: UserDetailModalP
   const [editForm, setEditForm] = useState({
     full_name: '',
     profession_flair: '',
-    display_hover_card: true
+    display_hover_card: true,
   });
 
   // Fetch user data and roles
@@ -55,7 +49,7 @@ export const UserDetailModal = ({ userId, open, onOpenChange }: UserDetailModalP
       setEditForm({
         full_name: userDetail.full_name || '',
         profession_flair: userDetail.profession_flair || '',
-        display_hover_card: userDetail.display_hover_card
+        display_hover_card: userDetail.display_hover_card,
       });
     }
   }, [userDetail, isEditing]);
@@ -65,20 +59,20 @@ export const UserDetailModal = ({ userId, open, onOpenChange }: UserDetailModalP
     try {
       await updateUserMutation.mutateAsync({
         userId,
-        profileData: editForm // Wrap form data in profileData as expected by Edge Function
+        profileData: editForm, // Wrap form data in profileData as expected by Edge Function
       });
-      
+
       toast({
-        title: "Usuário atualizado",
-        description: "As informações do usuário foram salvas com sucesso.",
+        title: 'Usuário atualizado',
+        description: 'As informações do usuário foram salvas com sucesso.',
       });
-      
+
       setIsEditing(false);
     } catch (error) {
       toast({
-        title: "Erro ao salvar",
-        description: "Ocorreu um erro ao atualizar o usuário. Tente novamente.",
-        variant: "destructive",
+        title: 'Erro ao salvar',
+        description: 'Ocorreu um erro ao atualizar o usuário. Tente novamente.',
+        variant: 'destructive',
       });
     }
   };
@@ -87,7 +81,7 @@ export const UserDetailModal = ({ userId, open, onOpenChange }: UserDetailModalP
   const handleFieldChange = (field: keyof typeof editForm, value: string | boolean) => {
     setEditForm(prev => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }));
   };
 
@@ -178,20 +172,22 @@ export const UserDetailModal = ({ userId, open, onOpenChange }: UserDetailModalP
                         <Input
                           id="full_name"
                           value={editForm.full_name}
-                          onChange={(e) => handleFieldChange('full_name', e.target.value)}
+                          onChange={e => handleFieldChange('full_name', e.target.value)}
                         />
                       ) : (
-                        <div className="mt-1 text-sm">{userDetail?.full_name || 'Não informado'}</div>
+                        <div className="mt-1 text-sm">
+                          {userDetail?.full_name || 'Não informado'}
+                        </div>
                       )}
                     </div>
-                    
+
                     <div>
                       <Label htmlFor="profession_flair">Profissão</Label>
                       {isEditing ? (
                         <Input
                           id="profession_flair"
                           value={editForm.profession_flair}
-                          onChange={(e) => handleFieldChange('profession_flair', e.target.value)}
+                          onChange={e => handleFieldChange('profession_flair', e.target.value)}
                           placeholder="Ex: Médico, Enfermeiro..."
                         />
                       ) : (
@@ -207,17 +203,25 @@ export const UserDetailModal = ({ userId, open, onOpenChange }: UserDetailModalP
                       <Label>Papel Principal</Label>
                       <div className="mt-1">
                         <Badge variant={userDetail?.role === 'admin' ? 'destructive' : 'default'}>
-                          {userDetail?.role === 'admin' ? 'Admin' :
-                           userDetail?.role === 'editor' ? 'Editor' :
-                           userDetail?.role === 'moderator' ? 'Moderador' : 'Praticante'}
+                          {userDetail?.role === 'admin'
+                            ? 'Admin'
+                            : userDetail?.role === 'editor'
+                              ? 'Editor'
+                              : userDetail?.role === 'moderator'
+                                ? 'Moderador'
+                                : 'Praticante'}
                         </Badge>
                       </div>
                     </div>
-                    
+
                     <div>
                       <Label>Assinatura</Label>
                       <div className="mt-1">
-                        <Badge variant={userDetail?.subscription_tier === 'premium' ? 'default' : 'secondary'}>
+                        <Badge
+                          variant={
+                            userDetail?.subscription_tier === 'premium' ? 'default' : 'secondary'
+                          }
+                        >
                           {userDetail?.subscription_tier === 'premium' ? 'Premium' : 'Gratuito'}
                         </Badge>
                       </div>
@@ -225,12 +229,16 @@ export const UserDetailModal = ({ userId, open, onOpenChange }: UserDetailModalP
                   </div>
 
                   <div className="flex items-center justify-between">
-                    <Label htmlFor="display_hover_card">Exibir cartão de perfil ao passar o mouse</Label>
+                    <Label htmlFor="display_hover_card">
+                      Exibir cartão de perfil ao passar o mouse
+                    </Label>
                     {isEditing ? (
                       <Switch
                         id="display_hover_card"
                         checked={editForm.display_hover_card}
-                        onCheckedChange={(checked) => handleFieldChange('display_hover_card', checked)}
+                        onCheckedChange={checked =>
+                          handleFieldChange('display_hover_card', checked)
+                        }
                       />
                     ) : (
                       <div className="text-sm">
@@ -244,23 +252,24 @@ export const UserDetailModal = ({ userId, open, onOpenChange }: UserDetailModalP
                       <Award className="h-4 w-4 text-muted-foreground" />
                       <div>
                         <div className="text-sm font-medium">Pontuação de Contribuição</div>
-                        <div className="text-2xl font-bold">{userDetail?.contribution_score || 0}</div>
+                        <div className="text-2xl font-bold">
+                          {userDetail?.contribution_score || 0}
+                        </div>
                       </div>
                     </div>
-                    
+
                     <div className="flex items-center gap-2">
                       <Calendar className="h-4 w-4 text-muted-foreground" />
                       <div>
                         <div className="text-sm font-medium">Membro desde</div>
                         <div className="text-sm text-muted-foreground">
-                          {userDetail?.created_at ? 
-                            new Date(userDetail.created_at).toLocaleDateString('pt-BR', {
-                              year: 'numeric',
-                              month: 'long',
-                              day: 'numeric'
-                            }) : 
-                            'Data não disponível'
-                          }
+                          {userDetail?.created_at
+                            ? new Date(userDetail.created_at).toLocaleDateString('pt-BR', {
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric',
+                              })
+                            : 'Data não disponível'}
                         </div>
                       </div>
                     </div>
@@ -286,19 +295,26 @@ export const UserDetailModal = ({ userId, open, onOpenChange }: UserDetailModalP
                   ) : userRoles?.roles && userRoles.roles.length > 0 ? (
                     <div className="space-y-2">
                       {userRoles.roles.map((role, index) => (
-                        <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                        <div
+                          key={index}
+                          className="flex items-center justify-between p-3 border rounded-lg"
+                        >
                           <div className="flex items-center gap-3">
                             <Badge variant={role.role_name === 'admin' ? 'destructive' : 'default'}>
-                              {role.role_name === 'admin' ? 'Admin' :
-                               role.role_name === 'editor' ? 'Editor' :
-                               role.role_name === 'moderator' ? 'Moderador' : 'Praticante'}
+                              {role.role_name === 'admin'
+                                ? 'Admin'
+                                : role.role_name === 'editor'
+                                  ? 'Editor'
+                                  : role.role_name === 'moderator'
+                                    ? 'Moderador'
+                                    : 'Praticante'}
                             </Badge>
                             <div className="text-sm text-muted-foreground">
                               Concedido em {new Date(role.granted_at).toLocaleDateString('pt-BR')}
                             </div>
                           </div>
                           {role.expires_at && (
-                            <div className="text-sm text-orange-600">
+                            <div className="text-sm text-orange-600 dark:text-orange-400">
                               Expira em {new Date(role.expires_at).toLocaleDateString('pt-BR')}
                             </div>
                           )}

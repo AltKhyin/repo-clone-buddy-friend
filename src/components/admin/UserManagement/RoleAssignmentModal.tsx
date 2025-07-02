@@ -1,7 +1,12 @@
 // ABOUTME: Role assignment and management modal for granting and revoking user roles with expiration
 
 import React, { useState } from 'react';
-import { useUserRolesQuery, useAvailableRolesQuery, useAssignRoleMutation, useRevokeRoleMutation } from '../../../../packages/hooks/useRoleManagementQuery';
+import {
+  useUserRolesQuery,
+  useAvailableRolesQuery,
+  useAssignRoleMutation,
+  useRevokeRoleMutation,
+} from '../../../../packages/hooks/useRoleManagementQuery';
 import {
   Dialog,
   DialogContent,
@@ -21,14 +26,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { 
-  Shield, 
-  Plus, 
-  Trash2, 
-  Calendar,
-  Loader2,
-  AlertTriangle
-} from 'lucide-react';
+import { Shield, Plus, Trash2, Calendar, Loader2, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
   AlertDialog,
@@ -57,23 +55,24 @@ export const RoleAssignmentModal = ({ userId, open, onOpenChange }: RoleAssignme
   // Fetch data
   const { data: userRoles, isLoading: isLoadingRoles } = useUserRolesQuery(userId);
   const { data: availableRoles, isLoading: isLoadingAvailableRoles } = useAvailableRolesQuery();
-  
+
   // Mutations
   const assignRoleMutation = useAssignRoleMutation();
   const revokeRoleMutation = useRevokeRoleMutation();
 
   // Get roles that user doesn't have yet
-  const assignableRoles = availableRoles?.availableRoles.filter(role => 
-    !userRoles?.roles.some(userRole => userRole.role_name === role)
-  ) || [];
+  const assignableRoles =
+    availableRoles?.availableRoles.filter(
+      role => !userRoles?.roles.some(userRole => userRole.role_name === role)
+    ) || [];
 
   // Handle role assignment
   const handleAssignRole = async () => {
     if (!selectedRole) {
       toast({
-        title: "Papel obrigatório",
-        description: "Selecione um papel para atribuir ao usuário.",
-        variant: "destructive",
+        title: 'Papel obrigatório',
+        description: 'Selecione um papel para atribuir ao usuário.',
+        variant: 'destructive',
       });
       return;
     }
@@ -82,11 +81,11 @@ export const RoleAssignmentModal = ({ userId, open, onOpenChange }: RoleAssignme
       await assignRoleMutation.mutateAsync({
         userId,
         roleName: selectedRole,
-        expiresAt: expirationDate || undefined
+        expiresAt: expirationDate || undefined,
       });
 
       toast({
-        title: "Papel atribuído",
+        title: 'Papel atribuído',
         description: `O papel "${selectedRole}" foi atribuído com sucesso.`,
       });
 
@@ -95,9 +94,9 @@ export const RoleAssignmentModal = ({ userId, open, onOpenChange }: RoleAssignme
       setExpirationDate('');
     } catch (error) {
       toast({
-        title: "Erro ao atribuir papel",
-        description: "Ocorreu um erro ao atribuir o papel. Tente novamente.",
-        variant: "destructive",
+        title: 'Erro ao atribuir papel',
+        description: 'Ocorreu um erro ao atribuir o papel. Tente novamente.',
+        variant: 'destructive',
       });
     }
   };
@@ -107,20 +106,20 @@ export const RoleAssignmentModal = ({ userId, open, onOpenChange }: RoleAssignme
     try {
       await revokeRoleMutation.mutateAsync({
         userId,
-        roleName
+        roleName,
       });
 
       toast({
-        title: "Papel revogado",
+        title: 'Papel revogado',
         description: `O papel "${roleName}" foi revogado com sucesso.`,
       });
 
       setRoleToRevoke(null);
     } catch (error) {
       toast({
-        title: "Erro ao revogar papel",
-        description: "Ocorreu um erro ao revogar o papel. Tente novamente.",
-        variant: "destructive",
+        title: 'Erro ao revogar papel',
+        description: 'Ocorreu um erro ao revogar o papel. Tente novamente.',
+        variant: 'destructive',
       });
     }
   };
@@ -131,7 +130,7 @@ export const RoleAssignmentModal = ({ userId, open, onOpenChange }: RoleAssignme
       admin: 'Administrador',
       editor: 'Editor',
       moderator: 'Moderador',
-      practitioner: 'Praticante'
+      practitioner: 'Praticante',
     };
     return roleMap[role] || role;
   };
@@ -139,10 +138,14 @@ export const RoleAssignmentModal = ({ userId, open, onOpenChange }: RoleAssignme
   // Get role variant for badge
   const getRoleVariant = (role: string) => {
     switch (role) {
-      case 'admin': return 'destructive';
-      case 'editor': return 'default';
-      case 'moderator': return 'secondary';
-      default: return 'outline';
+      case 'admin':
+        return 'destructive';
+      case 'editor':
+        return 'default';
+      case 'moderator':
+        return 'secondary';
+      default:
+        return 'outline';
     }
   };
 
@@ -174,7 +177,10 @@ export const RoleAssignmentModal = ({ userId, open, onOpenChange }: RoleAssignme
               ) : userRoles?.roles && userRoles.roles.length > 0 ? (
                 <div className="space-y-2">
                   {userRoles.roles.map((role, index) => (
-                    <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                    <div
+                      key={index}
+                      className="flex items-center justify-between p-3 border rounded-lg"
+                    >
                       <div className="flex items-center gap-3">
                         <Badge variant={getRoleVariant(role.role_name)}>
                           {formatRoleName(role.role_name)}
@@ -183,18 +189,18 @@ export const RoleAssignmentModal = ({ userId, open, onOpenChange }: RoleAssignme
                           Concedido em {new Date(role.granted_at).toLocaleDateString('pt-BR')}
                         </div>
                         {role.expires_at && (
-                          <div className="flex items-center gap-1 text-sm text-orange-600">
+                          <div className="flex items-center gap-1 text-sm text-orange-600 dark:text-orange-400">
                             <Calendar className="h-3 w-3" />
                             Expira em {new Date(role.expires_at).toLocaleDateString('pt-BR')}
                           </div>
                         )}
                       </div>
-                      
+
                       {role.role_name !== 'practitioner' && (
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
-                            <Button 
-                              variant="ghost" 
+                            <Button
+                              variant="ghost"
                               size="sm"
                               disabled={revokeRoleMutation.isPending}
                             >
@@ -205,15 +211,16 @@ export const RoleAssignmentModal = ({ userId, open, onOpenChange }: RoleAssignme
                             <AlertDialogHeader>
                               <AlertDialogTitle>Confirmar Revogação</AlertDialogTitle>
                               <AlertDialogDescription>
-                                Tem certeza que deseja revogar o papel "{formatRoleName(role.role_name)}" 
-                                deste usuário? Esta ação não pode ser desfeita.
+                                Tem certeza que deseja revogar o papel "
+                                {formatRoleName(role.role_name)}" deste usuário? Esta ação não pode
+                                ser desfeita.
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
                               <AlertDialogCancel>Cancelar</AlertDialogCancel>
                               <AlertDialogAction
                                 onClick={() => handleRevokeRole(role.role_name)}
-                                className="bg-red-600 hover:bg-red-700"
+                                className="bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800"
                               >
                                 Revogar Papel
                               </AlertDialogAction>
@@ -252,7 +259,7 @@ export const RoleAssignmentModal = ({ userId, open, onOpenChange }: RoleAssignme
                         <SelectValue placeholder="Selecione um papel" />
                       </SelectTrigger>
                       <SelectContent>
-                        {assignableRoles.map((role) => (
+                        {assignableRoles.map(role => (
                           <SelectItem key={role} value={role}>
                             {formatRoleName(role)}
                           </SelectItem>
@@ -267,7 +274,7 @@ export const RoleAssignmentModal = ({ userId, open, onOpenChange }: RoleAssignme
                       id="expiration"
                       type="date"
                       value={expirationDate}
-                      onChange={(e) => setExpirationDate(e.target.value)}
+                      onChange={e => setExpirationDate(e.target.value)}
                       min={new Date().toISOString().split('T')[0]}
                     />
                     <div className="text-xs text-muted-foreground mt-1">
@@ -275,7 +282,7 @@ export const RoleAssignmentModal = ({ userId, open, onOpenChange }: RoleAssignme
                     </div>
                   </div>
 
-                  <Button 
+                  <Button
                     onClick={handleAssignRole}
                     disabled={!selectedRole || assignRoleMutation.isPending}
                     className="w-full"

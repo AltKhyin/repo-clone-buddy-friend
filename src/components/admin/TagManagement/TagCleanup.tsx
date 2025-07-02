@@ -5,14 +5,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { 
-  Trash2, 
-  AlertTriangle, 
-  CheckCircle,
-  RefreshCw,
-  Search
-} from 'lucide-react';
-import { useTagAnalyticsQuery, useTagOperationMutation } from '../../../../packages/hooks/useTagManagementQuery';
+import { Trash2, AlertTriangle, CheckCircle, RefreshCw, Search } from 'lucide-react';
+import {
+  useTagAnalyticsQuery,
+  useTagOperationMutation,
+} from '../../../../packages/hooks/useTagManagementQuery';
 
 export const TagCleanup = () => {
   const { data: analytics, isLoading, refetch } = useTagAnalyticsQuery();
@@ -23,7 +20,7 @@ export const TagCleanup = () => {
     try {
       setIsCleaningUp(true);
       await tagOperationMutation.mutateAsync({
-        action: 'cleanup'
+        action: 'cleanup',
       });
       await refetch();
     } catch (error) {
@@ -68,7 +65,7 @@ export const TagCleanup = () => {
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-2">
-                <AlertTriangle className="h-5 w-5 text-orange-600" />
+                <AlertTriangle className="h-5 w-5 text-orange-600 dark:text-orange-400" />
                 <div>
                   <div className="font-semibold">{unusedTags.length}</div>
                   <div className="text-sm text-gray-600">Tags Não Utilizadas</div>
@@ -80,7 +77,7 @@ export const TagCleanup = () => {
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-2">
-                <Search className="h-5 w-5 text-blue-600" />
+                <Search className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                 <div>
                   <div className="font-semibold">{analytics?.orphanedTags?.length || 0}</div>
                   <div className="text-sm text-gray-600">Tags Órfãs</div>
@@ -92,9 +89,11 @@ export const TagCleanup = () => {
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-2">
-                <CheckCircle className="h-5 w-5 text-green-600" />
+                <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
                 <div>
-                  <div className="font-semibold">{(analytics?.totalTags || 0) - unusedTags.length}</div>
+                  <div className="font-semibold">
+                    {(analytics?.totalTags || 0) - unusedTags.length}
+                  </div>
                   <div className="text-sm text-gray-600">Tags Ativas</div>
                 </div>
               </div>
@@ -106,12 +105,7 @@ export const TagCleanup = () => {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-semibold">Ações de Limpeza</h3>
-            <Button 
-              onClick={() => refetch()}
-              variant="outline"
-              size="sm"
-              disabled={isLoading}
-            >
+            <Button onClick={() => refetch()} variant="outline" size="sm" disabled={isLoading}>
               <RefreshCw className="mr-2 h-4 w-4" />
               Atualizar
             </Button>
@@ -121,7 +115,7 @@ export const TagCleanup = () => {
             <Alert>
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>
-                Foram encontradas {unusedTags.length} tag(s) que podem ser removidas por não estarem 
+                Foram encontradas {unusedTags.length} tag(s) que podem ser removidas por não estarem
                 associadas a nenhum conteúdo. Esta ação é irreversível.
               </AlertDescription>
             </Alert>
@@ -129,17 +123,17 @@ export const TagCleanup = () => {
             <Alert>
               <CheckCircle className="h-4 w-4" />
               <AlertDescription>
-                Parabéns! Não há tags não utilizadas no sistema. Todas as tags estão 
-                associadas a pelo menos um conteúdo.
+                Parabéns! Não há tags não utilizadas no sistema. Todas as tags estão associadas a
+                pelo menos um conteúdo.
               </AlertDescription>
             </Alert>
           )}
 
           <div className="flex gap-4">
-            <Button 
+            <Button
               onClick={handleCleanup}
               disabled={!canCleanup || isCleaningUp || tagOperationMutation.isPending}
-              variant={canCleanup ? "destructive" : "secondary"}
+              variant={canCleanup ? 'destructive' : 'secondary'}
               className="flex-1"
             >
               <Trash2 className="mr-2 h-4 w-4" />

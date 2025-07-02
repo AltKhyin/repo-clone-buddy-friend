@@ -199,7 +199,7 @@ describe('usePublicationActionMutation', () => {
 
       const action: PublicationAction = {
         reviewId: 123,
-        action: 'publish_now',
+        action: 'publish',
         notes: 'Published immediately',
       };
 
@@ -370,7 +370,7 @@ describe('usePublicationActionMutation', () => {
 
       const action: PublicationAction = {
         reviewId: 123,
-        action: 'publish_now',
+        action: 'publish',
       };
 
       await waitFor(async () => {
@@ -531,7 +531,7 @@ describe('usePublicationActionMutation', () => {
 
       const action: PublicationAction = {
         reviewId: 123,
-        action: 'publish_now',
+        action: 'publish',
       };
 
       await expect(async () => {
@@ -570,7 +570,7 @@ describe('usePublicationActionMutation', () => {
       result.current.mutate({ reviewId: 123, action: 'approve' });
       result.current.mutate({ reviewId: 123, action: 'reject' });
       result.current.mutate({ reviewId: 123, action: 'schedule' });
-      result.current.mutate({ reviewId: 123, action: 'publish_now' });
+      result.current.mutate({ reviewId: 123, action: 'publish' });
       result.current.mutate({ reviewId: 123, action: 'unpublish' });
       result.current.mutate({ reviewId: 123, action: 'archive' });
     });
@@ -675,7 +675,7 @@ describe('usePublicationActionMutation', () => {
 
       const action: PublicationAction = {
         reviewId: 123,
-        action: 'publish_now',
+        action: 'publish',
         // No optional fields
       };
 

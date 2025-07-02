@@ -1,8 +1,13 @@
-
 // ABOUTME: Filter panel for content queue with status and search filtering
 
 import React from 'react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
@@ -22,17 +27,19 @@ interface FilterPanelProps {
 
 export const FilterPanel = ({ filters, onFiltersChange, summary }: FilterPanelProps) => {
   return (
-    <Card>
+    <Card className="bg-surface border-border shadow-sm">
       <CardHeader>
-        <CardTitle>Filtros da Fila de Conteúdo</CardTitle>
+        <CardTitle className="text-xl font-semibold text-foreground">
+          Filtros da Fila de Conteúdo
+        </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label className="text-sm font-medium mb-2 block">Status</label>
+            <label className="text-sm font-medium mb-2 block text-foreground">Status</label>
             <Select
               value={filters.status}
-              onValueChange={(value) => onFiltersChange({ ...filters, status: value })}
+              onValueChange={value => onFiltersChange({ ...filters, status: value })}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Todos os status" />
@@ -49,17 +56,17 @@ export const FilterPanel = ({ filters, onFiltersChange, summary }: FilterPanelPr
           </div>
 
           <div>
-            <label className="text-sm font-medium mb-2 block">Buscar</label>
+            <label className="text-sm font-medium mb-2 block text-foreground">Buscar</label>
             <Input
               placeholder="Buscar por título..."
               value={filters.search}
-              onChange={(e) => onFiltersChange({ ...filters, search: e.target.value })}
+              onChange={e => onFiltersChange({ ...filters, search: e.target.value })}
             />
           </div>
 
           <div>
-            <label className="text-sm font-medium mb-2 block">Estatísticas</label>
-            <div className="text-sm text-gray-600">
+            <label className="text-sm font-medium mb-2 block text-foreground">Estatísticas</label>
+            <div className="text-sm text-secondary">
               {summary && (
                 <>
                   <div>Reviews: {summary.totalReviews}</div>

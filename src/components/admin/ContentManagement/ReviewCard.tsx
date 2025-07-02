@@ -19,17 +19,17 @@ export const ReviewCard = ({ review, isSelected, onSelect }: ReviewCardProps) =>
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'draft':
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-surface-muted text-foreground border border-border';
       case 'under_review':
-        return 'bg-yellow-100 text-yellow-800';
+        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
       case 'scheduled':
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
       case 'published':
-        return 'bg-green-100 text-green-800';
+        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
       case 'archived':
-        return 'bg-red-100 text-red-800';
+        return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-surface-muted text-foreground border border-border';
     }
   };
 
@@ -39,25 +39,25 @@ export const ReviewCard = ({ review, isSelected, onSelect }: ReviewCardProps) =>
   };
 
   return (
-    <div className="p-4 hover:bg-gray-50">
+    <div className="p-4 hover:bg-surface-muted transition-colors">
       <div className="flex items-center gap-4">
         <Checkbox checked={isSelected} onCheckedChange={onSelect} />
 
-        <Card className="flex-1">
+        <Card className="flex-1 bg-surface border-border shadow-sm">
           <CardHeader className="pb-3">
             <div className="flex items-start justify-between">
-              <CardTitle className="text-base">{review.title}</CardTitle>
+              <CardTitle className="text-base text-foreground">{review.title}</CardTitle>
               <Badge className={getStatusColor(review.review_status || review.status)}>
                 {review.review_status || review.status}
               </Badge>
             </div>
             {review.description && (
-              <p className="text-sm text-gray-600 line-clamp-2">{review.description}</p>
+              <p className="text-sm text-secondary line-clamp-2">{review.description}</p>
             )}
           </CardHeader>
 
           <CardContent className="pt-0">
-            <div className="flex items-center gap-4 text-sm text-gray-500">
+            <div className="flex items-center gap-4 text-sm text-secondary">
               <div className="flex items-center gap-1">
                 <Calendar className="h-4 w-4" />
                 <span>Criado: {formatDate(review.created_at)}</span>

@@ -1,4 +1,3 @@
-
 // ABOUTME: Enhanced admin tag management page with hierarchy tools, analytics, and cleanup functionality
 
 import React, { useState } from 'react';
@@ -6,15 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  Tags, 
-  BarChart3, 
-  Trash2, 
-  Plus, 
-  TreePine,
-  Activity,
-  Settings
-} from 'lucide-react';
+import { Tags, BarChart3, Trash2, Plus, TreePine, Activity, Settings } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
 import { useTagAnalyticsQuery } from '../../packages/hooks/useTagManagementQuery';
 import { TagHierarchy } from '@/components/admin/TagManagement/TagHierarchy';
@@ -30,80 +21,72 @@ const AdminTagManagement = () => {
     totalTags: analytics?.totalTags || 0,
     popularTags: analytics?.popularTags || 0,
     unusedTags: analytics?.unusedTags || 0,
-    newThisMonth: analytics?.newThisMonth || 0
+    newThisMonth: analytics?.newThisMonth || 0,
   };
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">
-          Gestão de Tags
-        </h2>
-        <p className="text-gray-600">
+      {/* Header Section - Enhanced typography hierarchy */}
+      <div className="mb-6 space-y-2">
+        <h2 className="text-3xl font-bold text-foreground mb-2 font-serif">Gestão de Tags</h2>
+        <p className="text-secondary text-lg">
           Organize e mantenha o sistema de tags para categorização de conteúdo.
         </p>
       </div>
 
-      {/* Overview Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
+      {/* Overview Statistics - Enhanced with proper tokens */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <Card className="bg-surface border-border shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total de Tags</CardTitle>
-            <Tags className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium text-foreground">Total de Tags</CardTitle>
+            <Tags className="h-4 w-4 text-secondary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-2xl font-bold text-foreground">
               {analyticsLoading ? '...' : quickStats.totalTags}
             </div>
-            <p className="text-xs text-muted-foreground">
-              Tags no sistema
-            </p>
+            <p className="text-xs text-secondary">Tags no sistema</p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-surface border-border shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Tags Populares</CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium text-foreground">Tags Populares</CardTitle>
+            <Activity className="h-4 w-4 text-secondary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-2xl font-bold text-foreground">
               {analyticsLoading ? '...' : quickStats.popularTags}
             </div>
-            <p className="text-xs text-muted-foreground">
-              Mais de 10 usos
-            </p>
+            <p className="text-xs text-secondary">Mais de 10 usos</p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-surface border-border shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Tags Não Utilizadas</CardTitle>
-            <Trash2 className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium text-foreground">
+              Tags Não Utilizadas
+            </CardTitle>
+            <Trash2 className="h-4 w-4 text-secondary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-2xl font-bold text-foreground">
               {analyticsLoading ? '...' : quickStats.unusedTags}
             </div>
-            <p className="text-xs text-muted-foreground">
-              Sem conteúdo associado
-            </p>
+            <p className="text-xs text-secondary">Sem conteúdo associado</p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-surface border-border shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Novas Este Mês</CardTitle>
-            <Plus className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium text-foreground">Novas Este Mês</CardTitle>
+            <Plus className="h-4 w-4 text-secondary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-2xl font-bold text-foreground">
               {analyticsLoading ? '...' : quickStats.newThisMonth}
             </div>
-            <p className="text-xs text-muted-foreground">
-              Criadas recentemente
-            </p>
+            <p className="text-xs text-secondary">Criadas recentemente</p>
           </CardContent>
         </Card>
       </div>
@@ -142,10 +125,12 @@ const AdminTagManagement = () => {
         </TabsContent>
 
         <TabsContent value="settings" className="space-y-4">
-          <Card>
+          <Card className="bg-surface border-border shadow-sm">
             <CardHeader>
-              <CardTitle>Configurações do Sistema de Tags</CardTitle>
-              <CardDescription>
+              <CardTitle className="text-xl font-semibold text-foreground">
+                Configurações do Sistema de Tags
+              </CardTitle>
+              <CardDescription className="text-secondary">
                 Configurações globais para o comportamento das tags
               </CardDescription>
             </CardHeader>
@@ -153,32 +138,30 @@ const AdminTagManagement = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Button variant="outline" className="justify-start h-auto p-4">
                   <div className="text-left">
-                    <div className="font-medium">Exportar Tags</div>
-                    <div className="text-sm text-gray-500">
+                    <div className="font-medium text-foreground">Exportar Tags</div>
+                    <div className="text-sm text-secondary">
                       Baixar lista completa de tags em CSV
                     </div>
                   </div>
                 </Button>
                 <Button variant="outline" className="justify-start h-auto p-4">
                   <div className="text-left">
-                    <div className="font-medium">Importar Tags</div>
-                    <div className="text-sm text-gray-500">
-                      Carregar tags de arquivo CSV
-                    </div>
+                    <div className="font-medium text-foreground">Importar Tags</div>
+                    <div className="text-sm text-secondary">Carregar tags de arquivo CSV</div>
                   </div>
                 </Button>
                 <Button variant="outline" className="justify-start h-auto p-4">
                   <div className="text-left">
-                    <div className="font-medium">Sincronizar Hierarquia</div>
-                    <div className="text-sm text-gray-500">
+                    <div className="font-medium text-foreground">Sincronizar Hierarquia</div>
+                    <div className="text-sm text-secondary">
                       Verificar e corrigir relações de hierarquia
                     </div>
                   </div>
                 </Button>
                 <Button variant="outline" className="justify-start h-auto p-4">
                   <div className="text-left">
-                    <div className="font-medium">Recriar Índices</div>
-                    <div className="text-sm text-gray-500">
+                    <div className="font-medium text-foreground">Recriar Índices</div>
+                    <div className="text-sm text-secondary">
                       Otimizar performance de busca de tags
                     </div>
                   </div>

@@ -19,6 +19,7 @@ import { ReviewManagementData } from '../../../../packages/hooks/useReviewManage
 import { Save, Upload, X } from 'lucide-react';
 import { TagSelector } from './TagSelector';
 import { CoverImageUpload } from './CoverImageUpload';
+import { AccessLevelSelector } from './AccessLevelSelector';
 
 interface ReviewMetadataPanelProps {
   review: ReviewManagementData;
@@ -28,7 +29,7 @@ export const ReviewMetadataPanel: React.FC<ReviewMetadataPanelProps> = ({ review
   const [formData, setFormData] = useState({
     title: review.title || '',
     description: review.description || '',
-    access_level: review.access_level || 'public',
+    access_level: review.access_level || 'free',
     cover_image_url: review.cover_image_url || '',
   });
 
@@ -63,9 +64,9 @@ export const ReviewMetadataPanel: React.FC<ReviewMetadataPanelProps> = ({ review
   };
 
   return (
-    <Card>
+    <Card className="bg-surface border-border shadow-sm">
       <CardHeader>
-        <CardTitle>Review Metadata</CardTitle>
+        <CardTitle className="text-xl font-semibold text-foreground">Review Metadata</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Title */}
@@ -92,50 +93,32 @@ export const ReviewMetadataPanel: React.FC<ReviewMetadataPanelProps> = ({ review
         </div>
 
         {/* Access Level */}
-        <div className="space-y-2">
-          <Label>Access Level</Label>
-          <Select
-            value={formData.access_level}
-            onValueChange={value => handleInputChange('access_level', value)}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select access level" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="public">Public</SelectItem>
-              <SelectItem value="premium">Premium Only</SelectItem>
-              <SelectItem value="private">Private</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        <AccessLevelSelector
+          value={formData.access_level}
+          onChange={value => handleInputChange('access_level', value)}
+        />
 
         {/* Cover Image */}
         <div className="space-y-2">
           <Label>Cover Image</Label>
           <CoverImageUpload
+            reviewId={review.id}
             currentImageUrl={formData.cover_image_url}
             onImageChange={url => handleInputChange('cover_image_url', url)}
           />
         </div>
 
         {/* Tags */}
-        <div className="space-y-2">
-          <Label>Tags</Label>
-          <TagSelector selectedTags={selectedTags} onTagsChange={handleTagsChange} />
-          <div className="flex flex-wrap gap-1 mt-2">
-            {selectedTags.map(tag => (
-              <Badge key={tag.id} variant="secondary">
-                {tag.tag_name}
-                <button
-                  onClick={() => handleTagsChange(selectedTags.filter(t => t.id !== tag.id))}
-                  className="ml-1 hover:text-red-500"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              </Badge>
-            ))}
-          </div>
-        </div>
+        <TagSelector
+          reviewId={review.id}
+          selectedTags={selectedTags.map(tag => tag.id)}
+          onTagsChange={tagIds => {
+            // Convert tag IDs back to tag objects for local state
+            // This will be handled by the TagSelector internally
+            setSelectedTags(selectedTags.filter(tag => tagIds.includes(tag.id)));
+            setHasChanges(true);
+          }}
+        />
 
         {/* Save Button */}
         {hasChanges && (

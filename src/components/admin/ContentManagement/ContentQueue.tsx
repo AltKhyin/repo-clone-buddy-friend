@@ -53,9 +53,9 @@ export const ContentQueue = () => {
   if (isError) {
     return (
       <div className="text-center py-12">
-        <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">Error Loading Content Queue</h3>
-        <p className="text-gray-600 mb-4">
+        <AlertCircle className="h-12 w-12 text-red-500 dark:text-red-400 mx-auto mb-4" />
+        <h3 className="text-lg font-semibold text-foreground mb-2">Error Loading Content Queue</h3>
+        <p className="text-secondary mb-4">
           {error instanceof Error ? error.message : 'Failed to load content queue'}
         </p>
         <Button onClick={() => refetch()} variant="outline">
@@ -79,11 +79,13 @@ export const ContentQueue = () => {
         />
       )}
 
-      {/* Content Queue */}
-      <div className="bg-white rounded-lg border">
-        <div className="p-4 border-b border-gray-200">
+      {/* Content Queue - Enhanced with surface tokens */}
+      <div className="bg-surface rounded-lg border border-border shadow-sm">
+        <div className="p-4 border-b border-border">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold">Content Queue ({allReviews.length} items)</h2>
+            <h2 className="text-lg font-semibold text-foreground">
+              Content Queue ({allReviews.length} items)
+            </h2>
             <div className="flex items-center gap-2">
               <CreateReviewButton />
               <Button variant="outline" size="sm" onClick={handleSelectAll}>
@@ -96,7 +98,7 @@ export const ContentQueue = () => {
           </div>
         </div>
 
-        <div className="divide-y divide-gray-200">
+        <div className="divide-y divide-border">
           {isLoading ? (
             // Loading skeletons
             Array.from({ length: 5 }).map((_, i) => (
@@ -105,7 +107,7 @@ export const ContentQueue = () => {
               </div>
             ))
           ) : allReviews.length === 0 ? (
-            <div className="p-8 text-center text-gray-500">
+            <div className="p-8 text-center text-secondary">
               No content found matching your filters.
             </div>
           ) : (
@@ -122,7 +124,7 @@ export const ContentQueue = () => {
 
         {/* Load More Button */}
         {hasNextPage && (
-          <div className="p-4 border-t border-gray-200 text-center">
+          <div className="p-4 border-t border-border text-center">
             <Button variant="outline" onClick={() => fetchNextPage()} disabled={isFetchingNextPage}>
               {isFetchingNextPage ? (
                 <>

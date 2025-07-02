@@ -1,4 +1,3 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -6,13 +5,13 @@
 @layer base {
   /* Light Theme Tokens (Default - The "Manus" Reference) */
   .light {
-    --background: 220 20% 98%;   /* Very light, soft off-white */
-    --foreground: 220 10% 15%;  /* Dark charcoal, not pure black */
+    --background: 220 20% 98%; /* Very light, soft off-white */
+    --foreground: 220 10% 15%; /* Dark charcoal, not pure black */
 
-    --surface: 220 20% 94%;      /* Subtle gray for cards, secondary backgrounds */
+    --surface: 220 20% 94%; /* Subtle gray for cards, secondary backgrounds */
     --surface-muted: 220 20% 88%; /* Gray for input fields, disabled states */
 
-    --border: 220 10% 85%;      /* Light gray border */
+    --border: 220 10% 85%; /* Light gray border */
     --border-hover: 220 10% 75%; /* Slightly darker border on hover */
 
     /* Primary action color is high-contrast black */
@@ -21,13 +20,13 @@
 
     --text-primary: 220 10% 15%;
     --text-secondary: 220 10% 35%;
-    
+
     /* NEW: Enhanced hierarchy tokens for Reddit-style clarity */
-    --text-tertiary: 220 10% 48%;     /* For less important metadata */
-    --surface-hover: 220 20% 91%;     /* For subtle hover backgrounds */
-    --border-strong: 220 10% 70%;     /* For emphasized separators */
-    --comment-thread: 220 10% 82%;    /* For threading lines */
-    --action-hover: 220 20% 85%;      /* For action button hovers */
+    --text-tertiary: 220 10% 48%; /* For less important metadata */
+    --surface-hover: 220 20% 91%; /* For subtle hover backgrounds */
+    --border-strong: 220 10% 70%; /* For emphasized separators */
+    --comment-thread: 220 10% 82%; /* For threading lines */
+    --action-hover: 220 20% 85%; /* For action button hovers */
 
     /* Legacy tokens for compatibility */
     --card: 220 20% 98%;
@@ -48,43 +47,43 @@
 
   .dark {
     /* Dark Theme Tokens (v3.1 - Refined Dark Palette) */
-    --background: 0 0% 7%;          /* #121212 - Deepest background */
-    --foreground: 210 40% 95%;      /* Soft off-white text */
+    --background: 0 0% 7%; /* #121212 - Deepest background */
+    --foreground: 210 40% 95%; /* Soft off-white text */
 
-    --surface: 0 0% 10%;            /* #1a1a1a - Primary surfaces (sidebar, cards) */
-    --surface-muted: 0 0% 13%;      /* #212121 - Input fields, secondary surfaces */
+    --surface: 0 0% 10%; /* #1a1a1a - Primary surfaces (sidebar, cards) */
+    --surface-muted: 0 0% 13%; /* #212121 - Input fields, secondary surfaces */
 
-    --border: 0 0% 16%;             /* #2a2a2a - Subtle borders */
-    --border-hover: 0 0% 18%;       /* #2d2d2d - Slightly brighter border on hover */
+    --border: 0 0% 16%; /* #2a2a2a - Subtle borders */
+    --border-hover: 0 0% 18%; /* #2d2d2d - Slightly brighter border on hover */
 
     /* Primary action color is high-contrast white */
     --primary: 210 40% 98%;
     --primary-foreground: 0 0% 7%;
 
     --text-primary: 210 40% 95%;
-    --text-secondary: 0 0% 28%;     /* #484848 - Secondary text */
-    
+    --text-secondary: 0 0% 65%; /* #a6a6a6 - IMPROVED: Better contrast secondary text */
+
     /* NEW: Enhanced hierarchy tokens for Reddit-style clarity */
-    --text-tertiary: 0 0% 45%;      /* For less important metadata */
-    --surface-hover: 0 0% 12%;      /* For subtle hover backgrounds */
-    --border-strong: 0 0% 22%;      /* For emphasized separators */
-    --comment-thread: 0 0% 20%;     /* For threading lines */
-    --action-hover: 0 0% 15%;       /* For action button hovers */
+    --text-tertiary: 0 0% 50%; /* IMPROVED: For less important metadata */
+    --surface-hover: 0 0% 12%; /* For subtle hover backgrounds */
+    --border-strong: 0 0% 22%; /* For emphasized separators */
+    --comment-thread: 0 0% 20%; /* For threading lines */
+    --action-hover: 0 0% 15%; /* For action button hovers */
 
     /* Legacy tokens for compatibility - updated to match new scheme */
-    --card: 0 0% 10%;               /* #1a1a1a */
+    --card: 0 0% 10%; /* #1a1a1a */
     --card-foreground: 210 40% 95%;
-    --popover: 0 0% 10%;            /* #1a1a1a */
+    --popover: 0 0% 10%; /* #1a1a1a */
     --popover-foreground: 210 40% 95%;
-    --secondary: 0 0% 13%;          /* #212121 */
+    --secondary: 0 0% 13%; /* #212121 */
     --secondary-foreground: 210 40% 95%;
-    --muted: 0 0% 13%;              /* #212121 */
-    --muted-foreground: 0 0% 28%;   /* #484848 */
-    --accent: 0 0% 13%;             /* #212121 */
+    --muted: 0 0% 13%; /* #212121 */
+    --muted-foreground: 0 0% 65%; /* #a6a6a6 - IMPROVED: Better contrast for muted text */
+    --accent: 0 0% 13%; /* #212121 */
     --accent-foreground: 210 40% 95%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
-    --input: 0 0% 13%;              /* #212121 */
+    --input: 0 0% 13%; /* #212121 */
     --ring: 240 4.9% 83.9%;
   }
 
@@ -105,20 +104,21 @@
   * {
     @apply border-border;
   }
-  
-  html, body {
+
+  html,
+  body {
     @apply min-h-screen;
     margin: 0;
     padding: 0;
   }
-  
+
   body {
     @apply bg-background text-foreground;
     /* Ensure body always has a background */
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
   }
-  
+
   /* Ensure root element has full height */
   #root {
     @apply min-h-screen bg-background;
@@ -156,7 +156,7 @@
     font-size: 16px;
     line-height: 1.7;
   }
-  
+
   .mobile-content {
     padding-left: 16px;
     padding-right: 16px;
@@ -174,18 +174,18 @@
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
-  
+
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
-  
+
   .line-clamp-1 {
     overflow: hidden;
     display: -webkit-box;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 1;
   }
-  
+
   .line-clamp-2 {
     overflow: hidden;
     display: -webkit-box;
@@ -306,7 +306,7 @@
     .reddit-post-item {
       @apply px-4 py-3;
     }
-    
+
     .reddit-action-button {
       @apply min-h-[44px] min-w-[44px] touch-target;
       @apply px-3 text-sm; /* Larger touch targets with better spacing */
@@ -328,7 +328,7 @@
     .reddit-post-title {
       @apply text-base font-semibold; /* Slightly smaller on mobile */
     }
-    
+
     .reddit-post-body {
       @apply text-sm leading-relaxed;
     }

@@ -11,31 +11,31 @@ interface ReviewAnalyticsPanelProps {
 
 export const ReviewAnalyticsPanel: React.FC<ReviewAnalyticsPanelProps> = ({ review }) => {
   return (
-    <Card>
+    <Card className="bg-surface border-border shadow-sm">
       <CardHeader>
-        <CardTitle>Analytics</CardTitle>
+        <CardTitle className="text-xl font-semibold text-foreground">Analytics</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Quick Metrics */}
         <div className="grid grid-cols-2 gap-4">
-          <div className="text-center p-3 bg-gray-50 rounded-lg">
-            <Eye className="h-6 w-6 mx-auto mb-2 text-gray-600" />
-            <div className="text-2xl font-bold text-gray-900">{review.view_count || 0}</div>
-            <div className="text-sm text-gray-600">Total Views</div>
+          <div className="text-center p-3 bg-surface-muted rounded-lg">
+            <Eye className="h-6 w-6 mx-auto mb-2 text-secondary" />
+            <div className="text-2xl font-bold text-foreground">{review.view_count || 0}</div>
+            <div className="text-sm text-secondary">Total Views</div>
           </div>
-          <div className="text-center p-3 bg-gray-50 rounded-lg">
-            <Clock className="h-6 w-6 mx-auto mb-2 text-gray-600" />
-            <div className="text-2xl font-bold text-gray-900">
+          <div className="text-center p-3 bg-surface-muted rounded-lg">
+            <Clock className="h-6 w-6 mx-auto mb-2 text-secondary" />
+            <div className="text-2xl font-bold text-foreground">
               {Math.floor(Math.random() * 100)}
             </div>
-            <div className="text-sm text-gray-600">Avg. Time</div>
+            <div className="text-sm text-secondary">Avg. Time</div>
           </div>
         </div>
 
         {/* Performance Summary */}
         <div className="space-y-2">
-          <h4 className="font-medium text-gray-900">Performance</h4>
-          <div className="text-sm text-gray-600 space-y-1">
+          <h4 className="font-medium text-foreground">Performance</h4>
+          <div className="text-sm text-secondary space-y-1">
             <div className="flex items-center justify-between">
               <span>Engagement Rate</span>
               <span className="font-medium">--</span>
@@ -52,7 +52,9 @@ export const ReviewAnalyticsPanel: React.FC<ReviewAnalyticsPanelProps> = ({ revi
         </div>
 
         {/* Placeholder for future analytics */}
-        <div className="text-center py-4 text-sm text-gray-500">Detailed analytics coming soon</div>
+        <div className="text-center py-4 text-sm text-secondary">
+          Detailed analytics coming soon
+        </div>
       </CardContent>
     </Card>
   );

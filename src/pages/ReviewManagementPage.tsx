@@ -4,7 +4,6 @@ import React from 'react';
 import { useParams } from 'react-router-dom';
 import { ReviewMetadataPanel } from '@/components/admin/ReviewManagement/ReviewMetadataPanel';
 import { PublicationControlPanel } from '@/components/admin/ReviewManagement/PublicationControlPanel';
-import { ReviewContentPreview } from '@/components/admin/ReviewManagement/ReviewContentPreview';
 import { ReviewAnalyticsPanel } from '@/components/admin/ReviewManagement/ReviewAnalyticsPanel';
 import { useReviewManagementQuery } from '../../packages/hooks/useReviewManagementQuery';
 import { Button } from '@/components/ui/button';
@@ -21,8 +20,7 @@ export default function ReviewManagementPage() {
     return (
       <div className="space-y-6">
         <Skeleton className="h-8 w-1/3" />
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <Skeleton className="h-96" />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Skeleton className="h-96" />
           <Skeleton className="h-96" />
         </div>
@@ -34,8 +32,8 @@ export default function ReviewManagementPage() {
     return (
       <div className="text-center py-12">
         <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">Error Loading Review</h3>
-        <p className="text-gray-600 mb-4">
+        <h3 className="text-lg font-semibold text-foreground mb-2">Error Loading Review</h3>
+        <p className="text-secondary mb-4">
           {error instanceof Error ? error.message : 'Failed to load review'}
         </p>
         <Link to="/admin/content">
@@ -50,7 +48,7 @@ export default function ReviewManagementPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* Header Section - Enhanced typography hierarchy */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <Link to="/admin/content">
@@ -60,18 +58,18 @@ export default function ReviewManagementPage() {
             </Button>
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">{review.title}</h1>
-            <p className="text-sm text-gray-500">Review ID: {review.id}</p>
+            <h1 className="text-3xl font-bold text-foreground font-serif">{review.title}</h1>
+            <p className="text-sm text-secondary">Review ID: {review.id}</p>
           </div>
         </div>
         <div className="flex items-center space-x-2">
           <span
             className={`px-2 py-1 text-xs font-medium rounded-full ${
               review.status === 'published'
-                ? 'bg-green-100 text-green-800'
+                ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
                 : review.status === 'scheduled'
-                  ? 'bg-yellow-100 text-yellow-800'
-                  : 'bg-gray-100 text-gray-800'
+                  ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                  : 'bg-surface-muted text-foreground border border-border'
             }`}
           >
             {review.status}
@@ -82,20 +80,15 @@ export default function ReviewManagementPage() {
         </div>
       </div>
 
-      {/* Main Layout */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+      {/* Main Layout - Updated to 2-column for improved focus */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Left Panel: Metadata */}
-        <div className="xl:col-span-1">
+        <div>
           <ReviewMetadataPanel review={review} />
         </div>
 
-        {/* Center Panel: Content Preview */}
-        <div className="xl:col-span-1">
-          <ReviewContentPreview review={review} />
-        </div>
-
         {/* Right Panel: Publication & Analytics */}
-        <div className="xl:col-span-1 space-y-6">
+        <div className="space-y-6">
           <PublicationControlPanel review={review} />
           <ReviewAnalyticsPanel review={review} />
         </div>

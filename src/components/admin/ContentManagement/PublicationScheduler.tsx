@@ -1,4 +1,3 @@
-
 // ABOUTME: Publication scheduling interface with date/time picker and timezone handling
 
 import React, { useState } from 'react';
@@ -17,10 +16,10 @@ interface PublicationSchedulerProps {
   onSuccess?: () => void;
 }
 
-export const PublicationScheduler = ({ 
-  reviewId, 
-  currentScheduledDate, 
-  onSuccess 
+export const PublicationScheduler = ({
+  reviewId,
+  currentScheduledDate,
+  onSuccess,
 }: PublicationSchedulerProps) => {
   const [scheduledDate, setScheduledDate] = useState(() => {
     if (currentScheduledDate) {
@@ -31,9 +30,9 @@ export const PublicationScheduler = ({
     defaultDate.setHours(defaultDate.getHours() + 1);
     return defaultDate.toISOString().slice(0, 16);
   });
-  
+
   const [notes, setNotes] = useState('');
-  
+
   const publicationMutation = usePublicationActionMutation();
 
   const handleSchedule = async () => {
@@ -61,7 +60,9 @@ export const PublicationScheduler = ({
       toast.success('Publication scheduled successfully');
       onSuccess?.();
     } catch (error) {
-      toast.error(`Failed to schedule publication: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      toast.error(
+        `Failed to schedule publication: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   };
 
@@ -102,7 +103,7 @@ export const PublicationScheduler = ({
             id="scheduledDate"
             type="datetime-local"
             value={scheduledDate}
-            onChange={(e) => setScheduledDate(e.target.value)}
+            onChange={e => setScheduledDate(e.target.value)}
             min={minDateTime.toISOString().slice(0, 16)}
           />
           <p className="text-xs text-gray-500">
@@ -117,15 +118,15 @@ export const PublicationScheduler = ({
             id="schedulingNotes"
             placeholder="Add any notes about this scheduling..."
             value={notes}
-            onChange={(e) => setNotes(e.target.value)}
+            onChange={e => setNotes(e.target.value)}
             rows={3}
           />
         </div>
 
         {/* Current Schedule Info */}
         {currentScheduledDate && (
-          <div className="p-3 bg-blue-50 border border-blue-200 rounded">
-            <p className="text-blue-800 text-sm">
+          <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded">
+            <p className="text-blue-800 dark:text-blue-200 text-sm">
               <strong>Currently scheduled for:</strong>{' '}
               {new Date(currentScheduledDate).toLocaleString()}
             </p>

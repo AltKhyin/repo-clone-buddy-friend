@@ -15,7 +15,7 @@ export const CreateReviewButton: React.FC = () => {
       const newReview = await createMutation.mutateAsync({
         title: 'Untitled Review',
         description: '',
-        access_level: 'public',
+        access_level: 'free',
       });
 
       // Navigate to review management page

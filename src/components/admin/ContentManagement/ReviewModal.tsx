@@ -1,4 +1,3 @@
-
 // ABOUTME: Modal wrapper for detailed review management with workflow integration
 
 import React from 'react';
@@ -25,7 +24,7 @@ export const ReviewModal = ({ review, isOpen, onClose }: ReviewModalProps) => {
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
-          <DialogTitle className="text-xl font-bold">
+          <DialogTitle className="text-xl font-bold text-foreground">
             Review Management: {review.title}
           </DialogTitle>
         </DialogHeader>

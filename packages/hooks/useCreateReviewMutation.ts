@@ -28,15 +28,14 @@ const createReview = async (data: CreateReviewData): Promise<CreateReviewRespons
     throw new Error('Must be authenticated to create a review');
   }
 
-  // Refresh the session to ensure we have the latest JWT claims (role, subscription_tier)
-  // This is important because JWT claims may have been updated in the database
-  const {
-    data: { session },
-    error: refreshError,
-  } = await supabase.auth.refreshSession();
-
-  if (refreshError) {
-    console.warn('Failed to refresh session, proceeding with current token:', refreshError);
+  // Refresh the session to ensure we have the latest JWT (simplified approach)
+  try {
+    const { error: refreshError } = await supabase.auth.refreshSession();
+    if (refreshError) {
+      console.warn('[createReview] Failed to refresh session:', refreshError);
+    }
+  } catch (error) {
+    console.warn('[createReview] Session refresh error:', error);
   }
 
   // Log current session and JWT claims for debugging

@@ -1,4 +1,3 @@
-
 // ABOUTME: Advanced tag hierarchy editor with drag-and-drop functionality and visual tree structure
 
 import React, { useState, useMemo } from 'react';
@@ -6,18 +5,22 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { 
-  ChevronRight, 
-  ChevronDown, 
-  Plus, 
-  Edit, 
-  Trash2, 
+import {
+  ChevronRight,
+  ChevronDown,
+  Plus,
+  Edit,
+  Trash2,
   Move,
   Search,
   FolderOpen,
-  Folder
+  Folder,
 } from 'lucide-react';
-import { useTagManagementQuery, useTagOperationMutation, type TagWithStats } from '../../../../packages/hooks/useTagManagementQuery';
+import {
+  useTagManagementQuery,
+  useTagOperationMutation,
+  type TagWithStats,
+} from '../../../../packages/hooks/useTagManagementQuery';
 import { TagCreateModal } from './TagCreateModal';
 import { TagEditModal } from './TagEditModal';
 import { cn } from '@/lib/utils';
@@ -31,11 +34,11 @@ interface TagNode extends TagWithStats {
 export const TagHierarchy = () => {
   const { data: tags = [], isLoading, error } = useTagManagementQuery();
   const tagOperationMutation = useTagOperationMutation();
-  
+
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedNodes, setExpandedNodes] = useState<Set<number>>(new Set());
   const [selectedTag, setSelectedTag] = useState<number | null>(null);
-  
+
   // Modal states
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -52,7 +55,7 @@ export const TagHierarchy = () => {
           ...tag,
           children: buildTree(tag.id, level + 1),
           level,
-          isExpanded: expandedNodes.has(tag.id)
+          isExpanded: expandedNodes.has(tag.id),
         }))
         .sort((a, b) => a.tag_name.localeCompare(b.tag_name));
     };
@@ -68,15 +71,15 @@ export const TagHierarchy = () => {
       return nodes.reduce((acc, node) => {
         const matchesSearch = node.tag_name.toLowerCase().includes(searchTerm.toLowerCase());
         const filteredChildren = filterTree(node.children);
-        
+
         if (matchesSearch || filteredChildren.length > 0) {
           acc.push({
             ...node,
             children: filteredChildren,
-            isExpanded: true // Auto-expand matching nodes
+            isExpanded: true, // Auto-expand matching nodes
           });
         }
-        
+
         return acc;
       }, [] as TagNode[]);
     };
@@ -104,7 +107,7 @@ export const TagHierarchy = () => {
     try {
       await tagOperationMutation.mutateAsync({
         action: 'delete',
-        tagId
+        tagId,
       });
     } catch (error) {
       console.error('Tag deletion failed:', error);
@@ -119,15 +122,15 @@ export const TagHierarchy = () => {
   const renderTagNode = (node: TagNode) => {
     const hasChildren = node.children.length > 0;
     const isSelected = selectedTag === node.id;
-    
+
     return (
       <div key={node.id} className="select-none">
-        <div 
+        <div
           className={cn(
-            "flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-colors group",
-            "hover:bg-gray-50",
-            isSelected && "bg-blue-50 border border-blue-200",
-            node.level > 0 && "ml-6"
+            'flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-colors group',
+            'hover:bg-surface-muted',
+            isSelected && 'bg-primary/10 border border-primary/20',
+            node.level > 0 && 'ml-6'
           )}
           onClick={() => setSelectedTag(isSelected ? null : node.id)}
         >
@@ -136,7 +139,7 @@ export const TagHierarchy = () => {
             variant="ghost"
             size="sm"
             className="h-6 w-6 p-0"
-            onClick={(e) => {
+            onClick={e => {
               e.stopPropagation();
               if (hasChildren) toggleExpanded(node.id);
             }}
@@ -155,18 +158,16 @@ export const TagHierarchy = () => {
           {/* Folder Icon */}
           {hasChildren ? (
             node.isExpanded ? (
-              <FolderOpen className="h-4 w-4 text-blue-600" />
+              <FolderOpen className="h-4 w-4 text-blue-600 dark:text-blue-400" />
             ) : (
-              <Folder className="h-4 w-4 text-blue-600" />
+              <Folder className="h-4 w-4 text-blue-600 dark:text-blue-400" />
             )
           ) : (
-            <div className="h-4 w-4 bg-gray-300 rounded-sm" />
+            <div className="h-4 w-4 bg-surface-muted rounded-sm" />
           )}
 
           {/* Tag Name */}
-          <span className="font-medium text-gray-900 flex-1">
-            {node.tag_name}
-          </span>
+          <span className="font-medium text-foreground flex-1">{node.tag_name}</span>
 
           {/* Usage Count Badge */}
           <Badge variant="secondary" className="text-xs">
@@ -179,7 +180,7 @@ export const TagHierarchy = () => {
               variant="ghost"
               size="sm"
               className="h-6 w-6 p-0"
-              onClick={(e) => {
+              onClick={e => {
                 e.stopPropagation();
                 handleEditTag(node);
               }}
@@ -189,8 +190,8 @@ export const TagHierarchy = () => {
             <Button
               variant="ghost"
               size="sm"
-              className="h-6 w-6 p-0 text-red-600 hover:text-red-700"
-              onClick={(e) => {
+              className="h-6 w-6 p-0 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+              onClick={e => {
                 e.stopPropagation();
                 handleDeleteTag(node.id, node.tag_name);
               }}
@@ -202,9 +203,7 @@ export const TagHierarchy = () => {
 
         {/* Render Children */}
         {hasChildren && node.isExpanded && (
-          <div className="mt-1">
-            {node.children.map(renderTagNode)}
-          </div>
+          <div className="mt-1">{node.children.map(renderTagNode)}</div>
         )}
       </div>
     );
@@ -212,15 +211,19 @@ export const TagHierarchy = () => {
 
   if (isLoading) {
     return (
-      <Card>
+      <Card className="bg-surface border-border shadow-sm">
         <CardHeader>
-          <CardTitle>Hierarquia de Tags</CardTitle>
-          <CardDescription>Carregando estrutura de tags...</CardDescription>
+          <CardTitle className="text-xl font-semibold text-foreground">
+            Hierarquia de Tags
+          </CardTitle>
+          <CardDescription className="text-secondary">
+            Carregando estrutura de tags...
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
             {[...Array(6)].map((_, i) => (
-              <div key={i} className="h-8 bg-gray-100 rounded animate-pulse" />
+              <div key={i} className="h-8 bg-surface-muted rounded animate-pulse" />
             ))}
           </div>
         </CardContent>
@@ -230,13 +233,15 @@ export const TagHierarchy = () => {
 
   if (error) {
     return (
-      <Card>
+      <Card className="bg-surface border-border shadow-sm">
         <CardHeader>
-          <CardTitle>Hierarquia de Tags</CardTitle>
-          <CardDescription>Erro ao carregar tags</CardDescription>
+          <CardTitle className="text-xl font-semibold text-foreground">
+            Hierarquia de Tags
+          </CardTitle>
+          <CardDescription className="text-secondary">Erro ao carregar tags</CardDescription>
         </CardHeader>
         <CardContent>
-          <p className="text-red-600">Falha ao carregar a hierarquia de tags.</p>
+          <p className="text-red-600 dark:text-red-400">Falha ao carregar a hierarquia de tags.</p>
         </CardContent>
       </Card>
     );
@@ -244,16 +249,18 @@ export const TagHierarchy = () => {
 
   return (
     <>
-      <Card>
+      <Card className="bg-surface border-border shadow-sm">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>Hierarquia de Tags</CardTitle>
-              <CardDescription>
+              <CardTitle className="text-xl font-semibold text-foreground">
+                Hierarquia de Tags
+              </CardTitle>
+              <CardDescription className="text-secondary">
                 Organize tags em uma estrutura hierárquica e gerencie relações
               </CardDescription>
             </div>
-            <Button 
+            <Button
               onClick={() => setIsCreateModalOpen(true)}
               disabled={tagOperationMutation.isPending}
             >
@@ -265,62 +272,56 @@ export const TagHierarchy = () => {
         <CardContent className="space-y-4">
           {/* Search Bar */}
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-secondary" />
             <Input
               placeholder="Buscar tags..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={e => setSearchTerm(e.target.value)}
               className="pl-10"
             />
           </div>
 
           {/* Actions Bar */}
           <div className="flex gap-2 text-sm">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="sm"
               onClick={() => setExpandedNodes(new Set(tags.map(t => t.id)))}
             >
               Expandir Tudo
             </Button>
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => setExpandedNodes(new Set())}
-            >
+            <Button variant="outline" size="sm" onClick={() => setExpandedNodes(new Set())}>
               Recolher Tudo
             </Button>
           </div>
 
           {/* Tag Tree */}
-          <div className="border rounded-lg p-4 max-h-96 overflow-y-auto">
+          <div className="border border-border rounded-lg p-4 max-h-96 overflow-y-auto">
             {filteredTree.length > 0 ? (
-              <div className="space-y-1">
-                {filteredTree.map(renderTagNode)}
-              </div>
+              <div className="space-y-1">{filteredTree.map(renderTagNode)}</div>
             ) : (
-              <div className="text-center py-8 text-gray-500">
+              <div className="text-center py-8 text-secondary">
                 {searchTerm ? 'Nenhuma tag encontrada' : 'Nenhuma tag disponível'}
               </div>
             )}
           </div>
 
           {/* Summary Stats */}
-          <div className="flex gap-4 text-sm text-gray-600 pt-4 border-t">
+          <div className="flex gap-4 text-sm text-secondary pt-4 border-t border-border">
             <span>Total: {tags.length} tags</span>
-            <span>Selecionada: {selectedTag ? tags.find(t => t.id === selectedTag)?.tag_name : 'Nenhuma'}</span>
+            <span>
+              Selecionada:{' '}
+              {selectedTag ? tags.find(t => t.id === selectedTag)?.tag_name : 'Nenhuma'}
+            </span>
             {searchTerm && <span>Filtradas: {filteredTree.length} resultados</span>}
           </div>
         </CardContent>
       </Card>
 
       {/* Modals */}
-      <TagCreateModal 
-        isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
-      />
-      
-      <TagEditModal 
+      <TagCreateModal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} />
+
+      <TagEditModal
         isOpen={isEditModalOpen}
         onClose={() => {
           setIsEditModalOpen(false);

@@ -1,20 +1,10 @@
-
 // ABOUTME: Timeline visualization of publication history and workflow actions
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { 
-  FileText, 
-  Send, 
-  CheckCircle, 
-  XCircle, 
-  Calendar, 
-  Globe, 
-  Archive, 
-  Eye 
-} from 'lucide-react';
+import { FileText, Send, CheckCircle, XCircle, Calendar, Globe, Archive, Eye } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -52,8 +42,8 @@ export const HistoryTimeline = ({ reviewId }: HistoryTimelineProps) => {
       },
       created_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
       metadata: {
-        new_status: 'draft'
-      }
+        new_status: 'draft',
+      },
     },
     {
       id: '2',
@@ -67,8 +57,8 @@ export const HistoryTimeline = ({ reviewId }: HistoryTimelineProps) => {
       created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
       metadata: {
         previous_status: 'draft',
-        new_status: 'under_review'
-      }
+        new_status: 'under_review',
+      },
     },
     {
       id: '3',
@@ -83,9 +73,9 @@ export const HistoryTimeline = ({ reviewId }: HistoryTimelineProps) => {
       metadata: {
         previous_status: 'under_review',
         new_status: 'scheduled',
-        scheduled_date: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000).toISOString()
-      }
-    }
+        scheduled_date: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000).toISOString(),
+      },
+    },
   ];
 
   const getActionIcon = (action: string) => {
@@ -95,17 +85,17 @@ export const HistoryTimeline = ({ reviewId }: HistoryTimelineProps) => {
       case 'submitted_for_review':
         return <Send className="h-4 w-4" />;
       case 'approved':
-        return <CheckCircle className="h-4 w-4 text-green-600" />;
+        return <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-300" />;
       case 'rejected':
-        return <XCircle className="h-4 w-4 text-red-600" />;
+        return <XCircle className="h-4 w-4 text-red-600 dark:text-red-300" />;
       case 'scheduled':
-        return <Calendar className="h-4 w-4 text-blue-600" />;
+        return <Calendar className="h-4 w-4 text-blue-600 dark:text-blue-300" />;
       case 'published':
         return <Globe className="h-4 w-4 text-emerald-600" />;
       case 'unpublished':
-        return <Eye className="h-4 w-4 text-orange-600" />;
+        return <Eye className="h-4 w-4 text-orange-600 dark:text-orange-300" />;
       case 'archived':
-        return <Archive className="h-4 w-4 text-gray-600" />;
+        return <Archive className="h-4 w-4 text-muted-foreground" />;
       default:
         return <FileText className="h-4 w-4" />;
     }
@@ -137,7 +127,10 @@ export const HistoryTimeline = ({ reviewId }: HistoryTimelineProps) => {
   const getStatusBadge = (status?: string) => {
     if (!status) return null;
 
-    const statusConfig: Record<string, { label: string; variant: 'default' | 'secondary' | 'outline' | 'destructive' }> = {
+    const statusConfig: Record<
+      string,
+      { label: string; variant: 'default' | 'secondary' | 'outline' | 'destructive' }
+    > = {
       draft: { label: 'Draft', variant: 'secondary' },
       under_review: { label: 'Under Review', variant: 'default' },
       scheduled: { label: 'Scheduled', variant: 'outline' },
@@ -160,7 +153,7 @@ export const HistoryTimeline = ({ reviewId }: HistoryTimelineProps) => {
       <CardContent>
         <div className="space-y-4">
           {historyItems.length === 0 ? (
-            <p className="text-gray-500 text-center py-8">
+            <p className="text-muted-foreground text-center py-8">
               No history available for this review.
             </p>
           ) : (
@@ -168,11 +161,11 @@ export const HistoryTimeline = ({ reviewId }: HistoryTimelineProps) => {
               <div key={item.id} className="flex gap-4 relative">
                 {/* Timeline Line */}
                 {index < historyItems.length - 1 && (
-                  <div className="absolute left-5 top-12 w-0.5 h-full bg-gray-200"></div>
+                  <div className="absolute left-5 top-12 w-0.5 h-full bg-border"></div>
                 )}
 
                 {/* Timeline Icon */}
-                <div className="flex-shrink-0 w-10 h-10 bg-white border-2 border-gray-200 rounded-full flex items-center justify-center">
+                <div className="flex-shrink-0 w-10 h-10 bg-background border-2 border-border rounded-full flex items-center justify-center">
                   {getActionIcon(item.action)}
                 </div>
 
@@ -180,13 +173,14 @@ export const HistoryTimeline = ({ reviewId }: HistoryTimelineProps) => {
                 <div className="flex-1 min-w-0 pb-4">
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex items-center gap-2">
-                      <h4 className="font-medium text-gray-900">
-                        {getActionLabel(item.action)}
-                      </h4>
+                      <h4 className="font-medium text-foreground">{getActionLabel(item.action)}</h4>
                       {item.metadata?.new_status && getStatusBadge(item.metadata.new_status)}
                     </div>
-                    <span className="text-xs text-gray-500 flex-shrink-0">
-                      {formatDistanceToNow(new Date(item.created_at), { addSuffix: true, locale: ptBR })}
+                    <span className="text-xs text-muted-foreground flex-shrink-0">
+                      {formatDistanceToNow(new Date(item.created_at), {
+                        addSuffix: true,
+                        locale: ptBR,
+                      })}
                     </span>
                   </div>
 
@@ -198,21 +192,19 @@ export const HistoryTimeline = ({ reviewId }: HistoryTimelineProps) => {
                         {item.performed_by.full_name.charAt(0)}
                       </AvatarFallback>
                     </Avatar>
-                    <span className="text-sm text-gray-600">
+                    <span className="text-sm text-muted-foreground">
                       {item.performed_by.full_name}
                     </span>
                   </div>
 
                   {/* Notes */}
                   {item.notes && (
-                    <p className="text-sm text-gray-700 bg-gray-50 p-2 rounded">
-                      {item.notes}
-                    </p>
+                    <p className="text-sm text-foreground bg-muted p-2 rounded">{item.notes}</p>
                   )}
 
                   {/* Metadata */}
                   {item.metadata?.scheduled_date && (
-                    <p className="text-xs text-blue-600 mt-1">
+                    <p className="text-xs text-blue-600 dark:text-blue-300 mt-1">
                       Scheduled for: {new Date(item.metadata.scheduled_date).toLocaleString()}
                     </p>
                   )}

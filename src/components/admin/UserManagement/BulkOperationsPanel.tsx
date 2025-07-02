@@ -1,7 +1,10 @@
 // ABOUTME: Bulk operations panel for performing mass actions on selected users efficiently
 
 import React, { useState } from 'react';
-import { useUpdateUserMutation, useUserStatusMutation } from '../../../../packages/hooks/useUserManagementQuery';
+import {
+  useUpdateUserMutation,
+  useUserStatusMutation,
+} from '../../../../packages/hooks/useUserManagementQuery';
 import { useAssignRoleMutation } from '../../../../packages/hooks/useRoleManagementQuery';
 import {
   Dialog,
@@ -21,15 +24,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  Users, 
-  Shield, 
-  UserCheck, 
-  UserX, 
-  Loader2,
-  AlertTriangle,
-  CheckCircle
-} from 'lucide-react';
+import { Users, Shield, UserCheck, UserX, Loader2, AlertTriangle, CheckCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Progress } from '@/components/ui/progress';
 
@@ -47,11 +42,11 @@ interface BulkOperationProgress {
   inProgress: boolean;
 }
 
-export const BulkOperationsPanel = ({ 
-  selectedUserIds, 
-  open, 
-  onOpenChange, 
-  onComplete 
+export const BulkOperationsPanel = ({
+  selectedUserIds,
+  open,
+  onOpenChange,
+  onComplete,
 }: BulkOperationsPanelProps) => {
   const { toast } = useToast();
   const [selectedAction, setSelectedAction] = useState('');
@@ -60,7 +55,7 @@ export const BulkOperationsPanel = ({
     total: 0,
     completed: 0,
     failed: 0,
-    inProgress: false
+    inProgress: false,
   });
 
   // Mutations
@@ -84,18 +79,18 @@ export const BulkOperationsPanel = ({
   const executeBulkOperation = async () => {
     if (!selectedAction) {
       toast({
-        title: "Ação obrigatória",
-        description: "Selecione uma ação para executar.",
-        variant: "destructive",
+        title: 'Ação obrigatória',
+        description: 'Selecione uma ação para executar.',
+        variant: 'destructive',
       });
       return;
     }
 
     if (selectedAction === 'assign-role' && !selectedRole) {
       toast({
-        title: "Papel obrigatório",
-        description: "Selecione um papel para atribuir aos usuários.",
-        variant: "destructive",
+        title: 'Papel obrigatório',
+        description: 'Selecione um papel para atribuir aos usuários.',
+        variant: 'destructive',
       });
       return;
     }
@@ -104,7 +99,7 @@ export const BulkOperationsPanel = ({
       total: selectedUserIds.length,
       completed: 0,
       failed: 0,
-      inProgress: true
+      inProgress: true,
     });
 
     let completed = 0;
@@ -117,19 +112,19 @@ export const BulkOperationsPanel = ({
           case 'assign-role':
             await assignRoleMutation.mutateAsync({
               userId,
-              roleName: selectedRole
+              roleName: selectedRole,
             });
             break;
           case 'activate':
             await userStatusMutation.mutateAsync({
               userId,
-              action: 'reactivate'
+              action: 'reactivate',
             });
             break;
           case 'deactivate':
             await userStatusMutation.mutateAsync({
               userId,
-              action: 'deactivate'
+              action: 'deactivate',
             });
             break;
         }
@@ -143,7 +138,7 @@ export const BulkOperationsPanel = ({
       setProgress(prev => ({
         ...prev,
         completed: completed,
-        failed: failed
+        failed: failed,
       }));
 
       // Small delay to prevent overwhelming the server
@@ -156,20 +151,20 @@ export const BulkOperationsPanel = ({
     // Show completion toast
     if (failed === 0) {
       toast({
-        title: "Operação concluída",
+        title: 'Operação concluída',
         description: `Todos os ${completed} usuários foram processados com sucesso.`,
       });
     } else if (completed > 0) {
       toast({
-        title: "Operação parcialmente concluída",
+        title: 'Operação parcialmente concluída',
         description: `${completed} usuários processados com sucesso, ${failed} falharam.`,
-        variant: "destructive",
+        variant: 'destructive',
       });
     } else {
       toast({
-        title: "Operação falhou",
-        description: "Nenhum usuário foi processado com sucesso.",
-        variant: "destructive",
+        title: 'Operação falhou',
+        description: 'Nenhum usuário foi processado com sucesso.',
+        variant: 'destructive',
       });
     }
 
@@ -194,9 +189,8 @@ export const BulkOperationsPanel = ({
   };
 
   // Calculate progress percentage
-  const progressPercentage = progress.total > 0 
-    ? ((progress.completed + progress.failed) / progress.total) * 100 
-    : 0;
+  const progressPercentage =
+    progress.total > 0 ? ((progress.completed + progress.failed) / progress.total) * 100 : 0;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -232,7 +226,7 @@ export const BulkOperationsPanel = ({
                           <SelectValue placeholder="Selecione uma ação" />
                         </SelectTrigger>
                         <SelectContent>
-                          {bulkActions.map((action) => {
+                          {bulkActions.map(action => {
                             const Icon = action.icon;
                             return (
                               <SelectItem key={action.value} value={action.value}>
@@ -255,7 +249,7 @@ export const BulkOperationsPanel = ({
                             <SelectValue placeholder="Selecione um papel" />
                           </SelectTrigger>
                           <SelectContent>
-                            {availableRoles.map((role) => (
+                            {availableRoles.map(role => (
                               <SelectItem key={role.value} value={role.value}>
                                 {role.label}
                               </SelectItem>
@@ -266,12 +260,14 @@ export const BulkOperationsPanel = ({
                     )}
 
                     {selectedAction && (
-                      <div className="p-4 bg-blue-50 rounded-lg">
+                      <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                         <div className="flex items-start gap-2">
-                          <AlertTriangle className="h-5 w-5 text-blue-600 mt-0.5" />
+                          <AlertTriangle className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5" />
                           <div>
-                            <div className="font-medium text-blue-900">Resumo da Operação</div>
-                            <div className="text-blue-700 text-sm mt-1">
+                            <div className="font-medium text-blue-900 dark:text-blue-100">
+                              Resumo da Operação
+                            </div>
+                            <div className="text-blue-700 dark:text-blue-200 text-sm mt-1">
                               {getActionDescription()}
                             </div>
                           </div>
@@ -289,7 +285,9 @@ export const BulkOperationsPanel = ({
                       </Button>
                       <Button
                         onClick={executeBulkOperation}
-                        disabled={!selectedAction || (selectedAction === 'assign-role' && !selectedRole)}
+                        disabled={
+                          !selectedAction || (selectedAction === 'assign-role' && !selectedRole)
+                        }
                         className="flex-1"
                       >
                         Executar Operação
@@ -307,7 +305,7 @@ export const BulkOperationsPanel = ({
                   {progress.inProgress ? (
                     <Loader2 className="h-5 w-5 animate-spin" />
                   ) : (
-                    <CheckCircle className="h-5 w-5 text-green-600" />
+                    <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
                   )}
                   {progress.inProgress ? 'Executando Operação...' : 'Operação Concluída'}
                 </CardTitle>
@@ -325,19 +323,19 @@ export const BulkOperationsPanel = ({
 
                 <div className="grid grid-cols-3 gap-4 text-center">
                   <div>
-                    <div className="text-2xl font-bold text-green-600">
+                    <div className="text-2xl font-bold text-green-600 dark:text-green-400">
                       {progress.completed}
                     </div>
                     <div className="text-sm text-muted-foreground">Sucesso</div>
                   </div>
                   <div>
-                    <div className="text-2xl font-bold text-red-600">
+                    <div className="text-2xl font-bold text-red-600 dark:text-red-400">
                       {progress.failed}
                     </div>
                     <div className="text-sm text-muted-foreground">Falhas</div>
                   </div>
                   <div>
-                    <div className="text-2xl font-bold text-blue-600">
+                    <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                       {progress.total}
                     </div>
                     <div className="text-sm text-muted-foreground">Total</div>
@@ -345,10 +343,7 @@ export const BulkOperationsPanel = ({
                 </div>
 
                 {!progress.inProgress && (
-                  <Button
-                    onClick={onComplete}
-                    className="w-full"
-                  >
+                  <Button onClick={onComplete} className="w-full">
                     Fechar
                   </Button>
                 )}

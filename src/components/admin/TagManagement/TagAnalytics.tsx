@@ -4,15 +4,11 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { 
-  TrendingUp, 
-  TrendingDown, 
-  Hash, 
-  Activity,
-  Calendar,
-  AlertTriangle
-} from 'lucide-react';
-import { useTagAnalyticsQuery, type TagWithStats } from '../../../../packages/hooks/useTagManagementQuery';
+import { TrendingUp, TrendingDown, Hash, Activity, Calendar, AlertTriangle } from 'lucide-react';
+import {
+  useTagAnalyticsQuery,
+  type TagWithStats,
+} from '../../../../packages/hooks/useTagManagementQuery';
 
 export const TagAnalytics = () => {
   const { data: analytics, isLoading, error } = useTagAnalyticsQuery();
@@ -42,7 +38,7 @@ export const TagAnalytics = () => {
           <CardDescription>Erro ao carregar dados analíticos</CardDescription>
         </CardHeader>
         <CardContent>
-          <p className="text-red-600">Falha ao carregar analytics das tags.</p>
+          <p className="text-red-600 dark:text-red-400">Falha ao carregar analytics das tags.</p>
         </CardContent>
       </Card>
     );
@@ -56,7 +52,7 @@ export const TagAnalytics = () => {
     hierarchyDepth,
     topUsedTags,
     orphanedTags,
-    recentTags
+    recentTags,
   } = analytics;
 
   return (
@@ -70,9 +66,7 @@ export const TagAnalytics = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalTags}</div>
-            <p className="text-xs text-muted-foreground">
-              Tags no sistema
-            </p>
+            <p className="text-xs text-muted-foreground">Tags no sistema</p>
           </CardContent>
         </Card>
 
@@ -83,22 +77,20 @@ export const TagAnalytics = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{popularTags}</div>
-            <p className="text-xs text-muted-foreground">
-              Mais de 10 usos
-            </p>
+            <p className="text-xs text-muted-foreground">Mais de 10 usos</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Tags Não Utilizadas</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-orange-600" />
+            <AlertTriangle className="h-4 w-4 text-orange-600 dark:text-orange-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-orange-600">{unusedTags}</div>
-            <p className="text-xs text-muted-foreground">
-              Sem conteúdo associado
-            </p>
+            <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
+              {unusedTags}
+            </div>
+            <p className="text-xs text-muted-foreground">Sem conteúdo associado</p>
           </CardContent>
         </Card>
 
@@ -109,9 +101,7 @@ export const TagAnalytics = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{newThisMonth}</div>
-            <p className="text-xs text-muted-foreground">
-              Criadas recentemente
-            </p>
+            <p className="text-xs text-muted-foreground">Criadas recentemente</p>
           </CardContent>
         </Card>
       </div>
@@ -120,9 +110,7 @@ export const TagAnalytics = () => {
       <Card>
         <CardHeader>
           <CardTitle>Estrutura Hierárquica</CardTitle>
-          <CardDescription>
-            Informações sobre a organização das tags
-          </CardDescription>
+          <CardDescription>Informações sobre a organização das tags</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
@@ -131,13 +119,15 @@ export const TagAnalytics = () => {
           </div>
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium">Tags Órfãs</span>
-            <Badge variant={orphanedTags.length > 0 ? "destructive" : "secondary"}>
+            <Badge variant={orphanedTags.length > 0 ? 'destructive' : 'secondary'}>
               {orphanedTags.length} tags
             </Badge>
           </div>
           {orphanedTags.length > 0 && (
-            <div className="mt-4 p-3 bg-orange-50 rounded-lg">
-              <h4 className="text-sm font-medium text-orange-800 mb-2">Tags Órfãs Encontradas:</h4>
+            <div className="mt-4 p-3 bg-orange-50 rounded-lg dark:bg-orange-900/20">
+              <h4 className="text-sm font-medium text-orange-800 dark:text-orange-200 mb-2">
+                Tags Órfãs Encontradas:
+              </h4>
               <div className="flex flex-wrap gap-1">
                 {orphanedTags.slice(0, 5).map(tag => (
                   <Badge key={tag.id} variant="outline" className="text-xs">
@@ -161,9 +151,7 @@ export const TagAnalytics = () => {
         <Card>
           <CardHeader>
             <CardTitle>Tags Mais Utilizadas</CardTitle>
-            <CardDescription>
-              Tags com maior número de associações
-            </CardDescription>
+            <CardDescription>Tags com maior número de associações</CardDescription>
           </CardHeader>
           <CardContent>
             {topUsedTags.length > 0 ? (
@@ -171,15 +159,15 @@ export const TagAnalytics = () => {
                 {topUsedTags.slice(0, 8).map((tag, index) => (
                   <div key={tag.id} className="flex items-center justify-between">
                     <div className="flex items-center gap-2 flex-1">
-                      <span className="text-sm font-medium text-gray-500 w-6">
+                      <span className="text-sm font-medium text-muted-foreground w-6">
                         #{index + 1}
                       </span>
                       <span className="font-medium">{tag.tag_name}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <div className="w-20">
-                        <Progress 
-                          value={(tag.usage_count / (topUsedTags[0]?.usage_count || 1)) * 100} 
+                        <Progress
+                          value={(tag.usage_count / (topUsedTags[0]?.usage_count || 1)) * 100}
                           className="h-2"
                         />
                       </div>
@@ -191,7 +179,7 @@ export const TagAnalytics = () => {
                 ))}
               </div>
             ) : (
-              <p className="text-gray-500 text-center py-4">
+              <p className="text-muted-foreground text-center py-4">
                 Nenhum dado de uso disponível
               </p>
             )}
@@ -202,9 +190,7 @@ export const TagAnalytics = () => {
         <Card>
           <CardHeader>
             <CardTitle>Tags Recentes</CardTitle>
-            <CardDescription>
-              Tags criadas nos últimos 30 dias
-            </CardDescription>
+            <CardDescription>Tags criadas nos últimos 30 dias</CardDescription>
           </CardHeader>
           <CardContent>
             {recentTags.length > 0 ? (
@@ -212,7 +198,7 @@ export const TagAnalytics = () => {
                 {recentTags.slice(0, 8).map(tag => (
                   <div key={tag.id} className="flex items-center justify-between">
                     <span className="font-medium">{tag.tag_name}</span>
-                    <div className="flex items-center gap-2 text-sm text-gray-500">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Calendar className="h-3 w-3" />
                       {new Date(tag.created_at).toLocaleDateString('pt-BR')}
                     </div>
@@ -220,7 +206,7 @@ export const TagAnalytics = () => {
                 ))}
               </div>
             ) : (
-              <p className="text-gray-500 text-center py-4">
+              <p className="text-muted-foreground text-center py-4">
                 Nenhuma tag criada recentemente
               </p>
             )}
@@ -232,20 +218,18 @@ export const TagAnalytics = () => {
       <Card>
         <CardHeader>
           <CardTitle>Score de Saúde do Sistema</CardTitle>
-          <CardDescription>
-            Avaliação geral da organização das tags
-          </CardDescription>
+          <CardDescription>Avaliação geral da organização das tags</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium">Utilização Geral</span>
               <div className="flex items-center gap-2">
-                <Progress 
-                  value={totalTags > 0 ? ((totalTags - unusedTags) / totalTags) * 100 : 0} 
+                <Progress
+                  value={totalTags > 0 ? ((totalTags - unusedTags) / totalTags) * 100 : 0}
                   className="w-20 h-2"
                 />
-                <span className="text-sm text-gray-600">
+                <span className="text-sm text-muted-foreground">
                   {totalTags > 0 ? Math.round(((totalTags - unusedTags) / totalTags) * 100) : 0}%
                 </span>
               </div>
@@ -253,20 +237,29 @@ export const TagAnalytics = () => {
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium">Organização Hierárquica</span>
               <div className="flex items-center gap-2">
-                <Progress 
-                  value={orphanedTags.length === 0 ? 100 : Math.max(0, 100 - (orphanedTags.length / totalTags) * 100)} 
+                <Progress
+                  value={
+                    orphanedTags.length === 0
+                      ? 100
+                      : Math.max(0, 100 - (orphanedTags.length / totalTags) * 100)
+                  }
                   className="w-20 h-2"
                 />
-                <span className="text-sm text-gray-600">
-                  {orphanedTags.length === 0 ? 100 : Math.round(Math.max(0, 100 - (orphanedTags.length / totalTags) * 100))}%
+                <span className="text-sm text-muted-foreground">
+                  {orphanedTags.length === 0
+                    ? 100
+                    : Math.round(Math.max(0, 100 - (orphanedTags.length / totalTags) * 100))}
+                  %
                 </span>
               </div>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium">Crescimento</span>
               <div className="flex items-center gap-2">
-                <Activity className={`h-4 w-4 ${newThisMonth > 0 ? 'text-green-600' : 'text-gray-400'}`} />
-                <span className="text-sm text-gray-600">
+                <Activity
+                  className={`h-4 w-4 ${newThisMonth > 0 ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`}
+                />
+                <span className="text-sm text-muted-foreground">
                   {newThisMonth > 0 ? 'Ativo' : 'Estável'}
                 </span>
               </div>
