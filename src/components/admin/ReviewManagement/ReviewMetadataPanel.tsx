@@ -33,7 +33,9 @@ export const ReviewMetadataPanel: React.FC<ReviewMetadataPanelProps> = ({ review
     cover_image_url: review.cover_image_url || '',
   });
 
-  const [selectedTags, setSelectedTags] = useState(review.tags || []);
+  const [selectedTagIds, setSelectedTagIds] = useState<number[]>(
+    review.tags?.map(tag => tag.id) || []
+  );
   const [hasChanges, setHasChanges] = useState(false);
 
   const updateMutation = useUpdateReviewMetadataMutation();
@@ -43,8 +45,8 @@ export const ReviewMetadataPanel: React.FC<ReviewMetadataPanelProps> = ({ review
     setHasChanges(true);
   };
 
-  const handleTagsChange = (newTags: any[]) => {
-    setSelectedTags(newTags);
+  const handleTagsChange = (newTagIds: number[]) => {
+    setSelectedTagIds(newTagIds);
     setHasChanges(true);
   };
 
@@ -54,7 +56,7 @@ export const ReviewMetadataPanel: React.FC<ReviewMetadataPanelProps> = ({ review
         reviewId: review.id,
         metadata: {
           ...formData,
-          tags: selectedTags.map(tag => tag.id),
+          tags: selectedTagIds,
         },
       });
       setHasChanges(false);
@@ -111,13 +113,8 @@ export const ReviewMetadataPanel: React.FC<ReviewMetadataPanelProps> = ({ review
         {/* Tags */}
         <TagSelector
           reviewId={review.id}
-          selectedTags={selectedTags.map(tag => tag.id)}
-          onTagsChange={tagIds => {
-            // Convert tag IDs back to tag objects for local state
-            // This will be handled by the TagSelector internally
-            setSelectedTags(selectedTags.filter(tag => tagIds.includes(tag.id)));
-            setHasChanges(true);
-          }}
+          selectedTags={selectedTagIds}
+          onTagsChange={handleTagsChange}
         />
 
         {/* Save Button */}

@@ -113,7 +113,6 @@ export const TagSelector: React.FC<TagSelectorProps> = ({
           checked={isSelected}
           onCheckedChange={() => handleTagToggle(tag.id)}
           aria-label={`Select ${tag.tag_name}`}
-          className="touch-target"
         />
 
         {tag.color && (
