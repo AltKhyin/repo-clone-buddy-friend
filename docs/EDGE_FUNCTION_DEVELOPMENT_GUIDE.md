@@ -21,11 +21,13 @@ This guide documents the standardized architecture and development patterns for 
 ## Architectural Principles
 
 ### 1. Direct Imports Only
+
 - **NEVER** use aggregator patterns like `imports.ts` with star exports
 - Import only what you need from specific files
 - Make dependencies explicit and traceable
 
 ### 2. Shared Utilities Pattern
+
 ```
 supabase/functions/_shared/
 ├── auth.ts          # Authentication utilities
@@ -35,9 +37,11 @@ supabase/functions/_shared/
 ```
 
 ### 3. Consistent Function Structure
+
 Every Edge Function must follow the 7-step pattern:
+
 1. CORS Preflight Handling
-2. Authentication  
+2. Authentication
 3. Rate Limiting (if applicable)
 4. Input Validation
 5. Business Logic
@@ -47,21 +51,27 @@ Every Edge Function must follow the 7-step pattern:
 ## Standard Import Patterns
 
 ### ✅ CORRECT Pattern
+
 ```typescript
 // ABOUTME: [Function purpose in present tense]
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.0';
 import { corsHeaders, handleCorsPreflightRequest } from '../_shared/cors.ts';
-import { createSuccessResponse, createErrorResponse, authenticateUser } from '../_shared/api-helpers.ts';
+import {
+  createSuccessResponse,
+  createErrorResponse,
+  authenticateUser,
+} from '../_shared/api-helpers.ts';
 import { checkRateLimit, rateLimitHeaders, RateLimitError } from '../_shared/rate-limit.ts';
 import { getUserFromRequest, requireRole } from '../_shared/auth.ts';
 ```
 
 ### ❌ FORBIDDEN Patterns
+
 ```typescript
 // DON'T: Star imports from aggregator
-import { serve, createClient, /* ... */ } from '../_shared/imports.ts';
+import { serve, createClient /* ... */ } from '../_shared/imports.ts';
 
 // DON'T: Mixed import sources without explicit paths
 import { serve } from 'imports.ts';
@@ -78,7 +88,11 @@ Use this template for ALL new Edge Functions:
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.0';
 import { corsHeaders, handleCorsPreflightRequest } from '../_shared/cors.ts';
-import { createSuccessResponse, createErrorResponse, authenticateUser } from '../_shared/api-helpers.ts';
+import {
+  createSuccessResponse,
+  createErrorResponse,
+  authenticateUser,
+} from '../_shared/api-helpers.ts';
 import { checkRateLimit, rateLimitHeaders, RateLimitError } from '../_shared/rate-limit.ts';
 import { getUserFromRequest, requireRole } from '../_shared/auth.ts';
 
@@ -96,9 +110,9 @@ serve(async (req: Request) => {
     }
 
     // STEP 3: Rate Limiting (if applicable)
-    const rateLimitResult = await checkRateLimit(req, { 
-      windowMs: 60000, 
-      maxRequests: 100 
+    const rateLimitResult = await checkRateLimit(req, {
+      windowMs: 60000,
+      maxRequests: 100,
     });
     if (!rateLimitResult.success) {
       return createErrorResponse('Rate limit exceeded', 429);
@@ -113,12 +127,11 @@ serve(async (req: Request) => {
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
-    
+
     // ... implement core functionality ...
 
     // STEP 6: Success Response
     return createSuccessResponse(result, rateLimitHeaders(rateLimitResult));
-
   } catch (error) {
     // STEP 7: Centralized Error Handling
     console.error('Error in [function-name]:', error);
@@ -130,6 +143,7 @@ serve(async (req: Request) => {
 ## Shared Utilities Reference
 
 ### Authentication (`auth.ts`)
+
 ```typescript
 // Get user from request with error handling
 const { user, error } = await getUserFromRequest(req);
@@ -142,6 +156,7 @@ const user = await authenticateUser(supabase, authHeader);
 ```
 
 ### CORS Handling (`cors.ts`)
+
 ```typescript
 // Handle preflight requests
 if (req.method === 'OPTIONS') {
@@ -153,11 +168,12 @@ import { corsHeaders } from '../_shared/cors.ts';
 ```
 
 ### Rate Limiting (`rate-limit.ts`)
+
 ```typescript
 // Standard rate limiting
-const rateLimitResult = await checkRateLimit(req, { 
-  windowMs: 60000,     // 1 minute window
-  maxRequests: 100     // 100 requests per window
+const rateLimitResult = await checkRateLimit(req, {
+  windowMs: 60000, // 1 minute window
+  maxRequests: 100, // 100 requests per window
 });
 
 // Include rate limit headers in response
@@ -170,6 +186,7 @@ if (!rateLimitResult.success) {
 ```
 
 ### API Helpers (`api-helpers.ts`)
+
 ```typescript
 // Success responses (preferred)
 return createSuccessResponse(data, additionalHeaders);
@@ -185,6 +202,7 @@ return sendError('Error message', 500);
 ## Deployment Process
 
 ### 1. Automated Deployment
+
 Changes are deployed automatically via GitHub Actions when pushed to `main`:
 
 ```yaml
@@ -193,6 +211,7 @@ Changes are deployed automatically via GitHub Actions when pushed to `main`:
 ```
 
 ### 2. Manual Deployment (Local)
+
 ```bash
 # Deploy specific function
 supabase functions deploy [function-name] --project-ref $PROJECT_REF
@@ -202,7 +221,9 @@ supabase functions deploy --project-ref $PROJECT_REF
 ```
 
 ### 3. Validation Checklist
+
 After deployment, verify:
+
 - [ ] Function returns 200 status codes (not 503)
 - [ ] CORS preflight requests work (OPTIONS method)
 - [ ] Authentication flow works correctly
@@ -214,32 +235,40 @@ After deployment, verify:
 ### Common Issues & Solutions
 
 #### 503 Service Unavailable
+
 **Symptoms:** Function fails to start, shows `null` deployment_id
 **Causes:**
+
 - Import/export conflicts
 - Missing exports in shared utilities
 - Syntax errors in function code
 
 **Solution:**
+
 1. Check function logs in Supabase dashboard
 2. Verify all imports resolve correctly
 3. Test function locally with `supabase functions serve`
 
 #### Missing Export Errors
+
 **Symptoms:** `does not provide an export named 'X'`
 **Solution:**
+
 1. Check that the export exists in the target file
 2. Verify import path is correct
 3. Ensure no typos in export/import names
 
 #### Rate Limit Issues
+
 **Symptoms:** Functions return 429 errors frequently
 **Solution:**
+
 1. Adjust rate limit configuration
 2. Implement user-specific rate limiting
 3. Consider using Redis for production rate limiting
 
 ### Debugging Commands
+
 ```bash
 # View function logs
 supabase functions logs [function-name]
@@ -257,62 +286,119 @@ curl -X POST https://[project-ref].supabase.co/functions/v1/[function-name] \
 ## Historical Context
 
 ### The Import/Export Crisis (June 2025)
+
 A critical system failure occurred when the centralized `imports.ts` aggregator pattern caused widespread 503 errors across all Edge Functions.
 
 **Root Causes:**
+
 1. Star export conflicts (multiple files exporting same names)
 2. Missing function exports (`sendSuccess`, `sendError`)
 3. Inconsistent import patterns across functions
 
 **Resolution:**
+
 1. Eliminated `imports.ts` aggregator completely
 2. Implemented direct import patterns
 3. Added missing function exports for backward compatibility
 4. Standardized all function templates
 
 **Lessons Learned:**
+
 - Avoid "clever" aggregator patterns in favor of explicit imports
 - Star exports (`export *`) are fragile and should be avoided
 - Consistent patterns across all functions prevent cascading failures
 - Shared utilities should have complete, well-documented APIs
 
 ### Function Migration History
+
 - **Phase 1:** Functions using `imports.ts` (problematic)
-- **Phase 2:** Mixed import patterns (transitional)  
+- **Phase 2:** Mixed import patterns (transitional)
 - **Phase 3:** Direct imports only (current standard)
 
 ## Best Practices
 
 ### DO:
+
 ✅ Use direct imports from specific files  
 ✅ Follow the 7-step function template  
 ✅ Include ABOUTME comment in every function  
 ✅ Handle all error cases explicitly  
 ✅ Use consistent Supabase client version (`@2.50.0`)  
 ✅ Include rate limiting for user-facing endpoints  
-✅ Test functions locally before deployment  
+✅ Test functions locally before deployment
 
 ### DON'T:
+
 ❌ Create import aggregator files  
 ❌ Use star exports for shared utilities  
 ❌ Skip CORS preflight handling  
 ❌ Return raw Response objects (use helper functions)  
 ❌ Mix different Supabase client versions  
 ❌ Deploy without testing locally  
-❌ Ignore TypeScript compilation errors  
+❌ Ignore TypeScript compilation errors
 
 ## Version History
 
 ### v2.0.0 (June 2025)
+
 - Eliminated imports.ts aggregator pattern
 - Implemented direct import architecture
 - Added comprehensive error handling
 - Standardized function template
 
 ### v1.0.0 (Initial)
+
 - Basic Edge Function structure
 - Shared utilities pattern
 - CORS and authentication helpers
+
+---
+
+---
+
+## Function Implementation Status
+
+**Last Updated:** July 3, 2025  
+**Total Functions:** 27  
+**Standardized:** 14 (52%)  
+**Critical Functions Standardized:** 14/14 (100%)
+
+### ✅ Standardized Functions (14/27)
+
+#### 🚀 User-Facing Functions (14)
+
+| **Function Name**           | **Purpose**                            | **Status**      | **Priority** |
+| --------------------------- | -------------------------------------- | --------------- | ------------ |
+| `cast-vote`                 | Unified voting system (all entities)   | ✅ STANDARDIZED | HIGH         |
+| `create-community-post`     | Post/comment creation with auto-upvote | ✅ STANDARDIZED | HIGH         |
+| `get-acervo-data`           | Main reviews page with access control  | ✅ STANDARDIZED | HIGH         |
+| `get-community-feed`        | Optimized community posts feed         | ✅ STANDARDIZED | HIGH         |
+| `get-community-page-data`   | Community page data aggregation        | ✅ STANDARDIZED | **CRITICAL** |
+| `get-community-post-detail` | Individual post details with user data | ✅ STANDARDIZED | **CRITICAL** |
+| `get-homepage-feed`         | Consolidated homepage data             | ✅ STANDARDIZED | HIGH         |
+| `get-review-by-slug`        | Individual review details by slug      | ✅ STANDARDIZED | HIGH         |
+| `get-saved-posts`           | User saved posts with pagination       | ✅ STANDARDIZED | HIGH         |
+| `get-trending-discussions`  | Trending content algorithm             | ✅ STANDARDIZED | HIGH         |
+| `moderate-community-post`   | Moderation actions (pin, lock, flair)  | ✅ STANDARDIZED | **CRITICAL** |
+| `reward-content`            | Content reward system                  | ✅ STANDARDIZED | **CRITICAL** |
+| `save-post`                 | Save/unsave post functionality         | ✅ STANDARDIZED | **CRITICAL** |
+| `submit-suggestion`         | User suggestion submission             | ✅ STANDARDIZED | HIGH         |
+
+#### 🔄 Pending Standardization (13/27)
+
+| **Function Name**       | **Purpose**                     | **Status** | **Priority** |
+| ----------------------- | ------------------------------- | ---------- | ------------ |
+| Admin Functions (11)    | Content management & moderation | 🔄 PENDING | LOW          |
+| Analytics Functions (2) | Data collection & reporting     | 🔄 PENDING | MEDIUM       |
+
+### 🔧 Standardization Features Applied
+
+- **Unified Imports:** Direct imports from specific files (no aggregators)
+- **7-Step Pattern Implementation:** CORS, auth, rate limiting, validation, logic, response, error handling
+- **Version Consistency:** Deno@0.168.0, Supabase@2.50.0
+- **Dependency Management:** Explicit import definitions
+- **Error Handling:** Structured error responses with proper HTTP status codes
+- **Rate Limiting:** Configurable rate limiting for user-facing endpoints
 
 ---
 

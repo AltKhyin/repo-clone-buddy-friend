@@ -1,12 +1,2 @@
-#!/usr/bin/env bash
-set -e
-
-# Run linting and formatting
-echo "🎨 Running lint-staged..."
-npx lint-staged
-
-# Run tests to ensure code quality (TDD enforcement)
-echo "🧪 Running tests to ensure code quality..."
-npm test
-
-echo "✅ All pre-commit checks passed!"
+#!/bin/bash
+exec "$(dirname "$0")/../scripts/pre-commit.sh"
