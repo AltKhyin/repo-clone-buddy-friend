@@ -53,18 +53,6 @@ export const usePublicationActionMutation = () => {
       // Invalidate content queue queries to refresh the list
       queryClient.invalidateQueries({ queryKey: ['admin', 'content-queue'] });
 
-      // Invalidate analytics if they exist
-      queryClient.invalidateQueries({ queryKey: ['admin', 'analytics'] });
-
-      // Invalidate Acervo data when reviews are published/archived
-      queryClient.invalidateQueries({ queryKey: ['acervo-data'] });
-
-      // Invalidate homepage feed when reviews are published
-      queryClient.invalidateQueries({ queryKey: ['homepage-feed'] });
-
-      // Invalidate review management queries
-      queryClient.invalidateQueries({ queryKey: ['review-management'] });
-
       // Update specific review in cache if possible
       queryClient.setQueryData(['admin', 'review', variables.reviewId], (oldData: any) =>
         oldData ? { ...oldData, ...data.review } : undefined

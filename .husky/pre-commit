@@ -1,4 +1,12 @@
 #!/usr/bin/env bash
-. "$(dirname -- "$0")/_/husky.sh"
+set -e
 
+# Run linting and formatting
+echo "🎨 Running lint-staged..."
 npx lint-staged
+
+# Run tests to ensure code quality (TDD enforcement)
+echo "🧪 Running tests to ensure code quality..."
+npm test
+
+echo "✅ All pre-commit checks passed!"

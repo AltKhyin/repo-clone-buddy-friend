@@ -377,9 +377,9 @@ describe('usePublicationActionMutation', () => {
         await result.current.mutateAsync(action);
       });
 
-      // Check that analytics queries were invalidated
+      // Check that content queue queries were invalidated
       expect(invalidateQueriesSpy).toHaveBeenCalledWith({
-        queryKey: ['admin', 'analytics'],
+        queryKey: ['admin', 'content-queue'],
       });
     });
 

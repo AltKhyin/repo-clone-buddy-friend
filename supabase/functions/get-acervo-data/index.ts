@@ -1,13 +1,16 @@
-
 // ABOUTME: Optimized endpoint for fetching Acervo page data with reviews and tags in minimal queries
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.0';
 import { corsHeaders, handleCorsPreflightRequest } from '../_shared/cors.ts';
-import { createSuccessResponse, createErrorResponse, authenticateUser } from '../_shared/api-helpers.ts';
+import {
+  createSuccessResponse,
+  createErrorResponse,
+  authenticateUser,
+} from '../_shared/api-helpers.ts';
 import { checkRateLimit, rateLimitHeaders, RateLimitError } from '../_shared/rate-limit.ts';
 
-serve(async (req) => {
+serve(async req => {
   // STEP 1: CORS Preflight Handling
   if (req.method === 'OPTIONS') {
     return handleCorsPreflightRequest();
@@ -74,14 +77,17 @@ serve(async (req) => {
       throw new Error('METHOD_NOT_ALLOWED: Only GET and POST methods are supported');
     }
 
-    console.log(`Starting Acervo data fetch for user: ${userId}, subscription: ${userSubscriptionTier}`);
+    console.log(
+      `Starting Acervo data fetch for user: ${userId}, subscription: ${userSubscriptionTier}`
+    );
 
     // STEP 5: Core Business Logic (Optimized - No N+1 queries)
-    
+
     // Query 1: Fetch all published reviews based on user's access level
-    let reviewsQuery = supabase
+    const reviewsQuery = supabase
       .from('Reviews')
-      .select(`
+      .select(
+        `
         id,
         title,
         description,
@@ -89,17 +95,12 @@ serve(async (req) => {
         published_at,
         view_count,
         access_level
-      `)
+      `
+      )
       .eq('status', 'published')
       .order('published_at', { ascending: false });
 
-    // Apply access level filtering
-    if (userId === 'anonymous') {
-      reviewsQuery = reviewsQuery.eq('access_level', 'public');
-    } else if (userSubscriptionTier === 'free') {
-      reviewsQuery = reviewsQuery.in('access_level', ['public', 'free_users_only']);
-    }
-    // Premium users can access all content
+    // NO ACCESS LEVEL FILTERING - All published reviews are visible to all users
 
     const { data: reviews, error: reviewsError } = await reviewsQuery;
     if (reviewsError) {
@@ -107,8 +108,7 @@ serve(async (req) => {
     }
 
     // Query 2: Fetch ALL tag relationships and tags in a single query
-    const { data: allReviewTags, error: reviewTagsError } = await supabase
-      .from('ReviewTags')
+    const { data: allReviewTags, error: reviewTagsError } = await supabase.from('ReviewTags')
       .select(`
         review_id,
         tag:Tags!inner(id, tag_name, parent_id)
@@ -159,45 +159,48 @@ serve(async (req) => {
         }
       }
       // Fix data contract: rename 'id' to 'review_id' to match frontend interface
-      return { 
-        ...review, 
+      return {
+        ...review,
         review_id: review.id, // Add expected field name
-        tags_json: tagsJson 
+        tags_json: tagsJson,
       };
     });
 
     // Apply client-side filtering if needed
     if (tagFilter) {
-      reviewsWithTags = reviewsWithTags.filter(review => 
-        Object.keys(review.tags_json).some(category => 
-          category.toLowerCase().includes(tagFilter.toLowerCase()) ||
-          review.tags_json[category].some(tag => 
-            tag.toLowerCase().includes(tagFilter.toLowerCase())
-          )
+      reviewsWithTags = reviewsWithTags.filter(review =>
+        Object.keys(review.tags_json).some(
+          category =>
+            category.toLowerCase().includes(tagFilter.toLowerCase()) ||
+            review.tags_json[category].some(tag =>
+              tag.toLowerCase().includes(tagFilter.toLowerCase())
+            )
         )
       );
     }
 
     if (searchQuery) {
       const searchLower = searchQuery.toLowerCase();
-      reviewsWithTags = reviewsWithTags.filter(review =>
-        review.title.toLowerCase().includes(searchLower) ||
-        (review.description && review.description.toLowerCase().includes(searchLower))
+      reviewsWithTags = reviewsWithTags.filter(
+        review =>
+          review.title.toLowerCase().includes(searchLower) ||
+          (review.description && review.description.toLowerCase().includes(searchLower))
       );
     }
 
-    console.log(`Fetched ${reviewsWithTags.length} reviews and ${allTags?.length || 0} tags in 3 optimized queries.`);
+    console.log(
+      `Fetched ${reviewsWithTags.length} reviews and ${allTags?.length || 0} tags in 3 optimized queries.`
+    );
 
     const result = {
       reviews: reviewsWithTags,
       tags: allTags || [],
       user_access_level: userSubscriptionTier,
-      total_reviews: reviewsWithTags.length
+      total_reviews: reviewsWithTags.length,
     };
 
     // STEP 6: Standardized Success Response
     return createSuccessResponse(result, rateLimitHeaders(rateLimitResult));
-
   } catch (error) {
     // STEP 7: Centralized Error Handling
     console.error('Error in get-acervo-data:', error);

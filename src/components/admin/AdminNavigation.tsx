@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { BarChart3, FileText, Users, Tags, Layout, TrendingUp } from 'lucide-react';
+import { BarChart3, FileText, Users, Tags, Layout, TrendingUp, Shield } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navigationItems = [
@@ -36,6 +36,11 @@ const navigationItems = [
     label: 'Analytics',
     href: '/admin/analytics',
     icon: TrendingUp,
+  },
+  {
+    label: 'Controle de Acesso',
+    href: '/admin/access-control',
+    icon: Shield,
   },
 ];
 

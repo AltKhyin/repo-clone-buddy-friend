@@ -1,6 +1,6 @@
 // ABOUTME: Main application router with all route definitions including admin protected routes
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
-import AppShell from '@/components/shell/AppShell';
+import ProtectedAppShell from '@/components/shell/ProtectedAppShell';
 import Index from '@/pages/Index';
 import CommunityPage from '@/pages/CommunityPage';
 import CreatePostPage from '@/pages/CreatePostPage';
@@ -14,8 +14,7 @@ import SettingsPage from '@/pages/SettingsPage';
 import SuggestionPage from '@/pages/SuggestionPage';
 import UnauthorizedPage from '@/pages/UnauthorizedPage';
 import LoginPage from '@/pages/LoginPage';
-import { AdminProtectedRoute } from '@/components/routes/AdminProtectedRoute';
-import { RoleProtectedRoute } from '@/components/routes/RoleProtectedRoute';
+import { UniversalRouteProtection } from '@/components/routes/UniversalRouteProtection';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { AdminDashboard } from '@/pages/AdminDashboard';
 import ContentManagement from '@/pages/ContentManagement';
@@ -23,13 +22,14 @@ import AdminUserManagement from '@/pages/AdminUserManagement';
 import AdminTagManagement from '@/pages/AdminTagManagement';
 import AdminLayoutManagement from '@/pages/AdminLayoutManagement';
 import AdminAnalytics from '@/pages/AdminAnalytics';
+import AdminAccessControl from '@/pages/AdminAccessControl';
 import EditorPage from '@/pages/EditorPage';
 import ReviewManagementPage from '@/pages/ReviewManagementPage';
 
 const router = createBrowserRouter([
   {
     path: '/',
-    element: <AppShell />,
+    element: <ProtectedAppShell />,
     errorElement: (
       <ErrorBoundary
         tier="root"
@@ -110,11 +110,7 @@ const router = createBrowserRouter([
       // Admin Routes - English maintained for internal tools
       {
         path: '/admin',
-        element: (
-          <AdminProtectedRoute requiredRoles={['admin', 'editor']}>
-            <AdminLayout />
-          </AdminProtectedRoute>
-        ),
+        element: <AdminLayout />,
         children: [
           {
             index: true,
@@ -141,6 +137,10 @@ const router = createBrowserRouter([
             element: <AdminAnalytics />,
           },
           {
+            path: 'access-control',
+            element: <AdminAccessControl />,
+          },
+          {
             path: 'review/:reviewId',
             element: <ReviewManagementPage />,
           },
@@ -150,11 +150,7 @@ const router = createBrowserRouter([
       // Editor Routes - Protected for admin and editor roles
       {
         path: '/editor/:reviewId',
-        element: (
-          <RoleProtectedRoute requiredRoles={['admin', 'editor']}>
-            <EditorPage />
-          </RoleProtectedRoute>
-        ),
+        element: <EditorPage />,
       },
     ],
   },

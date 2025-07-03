@@ -3,7 +3,9 @@
 import React, { useState, useMemo } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAcervoDataQuery } from '../../packages/hooks/useAcervoDataQuery';
+import { useContentAccessFilter } from '@/hooks/useContentAccessFilter';
 import { Skeleton } from '@/components/ui/skeleton';
+import { AccessUpgradePrompt } from '@/components/ui/AccessUpgradePrompt';
 import TagsPanel from '@/components/acervo/TagsPanel';
 import MobileTagsModal from '@/components/acervo/MobileTagsModal';
 import MasonryGrid from '@/components/acervo/MasonryGrid';
@@ -11,51 +13,71 @@ import SearchInput from '@/components/acervo/SearchInput';
 import { ClientSideSorter } from '@/components/acervo/ClientSideSorter';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
-const ArchivePageContent = () => {
+export const ArchivePageContent = () => {
   const isMobile = useIsMobile();
   const [selectedTags, setSelectedTags] = useState<number[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [sortBy, setSortBy] = useState<'recent' | 'popular' | 'alphabetical'>('recent');
-  
+
   const { data: acervoData, isLoading, error } = useAcervoDataQuery();
 
-  const handleTagSelect = useMemo(() => (tagId: number) => {
-    setSelectedTags(prev => {
-      if (prev.includes(tagId)) {
-        // Remove tag
-        return prev.filter(id => id !== tagId);
-      } else {
-        // Add tag
-        return [...prev, tagId];
-      }
-    });
-  }, []);
+  const handleTagSelect = useMemo(
+    () => (tagId: number) => {
+      setSelectedTags(prev => {
+        if (prev.includes(tagId)) {
+          // Remove tag
+          return prev.filter(id => id !== tagId);
+        } else {
+          // Add tag
+          return [...prev, tagId];
+        }
+      });
+    },
+    []
+  );
 
-  const handleSearchChange = useMemo(() => (query: string) => {
-    setSearchQuery(query);
-  }, []);
+  const handleSearchChange = useMemo(
+    () => (query: string) => {
+      setSearchQuery(query);
+    },
+    []
+  );
+
+  // Add content filtering based on user access level
+  const {
+    filteredContent: accessibleReviews,
+    totalFiltered,
+    statistics,
+    userAccessLevel,
+  } = useContentAccessFilter(acervoData?.reviews, {
+    accessLevelField: 'access_level',
+    defaultAccessLevel: 'public',
+  });
 
   // Memoize skeleton component to prevent re-renders
-  const loadingSkeleton = useMemo(() => (
-    <div className="min-h-screen">
-      <div className="p-6">
-        <Skeleton className="h-8 w-32 mb-6" />
-        <div className="flex gap-2 mb-6">
-          <Skeleton className="h-8 w-24" />
-          <Skeleton className="h-8 w-20" />
-          <Skeleton className="h-8 w-28" />
-          <Skeleton className="h-8 w-22" />
-        </div>
-        <div className="columns-1 md:columns-2 lg:columns-3 xl:columns-4 gap-4">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="mb-4 break-inside-avoid">
-              <Skeleton className="w-full h-48" />
-            </div>
-          ))}
+  const loadingSkeleton = useMemo(
+    () => (
+      <div className="min-h-screen" data-testid="loading-skeleton">
+        <div className="p-6">
+          <Skeleton className="h-8 w-32 mb-6" />
+          <div className="flex gap-2 mb-6">
+            <Skeleton className="h-8 w-24" />
+            <Skeleton className="h-8 w-20" />
+            <Skeleton className="h-8 w-28" />
+            <Skeleton className="h-8 w-22" />
+          </div>
+          <div className="columns-1 md:columns-2 lg:columns-3 xl:columns-4 gap-4">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="mb-4 break-inside-avoid">
+                <Skeleton className="w-full h-48" />
+              </div>
+            ))}
+          </div>
         </div>
       </div>
-    </div>
-  ), []);
+    ),
+    []
+  );
 
   if (isLoading) {
     return (
@@ -80,14 +102,16 @@ const ArchivePageContent = () => {
     );
   }
 
+  if (isLoading) {
+    return loadingSkeleton;
+  }
+
   if (error) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-bold text-destructive mb-2">Erro ao carregar Acervo</h2>
-          <p className="text-muted-foreground">
-            {error.message || 'Ocorreu um erro inesperado'}
-          </p>
+          <p className="text-muted-foreground">{error.message || 'Ocorreu um erro inesperado'}</p>
         </div>
       </div>
     );
@@ -98,9 +122,7 @@ const ArchivePageContent = () => {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-bold mb-2">Nenhum dado encontrado</h2>
-          <p className="text-muted-foreground">
-            Não foi possível carregar o conteúdo do Acervo
-          </p>
+          <p className="text-muted-foreground">Não foi possível carregar o conteúdo do Acervo</p>
         </div>
       </div>
     );
@@ -112,16 +134,13 @@ const ArchivePageContent = () => {
         {/* Header Section */}
         <div className="mb-6">
           <h1 className="text-3xl font-bold mb-4">Acervo</h1>
-          
+
           {/* Search Bar */}
           <div className="mb-4">
-            <SearchInput 
-              searchQuery={searchQuery}
-              onSearchChange={handleSearchChange}
-            />
+            <SearchInput searchQuery={searchQuery} onSearchChange={handleSearchChange} />
           </div>
         </div>
-        
+
         {/* Desktop: Horizontal Tags Panel */}
         {!isMobile && (
           <TagsPanel
@@ -130,7 +149,7 @@ const ArchivePageContent = () => {
             onTagSelect={handleTagSelect}
           />
         )}
-        
+
         {/* Mobile: Tags Filter Button */}
         {isMobile && (
           <MobileTagsModal
@@ -139,10 +158,27 @@ const ArchivePageContent = () => {
             onTagSelect={handleTagSelect}
           />
         )}
-        
+
+        {/* Access Control Upgrade Prompt */}
+        {totalFiltered > 0 && (
+          <AccessUpgradePrompt
+            filteredCount={totalFiltered}
+            statistics={statistics}
+            userAccessLevel={userAccessLevel}
+            onUpgradeClick={() => {
+              // Navigate to pricing page
+              window.location.href = '/pricing';
+            }}
+            onLoginClick={() => {
+              // Navigate to login page
+              window.location.href = '/login';
+            }}
+          />
+        )}
+
         {/* Reviews Grid with Client-Side Sorting and Search */}
-        <ClientSideSorter 
-          reviews={acervoData.reviews} 
+        <ClientSideSorter
+          reviews={accessibleReviews}
           tags={acervoData.tags}
           selectedTags={selectedTags}
           searchQuery={searchQuery}
@@ -154,22 +190,20 @@ const ArchivePageContent = () => {
                 <div className="text-center py-12">
                   <h3 className="text-xl font-semibold mb-2">Nenhum review encontrado</h3>
                   <p className="text-muted-foreground">
-                    {searchQuery.trim() 
+                    {searchQuery.trim()
                       ? `Tente uma busca diferente ou ajuste os filtros selecionados`
-                      : `Tente ajustar os filtros selecionados`
-                    }
+                      : `Tente ajustar os filtros selecionados`}
                   </p>
                 </div>
               ) : (
                 <MasonryGrid reviews={sortedReviews} />
               )}
-              
+
               {/* Results summary */}
               <div className="text-center py-4 text-sm text-muted-foreground">
-                {searchQuery.trim() || selectedTags.length > 0 
+                {searchQuery.trim() || selectedTags.length > 0
                   ? `${sortedReviews.length} reviews encontrados`
-                  : `${sortedReviews.length} reviews no total`
-                }
+                  : `${sortedReviews.length} reviews no total`}
               </div>
             </>
           )}
@@ -181,7 +215,7 @@ const ArchivePageContent = () => {
 
 export default function ArchivePage() {
   return (
-    <ErrorBoundary 
+    <ErrorBoundary
       tier="page"
       context="página do acervo"
       showHomeButton={true}
