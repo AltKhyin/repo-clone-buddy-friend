@@ -136,7 +136,7 @@ describe('ImageBlockInspector', () => {
 
       render(<ImageBlockInspector nodeId="image-1" />);
 
-      const urlInput = screen.getByLabelText('Image URL') as HTMLInputElement;
+      const urlInput = screen.getByLabelText('Or paste image URL') as HTMLInputElement;
       const altInput = screen.getByLabelText('Alt Text (Accessibility)') as HTMLInputElement;
       const captionInput = screen.getByLabelText('Caption (Optional)') as HTMLTextAreaElement;
 
@@ -153,8 +153,7 @@ describe('ImageBlockInspector', () => {
 
       render(<ImageBlockInspector nodeId="image-1" />);
 
-      // TODO: Fix test - Image URL label may have changed
-      // const urlInput = screen.getByLabelText('Image URL');
+      const urlInput = screen.getByLabelText('Or paste image URL');
       fireEvent.change(urlInput, { target: { value: 'test.jpg' } });
 
       // Check that updateNode was called with the correct data
@@ -422,7 +421,7 @@ describe('ImageBlockInspector', () => {
       render(<ImageBlockInspector nodeId="image-1" />);
 
       // Check for essential accessibility labels
-      expect(screen.getByLabelText('Image URL')).toBeInTheDocument();
+      expect(screen.getByLabelText('Or paste image URL')).toBeInTheDocument();
       expect(screen.getByLabelText('Alt Text (Accessibility)')).toBeInTheDocument();
       expect(screen.getByLabelText('Width')).toBeInTheDocument();
       expect(screen.getByLabelText('Height')).toBeInTheDocument();

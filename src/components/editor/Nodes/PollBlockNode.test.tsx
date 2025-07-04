@@ -27,15 +27,14 @@ const createMockStore = (overrides = {}) => ({
 });
 
 const createMockPollData = (overrides = {}) => ({
-  question: 'What is your favorite color?',
+  question: 'What is your opinion?',
   options: [
-    { id: 'option-1', text: 'Red', votes: 5 },
-    { id: 'option-2', text: 'Blue', votes: 3 },
-    { id: 'option-3', text: 'Green', votes: 2 },
+    { id: 'opt-1-123', text: 'Option 1', votes: 5 },
+    { id: 'opt-2-456', text: 'Option 2', votes: 3 },
   ],
   allowMultiple: false,
   showResults: true,
-  totalVotes: 10,
+  totalVotes: 8,
   ...overrides,
 });
 
@@ -59,7 +58,7 @@ describe('PollBlockNode', () => {
         </ReactFlowWrapper>
       );
 
-      expect(screen.getByText('What is your favorite color?')).toBeInTheDocument();
+      expect(screen.getByText('What is your opinion?')).toBeInTheDocument();
       expect(screen.getByText('Poll')).toBeInTheDocument();
     });
 
@@ -76,9 +75,8 @@ describe('PollBlockNode', () => {
         </ReactFlowWrapper>
       );
 
-      expect(screen.getByText('Red')).toBeInTheDocument();
-      expect(screen.getByText('Blue')).toBeInTheDocument();
-      expect(screen.getByText('Green')).toBeInTheDocument();
+      expect(screen.getByText('Option 1')).toBeInTheDocument();
+      expect(screen.getByText('Option 2')).toBeInTheDocument();
     });
 
     it('should show total vote count', () => {
@@ -94,7 +92,7 @@ describe('PollBlockNode', () => {
         </ReactFlowWrapper>
       );
 
-      expect(screen.getByText('10 votes')).toBeInTheDocument();
+      expect(screen.getByText('8 votes')).toBeInTheDocument();
     });
 
     it('should show results when showResults is true and user has voted', async () => {

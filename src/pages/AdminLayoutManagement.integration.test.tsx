@@ -2,7 +2,7 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { MockProviders } from '@/test-utils/mock-providers';
+import { MockAllProviders } from '@/test-utils/mock-providers';
 import AdminLayoutManagement from './AdminLayoutManagement';
 
 describe('AdminLayoutManagement - Layout Integration Tests', () => {
@@ -14,18 +14,18 @@ describe('AdminLayoutManagement - Layout Integration Tests', () => {
     it('should render without errors', () => {
       expect(() => {
         render(
-          <MockProviders>
+          <MockAllProviders>
             <AdminLayoutManagement />
-          </MockProviders>
+          </MockAllProviders>
         );
       }).not.toThrow();
     });
 
     it('should have main element indicating StandardLayout usage', () => {
       render(
-        <MockProviders>
+        <MockAllProviders>
           <AdminLayoutManagement />
-        </MockProviders>
+        </MockAllProviders>
       );
 
       const main = screen.getByRole('main');
@@ -34,9 +34,9 @@ describe('AdminLayoutManagement - Layout Integration Tests', () => {
 
     it('should have proper page heading structure', () => {
       render(
-        <MockProviders>
+        <MockAllProviders>
           <AdminLayoutManagement />
-        </MockProviders>
+        </MockAllProviders>
       );
 
       const heading = screen.getByText('Gestão de Layout');
@@ -45,9 +45,9 @@ describe('AdminLayoutManagement - Layout Integration Tests', () => {
 
     it('should not have custom container classes that bypass layout system', () => {
       render(
-        <MockProviders>
+        <MockAllProviders>
           <AdminLayoutManagement />
-        </MockProviders>
+        </MockAllProviders>
       );
 
       // Should NOT have old problematic classes
@@ -60,9 +60,9 @@ describe('AdminLayoutManagement - Layout Integration Tests', () => {
 
     it('should have ErrorBoundary integration', () => {
       render(
-        <MockProviders>
+        <MockAllProviders>
           <AdminLayoutManagement />
-        </MockProviders>
+        </MockAllProviders>
       );
 
       // Component should render successfully with ErrorBoundary
@@ -74,9 +74,9 @@ describe('AdminLayoutManagement - Layout Integration Tests', () => {
   describe('Layout Architecture Compliance', () => {
     it('should follow the admin page layout pattern with centered constraint', () => {
       render(
-        <MockProviders>
+        <MockAllProviders>
           <AdminLayoutManagement />
-        </MockProviders>
+        </MockAllProviders>
       );
 
       // Should have content that's properly contained
@@ -90,9 +90,9 @@ describe('AdminLayoutManagement - Layout Integration Tests', () => {
 
     it('should maintain semantic HTML structure', () => {
       render(
-        <MockProviders>
+        <MockAllProviders>
           <AdminLayoutManagement />
-        </MockProviders>
+        </MockAllProviders>
       );
 
       // Should have proper heading hierarchy
