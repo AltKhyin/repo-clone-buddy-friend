@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { FileText, Users, MessageSquare, TrendingUp } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { StandardLayout } from '@/components/layout/StandardLayout';
 
 const AdminDashboardContent = () => {
   const { user } = useAuthStore();
@@ -45,7 +46,7 @@ const AdminDashboardContent = () => {
   ];
 
   return (
-    <div className="space-y-8">
+    <StandardLayout type="wide" contentClassName="space-y-8">
       {/* Welcome Header - Enhanced typography hierarchy */}
       <div className="space-y-2">
         <h2 className="text-3xl font-bold text-foreground font-serif">
@@ -152,7 +153,7 @@ const AdminDashboardContent = () => {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </StandardLayout>
   );
 };
 

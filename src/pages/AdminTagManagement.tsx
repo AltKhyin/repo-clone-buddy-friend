@@ -11,6 +11,7 @@ import { useTagAnalyticsQuery } from '../../packages/hooks/useTagManagementQuery
 import { TagHierarchy } from '@/components/admin/TagManagement/TagHierarchy';
 import { TagAnalytics } from '@/components/admin/TagManagement/TagAnalytics';
 import { TagCleanup } from '@/components/admin/TagManagement/TagCleanup';
+import { StandardLayout } from '@/components/layout/StandardLayout';
 
 const AdminTagManagement = () => {
   const { user } = useAuthStore();
@@ -25,7 +26,7 @@ const AdminTagManagement = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <StandardLayout type="wide" contentClassName="space-y-6">
       {/* Header Section - Enhanced typography hierarchy */}
       <div className="mb-6 space-y-2">
         <h2 className="text-3xl font-bold text-foreground mb-2 font-serif">Gestão de Tags</h2>
@@ -171,7 +172,7 @@ const AdminTagManagement = () => {
           </Card>
         </TabsContent>
       </Tabs>
-    </div>
+    </StandardLayout>
   );
 };
 

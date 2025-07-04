@@ -213,7 +213,7 @@ export const PostCard = ({ post }: PostCardProps) => {
             <img 
               src={post.image_url} 
               alt="Post image" 
-              className="max-h-80 w-auto rounded border"
+              className="w-full aspect-video object-cover rounded border"
               loading="lazy"
             />
           </div>
@@ -227,7 +227,7 @@ export const PostCard = ({ post }: PostCardProps) => {
                 <div className="relative">
                   <iframe
                     src={processedUrl}
-                    className="w-full aspect-video max-h-80 rounded border"
+                    className="w-full aspect-video rounded border"
                     frameBorder="0"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     allowFullScreen
@@ -259,7 +259,7 @@ export const PostCard = ({ post }: PostCardProps) => {
                 <video 
                   src={processedUrl} 
                   controls 
-                  className="max-h-80 w-auto rounded border"
+                  className="w-full aspect-video object-cover rounded border"
                   preload="metadata"
                   crossOrigin="anonymous"
                   onError={(e) => {

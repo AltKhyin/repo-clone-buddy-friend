@@ -32,11 +32,9 @@ const DesktopShell = ({ children }: DesktopShellProps) => {
           isCollapsed ? 'ml-20' : 'ml-60' // Match sidebar widths exactly
         )}
       >
-        {/* Scrollable content area with overflow constraints */}
-        <main className="min-h-screen overflow-y-auto overflow-x-hidden"> {/* FIXED: Added overflow-x-hidden */}
-          <div className="p-4 md:p-6 max-w-full"> {/* FIXED: Added max-w-full constraint */}
-            {children}
-          </div>
+        {/* Content area - full space provision without content constraints */}
+        <main className="w-full h-full min-h-screen overflow-y-auto overflow-x-hidden">
+          {children}
         </main>
       </div>
     </div>

@@ -229,7 +229,7 @@ export const PostDetailCard = ({ post }: PostDetailCardProps) => {
             <img 
               src={post.image_url} 
               alt="Post image" 
-              className="rounded-lg max-w-full h-auto border"
+              className="w-full aspect-video object-cover rounded-lg border"
               loading="lazy"
             />
           </div>
@@ -280,7 +280,7 @@ export const PostDetailCard = ({ post }: PostDetailCardProps) => {
                 <video 
                   src={processedUrl} 
                   controls 
-                  className="rounded-lg max-w-full h-auto border"
+                  className="w-full aspect-video object-cover rounded-lg border"
                   preload="metadata"
                   crossOrigin="anonymous"
                   onError={(e) => {

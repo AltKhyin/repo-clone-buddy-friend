@@ -12,6 +12,7 @@ import MasonryGrid from '@/components/acervo/MasonryGrid';
 import SearchInput from '@/components/acervo/SearchInput';
 import { ClientSideSorter } from '@/components/acervo/ClientSideSorter';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { StandardLayout } from '@/components/layout/StandardLayout';
 
 export const ArchivePageContent = () => {
   const isMobile = useIsMobile();
@@ -81,24 +82,22 @@ export const ArchivePageContent = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen">
-        <div className="p-6">
-          <Skeleton className="h-8 w-32 mb-6" />
-          <div className="flex gap-2 mb-6">
-            <Skeleton className="h-8 w-24" />
-            <Skeleton className="h-8 w-20" />
-            <Skeleton className="h-8 w-28" />
-            <Skeleton className="h-8 w-22" />
-          </div>
-          <div className="columns-1 md:columns-2 lg:columns-3 xl:columns-4 gap-4">
-            {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="mb-4 break-inside-avoid">
-                <Skeleton className="w-full h-48" />
-              </div>
-            ))}
-          </div>
+      <StandardLayout type="content-only" contentClassName="p-6">
+        <Skeleton className="h-8 w-32 mb-6" />
+        <div className="flex gap-2 mb-6">
+          <Skeleton className="h-8 w-24" />
+          <Skeleton className="h-8 w-20" />
+          <Skeleton className="h-8 w-28" />
+          <Skeleton className="h-8 w-22" />
         </div>
-      </div>
+        <div className="columns-1 md:columns-2 lg:columns-3 xl:columns-4 gap-4">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="mb-4 break-inside-avoid">
+              <Skeleton className="w-full h-48" />
+            </div>
+          ))}
+        </div>
+      </StandardLayout>
     );
   }
 
@@ -108,29 +107,28 @@ export const ArchivePageContent = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
+      <StandardLayout type="centered" contentClassName="text-center">
+        <div>
           <h2 className="text-2xl font-bold text-destructive mb-2">Erro ao carregar Acervo</h2>
           <p className="text-muted-foreground">{error.message || 'Ocorreu um erro inesperado'}</p>
         </div>
-      </div>
+      </StandardLayout>
     );
   }
 
   if (!acervoData) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
+      <StandardLayout type="centered" contentClassName="text-center">
+        <div>
           <h2 className="text-2xl font-bold mb-2">Nenhum dado encontrado</h2>
           <p className="text-muted-foreground">Não foi possível carregar o conteúdo do Acervo</p>
         </div>
-      </div>
+      </StandardLayout>
     );
   }
 
   return (
-    <div className="min-h-screen">
-      <div className="p-6">
+    <StandardLayout type="content-only" contentClassName="p-6">
         {/* Header Section */}
         <div className="mb-6">
           <h1 className="text-3xl font-bold mb-4">Acervo</h1>
@@ -208,8 +206,7 @@ export const ArchivePageContent = () => {
             </>
           )}
         </ClientSideSorter>
-      </div>
-    </div>
+    </StandardLayout>
   );
 };
 

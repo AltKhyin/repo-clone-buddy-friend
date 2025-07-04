@@ -1,4 +1,4 @@
-// ABOUTME: Admin layout management page for visual system and design configuration
+// ABOUTME: Admin layout management page for visual system and design configuration with centered layout constraint
 
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Layout, Palette, Settings, Monitor, Smartphone, Tablet } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
+import { StandardLayout } from '@/components/layout/StandardLayout';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 const AdminLayoutManagement: React.FC = () => {
   const { user } = useAuthStore();
@@ -44,8 +46,14 @@ const AdminLayoutManagement: React.FC = () => {
   ];
 
   return (
-    <>
-      <div className="space-y-6">
+    <ErrorBoundary
+      tier="feature"
+      context="gestão de layout"
+      showDetails={process.env.NODE_ENV === 'development'}
+      showHomeButton={true}
+      showBackButton={true}
+    >
+      <StandardLayout type="centered" contentClassName="space-y-6">
         <div className="mb-6">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
             Gestão de Layout
@@ -190,8 +198,8 @@ const AdminLayoutManagement: React.FC = () => {
             </div>
           </CardContent>
         </Card>
-      </div>
-    </>
+      </StandardLayout>
+    </ErrorBoundary>
   );
 };
 

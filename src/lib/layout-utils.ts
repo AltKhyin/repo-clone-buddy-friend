@@ -9,6 +9,7 @@ export const LAYOUT_CONSTANTS = {
   MAIN_CONTENT_MAX_WIDTH: 756, // px - Main content area max width
   SIDEBAR_MAX_WIDTH: 316,       // px - Sidebar max width  
   SIDEBAR_MIN_WIDTH: 280,       // px - Sidebar min width
+  TOTAL_CONTENT_WIDTH: 1200,    // px - Total content width (756 + 316 + gaps)
   
   // Responsive breakpoints (aligned with useIsMobile hook)
   MOBILE_BREAKPOINT: 768,       // px - Mobile/desktop breakpoint
@@ -51,6 +52,7 @@ export const layoutClasses = {
     base: "w-full min-h-screen bg-background",
     grid: "grid gap-6 lg:gap-8",
     responsive: "px-4 py-6 lg:px-8",
+    centering: "flex justify-center", // NEW: Centering container
   },
   
   // Content grid patterns (Reddit-inspired)
@@ -58,22 +60,22 @@ export const layoutClasses = {
     // Single column (mobile-first)
     singleColumn: "grid-cols-1",
     
-    // Two column with fixed sidebar (Reddit pattern)
+    // Two column with fixed sidebar (Reddit pattern) - ENHANCED: Fixed dimensions
     twoColumnFixed: `
       grid-cols-1 
-      lg:grid-cols-[minmax(0,${LAYOUT_CONSTANTS.MAIN_CONTENT_MAX_WIDTH}px)_minmax(${LAYOUT_CONSTANTS.SIDEBAR_MIN_WIDTH}px,${LAYOUT_CONSTANTS.SIDEBAR_MAX_WIDTH}px)]
+      lg:grid-cols-[756px_316px]
     `,
     
-    // Two column with flexible sidebar
+    // Two column with flexible sidebar - ENHANCED: Fixed main, auto sidebar
     twoColumnFlex: `
       grid-cols-1 
-      lg:grid-cols-[minmax(0,${LAYOUT_CONSTANTS.MAIN_CONTENT_MAX_WIDTH}px)_auto]
+      lg:grid-cols-[756px_auto]
     `,
     
-    // Centered content (articles, forms)
+    // Centered content (articles, forms) - ENHANCED: With centering support
     centered: "grid-cols-1 max-w-4xl mx-auto",
     
-    // Wide content (dashboards)
+    // Wide content (dashboards) - ENHANCED: With centering support
     wide: "grid-cols-1 max-w-6xl mx-auto",
     
     // Admin content
@@ -139,7 +141,44 @@ export const layoutClasses = {
   }
 };
 
-// Layout pattern generators
+// ENHANCED: Centering class generator for shell content
+export const generateCenteringClasses = (
+  maxWidth: number = LAYOUT_CONSTANTS.TOTAL_CONTENT_WIDTH,
+  className?: string
+): string => {
+  return twMerge(clsx(
+    'w-full',
+    'flex',
+    'justify-center',
+    `max-w-[${maxWidth}px]`,
+    'mx-auto',
+    className
+  ));
+};
+
+// ENHANCED: Content grid generator for two-column layouts
+export const generateContentGrid = (
+  gridType: 'single' | 'two-column-fixed' | 'two-column-flex',
+  className?: string
+): string => {
+  const baseClasses = ['w-full', 'grid'];
+  
+  switch (gridType) {
+    case 'single':
+      baseClasses.push('grid-cols-1');
+      break;
+    case 'two-column-fixed':
+      baseClasses.push('grid-cols-1', 'lg:grid-cols-[756px_316px]', 'gap-6', 'lg:gap-8');
+      break;
+    case 'two-column-flex':
+      baseClasses.push('grid-cols-1', 'lg:grid-cols-[756px_auto]', 'gap-6', 'lg:gap-8');
+      break;
+  }
+  
+  return twMerge(clsx(baseClasses, className));
+};
+
+// Layout pattern generators - ENHANCED: With centering support
 export const generateLayoutClasses = (
   type: LayoutType, 
   sidebarType: SidebarType = 'none',
@@ -151,11 +190,14 @@ export const generateLayoutClasses = (
     layoutClasses.antiCompression.preventOverflow,
   ];
   
-  // Add grid classes based on layout type
+  // Add grid classes based on layout type - ENHANCED: With centering
   switch (type) {
     case 'standard':
       baseClasses.push(
         layoutClasses.container.grid,
+        'justify-center', // NEW: Centering support
+        `lg:max-w-[${LAYOUT_CONSTANTS.TOTAL_CONTENT_WIDTH}px]`, // NEW: Total width constraint
+        'mx-auto', // NEW: Center the constrained content
         sidebarType === 'fixed' 
           ? layoutClasses.contentGrid.twoColumnFixed
           : sidebarType === 'flexible'
@@ -167,6 +209,7 @@ export const generateLayoutClasses = (
     case 'content-only':
       baseClasses.push(
         layoutClasses.container.grid,
+        'justify-center', // NEW: Centering support
         layoutClasses.contentGrid.singleColumn
       );
       break;
@@ -174,6 +217,7 @@ export const generateLayoutClasses = (
     case 'centered':
       baseClasses.push(
         layoutClasses.container.grid,
+        'justify-center', // NEW: Centering support
         layoutClasses.contentGrid.centered
       );
       break;
@@ -181,12 +225,16 @@ export const generateLayoutClasses = (
     case 'wide':
       baseClasses.push(
         layoutClasses.container.grid,
+        'justify-center', // NEW: Centering support
         layoutClasses.contentGrid.wide
       );
       break;
       
     case 'admin':
-      baseClasses.push(layoutClasses.contentGrid.admin);
+      baseClasses.push(
+        'justify-center', // NEW: Centering support
+        layoutClasses.contentGrid.admin
+      );
       break;
       
     case 'full-width':
@@ -225,37 +273,67 @@ export const generateContentClasses = (
   return twMerge(clsx(baseClasses, className));
 };
 
-// Responsive utility class generator
+// Responsive utility class generator - FIXED: Proper mapping
 export const generateResponsiveClasses = (
   pattern: 'desktop-only' | 'mobile-only' | 'padding' | 'gap',
   className?: string
 ): string => {
-  const baseClass = layoutClasses.responsive[
-    pattern.replace('-', '') as keyof typeof layoutClasses.responsive
-  ];
+  let baseClass: string;
+  
+  switch (pattern) {
+    case 'desktop-only':
+      baseClass = layoutClasses.responsive.desktopOnly;
+      break;
+    case 'mobile-only':
+      baseClass = layoutClasses.responsive.mobileOnly;
+      break;
+    case 'padding':
+      baseClass = layoutClasses.responsive.padding;
+      break;
+    case 'gap':
+      baseClass = layoutClasses.responsive.gap;
+      break;
+    default:
+      baseClass = '';
+  }
   
   return twMerge(clsx(baseClass, className));
 };
 
-// Anti-compression utility generator
+// Anti-compression utility generator - FIXED: Proper mapping
 export const generateAntiCompressionClasses = (
   pattern: 'prevent-overflow' | 'flex-content' | 'fixed-content' | 'grid-item',
   className?: string
 ): string => {
-  const baseClass = layoutClasses.antiCompression[
-    pattern.replace('-', '') as keyof typeof layoutClasses.antiCompression
-  ];
+  let baseClass: string;
+  
+  switch (pattern) {
+    case 'prevent-overflow':
+      baseClass = layoutClasses.antiCompression.preventOverflow;
+      break;
+    case 'flex-content':
+      baseClass = layoutClasses.antiCompression.flexContent;
+      break;
+    case 'fixed-content':
+      baseClass = layoutClasses.antiCompression.fixedContent;
+      break;
+    case 'grid-item':
+      baseClass = layoutClasses.antiCompression.gridItem;
+      break;
+    default:
+      baseClass = '';
+  }
   
   return twMerge(clsx(baseClass, className));
 };
 
-// Utility function to calculate responsive grid columns
+// Utility function to calculate responsive grid columns - ENHANCED: Fixed approach
 export const calculateGridCols = (
   mainContentWidth: number = LAYOUT_CONSTANTS.MAIN_CONTENT_MAX_WIDTH,
   sidebarWidth: number = LAYOUT_CONSTANTS.SIDEBAR_MAX_WIDTH,
   gap: number = LAYOUT_CONSTANTS.GRID_GAP.large
 ): string => {
-  return `minmax(0,${mainContentWidth}px) minmax(${LAYOUT_CONSTANTS.SIDEBAR_MIN_WIDTH}px,${sidebarWidth}px)`;
+  return `${mainContentWidth}px ${sidebarWidth}px`;
 };
 
 // Breakpoint utilities aligned with existing useIsMobile hook
@@ -271,7 +349,7 @@ export const breakpoints = {
   }
 };
 
-// Export everything for easy consumption
+// Export everything for easy consumption - ENHANCED: With new functions
 export default {
   LAYOUT_CONSTANTS,
   layoutClasses,
@@ -279,6 +357,8 @@ export default {
   generateContentClasses,
   generateResponsiveClasses,
   generateAntiCompressionClasses,
+  generateCenteringClasses, // NEW
+  generateContentGrid,      // NEW
   calculateGridCols,
   breakpoints,
 };

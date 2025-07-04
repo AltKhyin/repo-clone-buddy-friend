@@ -79,7 +79,7 @@ export const ImageUploadZone = ({
             <img
               src={previewSrc || ''}
               alt="Preview"
-              className="w-full h-48 object-cover rounded-md"
+              className="w-full aspect-video object-cover rounded-md"
             />
             <Button
               type="button"

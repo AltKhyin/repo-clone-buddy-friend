@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { StandardLayout } from '@/components/layout/StandardLayout';
 import {
   Select,
   SelectContent,
@@ -91,7 +92,7 @@ const AdminAnalytics: React.FC = () => {
       showHomeButton={false}
       showBackButton={false}
     >
-      <div className="space-y-6">
+      <StandardLayout type="wide" contentClassName="space-y-6">
         {/* Header Section - Enhanced typography hierarchy */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div className="space-y-2">
@@ -263,7 +264,7 @@ const AdminAnalytics: React.FC = () => {
             </div>
           </CardContent>
         </Card>
-      </div>
+      </StandardLayout>
     </ErrorBoundary>
   );
 };
