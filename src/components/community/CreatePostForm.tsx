@@ -17,6 +17,7 @@ import { PollCreator } from './PollCreator';
 import { useCreateCommunityPostMutation } from '../../../packages/hooks/useCreateCommunityPostMutation';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuthStore } from '@/store/auth';
+import { processVideoUrl, isValidVideoUrl } from '@/lib/video-utils';
 
 interface CreatePostFormProps {
   onPostCreated?: (postId: number) => void;
@@ -84,6 +85,12 @@ export const CreatePostForm = ({ onPostCreated }: CreatePostFormProps) => {
     
     if (postType === 'video' && !videoUrl && !videoFile) {
       toast.error('Adicione um URL de vídeo ou faça upload de um arquivo para posts do tipo vídeo');
+      return;
+    }
+
+    // Validate video URL if provided
+    if (postType === 'video' && videoUrl && !isValidVideoUrl(videoUrl)) {
+      toast.error('URL de vídeo inválido. Use YouTube, Vimeo ou links diretos para arquivos de vídeo');
       return;
     }
     
@@ -180,13 +187,16 @@ export const CreatePostForm = ({ onPostCreated }: CreatePostFormProps) => {
       }
     }
 
+    // Process video URL to make it embeddable
+    const finalVideoUrl = uploadedVideoUrl || (videoUrl ? processVideoUrl(videoUrl) : null);
+
     const payload = {
       title: title.trim() || undefined,
       content: content.trim(),
       category,
       post_type: postType,
       ...(postType === 'image' && uploadedImageUrl && { image_url: uploadedImageUrl }),
-      ...(postType === 'video' && (uploadedVideoUrl || videoUrl) && { video_url: uploadedVideoUrl || videoUrl }),
+      ...(postType === 'video' && finalVideoUrl && { video_url: finalVideoUrl }),
       ...(postType === 'poll' && transformedPollData && { poll_data: transformedPollData })
     };
 

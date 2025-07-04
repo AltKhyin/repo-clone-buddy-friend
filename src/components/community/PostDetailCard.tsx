@@ -7,7 +7,7 @@ import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { formatDistanceToNow, isValid, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Pin, Lock, ChevronUp, ChevronDown, Bookmark, BookmarkCheck, Share2, MessageCircle } from 'lucide-react';
+import { Pin, Lock, ChevronUp, ChevronDown, Bookmark, BookmarkCheck, MessageCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '../../lib/utils';
 import type { CommunityPost } from '@/types';
@@ -16,6 +16,7 @@ import { PollDisplay } from './PollDisplay';
 import { useCastVoteMutation } from '../../../packages/hooks/useCastVoteMutation';
 import { useSavePostMutation } from '../../../packages/hooks/useSavePostMutation';
 import { useAuthStore } from '../../store/auth';
+import { processVideoUrl, getVideoType } from '../../lib/video-utils';
 
 interface PostDetailCardProps {
   post: CommunityPost;
@@ -129,22 +130,6 @@ export const PostDetailCard = ({ post }: PostDetailCardProps) => {
     }
   };
 
-  const handleShare = async () => {
-    try {
-      await navigator.share({
-        title: post.title || 'Post da Comunidade EVIDENS',
-        text: post.content ? post.content.substring(0, 200) + '...' : '',
-        url: window.location.href
-      });
-    } catch (error) {
-      try {
-        await navigator.clipboard.writeText(window.location.href);
-        toast.success('Link copiado para a área de transferência');
-      } catch (clipboardError) {
-        toast.error('Erro ao compartilhar post');
-      }
-    }
-  };
 
   return (
     <div className={cn(
@@ -252,27 +237,74 @@ export const PostDetailCard = ({ post }: PostDetailCardProps) => {
 
         {post.post_type === 'video' && post.video_url && (
           <div className="mb-4">
-            {post.video_url.includes('youtube.com/embed') || post.video_url.includes('player.vimeo.com') ? (
-              <iframe
-                src={post.video_url}
-                className="w-full aspect-video rounded-lg border"
-                frameBorder="0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-                title="Video content"
-              />
-            ) : (
-              <video 
-                src={post.video_url} 
-                controls 
-                className="rounded-lg max-w-full h-auto border"
-                preload="metadata"
-                onError={(e) => {
-                  console.error('Video load error:', e);
-                  (e.target as HTMLVideoElement).style.display = 'none';
-                }}
-              />
-            )}
+            {(() => {
+              const processedUrl = processVideoUrl(post.video_url);
+              const videoType = getVideoType(processedUrl);
+              
+              return videoType === 'youtube' || videoType === 'vimeo' ? (
+                <div className="relative">
+                  <iframe
+                    src={processedUrl}
+                    className="w-full aspect-video rounded-lg border"
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    title="Video content"
+                    loading="lazy"
+                    sandbox="allow-scripts allow-same-origin allow-presentation allow-forms"
+                    onError={(e) => {
+                      console.error('Embed video load error:', e);
+                      const iframe = e.target as HTMLIFrameElement;
+                      const container = iframe.parentElement;
+                      if (container) {
+                        const originalUrl = videoType === 'youtube' 
+                          ? processedUrl.replace('/embed/', '/watch?v=')
+                          : processedUrl.replace('player.vimeo.com/video/', 'vimeo.com/');
+                        container.innerHTML = `
+                          <div class="flex items-center justify-center h-64 bg-muted rounded-lg border">
+                            <div class="text-center text-muted-foreground">
+                              <p class="mb-2 text-lg">Video não pode ser carregado</p>
+                              <p class="mb-4 text-sm">Pode estar bloqueado pelo navegador ou não disponível para incorporação</p>
+                              <a href="${originalUrl}" target="_blank" rel="noopener noreferrer" 
+                                 class="inline-flex items-center px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors">
+                                Assistir no ${videoType === 'youtube' ? 'YouTube' : 'Vimeo'}
+                              </a>
+                            </div>
+                          </div>
+                        `;
+                      }
+                    }}
+                  />
+                </div>
+              ) : (
+                <video 
+                  src={processedUrl} 
+                  controls 
+                  className="rounded-lg max-w-full h-auto border"
+                  preload="metadata"
+                  crossOrigin="anonymous"
+                  onError={(e) => {
+                    console.error('Direct video load error:', e);
+                    const video = e.target as HTMLVideoElement;
+                    const container = video.parentElement;
+                    if (container) {
+                      container.innerHTML = `
+                        <div class="flex items-center justify-center h-64 bg-muted rounded-lg border">
+                          <div class="text-center text-muted-foreground">
+                            <p class="mb-2 text-lg">Vídeo não pode ser carregado</p>
+                            <p class="mb-4 text-sm">Arquivo pode estar corrompido ou inacessível</p>
+                            <a href="${processedUrl}" target="_blank" rel="noopener noreferrer" 
+                               class="inline-flex items-center px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors">
+                              Abrir vídeo em nova aba
+                            </a>
+                          </div>
+                        </div>
+                      `;
+                    }
+                  }}
+                />
+              );
+            })()}
           </div>
         )}
 
@@ -330,36 +362,6 @@ export const PostDetailCard = ({ post }: PostDetailCardProps) => {
           >
             <MessageCircle className="w-4 h-4 mr-1" />
             {post.reply_count > 0 ? `${post.reply_count} respostas` : 'Nenhuma resposta'}
-          </Button>
-
-          {/* Save */}
-          <Button
-            variant="ghost"
-            size="sm"
-            className={cn(
-              "reddit-action-button",
-              post.is_saved && "text-primary"
-            )}
-            onClick={handleSave}
-            disabled={savePostMutation.isPending}
-          >
-            {post.is_saved ? (
-              <BookmarkCheck className="w-4 h-4 mr-1" />
-            ) : (
-              <Bookmark className="w-4 h-4 mr-1" />
-            )}
-            {post.is_saved ? 'Salvo' : 'Salvar'}
-          </Button>
-          
-          {/* Share */}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="reddit-action-button"
-            onClick={handleShare}
-          >
-            <Share2 className="w-4 h-4 mr-1" />
-            Compartilhar
           </Button>
         </div>
       </div>

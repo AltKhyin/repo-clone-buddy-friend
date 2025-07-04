@@ -1,7 +1,7 @@
 // ABOUTME: Main content queue interface with filtering, search, and infinite scroll pagination
 
 import React, { useState } from 'react';
-import { useContentQueueQuery } from '../../../../packages/hooks/useContentQueueQuery';
+import { useAdminContentQueue } from '../../../../packages/hooks/useAdminContentQueue';
 import { FilterPanel } from './FilterPanel';
 import { ReviewCard } from './ReviewCard';
 import { BulkOperations } from './BulkOperations';
@@ -29,7 +29,7 @@ export const ContentQueue = () => {
     hasNextPage,
     isFetchingNextPage,
     refetch,
-  } = useContentQueueQuery(filters);
+  } = useAdminContentQueue(filters);
 
   const allReviews = data?.pages.flatMap(page => page.reviews) || [];
   const stats = data?.pages[0]?.stats;

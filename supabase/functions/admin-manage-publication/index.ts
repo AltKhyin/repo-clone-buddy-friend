@@ -49,7 +49,7 @@ Deno.serve(async req => {
       throw new Error('Action and reviewId are required');
     }
 
-    if (payload.action === 'schedule' && !payload.scheduledDate) {
+    if (payload.action === 'schedule' && !payload.scheduledAt) {
       throw new Error('Scheduled date is required for schedule action');
     }
 
@@ -88,7 +88,7 @@ Deno.serve(async req => {
       case 'schedule':
         updateData = {
           status: 'scheduled',
-          scheduled_publish_at: payload.scheduledDate,
+          scheduled_publish_at: payload.scheduledAt,
           reviewer_id: user.id,
           reviewed_at: new Date().toISOString(),
           review_status: 'approved',
@@ -162,7 +162,7 @@ Deno.serve(async req => {
       notes: payload.notes,
       metadata: {
         ...payload.metadata,
-        scheduled_date: payload.scheduledDate,
+        scheduled_date: payload.scheduledAt,
         previous_status: currentReview.status,
         previous_review_status: currentReview.review_status,
       },
@@ -192,7 +192,7 @@ Deno.serve(async req => {
       action: payload.action,
       previousStatus: currentReview.status,
       newStatus: updatedReview.status,
-      scheduledDate: payload.scheduledDate,
+      scheduledAt: payload.scheduledAt,
       notes: payload.notes,
       updatedAt: new Date().toISOString(),
     };

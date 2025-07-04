@@ -8,7 +8,6 @@ import {
   User,
   Settings,
   Shield,
-  BarChart3,
   FileText,
   Tags,
   Layout,
@@ -60,15 +59,7 @@ export const navigationItems: NavigationItem[] = [
     showOnMobile: true,
     showOnDesktop: true,
   },
-  // Admin items - desktop only (ALL implemented routes)
-  {
-    path: '/admin',
-    label: 'Dashboard',
-    icon: BarChart3,
-    requiredRoles: ['admin', 'editor'],
-    showOnMobile: false,
-    showOnDesktop: true,
-  },
+  // Admin items - desktop only (dashboard removed as requested)
   {
     path: '/admin/content',
     label: 'Gestão de Conteúdo',
@@ -105,6 +96,14 @@ export const navigationItems: NavigationItem[] = [
     path: '/admin/analytics',
     label: 'Analytics',
     icon: TrendingUp,
+    requiredRoles: ['admin', 'editor'],
+    showOnMobile: false,
+    showOnDesktop: true,
+  },
+  {
+    path: '/admin/access-control',
+    label: 'Controle de Acesso',
+    icon: Shield,
     requiredRoles: ['admin', 'editor'],
     showOnMobile: false,
     showOnDesktop: true,

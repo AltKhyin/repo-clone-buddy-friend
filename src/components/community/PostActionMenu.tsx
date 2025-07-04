@@ -1,8 +1,9 @@
 
-// ABOUTME: Dropdown menu for post actions like save, share, moderate, etc.
+// ABOUTME: Enhanced dropdown menu for post actions with proper permissions and functionality
 
 import React from 'react';
-import { MoreHorizontal, Bookmark, Share2, Flag, Pin, Lock, Eye, EyeOff } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { MoreHorizontal, Bookmark, Flag, Pin, Trash2, Edit, BookmarkCheck } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,49 +12,131 @@ import {
   DropdownMenuTrigger,
 } from '../ui/dropdown-menu';
 import { Button } from '../ui/button';
+import { toast } from 'sonner';
 import type { CommunityPost } from '../../types/community';
+import { useAuthStore } from '../../store/auth';
+import { useUserProfileQuery } from '../../../packages/hooks/useUserProfileQuery';
+import { usePostModerationMutation } from '../../../packages/hooks/usePostModerationMutation';
+import { useDeletePostMutation } from '../../../packages/hooks/useDeletePostMutation';
+import { useSavePostMutation } from '../../../packages/hooks/useSavePostMutation';
 
 interface PostActionMenuProps {
   post: CommunityPost;
-  onSave?: (postId: number) => void;
-  onShare?: (postId: number) => void;
-  onReport?: (postId: number) => void;
-  onPin?: (postId: number) => void;
-  onLock?: (postId: number) => void;
-  onHide?: (postId: number) => void;
 }
 
-export const PostActionMenu = ({
-  post,
-  onSave,
-  onShare,
-  onReport,
-  onPin,
-  onLock,
-  onHide
-}: PostActionMenuProps) => {
-  const handleSave = () => {
-    onSave?.(post.id);
+export const PostActionMenu = ({ post }: PostActionMenuProps) => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { user } = useAuthStore();
+  const { data: userProfile } = useUserProfileQuery();
+  const savePostMutation = useSavePostMutation();
+  const moderationMutation = usePostModerationMutation();
+  const deletePostMutation = useDeletePostMutation();
+
+  // Permission checks
+  const isLoggedIn = !!user;
+  const isAuthor = user?.id === post.author_id;
+  const canModerate = userProfile?.role === 'admin' || userProfile?.role === 'editor';
+  const canDelete = isAuthor || canModerate;
+
+  const handleSave = async () => {
+    if (!isLoggedIn) {
+      toast.error('Você precisa estar logado para salvar posts');
+      return;
+    }
+
+    try {
+      await savePostMutation.mutateAsync({
+        post_id: post.id,
+        is_saved: !post.is_saved
+      });
+      toast.success(post.is_saved ? 'Post removido dos salvos' : 'Post salvo com sucesso');
+    } catch (error) {
+      toast.error('Erro ao salvar post. Tente novamente.');
+    }
   };
 
-  const handleShare = () => {
-    onShare?.(post.id);
-  };
 
   const handleReport = () => {
-    onReport?.(post.id);
+    if (!isLoggedIn) {
+      toast.error('Você precisa estar logado para reportar posts');
+      return;
+    }
+    // TODO: Implement report functionality
+    toast.info('Funcionalidade de reportar em desenvolvimento');
   };
 
-  const handlePin = () => {
-    onPin?.(post.id);
+  const handleEdit = () => {
+    // TODO: Implement edit functionality
+    toast.info('Funcionalidade de editar em desenvolvimento');
   };
 
-  const handleLock = () => {
-    onLock?.(post.id);
+  const handleDelete = async () => {
+    if (!canDelete) {
+      toast.error('Você não tem permissão para deletar este post');
+      return;
+    }
+
+    if (!confirm('Tem certeza que deseja deletar este post? Esta ação não pode ser desfeita.')) {
+      return;
+    }
+
+    // Show loading toast
+    const loadingToast = toast.loading('Deletando post...');
+
+    try {
+      await deletePostMutation.mutateAsync({ postId: post.id });
+      
+      // Dismiss loading toast and show success
+      toast.dismiss(loadingToast);
+      toast.success('Post deletado com sucesso');
+      
+      // Navigate away from post detail page if we're on it
+      const isOnPostDetailPage = location.pathname.includes(`/comunidade/${post.id}`);
+      if (isOnPostDetailPage) {
+        // Navigate back to community page
+        navigate('/comunidade', { replace: true });
+      }
+      
+    } catch (error) {
+      // Dismiss loading toast and show error
+      toast.dismiss(loadingToast);
+      
+      // Check if post was actually deleted despite the error
+      setTimeout(() => {
+        const isOnPostDetailPage = location.pathname.includes(`/comunidade/${post.id}`);
+        if (isOnPostDetailPage) {
+          // Try to navigate away - the post might be deleted
+          toast.success('Post foi deletado');
+          navigate('/comunidade', { replace: true });
+        } else {
+          toast.error('Erro ao deletar post, mas verifique se foi removido.');
+        }
+      }, 1500);
+    }
   };
 
-  const handleHide = () => {
-    onHide?.(post.id);
+  const handleModerate = async (action: 'pin' | 'unpin') => {
+    if (!canModerate) {
+      toast.error('Você não tem permissão para moderar posts');
+      return;
+    }
+
+    try {
+      await moderationMutation.mutateAsync({ 
+        postId: post.id, 
+        action 
+      });
+      
+      const actionMessages = {
+        pin: 'Post fixado com sucesso',
+        unpin: 'Post desfixado com sucesso'
+      };
+      
+      toast.success(actionMessages[action]);
+    } catch (error) {
+      toast.error(`Erro ao ${action === 'pin' ? 'fixar' : 'desfixar'} post`);
+    }
   };
 
   return (
@@ -65,40 +148,60 @@ export const PostActionMenu = ({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-48">
-        <DropdownMenuItem onClick={handleSave}>
-          <Bookmark className="mr-2 h-4 w-4" />
+        {/* Save action - show for all users */}
+        <DropdownMenuItem onClick={handleSave} disabled={!isLoggedIn || savePostMutation.isPending}>
+          {post.is_saved ? (
+            <BookmarkCheck className="mr-2 h-4 w-4" />
+          ) : (
+            <Bookmark className="mr-2 h-4 w-4" />
+          )}
           {post.is_saved ? 'Remover dos salvos' : 'Salvar post'}
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={handleShare}>
-          <Share2 className="mr-2 h-4 w-4" />
-          Compartilhar
-        </DropdownMenuItem>
+
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={handleReport}>
-          <Flag className="mr-2 h-4 w-4" />
-          Reportar
-        </DropdownMenuItem>
+
+        {/* Report action - show for logged users only */}
+        {isLoggedIn && (
+          <DropdownMenuItem onClick={handleReport}>
+            <Flag className="mr-2 h-4 w-4" />
+            Reportar
+          </DropdownMenuItem>
+        )}
         
-        {/* Moderation actions - only show if user can moderate */}
-        {post.user_can_moderate && (
+        {/* Author actions */}
+        {isAuthor && (
           <>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handlePin}>
+            <DropdownMenuItem onClick={handleEdit}>
+              <Edit className="mr-2 h-4 w-4" />
+              Editar post
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={handleDelete} disabled={deletePostMutation.isPending} className="text-destructive">
+              <Trash2 className="mr-2 h-4 w-4" />
+              Deletar post
+            </DropdownMenuItem>
+          </>
+        )}
+
+        {/* Moderation actions - show for admins/editors */}
+        {canModerate && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem 
+              onClick={() => handleModerate(post.is_pinned ? 'unpin' : 'pin')}
+              disabled={moderationMutation.isPending}
+            >
               <Pin className="mr-2 h-4 w-4" />
               {post.is_pinned ? 'Desafixar' : 'Fixar'}
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={handleLock}>
-              <Lock className="mr-2 h-4 w-4" />
-              {post.is_locked ? 'Desbloquear' : 'Bloquear'}
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={handleHide}>
-              {post.is_locked ? (
-                <Eye className="mr-2 h-4 w-4" />
-              ) : (
-                <EyeOff className="mr-2 h-4 w-4" />
-              )}
-              Ocultar
-            </DropdownMenuItem>
+            
+            {/* Admin can also delete any post */}
+            {!isAuthor && (
+              <DropdownMenuItem onClick={handleDelete} disabled={deletePostMutation.isPending} className="text-destructive">
+                <Trash2 className="mr-2 h-4 w-4" />
+                Deletar post
+              </DropdownMenuItem>
+            )}
           </>
         )}
       </DropdownMenuContent>

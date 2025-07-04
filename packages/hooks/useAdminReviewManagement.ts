@@ -64,9 +64,9 @@ const fetchReviewManagementData = async (reviewId: string): Promise<ReviewManage
   return transformedData;
 };
 
-export const useReviewManagementQuery = (reviewId: string | undefined) => {
+export const useAdminReviewManagement = (reviewId: string | undefined) => {
   return useQuery({
-    queryKey: ['admin', 'review-management', reviewId],
+    queryKey: ['admin', 'review', reviewId],
     queryFn: () => fetchReviewManagementData(reviewId!),
     enabled: !!reviewId,
     staleTime: 5 * 60 * 1000, // 5 minutes

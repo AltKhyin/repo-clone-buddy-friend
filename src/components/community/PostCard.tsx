@@ -5,7 +5,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { formatDistanceToNow, isValid, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { MessageCircle, Pin, Lock, ChevronUp, ChevronDown, Bookmark, BookmarkCheck, Share2 } from 'lucide-react';
+import { MessageCircle, Pin, Lock, ChevronUp, ChevronDown, Bookmark, BookmarkCheck } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
@@ -17,6 +17,7 @@ import { useCastVoteMutation } from '../../../packages/hooks/useCastVoteMutation
 import { useSavePostMutation } from '../../../packages/hooks/useSavePostMutation';
 import { useAuthStore } from '../../store/auth';
 import { toast } from 'sonner';
+import { processVideoUrl, getVideoType } from '../../lib/video-utils';
 
 interface PostCardProps {
   post: CommunityPost;
@@ -118,24 +119,6 @@ export const PostCard = ({ post }: PostCardProps) => {
     }
   };
 
-  const handleShare = async () => {
-    const postUrl = `${window.location.origin}/comunidade/${post.id}`;
-    
-    try {
-      await navigator.share({
-        title: post.title || 'Post da Comunidade EVIDENS',
-        text: post.content ? post.content.substring(0, 200) + '...' : '',
-        url: postUrl
-      });
-    } catch (error) {
-      try {
-        await navigator.clipboard.writeText(postUrl);
-        toast.success('Link copiado para a área de transferência');
-      } catch (clipboardError) {
-        toast.error('Erro ao compartilhar post');
-      }
-    }
-  };
 
   const getCategoryLabel = (category: string) => {
     return CATEGORY_LABELS[category] || category;
@@ -236,27 +219,68 @@ export const PostCard = ({ post }: PostCardProps) => {
           </div>
         ) : post.post_type === 'video' && post.video_url ? (
           <div className="mb-3">
-            {post.video_url.includes('youtube.com/embed') || post.video_url.includes('player.vimeo.com') ? (
-              <iframe
-                src={post.video_url}
-                className="w-full aspect-video max-h-80 rounded border"
-                frameBorder="0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-                title="Video content"
-              />
-            ) : (
-              <video 
-                src={post.video_url} 
-                controls 
-                className="max-h-80 w-auto rounded border"
-                preload="metadata"
-                onError={(e) => {
-                  console.error('Video load error:', e);
-                  (e.target as HTMLVideoElement).style.display = 'none';
-                }}
-              />
-            )}
+            {(() => {
+              const processedUrl = processVideoUrl(post.video_url);
+              const videoType = getVideoType(processedUrl);
+              
+              return videoType === 'youtube' || videoType === 'vimeo' ? (
+                <div className="relative">
+                  <iframe
+                    src={processedUrl}
+                    className="w-full aspect-video max-h-80 rounded border"
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    title="Video content"
+                    loading="lazy"
+                    sandbox="allow-scripts allow-same-origin allow-presentation allow-forms"
+                    onError={(e) => {
+                      console.error('Embed video load error:', e);
+                      const iframe = e.target as HTMLIFrameElement;
+                      const container = iframe.parentElement;
+                      if (container) {
+                        const originalUrl = videoType === 'youtube' 
+                          ? processedUrl.replace('/embed/', '/watch?v=')
+                          : processedUrl.replace('player.vimeo.com/video/', 'vimeo.com/');
+                        container.innerHTML = `
+                          <div class="flex items-center justify-center h-48 bg-muted rounded border">
+                            <div class="text-center text-muted-foreground">
+                              <p class="mb-2">Video não pode ser carregado</p>
+                              <a href="${originalUrl}" target="_blank" rel="noopener noreferrer" 
+                                 class="text-primary hover:underline">Assistir no ${videoType === 'youtube' ? 'YouTube' : 'Vimeo'}</a>
+                            </div>
+                          </div>
+                        `;
+                      }
+                    }}
+                  />
+                </div>
+              ) : (
+                <video 
+                  src={processedUrl} 
+                  controls 
+                  className="max-h-80 w-auto rounded border"
+                  preload="metadata"
+                  crossOrigin="anonymous"
+                  onError={(e) => {
+                    console.error('Direct video load error:', e);
+                    const video = e.target as HTMLVideoElement;
+                    const container = video.parentElement;
+                    if (container) {
+                      container.innerHTML = `
+                        <div class="flex items-center justify-center h-48 bg-muted rounded border">
+                          <div class="text-center text-muted-foreground">
+                            <p class="mb-2">Vídeo não pode ser carregado</p>
+                            <a href="${processedUrl}" target="_blank" rel="noopener noreferrer" 
+                               class="text-primary hover:underline">Abrir vídeo em nova aba</a>
+                          </div>
+                        </div>
+                      `;
+                    }
+                  }}
+                />
+              );
+            })()}
           </div>
         ) : post.post_type === 'poll' && post.poll_data ? (
           <div className="mb-3">
@@ -331,42 +355,6 @@ export const PostCard = ({ post }: PostCardProps) => {
           >
             <MessageCircle className="w-4 h-4 mr-1" />
             {post.reply_count || 0}
-          </Button>
-
-          {/* Save */}
-          <Button
-            variant="ghost"
-            size="sm"
-            className={cn(
-              "reddit-action-button",
-              post.is_saved && "text-primary"
-            )}
-            onClick={(e) => {
-              e.stopPropagation();
-              handleSave();
-            }}
-            disabled={savePostMutation.isPending}
-          >
-            {post.is_saved ? (
-              <BookmarkCheck className="w-4 h-4 mr-1" />
-            ) : (
-              <Bookmark className="w-4 h-4 mr-1" />
-            )}
-            Salvar
-          </Button>
-
-          {/* Share */}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="reddit-action-button"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleShare();
-            }}
-          >
-            <Share2 className="w-4 h-4 mr-1" />
-            Compartilhar
           </Button>
         </div>
       </div>

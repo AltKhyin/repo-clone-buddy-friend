@@ -1,20 +1,15 @@
 
-// ABOUTME: TanStack Query hook for fetching paginated content queue with filtering and search capabilities
+// ABOUTME: TanStack Query hook for fetching paginated admin content queue with filtering and search capabilities
 
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { supabase } from '../../src/integrations/supabase/client';
-
-export interface ContentQueueParams {
-  status?: 'all' | 'draft' | 'under_review' | 'scheduled' | 'published' | 'archived';
-  search?: string;
-  authorId?: string;
-  reviewerId?: string;
-}
+import { ContentQueueFilters } from '../../src/types/admin';
 
 export interface ReviewQueueItem {
   id: number;
   title: string;
   description?: string;
+  cover_image_url?: string;
   review_status: string;
   status: string;
   created_at: string;
@@ -53,7 +48,7 @@ export interface ContentQueueResponse {
   };
 }
 
-const fetchContentQueue = async (params: ContentQueueParams & { page: number }): Promise<ContentQueueResponse> => {
+const fetchContentQueue = async (params: ContentQueueFilters & { page: number }): Promise<ContentQueueResponse> => {
   console.log('Fetching content queue...', params);
   
   const { data, error } = await supabase.functions.invoke('admin-get-content-queue', {
@@ -75,7 +70,7 @@ const fetchContentQueue = async (params: ContentQueueParams & { page: number }):
   return data;
 };
 
-export const useContentQueueQuery = (params: ContentQueueParams) => {
+export const useAdminContentQueue = (params: ContentQueueFilters) => {
   return useInfiniteQuery({
     queryKey: ['admin', 'content-queue', params],
     queryFn: ({ pageParam = 1 }) => fetchContentQueue({ ...params, page: pageParam }),

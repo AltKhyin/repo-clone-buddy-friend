@@ -238,13 +238,19 @@ serve(async req => {
 
     // STEP 6: Access Control Validation
     const isPublic = review.access_level === 'public';
-    const isFreeUser = userId && review.access_level === 'free_users_only';
+    const isFreeUser = userId && review.access_level === 'free';
     const isPaying =
-      userId && userSubscriptionTier === 'paying' && review.access_level === 'paying_users_only';
+      userId && userSubscriptionTier === 'paying' && review.access_level === 'premium';
     const hasAccess = isPublic || isFreeUser || isPaying;
 
     if (!hasAccess) {
-      throw new Error(`ACCESS_DENIED: This content requires ${review.access_level} access level`);
+      if (review.access_level === 'free') {
+        throw new Error(`ACCESS_DENIED: This content requires a free account to access`);
+      } else if (review.access_level === 'premium') {
+        throw new Error(`ACCESS_DENIED: This content requires a premium subscription to access`);
+      } else {
+        throw new Error(`ACCESS_DENIED: This content requires ${review.access_level} access level`);
+      }
     }
 
     // STEP 7: Fetch Tags (Non-blocking)

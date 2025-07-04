@@ -1,8 +1,91 @@
-# EVIDENS AI Development Bible v6.4
+# EVIDENS AI Development Bible v6.5
 
-**Version:** 6.4.0 (TESTING INFRASTRUCTURE STABILIZED - DEVELOPMENT UNBLOCKED)
-**Date:** June 28, 2025
+**Version:** 6.5.0 (ADMIN CONTENT MANAGEMENT STANDARDIZATION)
+**Date:** July 4, 2025
 **Purpose:** This document contains the complete, authoritative, and machine-optimized set of rules, architectural models, and implementation directives for the EVIDENS project.
+
+---
+
+## 🚀 CURRENT DEVELOPMENT STATUS - ADMIN SYSTEM STANDARDIZATION IN PROGRESS
+
+**Major Admin Architecture Enhancement (July 4, 2025):**
+
+### 🎯 ADMIN CONTENT MANAGEMENT STANDARDIZATION PROJECT
+
+#### **CRITICAL ISSUES IDENTIFIED & STANDARDIZATION PLAN CREATED**
+
+**The Admin Workflow Crisis:**
+
+- **Issue**: Admin content management system has broken publishing workflow, multiple conflicting save buttons, inconsistent state management, and duplicate navigation
+- **Root Cause**: Edge function parameter mismatches (`scheduledAt` vs `scheduledDate`), no unified save strategy, architectural inconsistencies
+- **Impact**: Admin users unable to publish content, confusing UX with multiple non-functional buttons
+- **Status**: 🔄 **Comprehensive standardization plan created and ready for implementation**
+
+#### **COMPLETE STANDARDIZATION IMPLEMENTATION PLAN v1.0**
+
+**Strategic Analysis Complete:**
+- **Goal**: Standardize and fix broken admin content management publishing workflow
+- **Approach**: Comprehensive architectural realignment with unified patterns
+- **Solution**: 6-milestone implementation plan with backend-first approach
+
+**Implementation Roadmap:**
+
+```mermaid
+graph TD
+    A[Strategic Analysis Complete] --> B[Milestone 1: Backend Foundation]
+    B --> B1[Fix Edge Function Parameters]
+    B --> B2[Standardize Publication Interface]
+    B1 --> C[Milestone 2: Data Layer Unification]
+    B2 --> C
+    C --> C1[Unified Admin Hooks]
+    C --> C2[Bulk Operations Backend]
+    C1 --> D[Milestone 3: Component Standardization]
+    C2 --> D
+    D --> D1[Unified Save Strategy]
+    D --> D2[Status Field Standardization]
+    D1 --> E[Milestone 4: Navigation Cleanup]
+    D2 --> E
+    E --> E1[Remove Duplicate Navigation]
+    E --> E2[Admin Error Boundaries]
+    E1 --> F[Milestone 5: Integration Testing]
+    E2 --> F
+    F --> F1[Workflow Integration Tests]
+    F --> F2[Edge Function Performance]
+    F1 --> G[Milestone 6: Cleanup & Deprecation]
+    F2 --> G
+    G --> H[✅ Implementation Complete]
+```
+
+**Milestone Breakdown:**
+
+1. **Backend Foundation** - Fix `usePublicationActionMutation.ts:62` edge function parameter mismatch
+2. **Data Layer Unification** - Standardize all admin hooks with consistent TanStack Query patterns
+3. **Component Standardization** - Implement unified save strategy eliminating multiple conflicting buttons
+4. **Navigation Cleanup** - Remove duplicate "Módulos Administrativos" container (as requested)
+5. **Integration Testing** - Ensure all admin workflows function correctly end-to-end
+6. **Cleanup & Deprecation** - Remove obsolete components and complete standardization
+
+**Key Technical Solutions:**
+
+- **Fix Critical Parameter Mismatch**: `scheduledAt` vs `scheduledDate` causing edge function failures
+- **Unified Save Strategy**: Single save context provider eliminating button confusion
+- **Status Field Standardization**: Consistent use of `status` vs `review_status` fields
+- **Bulk Operations Implementation**: Functional bulk actions with proper backend support
+- **Navigation Simplification**: Remove redundant admin navigation sidebar
+
+**Risk Assessment:**
+- **High Risk**: Edge function changes (publication workflow critical)
+- **Medium Risk**: Component refactoring (multiple components affected)
+- **Low Risk**: Navigation removal (simple deletion with main nav fallback)
+
+**Success Criteria:**
+- [ ] Publication workflow executes without errors
+- [ ] Single save button per admin section
+- [ ] Consistent status display across all components
+- [ ] Functional bulk operations
+- [ ] Clean admin UX without duplicate navigation
+
+**Implementation Status**: 📋 **Plan approved, ready for execution**
 
 ---
 
@@ -373,6 +456,14 @@
   - [x] Professional testing patterns and templates documentation
   - [x] Test-driven development workflow enforcement
 
+- [ ] **Admin Content Management Standardization** 🔄 **IN PROGRESS**
+  - [ ] Fix publication action edge function parameter mismatch (scheduledAt vs scheduledDate)
+  - [ ] Implement unified save strategy across all admin components
+  - [ ] Standardize status field usage (eliminate review_status vs status confusion)
+  - [ ] Remove duplicate "Módulos Administrativos" navigation container
+  - [ ] Implement functional bulk operations with proper backend support
+  - [ ] Create comprehensive integration tests for admin workflows
+
 - [ ] **Resolve Code Quality Issues**
   - [ ] Fix all ESLint errors (currently: no-explicit-any violations)
   - [ ] Ensure TypeScript strict mode compliance
@@ -630,7 +721,16 @@ supabase/
 
 ---
 
-## CURRENT IMPLEMENTATION STATUS v6.1.1
+## CURRENT IMPLEMENTATION STATUS v6.5.0
+
+### 🔄 ADMIN CONTENT MANAGEMENT STANDARDIZATION IN PROGRESS
+
+- **Phase 1: Analysis & Planning**: ✅ Comprehensive investigation completed, standardization plan created
+- **Phase 2: Backend Foundation**: 📋 Ready for implementation - Fix edge function parameter mismatch
+- **Phase 3: Component Standardization**: 📋 Planned - Unified save strategy implementation
+- **Phase 4: Navigation Cleanup**: 📋 Planned - Remove duplicate "Módulos Administrativos"
+- **Phase 5: Integration Testing**: 📋 Planned - End-to-end workflow validation
+- **Phase 6: Cleanup & Deprecation**: 📋 Planned - Remove obsolete components
 
 ### ✅ CRISIS RESOLUTION PHASES - ALL COMPLETED
 
@@ -640,16 +740,16 @@ supabase/
 - **Phase 4: Testing & Verification Infrastructure**: ✅ Build & stability verified
 - **Phase 5: Documentation Updates**: ✅ Crisis resolution documented
 
-### 🔄 NORMAL DEVELOPMENT READY - NEXT FOCUS AREAS
+### 🔄 NORMAL DEVELOPMENT READY - CURRENT FOCUS AREAS
 
-- **Admin Components Theme Compliance**: Ready to begin ([DOC_7] application)
+- **Admin Content Management Standardization**: In progress ([Current priority])
 - **Component Audit & Standards**: Ready for theme standardization
 - **User Management Interface**: Backend complete, UI implementation ready
 - **Analytics Dashboard**: Backend operational, frontend development ready
 
 ---
 
-## CRITICAL ARCHITECTURE COMPLIANCE STATUS v6.0.1
+## CRITICAL ARCHITECTURE COMPLIANCE STATUS v6.5.0
 
 ### ✅ FULLY COMPLIANT
 
@@ -662,15 +762,16 @@ supabase/
 ### 🔄 PARTIALLY COMPLIANT
 
 - [DOC_7] Visual System - Admin components need theme fixes (next priority)
-- [D3.2] Component Architecture - Some admin components need refactoring
+- [D3.2] Component Architecture - Some admin components need refactoring for unified patterns
+- [D3.3] State Management - Admin components need unified save strategy
 
 ### ❌ NON-COMPLIANT
 
-- None identified (all critical violations resolved in v6.0.1)
+- Admin Publication Workflow - Parameter mismatch causing edge function failures (being addressed)
 
 ---
 
-## TECHNICAL DEBT STATUS v6.0.1
+## TECHNICAL DEBT STATUS v6.5.0
 
 ### ✅ RESOLVED
 
@@ -680,7 +781,15 @@ supabase/
 - **CRITICAL**: Import/export inconsistencies - Standardized shared utilities
 - **HIGH**: Admin function pattern deviation - Applied 7-step pattern universally
 
-### 🚨 NEW CRITICAL ISSUES IDENTIFIED (June 28, 2025)
+### 🚨 NEW CRITICAL ISSUES IDENTIFIED (July 4, 2025)
+
+- **CRITICAL**: Admin publication workflow broken - Edge function parameter mismatch (`scheduledAt` vs `scheduledDate`)
+- **HIGH**: Multiple conflicting save buttons across admin components - No unified save strategy
+- **HIGH**: Inconsistent status field usage - `status` vs `review_status` confusion
+- **MEDIUM**: Duplicate admin navigation - "Módulos Administrativos" conflicts with main shell
+- **MEDIUM**: Non-functional bulk operations - Backend implementation missing
+
+### 🚨 PREVIOUSLY IDENTIFIED CRITICAL ISSUES (June 28, 2025)
 
 - **CRITICAL**: Rate limiting persistence vulnerability - In-memory storage allows bypass
 - **HIGH**: JSONB content validation missing - Type safety gaps in structured content
@@ -689,41 +798,62 @@ supabase/
 
 ### 🔄 REMAINING MEDIUM PRIORITY
 
-- **MEDIUM**: Admin component theme compliance needed
 - **MEDIUM**: Database query optimization for production scale
 - **LOW**: Some component prop type standardization pending
 
 ---
 
-## NEXT IMMEDIATE ACTIONS v6.4.0 (UPDATED PRIORITIES)
+## NEXT IMMEDIATE ACTIONS v6.5.0 (UPDATED PRIORITIES)
 
-### CRITICAL SECURITY PRIORITIES (MUST ADDRESS BEFORE NEW FEATURES)
+### CURRENT FOCUS: ADMIN CONTENT MANAGEMENT STANDARDIZATION
 
-1. **🚨 URGENT: Rate Limiting Security Fix**
+1. **🚨 CRITICAL: Fix Publication Edge Function**
+   - Fix parameter mismatch in `usePublicationActionMutation.ts` and `admin-manage-publication/index.ts`
+   - Change `scheduledDate` to `scheduledAt` for consistency
+   - Test publication workflow end-to-end
+
+2. **🔄 Implement Unified Save Strategy**
+   - Create `UnifiedSaveProvider` context for consistent save state management
+   - Implement standardized `SaveButton` component
+   - Refactor admin components to eliminate multiple conflicting save buttons
+
+3. **🗂️ Remove Duplicate Navigation**
+   - Delete `AdminNavigation.tsx` component entirely
+   - Remove navigation sidebar from `AdminLayout.tsx`
+   - Ensure admin routes remain accessible via main shell navigation
+
+4. **⚙️ Implement Functional Bulk Operations**
+   - Create `admin-bulk-content-actions` edge function
+   - Update `BulkOperations.tsx` with real functionality
+   - Add proper error handling and user feedback
+
+### CRITICAL SECURITY PRIORITIES (After Admin Standardization)
+
+5. **🚨 URGENT: Rate Limiting Security Fix**
    - Implement persistent rate limiting using Supabase database
    - Replace in-memory Map with database-backed rate limiting
    - Test rate limit bypass vulnerability resolution
 
-2. **🔒 Security Audit: Edge Function JWT Configuration**
+6. **🔒 Security Audit: Edge Function JWT Configuration**
    - Review all 24 functions with verify_jwt = false
    - Enable automatic JWT verification where possible
    - Document justification for manual verification cases
 
-3. **📋 Input Validation Enhancement**
+7. **📋 Input Validation Enhancement**
    - Implement Zod schemas for JSONB field validation
    - Add runtime validation for structured_content, poll_data, metadata
    - Ensure type safety for user-generated content
 
-### DEVELOPMENT READY (After Security Fixes)
+### DEVELOPMENT READY (After Critical Fixes)
 
-4. **🎨 Admin Components Theme Compliance**: Apply [DOC_7] theme compliance
-5. **⚡ Bundle Size Optimization**: Implement code splitting for 1.67MB bundle
-6. **🔧 Environment Configuration**: Implement proper .env management
+8. **🎨 Admin Components Theme Compliance**: Apply [DOC_7] theme compliance
+9. **⚡ Bundle Size Optimization**: Implement code splitting for 1.67MB bundle
+10. **🔧 Environment Configuration**: Implement proper .env management
 
 ---
 
-**Last Updated**: June 24, 2025 - v6.0.1  
-**Next Review**: After Phase 2 initiation and theme compliance verification
+**Last Updated**: July 4, 2025 - v6.5.0  
+**Next Review**: After Admin Content Management Standardization completion
 
 ---
 
@@ -753,7 +883,7 @@ import { authenticateRequest, requireRole } from '../_shared/auth.ts';
 
 ---
 
-## IMPLEMENTATION PROGRESS FLOWCHART v6.1.1
+## IMPLEMENTATION PROGRESS FLOWCHART v6.5.0
 
 ```
 ✅ CRISIS RESOLUTION - ALL PHASES COMPLETED
@@ -774,8 +904,23 @@ import { authenticateRequest, requireRole } from '../_shared/auth.ts';
 └── Phase 5: Documentation Updates ✅
     └── Crisis resolution documented ✅
 
-🔄 NORMAL DEVELOPMENT READY
-├── Admin Components Theme Compliance (NEXT)
+🔄 CURRENT FOCUS: ADMIN CONTENT MANAGEMENT STANDARDIZATION
+├── Analysis & Investigation ✅
+├── Comprehensive Standardization Plan Created ✅
+├── Backend Foundation (NEXT) 📋
+│   ├── Fix edge function parameter mismatch
+│   └── Standardize publication interface
+├── Component Standardization 📋
+│   ├── Unified save strategy implementation
+│   └── Status field standardization
+├── Navigation Cleanup 📋
+│   └── Remove duplicate "Módulos Administrativos"
+├── Integration Testing 📋
+│   └── End-to-end workflow validation
+└── Cleanup & Deprecation 📋
+    └── Remove obsolete components
+
+🔄 NORMAL DEVELOPMENT READY (After Admin Standardization)
 ├── User Management Interface Implementation (READY)
 ├── Analytics Dashboard Frontend (READY)
 └── Advanced Feature Development (READY)
@@ -785,9 +930,9 @@ import { authenticateRequest, requireRole } from '../_shared/auth.ts';
 
 **✅ Crisis Resolution: 100% Complete**  
 **✅ Infrastructure Layer: 100% Stable**  
-**🔄 Development Ready: All Systems Operational**
+**🔄 Admin Standardization: Plan Created, Implementation Ready**
 
-**System Status: FULLY STABILIZED - Ready for Normal Development**
+**System Status: FULLY STABILIZED - Admin Standardization in Progress**
 
 ---
 
@@ -1017,6 +1162,13 @@ src/components/editor/
 ---
 
 ## 📋 CRITICAL DOCUMENTATION REGISTRY
+
+### Admin Content Management Standardization
+
+- **`docs/README-BÍBLIA.md`** - This document with complete admin standardization plan and implementation roadmap
+- **`src/components/admin/`** - All admin components requiring standardization
+- **`packages/hooks/usePublicationActionMutation.ts`** - Hook with critical parameter mismatch
+- **`supabase/functions/admin-manage-publication/index.ts`** - Edge function requiring parameter fix
 
 ### Visual Composition Engine Development
 

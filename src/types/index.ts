@@ -35,6 +35,21 @@ export type {
   QueryParams
 } from './api';
 
+// Re-export admin types
+export type {
+  ReviewStatus,
+  ReviewApprovalStatus,
+  PublicationActionRequest,
+  PublicationActionResponse,
+  BulkOperationRequest,
+  BulkOperationResponse,
+  ReviewWithStatus,
+  ContentQueueFilters,
+  ContentQueueSummary,
+  SaveState,
+  UnifiedSaveContextValue
+} from './admin';
+
 // Import and re-export UserProfile from Supabase types
 import type { Database } from '../integrations/supabase/types';
 export type UserProfile = Database['public']['Tables']['Practitioners']['Row'];
@@ -74,3 +89,36 @@ export type RequiredFields<T, K extends keyof T> = T & Required<Pick<T, K>>;
 // Status and state enums for consistency
 export type LoadingState = 'idle' | 'loading' | 'success' | 'error';
 export type ThemeMode = 'light' | 'dark' | 'system';
+
+// Profile system types (complete)
+export interface ProfileUpdateData {
+  full_name?: string;
+  profession?: string;
+  avatar_url?: string | null;
+  linkedin_url?: string | null;
+  youtube_url?: string | null;
+  instagram_url?: string | null;
+  facebook_url?: string | null;
+  twitter_url?: string | null;
+  website_url?: string | null;
+}
+
+export interface SocialLinks {
+  linkedin_url?: string | null;
+  youtube_url?: string | null;
+  instagram_url?: string | null;
+  facebook_url?: string | null;
+  twitter_url?: string | null;
+  website_url?: string | null;
+}
+
+// Extended UserProfile type until Supabase types are regenerated
+export interface ExtendedUserProfile extends UserProfile {
+  profession?: string | null;
+  linkedin_url?: string | null;
+  youtube_url?: string | null;
+  instagram_url?: string | null;
+  facebook_url?: string | null;
+  twitter_url?: string | null;
+  website_url?: string | null;
+}

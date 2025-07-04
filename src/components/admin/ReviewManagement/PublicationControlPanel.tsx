@@ -117,48 +117,17 @@ export const PublicationControlPanel: React.FC<PublicationControlPanelProps> = (
           </div>
         </div>
 
-        {/* Publication Actions */}
+        {/* Publication Actions - Now handled by unified save buttons in header */}
         <div className="space-y-2">
-          {review.status === 'draft' && (
-            <>
-              <Button
-                onClick={handlePublishNow}
-                className="w-full"
-                disabled={publicationMutation.isPending}
-              >
-                {publicationMutation.isPending ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <Send className="h-4 w-4 mr-2" />
-                )}
-                {publicationMutation.isPending ? 'Publishing...' : 'Publish Now'}
-              </Button>
-              <Button
-                onClick={() => setShowScheduleModal(true)}
-                variant="outline"
-                className="w-full"
-                disabled={publicationMutation.isPending}
-              >
-                <Calendar className="h-4 w-4 mr-2" />
-                Schedule Publication
-              </Button>
-            </>
-          )}
-
-          {review.status === 'scheduled' && (
-            <Button
-              onClick={handlePublishNow}
-              className="w-full"
-              disabled={publicationMutation.isPending}
-            >
-              {publicationMutation.isPending ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Send className="h-4 w-4 mr-2" />
-              )}
-              {publicationMutation.isPending ? 'Publishing...' : 'Publish Now (Override Schedule)'}
-            </Button>
-          )}
+          <Button
+            onClick={() => setShowScheduleModal(true)}
+            variant="outline"
+            className="w-full"
+            disabled={publicationMutation.isPending}
+          >
+            <Calendar className="h-4 w-4 mr-2" />
+            Schedule Publication
+          </Button>
 
           {(review.status === 'published' || review.status === 'scheduled') && (
             <Button

@@ -15,7 +15,6 @@ import SuggestionPage from '@/pages/SuggestionPage';
 import UnauthorizedPage from '@/pages/UnauthorizedPage';
 import LoginPage from '@/pages/LoginPage';
 import { UniversalRouteProtection } from '@/components/routes/UniversalRouteProtection';
-import { AdminLayout } from '@/components/admin/AdminLayout';
 import { AdminDashboard } from '@/pages/AdminDashboard';
 import ContentManagement from '@/pages/ContentManagement';
 import AdminUserManagement from '@/pages/AdminUserManagement';
@@ -25,6 +24,7 @@ import AdminAnalytics from '@/pages/AdminAnalytics';
 import AdminAccessControl from '@/pages/AdminAccessControl';
 import EditorPage from '@/pages/EditorPage';
 import ReviewManagementPage from '@/pages/ReviewManagementPage';
+import { AdminProtectedRoute } from '@/components/routes/AdminProtectedRoute';
 
 const router = createBrowserRouter([
   {
@@ -107,44 +107,70 @@ const router = createBrowserRouter([
         element: <LoginPage />,
       },
 
-      // Admin Routes - English maintained for internal tools
+      // Admin Routes - Flattened structure, each page standalone
       {
         path: '/admin',
-        element: <AdminLayout />,
-        children: [
-          {
-            index: true,
-            element: <AdminDashboard />,
-          },
-          {
-            path: 'content',
-            element: <ContentManagement />,
-          },
-          {
-            path: 'users',
-            element: <AdminUserManagement />,
-          },
-          {
-            path: 'tags',
-            element: <AdminTagManagement />,
-          },
-          {
-            path: 'layout',
-            element: <AdminLayoutManagement />,
-          },
-          {
-            path: 'analytics',
-            element: <AdminAnalytics />,
-          },
-          {
-            path: 'access-control',
-            element: <AdminAccessControl />,
-          },
-          {
-            path: 'review/:reviewId',
-            element: <ReviewManagementPage />,
-          },
-        ],
+        element: (
+          <AdminProtectedRoute>
+            <AdminDashboard />
+          </AdminProtectedRoute>
+        ),
+      },
+      {
+        path: '/admin/content',
+        element: (
+          <AdminProtectedRoute>
+            <ContentManagement />
+          </AdminProtectedRoute>
+        ),
+      },
+      {
+        path: '/admin/users',
+        element: (
+          <AdminProtectedRoute>
+            <AdminUserManagement />
+          </AdminProtectedRoute>
+        ),
+      },
+      {
+        path: '/admin/tags',
+        element: (
+          <AdminProtectedRoute>
+            <AdminTagManagement />
+          </AdminProtectedRoute>
+        ),
+      },
+      {
+        path: '/admin/layout',
+        element: (
+          <AdminProtectedRoute>
+            <AdminLayoutManagement />
+          </AdminProtectedRoute>
+        ),
+      },
+      {
+        path: '/admin/analytics',
+        element: (
+          <AdminProtectedRoute>
+            <AdminAnalytics />
+          </AdminProtectedRoute>
+        ),
+      },
+      {
+        path: '/admin/access-control',
+        element: (
+          <AdminProtectedRoute>
+            <AdminAccessControl />
+          </AdminProtectedRoute>
+        ),
+      },
+      {
+        path: '/admin/review/:reviewId',
+        element: (
+          <AdminProtectedRoute>
+            <ReviewManagementPage />
+          </AdminProtectedRoute>
+        ),
       },
 
       // Editor Routes - Protected for admin and editor roles

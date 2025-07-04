@@ -65,6 +65,7 @@ Deno.serve(async req => {
         id,
         title,
         description,
+        cover_image_url,
         status,
         review_status,
         created_at,

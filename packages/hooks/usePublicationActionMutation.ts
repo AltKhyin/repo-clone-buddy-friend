@@ -2,36 +2,10 @@
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../src/integrations/supabase/client';
-
-export interface PublicationAction {
-  reviewId: number;
-  action:
-    | 'submit_for_review'
-    | 'approve'
-    | 'reject'
-    | 'schedule'
-    | 'publish'
-    | 'unpublish'
-    | 'archive';
-  scheduledDate?: string;
-  notes?: string;
-  reviewerId?: string;
-}
-
-export interface PublicationActionResponse {
-  success: boolean;
-  review: {
-    id: number;
-    review_status: string;
-    scheduled_publish_at?: string;
-    reviewed_at?: string;
-    publication_notes?: string;
-  };
-  message: string;
-}
+import { PublicationActionRequest, PublicationActionResponse } from '../../src/types/admin';
 
 const executePublicationAction = async (
-  action: PublicationAction
+  action: PublicationActionRequest
 ): Promise<PublicationActionResponse> => {
   const { data, error } = await supabase.functions.invoke('admin-manage-publication', {
     body: action,
@@ -55,7 +29,7 @@ export const usePublicationActionMutation = () => {
 
       // Update specific review in cache if possible
       queryClient.setQueryData(['admin', 'review', variables.reviewId], (oldData: any) =>
-        oldData ? { ...oldData, ...data.review } : undefined
+        oldData ? { ...oldData, status: data.newStatus, scheduledAt: data.scheduledAt } : undefined
       );
     },
     onError: error => {

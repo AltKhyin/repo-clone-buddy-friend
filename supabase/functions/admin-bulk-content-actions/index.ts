@@ -110,19 +110,18 @@ Deno.serve(async (req) => {
     });
 
     const response = {
-      action: payload.action,
-      processed: payload.reviewIds.length,
-      successful: results.length,
-      failed: errors.length,
-      results,
-      errors
+      success: errors.length === 0,
+      processedCount: results.length,
+      failedCount: errors.length,
+      results: results.map(r => ({ reviewId: r.reviewId, success: r.success })).concat(
+        errors.map(e => ({ reviewId: e.reviewId, success: false, error: e.error }))
+      )
     };
 
     console.log('Bulk operation response:', {
       action: payload.action,
-      processed: response.processed,
-      successful: response.successful,
-      failed: response.failed
+      processed: response.processedCount,
+      failed: response.failedCount
     });
 
     return new Response(JSON.stringify(response), {
@@ -137,6 +136,10 @@ Deno.serve(async (req) => {
                       errorMessage.includes('permissions') ? 403 : 500;
 
     return new Response(JSON.stringify({ 
+      success: false,
+      processedCount: 0,
+      failedCount: 0,
+      results: [],
       error: errorMessage,
       details: 'Bulk content operation failed'
     }), {

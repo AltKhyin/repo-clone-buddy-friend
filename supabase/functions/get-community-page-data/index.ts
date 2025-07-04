@@ -109,6 +109,10 @@ serve(async req => {
           is_locked,
           flair_text,
           flair_color,
+          post_type,
+          image_url,
+          video_url,
+          poll_data,
           author_id,
           Practitioners!CommunityPosts_author_id_fkey (
             id,
@@ -140,6 +144,10 @@ serve(async req => {
         is_locked: post.is_locked || false,
         flair_text: post.flair_text,
         flair_color: post.flair_color,
+        post_type: post.post_type,
+        image_url: post.image_url,
+        video_url: post.video_url,
+        poll_data: post.poll_data,
         author: post.Practitioners
           ? {
               id: post.Practitioners.id,

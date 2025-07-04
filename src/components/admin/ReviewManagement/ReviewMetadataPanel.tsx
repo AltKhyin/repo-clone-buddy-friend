@@ -1,6 +1,6 @@
 // ABOUTME: Metadata editing panel for review title, description, tags, and settings
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,6 +16,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { useUpdateReviewMetadataMutation } from '../../../../packages/hooks/useUpdateReviewMetadataMutation';
 import { ReviewManagementData } from '../../../../packages/hooks/useReviewManagementQuery';
+import { useSaveContext } from '../common/UnifiedSaveProvider';
 import { Save, Upload, X } from 'lucide-react';
 import { TagSelector } from './TagSelector';
 import { CoverImageUpload } from './CoverImageUpload';
@@ -36,34 +37,28 @@ export const ReviewMetadataPanel: React.FC<ReviewMetadataPanelProps> = ({ review
   const [selectedTagIds, setSelectedTagIds] = useState<number[]>(
     review.tags?.map(tag => tag.id) || []
   );
-  const [hasChanges, setHasChanges] = useState(false);
 
   const updateMutation = useUpdateReviewMetadataMutation();
+  const { updateField } = useSaveContext();
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-    setHasChanges(true);
+    updateField(field, value);
   };
 
   const handleTagsChange = (newTagIds: number[]) => {
     setSelectedTagIds(newTagIds);
-    setHasChanges(true);
+    updateField('tags', newTagIds);
   };
 
-  const handleSave = async () => {
-    try {
-      await updateMutation.mutateAsync({
-        reviewId: review.id,
-        metadata: {
-          ...formData,
-          tags: selectedTagIds,
-        },
-      });
-      setHasChanges(false);
-    } catch (error) {
-      console.error('Failed to update metadata:', error);
-    }
-  };
+  // Sync initial data with save context only once on mount
+  useEffect(() => {
+    Object.entries(formData).forEach(([key, value]) => {
+      updateField(key, value);
+    });
+    updateField('tags', selectedTagIds);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Intentionally empty - only run on mount
 
   return (
     <Card className="bg-surface border-border shadow-sm">
@@ -117,13 +112,7 @@ export const ReviewMetadataPanel: React.FC<ReviewMetadataPanelProps> = ({ review
           onTagsChange={handleTagsChange}
         />
 
-        {/* Save Button */}
-        {hasChanges && (
-          <Button onClick={handleSave} disabled={updateMutation.isPending} className="w-full">
-            <Save className="h-4 w-4 mr-2" />
-            {updateMutation.isPending ? 'Saving...' : 'Save Changes'}
-          </Button>
-        )}
+        {/* Save functionality is now handled by the unified save buttons in the header */}
       </CardContent>
     </Card>
   );
