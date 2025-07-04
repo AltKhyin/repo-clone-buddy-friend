@@ -2,7 +2,7 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { MockProviders } from '@/test-utils/mock-providers';
+import { MockAllProviders } from '@/test-utils/mock-providers';
 import ReviewManagementPage from './ReviewManagementPage';
 
 // Mock the hook
@@ -58,9 +58,9 @@ describe('ReviewManagementPage', () => {
   describe('layout structure', () => {
     it('should render with ErrorBoundary wrapper', () => {
       render(
-        <MockProviders>
+        <MockAllProviders>
           <ReviewManagementPage />
-        </MockProviders>
+        </MockAllProviders>
       );
 
       // Should have ErrorBoundary structure
@@ -70,9 +70,9 @@ describe('ReviewManagementPage', () => {
 
     it('should render with StandardLayout wide type', () => {
       render(
-        <MockProviders>
+        <MockAllProviders>
           <ReviewManagementPage />
-        </MockProviders>
+        </MockAllProviders>
       );
 
       // Should have main element with wide layout characteristics
@@ -84,9 +84,9 @@ describe('ReviewManagementPage', () => {
 
     it('should have proper spacing with contentClassName', () => {
       render(
-        <MockProviders>
+        <MockAllProviders>
           <ReviewManagementPage />
-        </MockProviders>
+        </MockAllProviders>
       );
 
       const main = screen.getByRole('main');
@@ -97,9 +97,9 @@ describe('ReviewManagementPage', () => {
   describe('content structure', () => {
     it('should display the review title', () => {
       render(
-        <MockProviders>
+        <MockAllProviders>
           <ReviewManagementPage />
-        </MockProviders>
+        </MockAllProviders>
       );
 
       const heading = screen.getByRole('heading', { level: 1 });
@@ -110,9 +110,9 @@ describe('ReviewManagementPage', () => {
 
     it('should display review ID', () => {
       render(
-        <MockProviders>
+        <MockAllProviders>
           <ReviewManagementPage />
-        </MockProviders>
+        </MockAllProviders>
       );
 
       const reviewId = screen.getByText(/Review ID: test-review-id/);
@@ -121,9 +121,9 @@ describe('ReviewManagementPage', () => {
 
     it('should render review management panels', () => {
       render(
-        <MockProviders>
+        <MockAllProviders>
           <ReviewManagementPage />
-        </MockProviders>
+        </MockAllProviders>
       );
 
       const metadataPanel = screen.getByTestId('review-metadata-panel');
@@ -137,9 +137,9 @@ describe('ReviewManagementPage', () => {
 
     it('should render save buttons', () => {
       render(
-        <MockProviders>
+        <MockAllProviders>
           <ReviewManagementPage />
-        </MockProviders>
+        </MockAllProviders>
       );
 
       const saveButton = screen.getByTestId('save-button-save');
@@ -151,9 +151,9 @@ describe('ReviewManagementPage', () => {
 
     it('should render UnifiedSaveProvider wrapper', () => {
       render(
-        <MockProviders>
+        <MockAllProviders>
           <ReviewManagementPage />
-        </MockProviders>
+        </MockAllProviders>
       );
 
       const saveProvider = screen.getByTestId('unified-save-provider');
@@ -164,9 +164,9 @@ describe('ReviewManagementPage', () => {
   describe('layout integration compliance', () => {
     it('should follow StandardLayout architecture pattern', () => {
       render(
-        <MockProviders>
+        <MockAllProviders>
           <ReviewManagementPage />
-        </MockProviders>
+        </MockAllProviders>
       );
 
       const main = screen.getByRole('main');
@@ -179,9 +179,9 @@ describe('ReviewManagementPage', () => {
 
     it('should not have custom layout implementations', () => {
       render(
-        <MockProviders>
+        <MockAllProviders>
           <ReviewManagementPage />
-        </MockProviders>
+        </MockAllProviders>
       );
 
       // Should NOT have old custom container classes
@@ -195,9 +195,9 @@ describe('ReviewManagementPage', () => {
 
     it('should maintain content width constraints', () => {
       render(
-        <MockProviders>
+        <MockAllProviders>
           <ReviewManagementPage />
-        </MockProviders>
+        </MockAllProviders>
       );
 
       const main = screen.getByRole('main');
@@ -216,9 +216,9 @@ describe('ReviewManagementPage', () => {
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
       
       render(
-        <MockProviders>
+        <MockAllProviders>
           <ReviewManagementPage />
-        </MockProviders>
+        </MockAllProviders>
       );
 
       // Should have error boundary attributes
@@ -232,9 +232,9 @@ describe('ReviewManagementPage', () => {
   describe('administrative role compliance', () => {
     it('should be accessible only to admin users', () => {
       render(
-        <MockProviders>
+        <MockAllProviders>
           <ReviewManagementPage />
-        </MockProviders>
+        </MockAllProviders>
       );
 
       // Component should render for admin context
@@ -244,9 +244,9 @@ describe('ReviewManagementPage', () => {
 
     it('should maintain admin-specific styling', () => {
       render(
-        <MockProviders>
+        <MockAllProviders>
           <ReviewManagementPage />
-        </MockProviders>
+        </MockAllProviders>
       );
 
       const main = screen.getByRole('main');

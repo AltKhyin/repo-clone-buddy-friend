@@ -189,7 +189,9 @@ describe('ImageBlockInspector', () => {
 
       render(<ImageBlockInspector nodeId="image-1" />);
 
-      expect(screen.getByTestId('external-link-icon')).toBeInTheDocument();
+      // There are multiple external link icons (in current image preview and in URL input)
+      const externalLinkIcons = screen.getAllByTestId('external-link-icon');
+      expect(externalLinkIcons.length).toBeGreaterThan(0);
     });
 
     it('should show URL validation error for invalid URLs', () => {
@@ -365,20 +367,20 @@ describe('ImageBlockInspector', () => {
     });
   });
 
-  describe('WebP Optimization Info', () => {
-    it('should display WebP optimization information', () => {
+  describe('Smart Image Processing Info', () => {
+    it('should display smart image processing information', () => {
       const mockNode = createMockImageNode();
       mockUseEditorStore.mockReturnValue(createMockStore([mockNode]));
 
       render(<ImageBlockInspector nodeId="image-1" />);
 
-      // TODO: Fix test - WebP Optimization section may have been updated
-      // expect(screen.getByText('WebP Optimization')).toBeInTheDocument();
-      // TODO: Fix test - WebP optimization text may have changed
-      // expect(
-      //   screen.getByText(/Images are automatically optimized to WebP format/)
-      // ).toBeInTheDocument();
-      expect(screen.getByTestId('refresh-cw-icon')).toBeInTheDocument();
+      expect(screen.getByText('Smart Image Processing')).toBeInTheDocument();
+      expect(
+        screen.getByText(/Auto-compression and WebP conversion for faster loading/)
+      ).toBeInTheDocument();
+      // The icon used is Upload icon in the info section
+      const uploadIcons = screen.getAllByTestId('upload-icon');
+      expect(uploadIcons.length).toBeGreaterThan(0);
     });
   });
 
@@ -392,8 +394,7 @@ describe('ImageBlockInspector', () => {
       const user = userEvent.setup();
       render(<ImageBlockInspector nodeId="image-1" />);
 
-      // TODO: Fix test - Image URL label may have changed
-      // const urlInput = screen.getByLabelText('Image URL');
+      const urlInput = screen.getByLabelText('Or paste image URL');
       await user.type(urlInput, 'https://example.com/image.jpg');
 
       expect(screen.queryByText(/Please enter a valid image URL/)).not.toBeInTheDocument();

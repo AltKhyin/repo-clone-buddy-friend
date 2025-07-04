@@ -67,24 +67,34 @@ export class ErrorBoundary extends React.Component<
       // Use custom fallback if provided
       if (this.props.fallback) {
         const Fallback = this.props.fallback;
-        return <Fallback error={this.state.error} resetError={this.resetError} />;
+        return (
+          <div data-error-boundary={this.props.tier || 'unknown'} data-has-error="true">
+            <Fallback error={this.state.error} resetError={this.resetError} />
+          </div>
+        );
       }
 
       // Use enhanced error fallback with tier-specific configuration
       return (
-        <ErrorFallback
-          error={this.state.error}
-          resetError={this.resetError}
-          errorInfo={this.state.errorInfo}
-          context={this.props.context || 'aplicação'}
-          showDetails={this.props.showDetails ?? (process.env.NODE_ENV === 'development')}
-          showHomeButton={this.props.showHomeButton ?? (this.props.tier !== 'root')}
-          showBackButton={this.props.showBackButton ?? (this.props.tier === 'page')}
-        />
+        <div data-error-boundary={this.props.tier || 'unknown'} data-has-error="true">
+          <ErrorFallback
+            error={this.state.error}
+            resetError={this.resetError}
+            errorInfo={this.state.errorInfo}
+            context={this.props.context || 'aplicação'}
+            showDetails={this.props.showDetails ?? (process.env.NODE_ENV === 'development')}
+            showHomeButton={this.props.showHomeButton ?? (this.props.tier !== 'root')}
+            showBackButton={this.props.showBackButton ?? (this.props.tier === 'page')}
+          />
+        </div>
       );
     }
 
-    return this.props.children;
+    return (
+      <div data-error-boundary={this.props.tier || 'unknown'} data-has-error="false">
+        {this.props.children}
+      </div>
+    );
   }
 }
 

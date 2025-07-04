@@ -2,7 +2,7 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { MockProviders } from '@/test-utils/mock-providers';
+import { MockAllProviders } from '@/test-utils/mock-providers';
 import ContentManagement from './ContentManagement';
 
 // Mock admin components that might not exist yet
@@ -18,9 +18,9 @@ describe('ContentManagement', () => {
   describe('layout structure', () => {
     it('should render with ErrorBoundary wrapper', () => {
       render(
-        <MockProviders>
+        <MockAllProviders>
           <ContentManagement />
-        </MockProviders>
+        </MockAllProviders>
       );
 
       // Should have ErrorBoundary structure
@@ -30,9 +30,9 @@ describe('ContentManagement', () => {
 
     it('should render with StandardLayout wide type', () => {
       render(
-        <MockProviders>
+        <MockAllProviders>
           <ContentManagement />
-        </MockProviders>
+        </MockAllProviders>
       );
 
       // Should have main element with wide layout characteristics
@@ -44,9 +44,9 @@ describe('ContentManagement', () => {
 
     it('should have proper spacing with contentClassName', () => {
       render(
-        <MockProviders>
+        <MockAllProviders>
           <ContentManagement />
-        </MockProviders>
+        </MockAllProviders>
       );
 
       const main = screen.getByRole('main');
@@ -57,9 +57,9 @@ describe('ContentManagement', () => {
   describe('content structure', () => {
     it('should display the page header with proper typography', () => {
       render(
-        <MockProviders>
+        <MockAllProviders>
           <ContentManagement />
-        </MockProviders>
+        </MockAllProviders>
       );
 
       const heading = screen.getByRole('heading', { level: 2 });
@@ -70,9 +70,9 @@ describe('ContentManagement', () => {
 
     it('should display page description', () => {
       render(
-        <MockProviders>
+        <MockAllProviders>
           <ContentManagement />
-        </MockProviders>
+        </MockAllProviders>
       );
 
       const description = screen.getByText(/Gerencie o fluxo de publicação/);
@@ -81,9 +81,9 @@ describe('ContentManagement', () => {
 
     it('should render ContentQueue component', () => {
       render(
-        <MockProviders>
+        <MockAllProviders>
           <ContentManagement />
-        </MockProviders>
+        </MockAllProviders>
       );
 
       const contentQueue = screen.getByTestId('content-queue');
@@ -94,9 +94,9 @@ describe('ContentManagement', () => {
   describe('layout integration compliance', () => {
     it('should follow StandardLayout architecture pattern', () => {
       render(
-        <MockProviders>
+        <MockAllProviders>
           <ContentManagement />
-        </MockProviders>
+        </MockAllProviders>
       );
 
       const main = screen.getByRole('main');
@@ -109,9 +109,9 @@ describe('ContentManagement', () => {
 
     it('should not have custom layout implementations', () => {
       render(
-        <MockProviders>
+        <MockAllProviders>
           <ContentManagement />
-        </MockProviders>
+        </MockAllProviders>
       );
 
       // Should NOT have old custom container classes
@@ -125,9 +125,9 @@ describe('ContentManagement', () => {
 
     it('should maintain content width constraints', () => {
       render(
-        <MockProviders>
+        <MockAllProviders>
           <ContentManagement />
-        </MockProviders>
+        </MockAllProviders>
       );
 
       const main = screen.getByRole('main');
@@ -146,9 +146,9 @@ describe('ContentManagement', () => {
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
       
       render(
-        <MockProviders>
+        <MockAllProviders>
           <ContentManagement />
-        </MockProviders>
+        </MockAllProviders>
       );
 
       // Should have error boundary attributes
@@ -162,9 +162,9 @@ describe('ContentManagement', () => {
   describe('administrative role compliance', () => {
     it('should be accessible only to admin users', () => {
       render(
-        <MockProviders>
+        <MockAllProviders>
           <ContentManagement />
-        </MockProviders>
+        </MockAllProviders>
       );
 
       // Component should render for admin context
@@ -174,9 +174,9 @@ describe('ContentManagement', () => {
 
     it('should maintain admin-specific styling', () => {
       render(
-        <MockProviders>
+        <MockAllProviders>
           <ContentManagement />
-        </MockProviders>
+        </MockAllProviders>
       );
 
       const main = screen.getByRole('main');
