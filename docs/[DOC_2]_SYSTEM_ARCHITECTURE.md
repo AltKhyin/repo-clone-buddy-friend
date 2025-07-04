@@ -127,6 +127,7 @@ The application follows a feature-first organization pattern within the `src/` d
 /src/
 ├── components/
 │   ├── shell/          # App layout (AppShell, Sidebar, Header)
+│   ├── layout/         # StandardLayout system and utilities
 │   ├── homepage/       # Homepage-specific components
 │   ├── acervo/         # Acervo-specific components
 │   ├── community/      # Community-specific components
@@ -156,6 +157,62 @@ The application follows a feature-first organization pattern within the `src/` d
 **Server State:** TanStack Query for all API interactions and caching
 **Global State:** Zustand ONLY for authentication state and app-wide configuration
 **Form State:** React Hook Form for complex form interactions
+
+### **3.4 Layout System Architecture**
+
+The application implements a **Reddit-inspired StandardLayout system** that provides consistent width constraints and content organization across all pages.
+
+#### **3.4.1 StandardLayout Component**
+
+**Core Philosophy:** Centralized layout system that ensures consistent content presentation while accommodating different content types and sidebar configurations.
+
+**Layout Types:**
+- `standard`: Traditional content + sidebar layout (756px main + 316px sidebar = 1200px total)
+- `content-only`: Full-width content without sidebar constraints
+- `centered`: Narrow, article-style reading layout for focused content
+- `wide`: Enhanced width for admin interfaces and complex content (max-w-6xl = 1152px)
+- `admin`: Administrative interface with proper spacing and constraints
+- `full-width`: Unrestricted width for special use cases
+
+#### **3.4.2 Layout Architecture Pattern**
+
+**Universal Pattern:** All pages follow the same architectural structure:
+
+```typescript
+export default function PageComponent() {
+  return (
+    <ErrorBoundary tier="page" context="page-name">
+      <StandardLayout type="[layout-type]" contentClassName="space-y-6">
+        {/* Page content */}
+      </StandardLayout>
+    </ErrorBoundary>
+  );
+}
+```
+
+**Key Benefits:**
+1. **Consistent Constraints:** All content respects the same width boundaries
+2. **Responsive Design:** Automatic adaptation for mobile and desktop
+3. **Centering Logic:** Content is properly centered within the app shell space
+4. **Type Safety:** Layout types are enforced via TypeScript
+5. **Error Isolation:** Each page is wrapped in its own ErrorBoundary
+
+#### **3.4.3 Layout Utility System**
+
+**Centralized Layout Logic:** All layout calculations are handled by utility functions:
+- `generateLayoutClasses()`: Determines container classes based on layout type
+- `generateContentClasses()`: Applies content-specific styling
+- `generateCenteringClasses()`: Ensures proper centering within available space
+
+**Mobile Adaptation:** The system automatically adapts to mobile viewports using `useIsMobile()` hook integration.
+
+#### **3.4.4 Layout Implementation Rules**
+
+1. **No Custom Layouts:** Pages MUST use StandardLayout, not custom container implementations
+2. **Type Selection:** Choose the most appropriate layout type for content needs
+3. **Content Constraints:** Respect the 1200px total width constraint for standard layouts
+4. **Responsive First:** All layouts implement mobile-first responsive design
+5. **Shell Integration:** Layouts work within the existing AppShell boundaries
 
 ---
 

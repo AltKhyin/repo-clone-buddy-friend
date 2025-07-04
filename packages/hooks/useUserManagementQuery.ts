@@ -58,7 +58,6 @@ export const useUserListQuery = (filters?: UserManagementFilters) => {
   return useQuery({
     queryKey: ['admin-users', 'list', filters],
     queryFn: async (): Promise<PaginatedUsers> => {
-      console.log('Fetching user list via Edge Function...');
       
       // Use POST with action-based payload
       const payload = {
@@ -103,7 +102,6 @@ export const useUserDetailQuery = (userId: string) => {
   return useQuery({
     queryKey: ['admin-users', 'detail', userId],
     queryFn: async (): Promise<UserWithRoles> => {
-      console.log('Fetching user detail via Edge Function...', { userId });
       
       const { data, error } = await supabase.functions.invoke('admin-manage-users', {
         body: {
@@ -136,7 +134,6 @@ export const useUpdateUserMutation = () => {
 
   return useMutation({
     mutationFn: async ({ userId, role, subscriptionTier, profileData }: UpdateUserParams) => {
-      console.log('Updating user via Edge Function...', { userId, role, subscriptionTier, profileData });
       
       // Determine action based on what's being updated
       let action: string;
@@ -173,7 +170,6 @@ export const useUpdateUserMutation = () => {
       // Invalidate related queries
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
       queryClient.invalidateQueries({ queryKey: ['admin-users', 'detail', userId] });
-      console.log('User updated successfully:', data);
     },
     onError: (error) => {
       console.error('User update failed:', error);
@@ -187,7 +183,6 @@ export const useUserStatusMutation = () => {
 
   return useMutation({
     mutationFn: async ({ userId, action }: { userId: string; action: 'deactivate' | 'reactivate' }) => {
-      console.log('Changing user status via Edge Function...', { userId, action });
       
       const { data, error } = await supabase.functions.invoke('admin-manage-users', {
         body: {
@@ -207,7 +202,6 @@ export const useUserStatusMutation = () => {
       // Invalidate related queries
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
       queryClient.invalidateQueries({ queryKey: ['admin-users', 'detail', userId] });
-      console.log('User status changed successfully:', data);
     },
     onError: (error) => {
       console.error('User status change failed:', error);
@@ -221,7 +215,6 @@ export const useDeleteUserMutation = () => {
 
   return useMutation({
     mutationFn: async (userId: string) => {
-      console.log('Deleting user via Edge Function...', { userId });
       
       const { data, error } = await supabase.functions.invoke('admin-manage-users', {
         body: {
@@ -241,7 +234,6 @@ export const useDeleteUserMutation = () => {
       // Invalidate related queries
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
       queryClient.removeQueries({ queryKey: ['admin-users', 'detail', userId] });
-      console.log('User deleted successfully:', data);
     },
     onError: (error) => {
       console.error('User deletion failed:', error);

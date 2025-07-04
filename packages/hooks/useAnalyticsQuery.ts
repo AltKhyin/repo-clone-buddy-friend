@@ -40,7 +40,6 @@ export const useAnalyticsQuery = () => {
   return useQuery({
     queryKey: ['admin-analytics'],
     queryFn: async (): Promise<AnalyticsData> => {
-      console.log('Fetching analytics data via Edge Function...');
       
       // Use Edge Function instead of direct RPC calls per Blueprint 09
       const { data, error } = await supabase.functions.invoke('get-analytics-dashboard-data');
@@ -66,7 +65,6 @@ export const useAnalyticsExportMutation = () => {
   return useQuery({
     queryKey: ['analytics-export'],
     queryFn: async () => {
-      console.log('Exporting analytics data via Edge Function...');
       
       // Use Edge Function for exports as well
       const { data, error } = await supabase.functions.invoke('get-analytics-dashboard-data', {

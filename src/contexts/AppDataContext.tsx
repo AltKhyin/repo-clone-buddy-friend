@@ -1,7 +1,7 @@
 
 // ABOUTME: Global app data context provider for consolidated homepage data.
 import React, { createContext, useContext } from 'react';
-import { useConsolidatedHomepageFeedQuery, type ConsolidatedHomepageData, type UserProfile } from '../../packages/hooks/useHomepageFeedQuery';
+import { useConsolidatedHomepageFeedQuery, type ConsolidatedHomepageData, type UserProfile } from '@packages/hooks/useHomepageFeedQuery';
 
 interface AppDataContextType {
   data: ConsolidatedHomepageData | undefined;
@@ -18,12 +18,6 @@ const AppDataContext = createContext<AppDataContextType | undefined>(undefined);
 export const AppDataProvider = ({ children }: { children: React.ReactNode }) => {
   const queryResult = useConsolidatedHomepageFeedQuery();
   
-  console.log('AppDataProvider state:', {
-    isLoading: queryResult.isLoading,
-    isError: queryResult.isError,
-    hasData: !!queryResult.data,
-    error: queryResult.error
-  });
 
   const contextValue: AppDataContextType = {
     data: queryResult.data,

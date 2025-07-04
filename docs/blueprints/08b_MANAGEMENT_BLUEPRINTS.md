@@ -35,6 +35,7 @@ This blueprint defines a comprehensive management platform that unifies user man
 
 ### Technical Architecture
 - **Frontend:** React + TypeScript with shadcn/ui components
+- **Layout System:** StandardLayout with 'wide' and 'admin' types for management interfaces
 - **State Management:** TanStack Query v5 + Zustand (following existing patterns)
 - **Backend:** Supabase Edge Functions + PostgreSQL
 - **Authentication:** Role-based access (Admin, Editor roles)
@@ -281,7 +282,7 @@ CREATE INDEX "idx_admin_analytics_type_date" ON "Admin_Analytics"("metric_type",
 ### 1. Main Layout Structure
 ```
 src/components/admin/
-├── AdminDashboard.tsx              # Main dashboard container
+├── AdminDashboard.tsx              # Main dashboard container (StandardLayout 'wide')
 ├── AdminNavigation.tsx             # Unified navigation sidebar
 ├── AdminHeader.tsx                 # Header with user info and notifications
 └── modules/
@@ -291,6 +292,27 @@ src/components/admin/
     ├── LayoutManagement/
     └── Analytics/
 ```
+
+### 1.1 StandardLayout Integration Pattern
+All admin pages MUST follow this architectural pattern:
+
+```typescript
+export default function AdminPage() {
+  return (
+    <ErrorBoundary tier="page" context="admin-page-name">
+      <StandardLayout type="wide" contentClassName="space-y-8">
+        {/* Admin page content */}
+      </StandardLayout>
+    </ErrorBoundary>
+  );
+}
+```
+
+**Layout Type Guidelines:**
+- **AdminDashboard:** Use `wide` type for comprehensive overview
+- **Content Management:** Use `wide` type for complex interfaces
+- **User Management:** Use `wide` type for detailed user data tables
+- **Analytics Pages:** Use `wide` type for charts and metrics
 
 ### 2. Content Management Module
 ```

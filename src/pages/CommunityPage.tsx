@@ -6,7 +6,7 @@ import { CommunityFeedWithSidebar } from '../components/community/CommunityFeedW
 import { CommunityErrorBoundary } from '../components/community/CommunityErrorBoundary';
 import { CommunityLoadingState } from '../components/community/CommunityLoadingState';
 import { NetworkAwareFallback, useNetworkStatus } from '../components/community/NetworkAwareFallback';
-import { useCommunityPageQuery } from '../../packages/hooks/useCommunityPageQuery';
+import { useCommunityPageQuery } from '@packages/hooks/useCommunityPageQuery';
 import { Alert, AlertDescription } from '../components/ui/alert';
 import { Button } from '../components/ui/button';
 import { AlertCircle, RefreshCw, WifiOff } from 'lucide-react';

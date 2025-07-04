@@ -112,10 +112,8 @@ export default function EditorPage() {
   const loadCallback = React.useCallback(async (reviewId: string) => {
     // Directly query the database instead of relying on stale cached data
     // This ensures we always get fresh data and avoid race conditions
-    console.log('[EditorPage] loadCallback called for reviewId:', reviewId);
 
     if (!reviewId) {
-      console.log('[EditorPage] No reviewId provided');
       return null;
     }
 
@@ -136,7 +134,6 @@ export default function EditorPage() {
       if (error) {
         if (error.code === 'PGRST116') {
           // No editor content exists yet - this is fine for new reviews
-          console.log('[EditorPage] No existing editor content found for review:', reviewId);
           return null;
         }
         console.error('[EditorPage] Database error loading content:', error);
@@ -147,11 +144,6 @@ export default function EditorPage() {
       if (data?.structured_content) {
         try {
           const validatedContent = validateStructuredContent(data.structured_content);
-          console.log('[EditorPage] Successfully loaded and validated content:', {
-            reviewId,
-            nodeCount: validatedContent.nodes.length,
-            hasLayouts: !!validatedContent.layouts,
-          });
 
           return {
             ...data,
@@ -163,7 +155,6 @@ export default function EditorPage() {
         }
       }
 
-      console.log('[EditorPage] Loaded data but no structured_content found');
       return null;
     } catch (error) {
       console.error('[EditorPage] Failed to load from database:', error);
@@ -187,7 +178,6 @@ export default function EditorPage() {
   // Load data from database - ensure callbacks are set before loading
   React.useEffect(() => {
     if (reviewId && persistenceCallbacks.load) {
-      console.log('[EditorPage] Triggering loadFromDatabase for reviewId:', reviewId);
       loadFromDatabase(reviewId).catch(error => {
         console.error('[EditorPage] Failed to load review data:', error);
       });
@@ -242,7 +232,6 @@ export default function EditorPage() {
   const handleRecovery = (recoveredContent: any) => {
     try {
       loadFromJSON(recoveredContent);
-      console.log('Successfully restored from backup');
     } catch (error) {
       console.error('Failed to load recovered content:', error);
     }

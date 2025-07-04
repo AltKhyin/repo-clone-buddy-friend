@@ -58,7 +58,6 @@ export async function invokeFunctionGet<T>(
   headers?: Record<string, string>
 ): Promise<T> {
   // Use direct GET fetch as primary method since GET functions expect actual GET requests
-  console.log(`Invoking function ${functionName} via direct GET fetch`);
 
   const {
     data: { session },
@@ -94,7 +93,6 @@ export async function invokeFunctionGet<T>(
     console.error(`Function ${functionName} failed with status ${response.status}:`, responseText);
 
     // If direct GET fails, try fallback to Supabase client (POST) for functions that support both
-    console.log(`Direct GET failed, trying Supabase client fallback for ${functionName}`);
 
     try {
       return await invokeFunction<T>(functionName, { body: params, headers });

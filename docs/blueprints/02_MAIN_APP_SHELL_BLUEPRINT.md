@@ -32,12 +32,14 @@ This section defines the precise look, feel, and behavior of the application she
 *   **Layout:** A persistent, two-column layout.
     *   **Left Column (CollapsibleSidebar):** Fixed width of 240px. The sidebar is **expanded by default**.
     *   **Right Column (Main Content Area):** Occupies the remaining screen width.
+    *   **Content Constraints:** All page content within the main area uses **StandardLayout system** with maximum width of 1200px, automatically centered within available space.
 
 ### **2.2 Tablet View (768px to 1023px)**
 
 *   **Layout:** A persistent, two-column layout, the same as desktop.
     *   **Left Column (CollapsibleSidebar):** The sidebar is **collapsed by default** to a width of 80px to maximize content space. It can be expanded by the user.
     *   **Right Column (Main Content Area):** Occupies the remaining screen width with an appropriate left margin.
+    *   **Content Constraints:** Page content continues to use **StandardLayout system** with responsive adaptation within the available space.
 
 ### **2.3 Mobile View (< 768px)**
 
@@ -46,6 +48,7 @@ This section defines the precise look, feel, and behavior of the application she
 *   **Components & Behavior:**
     *   **Header:** A header is fixed to the top of the viewport containing the logotype and notification bell.
     *   **BottomTabBar:** A bar fixed to the bottom of the viewport serves as the primary navigation.
+*   **Content Constraints:** Page content uses **StandardLayout system** adapted for mobile with full-width presentation and appropriate padding within the single-column structure.
 
 ## **3.0 Front-End Architecture**
 

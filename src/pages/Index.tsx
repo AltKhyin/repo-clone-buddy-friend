@@ -1,7 +1,7 @@
 // ABOUTME: Main homepage with shell-aware responsive container pattern.
 
 import React from 'react';
-import { useConsolidatedHomepageFeedQuery } from '../../packages/hooks/useHomepageFeedQuery';
+import { useConsolidatedHomepageFeedQuery } from '@packages/hooks/useHomepageFeedQuery';
 import FeaturedReview from '../components/homepage/FeaturedReview';
 import ReviewCarousel from '../components/homepage/ReviewCarousel';
 import NextEditionModule from '../components/homepage/NextEditionModule';
@@ -13,7 +13,6 @@ const IndexContent = () => {
   // Use ONLY the consolidated query - no other API calls allowed
   const { data, isLoading, isError, error } = useConsolidatedHomepageFeedQuery();
 
-  console.log('Homepage render state:', { data, isLoading, isError, error });
 
   // Loading state with skeleton loaders
   if (isLoading) {
@@ -77,7 +76,6 @@ const IndexContent = () => {
     );
   }
 
-  console.log('Rendering homepage with consolidated data:', data);
 
   // Render modules based on layout order from API
   const renderModule = (moduleType: string) => {
