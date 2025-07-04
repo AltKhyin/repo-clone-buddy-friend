@@ -49,7 +49,7 @@ export const PollBlockNode = React.memo(function PollBlockNode({
   const pollData = data;
 
   // Enhanced data validation and initialization with useEffect to prevent infinite loops
-  const defaultPollData = {
+  const defaultPollData = React.useMemo(() => ({
     question: 'What is your opinion?',
     options: [
       { id: 'opt-1-' + Date.now(), text: 'Option 1', votes: 0 },
@@ -58,7 +58,7 @@ export const PollBlockNode = React.memo(function PollBlockNode({
     allowMultiple: false,
     showResults: true,
     totalVotes: 0,
-  };
+  }), []);
 
   // Initialize poll data if missing or invalid (using useEffect to prevent infinite loops)
   React.useEffect(() => {
@@ -70,7 +70,7 @@ export const PollBlockNode = React.memo(function PollBlockNode({
       updateNode(id, { data: defaultPollData });
       setHasInitialized(true);
     }
-  }, [id, pollData, hasInitialized]); // Removed updateNode dependency to prevent potential re-runs
+  }, [id, pollData, hasInitialized, defaultPollData, updateNode]);
 
   // Use safe defaults for missing properties
   const safeQuestion = pollData?.question || defaultPollData.question;

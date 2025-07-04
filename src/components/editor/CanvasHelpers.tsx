@@ -34,9 +34,9 @@ export function CanvasHelpers({ width, height, zoom, offset }: CanvasHelpersProp
   };
 
   // Convert screen position to canvas position
-  const toCanvasPosition = (screenPos: number, isX: boolean) => {
+  const toCanvasPosition = React.useCallback((screenPos: number, isX: boolean) => {
     return (screenPos - (isX ? offset.x : offset.y)) / zoom;
-  };
+  }, [offset.x, offset.y, zoom]);
 
   // Handle ruler click to add guideline
   const handleRulerClick = (e: React.MouseEvent, type: 'horizontal' | 'vertical') => {
@@ -88,7 +88,7 @@ export function CanvasHelpers({ width, height, zoom, offset }: CanvasHelpersProp
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [isDraggingGuide, addGuideline, removeGuideline, zoom, offset]);
+  }, [isDraggingGuide, addGuideline, removeGuideline, zoom, offset, toCanvasPosition]);
 
   const rulerColor = canvasTheme === 'dark' ? '#52525b' : '#9ca3af';
   const rulerTextColor = canvasTheme === 'dark' ? '#a1a1aa' : '#6b7280';

@@ -173,36 +173,7 @@ export const NetworkAwareFallback = ({
   return null;
 };
 
-// Hook for network status monitoring
-export const useNetworkStatus = () => {
-  const [isOnline, setIsOnline] = React.useState(navigator.onLine);
-  const [lastOnline, setLastOnline] = React.useState<Date | null>(null);
-
-  React.useEffect(() => {
-    const handleOnline = () => {
-      setIsOnline(true);
-      setLastOnline(new Date());
-    };
-    
-    const handleOffline = () => {
-      setIsOnline(false);
-    };
-
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-
-    // Set initial last online time if currently online
-    if (navigator.onLine) {
-      setLastOnline(new Date());
-    }
-
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
-  }, []);
-
-  return { isOnline, lastOnline };
-};
+// Import hook from separate file to avoid Fast Refresh warnings
+export { useNetworkStatus } from '@/hooks/useNetworkStatus';
 
 export default NetworkAwareFallback;

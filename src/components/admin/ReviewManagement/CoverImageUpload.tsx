@@ -103,7 +103,7 @@ export const CoverImageUpload: React.FC<CoverImageUploadProps> = ({
         setUploadProgress(0);
       }
     },
-    [reviewId, onImageChange, toast]
+[onImageChange, toast, uploadImage]
   );
 
   const handleRemoveImage = async () => {

@@ -278,9 +278,7 @@ export const toNotCauseInfiniteLoop = {
 
 // Add to expect for usage in tests
 declare global {
-  namespace jest {
-    interface Matchers<R> {
-      toNotCauseInfiniteLoop(timeout?: number): R
-    }
+  interface CustomMatchers<R> {
+    toNotCauseInfiniteLoop(timeout?: number): R
   }
 }

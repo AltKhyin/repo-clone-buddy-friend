@@ -6,7 +6,7 @@ import { usePublicationActionMutation } from '../../../../packages/hooks/usePubl
 import { useUpdateReviewMetadataMutation } from '../../../../packages/hooks/useUpdateReviewMetadataMutation';
 import { useToast } from '@/hooks/use-toast';
 
-const UnifiedSaveContext = createContext<UnifiedSaveContextValue | null>(null);
+export const UnifiedSaveContext = createContext<UnifiedSaveContextValue | null>(null);
 
 interface UnifiedSaveProviderProps {
   children: ReactNode;
@@ -163,10 +163,5 @@ export const UnifiedSaveProvider: React.FC<UnifiedSaveProviderProps> = ({
   );
 };
 
-export const useSaveContext = (): UnifiedSaveContextValue => {
-  const context = useContext(UnifiedSaveContext);
-  if (!context) {
-    throw new Error('useSaveContext must be used within a UnifiedSaveProvider');
-  }
-  return context;
-};
+// Import hook from separate file to avoid Fast Refresh warnings
+export { useSaveContext } from '@/hooks/useSaveContext';
