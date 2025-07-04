@@ -26,4 +26,4 @@ export {
   BORDER_FIELDS,
   DEFAULT_SPACING_FIELDS,
   SPACING_PRESETS,
-} from './SpacingControls';
+} from './spacing-constants';
