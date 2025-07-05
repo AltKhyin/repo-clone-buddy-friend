@@ -1,2 +1,96 @@
-#!/bin/bash
-exec "$(dirname "$0")/../scripts/pre-commit.sh"
+#!/bin/sh
+
+# Pre-commit hook using Node.js to avoid WSL compatibility issues
+cd "$(dirname "$0")/.."
+
+node -e "
+const { spawn } = require('child_process');
+
+console.log('🛡️ EVIDENS Pre-commit Protection Active');
+console.log('======================================');
+
+function runCommand(name, command, args = []) {
+  return new Promise((resolve, reject) => {
+    console.log(\`🔄 Running \${name}...\`);
+    
+    const child = spawn(command, args, {
+      stdio: 'inherit',
+      shell: true
+    });
+
+    child.on('close', (code) => {
+      if (code === 0) {
+        console.log(\`✅ \${name} completed successfully\`);
+        resolve();
+      } else {
+        console.log(\`❌ \${name} failed with code \${code}\`);
+        reject(new Error(\`\${name} failed\`));
+      }
+    });
+
+    child.on('error', (err) => {
+      console.log(\`❌ \${name} error:\`, err.message);
+      reject(err);
+    });
+  });
+}
+
+function runTests() {
+  return new Promise((resolve, reject) => {
+    console.log('🧪 Running optimized test suite...');
+    console.log('⚡ Running minimal test validation - allowing up to 90 seconds for completion...');
+    
+    const child = spawn('npm', ['run', 'test:commit'], {
+      stdio: 'inherit',
+      shell: true
+    });
+
+    const timeout = setTimeout(() => {
+      child.kill('SIGTERM');
+      console.log('');
+      console.log('⏰ ❌ TESTS TIMED OUT AFTER 90 SECONDS! ❌ ⏰');
+      console.log('💡 Pre-commit BLOCKED - Minimal test validation taking too long.');
+      console.log('🔧 Run \"npm run test:commit\" to test the simplified validation.');
+      console.log('🚫 COMMIT PREVENTED for your protection.');
+      reject(new Error('Tests timed out'));
+    }, 90000);
+
+    child.on('close', (code) => {
+      clearTimeout(timeout);
+      if (code === 0) {
+        console.log('');
+        console.log('✅ ✅ ✅ ALL CHECKS PASSED! ✅ ✅ ✅');
+        console.log('🛡️ Your commit is safe - all tests pass!');
+        console.log('🚀 Proceeding with commit...');
+        resolve();
+      } else {
+        console.log('');
+        console.log('❌ ❌ ❌ TESTS FAILED! ❌ ❌ ❌');
+        console.log('💡 Pre-commit BLOCKED - You are not allowed to commit with failing tests.');
+        console.log('🔧 Run \"npm test\" to see detailed test failures and fix them.');
+        console.log('🚫 COMMIT PREVENTED for your protection.');
+        reject(new Error('Tests failed'));
+      }
+    });
+
+    child.on('error', (err) => {
+      clearTimeout(timeout);
+      reject(err);
+    });
+  });
+}
+
+async function main() {
+  try {
+    await runCommand('lint-staged', 'npx', ['lint-staged']);
+    await runCommand('ESLint validation', 'npm', ['run', 'lint']);
+    await runCommand('TypeScript check', 'npx', ['tsc', '--noEmit']);
+    await runTests();
+  } catch (error) {
+    console.log('🚫 COMMIT BLOCKED - Fix the issues above before committing.');
+    process.exit(1);
+  }
+}
+
+main();
+"

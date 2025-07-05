@@ -2,9 +2,10 @@
 
 ## 🚨 CRITICAL: Version Control & Sync Requirements
 
-**IMPORTANT**: This repository MUST be kept synchronized with GitHub at all times. 
+**IMPORTANT**: This repository MUST be kept synchronized with GitHub at all times.
 
 ### Sync Protocol:
+
 1. **After EVERY change**: Commit and push to GitHub immediately
 2. **Before starting work**: Always pull latest changes
 3. **Working directory**: Use `repo-clone-buddy-friend/` as the primary development directory
@@ -20,6 +21,7 @@ git push origin main
 ## 🔥 Immediate Issues to Address
 
 ### High Priority Fixes Required:
+
 1. **Community Posts Issues**:
    - Comments being counted as posts in some queries
    - Image/video/poll posts not displaying correctly
@@ -36,6 +38,7 @@ git push origin main
    - rate_limit_log table needs RLS policies
 
 ### Testing Requirements:
+
 - All fixes MUST be tested using Supabase MCP tools
 - Simulate actual app calls before marking as complete
 - Verify data integrity after each change
@@ -112,3 +115,13 @@ Yes, you can!
 To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
 
 Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+
+# Test change for pre-commit
+
+# Test Windows-compatible pre-commit hook
+
+# Test extended timeout pre-commit hook
+
+# Test Node.js pre-commit hook
+
+# Test shell + Node.js pre-commit hook

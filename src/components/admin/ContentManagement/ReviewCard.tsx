@@ -1,5 +1,4 @@
-// ABOUTME: Individual review card for content queue display  
-// Test comment to trigger pre-commit hook - second test
+// ABOUTME: Individual review card for content queue display
 
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,11 +19,12 @@ interface ReviewCardProps {
 
 // Enhanced Article Metadata Section Component
 const ArticleMetadataSection = ({ review }: { review: ReviewQueueItem }) => {
-  const hasArticleData = review.original_article_title || 
-                        review.original_article_authors || 
-                        review.original_article_publication_date || 
-                        review.study_type ||
-                        review.edicao;
+  const hasArticleData =
+    review.original_article_title ||
+    review.original_article_authors ||
+    review.original_article_publication_date ||
+    review.study_type ||
+    review.edicao;
 
   if (!hasArticleData) return null;
 
@@ -41,30 +41,40 @@ const ArticleMetadataSection = ({ review }: { review: ReviewQueueItem }) => {
           {review.edicao && (
             <div className="space-y-0.5 min-w-0 flex-shrink-0">
               <div className="text-muted-foreground font-medium">Edição:</div>
-              <div className="whitespace-nowrap" title={review.edicao}>{review.edicao}</div>
+              <div className="whitespace-nowrap" title={review.edicao}>
+                {review.edicao}
+              </div>
             </div>
           )}
           {review.study_type && (
             <div className="space-y-0.5 min-w-0 flex-shrink-0">
               <div className="text-muted-foreground font-medium">Tipo:</div>
-              <div className="whitespace-nowrap" title={review.study_type}>{review.study_type}</div>
+              <div className="whitespace-nowrap" title={review.study_type}>
+                {review.study_type}
+              </div>
             </div>
           )}
           {review.original_article_publication_date && (
             <div className="space-y-0.5 min-w-0 flex-shrink-0">
               <div className="text-muted-foreground font-medium">Data:</div>
-              <div className="whitespace-nowrap" title={formatDate(review.original_article_publication_date)}>
+              <div
+                className="whitespace-nowrap"
+                title={formatDate(review.original_article_publication_date)}
+              >
                 {formatDate(review.original_article_publication_date)}
               </div>
             </div>
           )}
         </div>
-        
+
         {/* Full-width rows for longer fields: Título and Autores */}
         {review.original_article_title && (
           <div className="space-y-0.5">
             <div className="text-muted-foreground font-medium">Título:</div>
-            <div className="leading-relaxed line-clamp-2 sm:line-clamp-3" title={review.original_article_title}>
+            <div
+              className="leading-relaxed line-clamp-2 sm:line-clamp-3"
+              title={review.original_article_title}
+            >
               {review.original_article_title}
             </div>
           </div>
@@ -89,25 +99,25 @@ export const ReviewCard = ({ review, isSelected, onSelect }: ReviewCardProps) =>
     // Priority: show publication status first (status field), then review status
     const primaryStatus = review.status;
     const reviewStatus = review.review_status;
-    
+
     switch (primaryStatus) {
       case 'published':
         return {
           status: 'published',
           color: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-          label: 'Published'
+          label: 'Published',
         };
       case 'scheduled':
         return {
           status: 'scheduled',
           color: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-          label: 'Scheduled'
+          label: 'Scheduled',
         };
       case 'archived':
         return {
           status: 'archived',
           color: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
-          label: 'Archived'
+          label: 'Archived',
         };
       case 'draft':
         // For drafts, show the review status if it's more specific
@@ -116,38 +126,38 @@ export const ReviewCard = ({ review, isSelected, onSelect }: ReviewCardProps) =>
             return {
               status: 'under_review',
               color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
-              label: 'Under Review'
+              label: 'Under Review',
             };
           case 'approved':
             return {
               status: 'approved',
               color: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-              label: 'Approved'
+              label: 'Approved',
             };
           case 'rejected':
             return {
               status: 'rejected',
               color: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
-              label: 'Rejected'
+              label: 'Rejected',
             };
           case 'changes_requested':
             return {
               status: 'changes_requested',
               color: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200',
-              label: 'Changes Requested'
+              label: 'Changes Requested',
             };
           default:
             return {
               status: 'draft',
               color: 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200',
-              label: 'Draft'
+              label: 'Draft',
             };
         }
       default:
         return {
           status: primaryStatus,
           color: 'bg-surface-muted text-foreground border border-border',
-          label: primaryStatus
+          label: primaryStatus,
         };
     }
   };
@@ -160,16 +170,16 @@ export const ReviewCard = ({ review, isSelected, onSelect }: ReviewCardProps) =>
   const statusInfo = getStatusInfo(review);
 
   return (
-    <div 
+    <div
       className="p-6 hover:bg-surface-muted/50 transition-colors border-b border-border cursor-pointer"
       onClick={() => onSelect(!isSelected)}
     >
       <div className="flex gap-4">
-        <Checkbox 
-          checked={isSelected} 
-          onCheckedChange={onSelect} 
-          className="self-center" 
-          onClick={(e) => e.stopPropagation()}
+        <Checkbox
+          checked={isSelected}
+          onCheckedChange={onSelect}
+          className="self-center"
+          onClick={e => e.stopPropagation()}
         />
 
         {/* Unified Review Item Container */}
@@ -219,10 +229,10 @@ export const ReviewCard = ({ review, isSelected, onSelect }: ReviewCardProps) =>
                           color: type.text_color,
                           borderColor: type.border_color,
                           backgroundColor: type.background_color,
-                          border: `1px solid ${type.border_color}`
+                          border: `1px solid ${type.border_color}`,
                         }}
                         className="text-xs px-2 py-1 pr-6 cursor-pointer"
-                        onClick={(e) => {
+                        onClick={e => {
                           e.stopPropagation();
                           setEditingContentType(type);
                           setShowEditModal(true);
@@ -233,7 +243,7 @@ export const ReviewCard = ({ review, isSelected, onSelect }: ReviewCardProps) =>
                       </Badge>
                       <button
                         type="button"
-                        onClick={(e) => {
+                        onClick={e => {
                           e.stopPropagation();
                           setEditingContentType(type);
                           setShowEditModal(true);
@@ -288,12 +298,20 @@ export const ReviewCard = ({ review, isSelected, onSelect }: ReviewCardProps) =>
             {/* Action Buttons */}
             <div className="flex gap-2 flex-shrink-0">
               <Link to={`/reviews/${review.id}`}>
-                <Button variant="outline" size="sm" className="h-8 px-3 text-xs font-medium min-w-[80px]">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 px-3 text-xs font-medium min-w-[80px]"
+                >
                   Visualizar
                 </Button>
               </Link>
               <Link to={`/admin/review/${review.id}`}>
-                <Button variant="outline" size="sm" className="h-8 px-3 text-xs font-medium min-w-[70px]">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 px-3 text-xs font-medium min-w-[70px]"
+                >
                   Manage
                 </Button>
               </Link>
@@ -301,7 +319,7 @@ export const ReviewCard = ({ review, isSelected, onSelect }: ReviewCardProps) =>
           </div>
         </div>
       </div>
-      
+
       {/* Content Type Edit Modal */}
       {editingContentType && (
         <ContentTypeEditModal
