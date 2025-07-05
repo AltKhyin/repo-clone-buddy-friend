@@ -8,7 +8,7 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'jsdom',
-    setupFiles: ['./src/test-setup-simple.ts'],
+    setupFiles: ['./src/test-setup.ts'],
     css: true,
     // OPTIMIZED: Reduced timeouts for faster execution
     testTimeout: 10000, // 10 second timeout per test (was 30s)

@@ -1,11 +1,10 @@
-// ABOUTME: Global test setup configuration for Vitest and React Testing Library with performance monitoring
+// ABOUTME: Global test setup configuration for Vitest and React Testing Library
 import '@testing-library/jest-dom';
 import React from 'react';
 import { vi, beforeEach, afterEach, afterAll, expect } from 'vitest';
 import { cleanup } from '@testing-library/react';
 import { mockSupabaseClient, resetSupabaseMocks } from './test-utils/supabase-mocks';
 import './test-utils/custom-matchers';
-import { performanceMatchers, globalTestTracker } from './test-utils/performance-budget';
 
 // Mock IntersectionObserver for components that use it
 global.IntersectionObserver = vi.fn(() => ({
