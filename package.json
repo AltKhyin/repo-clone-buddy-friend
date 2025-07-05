@@ -18,7 +18,7 @@
     "test:staged": "vitest run --reporter=verbose --run",
     "validate:inspectors": "node scripts/validate-inspector-components.js",
     "test:pre-commit": "npm run lint && npm run build && npm run test:fast",
-    "test:commit": "node src/test-node-simple.js",
+    "test:commit": "node src/test-runner-node.cjs",
     "test:fast": "vitest run --reporter=basic --exclude='**/*.integration.test.{ts,tsx}' --testTimeout=5000",
     "test:unit": "vitest run --reporter=basic src/**/*.test.{ts,tsx} --exclude='**/*.integration.test.{ts,tsx}'",
     "test:integration": "vitest run --reporter=verbose src/**/*.integration.test.{ts,tsx}",

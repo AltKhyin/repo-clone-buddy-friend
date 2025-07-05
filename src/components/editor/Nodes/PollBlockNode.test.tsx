@@ -220,7 +220,7 @@ describe('PollBlockNode', () => {
   });
 
   describe('Dark Mode', () => {
-    it.skip('should apply dark mode styling when canvasTheme is dark', () => {
+    it('should apply dark mode styling when canvasTheme is dark', () => {
       mockUseEditorStore.mockReturnValue(createMockStore({ canvasTheme: 'dark' }));
 
       const pollData = createMockPollData();

@@ -8,18 +8,18 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'jsdom',
-    setupFiles: ['./src/test-setup.ts'],
+    setupFiles: ['./src/test-setup-simple.ts'],
     css: true,
     // OPTIMIZED: Reduced timeouts for faster execution
     testTimeout: 10000, // 10 second timeout per test (was 30s)
     hookTimeout: 5000, // 5 second timeout for hooks (was 10s)
     teardownTimeout: 3000, // 3 second teardown timeout (was 10s)
-    // OPTIMIZED: Use threads for better performance than forks
-    pool: 'threads', // Better performance than forks for I/O bound tests
+    // WSL2 FIX: Use forks for better WSL2 compatibility
+    pool: 'forks', // Better WSL2 compatibility than threads
     poolOptions: {
-      threads: {
-        maxThreads: 4, // Limit concurrent threads
-        minThreads: 2, // Minimum threads for consistent performance
+      forks: {
+        maxForks: 2, // Limit concurrent forks for WSL2
+        minForks: 1, // Minimum forks
       },
     },
     // PERFORMANCE: Enable test categorization

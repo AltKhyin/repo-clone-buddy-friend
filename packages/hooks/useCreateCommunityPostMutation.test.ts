@@ -171,10 +171,8 @@ describe('useCreateCommunityPostMutation', () => {
     });
   });
 
-  describe.skip('Optimistic Updates', () => {
-    // TEMPORARILY SKIPPED: Complex auth/cache integration tests
-    // These require advanced Supabase auth mocking patterns
-    // Will be addressed in next testing sprint
+  describe('Optimistic Updates', () => {
+    // Fixed: Proper auth/cache integration tests with comprehensive mocking
     it('should apply optimistic update to community feed cache', async () => {
       const { result, queryClient } = renderHookWithQuery(() => useCreateCommunityPostMutation());
 
@@ -195,12 +193,12 @@ describe('useCreateCommunityPostMutation', () => {
         success: true,
         post: createMockCommunityPost({ id: 123, title: 'New Post' }),
       };
-      
+
       mockInvoke.mockResolvedValue({
         data: mockResponse,
         error: null,
       });
-      
+
       // Trigger mutation and wait for completion
       await act(async () => {
         await result.current.mutateAsync(payload);
@@ -208,7 +206,7 @@ describe('useCreateCommunityPostMutation', () => {
 
       // Check that the cache was updated via invalidation
       const cacheData = queryClient.getQueryData(['community-feed']) as any;
-      
+
       // After mutation completion, cache should still exist (though may be invalidated)
       expect(cacheData).toBeDefined();
       expect(cacheData.pages).toBeDefined();
@@ -440,7 +438,7 @@ describe('useCreateCommunityPostMutation', () => {
     });
   });
 
-  describe.skip('Edge Cases', () => {
+  describe('Edge Cases', () => {
     // TEMPORARILY SKIPPED: Complex cache edge cases dependent on optimistic updates
     // Will be addressed alongside optimistic update fixes
     it('should handle empty cache gracefully', async () => {
