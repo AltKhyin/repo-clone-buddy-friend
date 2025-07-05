@@ -1,28 +1,12 @@
-// ABOUTME: TanStack Query hook for fetching complete review management data
+// ABOUTME: TanStack Query hook for fetching complete review management data with extended metadata
 
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../../src/integrations/supabase/client';
+import type { ReviewMetadataExtended, ContentType } from '../../src/types';
 
-export interface ReviewManagementData {
-  id: number;
-  title: string;
-  description: string;
-  cover_image_url: string;
+export interface ReviewManagementData extends ReviewMetadataExtended {
+  // This interface now extends the comprehensive metadata type
   structured_content: any;
-  status: string;
-  access_level: string;
-  view_count: number;
-  review_status: string;
-  reviewer_id: string;
-  scheduled_publish_at: string;
-  publication_notes: string;
-  created_at: string;
-  published_at: string;
-  author: {
-    id: string;
-    full_name: string;
-    avatar_url: string;
-  };
   tags: Array<{
     id: number;
     tag_name: string;
@@ -36,7 +20,7 @@ const fetchReviewManagementData = async (reviewId: string): Promise<ReviewManage
     throw new Error(`Invalid reviewId: ${reviewId}`);
   }
 
-  // Fetch review with author and tags
+  // Fetch review with author, tags, and content types (including all new metadata fields)
   const { data, error } = await supabase
     .from('Reviews')
     .select(
@@ -45,6 +29,9 @@ const fetchReviewManagementData = async (reviewId: string): Promise<ReviewManage
       author:Practitioners!Reviews_author_id_fkey(id, full_name, avatar_url),
       tags:ReviewTags(
         tag:Tags(id, tag_name, color)
+      ),
+      content_types:ReviewContentTypes(
+        content_type:ContentTypes(id, label, description, text_color, border_color, background_color, is_system)
       )
     `
     )
@@ -55,10 +42,11 @@ const fetchReviewManagementData = async (reviewId: string): Promise<ReviewManage
     throw new Error(`Failed to fetch review: ${error.message}`);
   }
 
-  // Transform tags data
+  // Transform tags and content types data
   const transformedData = {
     ...data,
     tags: data.tags?.map((tagRel: any) => tagRel.tag) || [],
+    content_types: data.content_types?.map((ctRel: any) => ctRel.content_type) || [],
   };
 
   return transformedData;

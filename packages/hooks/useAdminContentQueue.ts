@@ -4,6 +4,7 @@
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { supabase } from '../../src/integrations/supabase/client';
 import { ContentQueueFilters } from '../../src/types/admin';
+import type { ContentType } from '../../src/types';
 
 export interface ReviewQueueItem {
   id: number;
@@ -21,6 +22,13 @@ export interface ReviewQueueItem {
   author_id?: string;
   reviewer_id?: string;
   publication_notes?: string;
+  // New metadata fields
+  edicao?: string;
+  original_article_title?: string;
+  original_article_authors?: string;
+  original_article_publication_date?: string;
+  study_type?: string;
+  // Related data
   author?: {
     id: string;
     full_name: string;
@@ -31,6 +39,7 @@ export interface ReviewQueueItem {
     full_name: string;
     avatar_url?: string;
   };
+  content_types?: ContentType[];
 }
 
 export interface ContentQueueResponse {
@@ -59,6 +68,7 @@ const fetchContentQueue = async (params: ContentQueueFilters & { page: number })
       search: params.search || '',
       authorId: params.authorId,
       reviewerId: params.reviewerId,
+      contentType: params.contentType,
     },
   });
 

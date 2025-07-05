@@ -30,7 +30,7 @@ const AdminTagManagement = () => {
       {/* Header Section - Enhanced typography hierarchy */}
       <div className="mb-6 space-y-2">
         <h2 className="text-3xl font-bold text-foreground mb-2 font-serif">Gestão de Tags</h2>
-        <p className="text-secondary text-lg">
+        <p className="text-muted-foreground text-lg">
           Organize e mantenha o sistema de tags para categorização de conteúdo.
         </p>
       </div>
@@ -40,26 +40,26 @@ const AdminTagManagement = () => {
         <Card className="bg-surface border-border shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-foreground">Total de Tags</CardTitle>
-            <Tags className="h-4 w-4 text-secondary" />
+            <Tags className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-foreground">
               {analyticsLoading ? '...' : quickStats.totalTags}
             </div>
-            <p className="text-xs text-secondary">Tags no sistema</p>
+            <p className="text-xs text-muted-foreground">Tags no sistema</p>
           </CardContent>
         </Card>
 
         <Card className="bg-surface border-border shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-foreground">Tags Populares</CardTitle>
-            <Activity className="h-4 w-4 text-secondary" />
+            <Activity className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-foreground">
               {analyticsLoading ? '...' : quickStats.popularTags}
             </div>
-            <p className="text-xs text-secondary">Mais de 10 usos</p>
+            <p className="text-xs text-muted-foreground">Mais de 10 usos</p>
           </CardContent>
         </Card>
 
@@ -68,26 +68,26 @@ const AdminTagManagement = () => {
             <CardTitle className="text-sm font-medium text-foreground">
               Tags Não Utilizadas
             </CardTitle>
-            <Trash2 className="h-4 w-4 text-secondary" />
+            <Trash2 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-foreground">
               {analyticsLoading ? '...' : quickStats.unusedTags}
             </div>
-            <p className="text-xs text-secondary">Sem conteúdo associado</p>
+            <p className="text-xs text-muted-foreground">Sem conteúdo associado</p>
           </CardContent>
         </Card>
 
         <Card className="bg-surface border-border shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-foreground">Novas Este Mês</CardTitle>
-            <Plus className="h-4 w-4 text-secondary" />
+            <Plus className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-foreground">
               {analyticsLoading ? '...' : quickStats.newThisMonth}
             </div>
-            <p className="text-xs text-secondary">Criadas recentemente</p>
+            <p className="text-xs text-muted-foreground">Criadas recentemente</p>
           </CardContent>
         </Card>
       </div>
@@ -131,7 +131,7 @@ const AdminTagManagement = () => {
               <CardTitle className="text-xl font-semibold text-foreground">
                 Configurações do Sistema de Tags
               </CardTitle>
-              <CardDescription className="text-secondary">
+              <CardDescription className="text-muted-foreground">
                 Configurações globais para o comportamento das tags
               </CardDescription>
             </CardHeader>
@@ -140,7 +140,7 @@ const AdminTagManagement = () => {
                 <Button variant="outline" className="justify-start h-auto p-4">
                   <div className="text-left">
                     <div className="font-medium text-foreground">Exportar Tags</div>
-                    <div className="text-sm text-secondary">
+                    <div className="text-sm text-muted-foreground">
                       Baixar lista completa de tags em CSV
                     </div>
                   </div>
@@ -148,13 +148,13 @@ const AdminTagManagement = () => {
                 <Button variant="outline" className="justify-start h-auto p-4">
                   <div className="text-left">
                     <div className="font-medium text-foreground">Importar Tags</div>
-                    <div className="text-sm text-secondary">Carregar tags de arquivo CSV</div>
+                    <div className="text-sm text-muted-foreground">Carregar tags de arquivo CSV</div>
                   </div>
                 </Button>
                 <Button variant="outline" className="justify-start h-auto p-4">
                   <div className="text-left">
                     <div className="font-medium text-foreground">Sincronizar Hierarquia</div>
-                    <div className="text-sm text-secondary">
+                    <div className="text-sm text-muted-foreground">
                       Verificar e corrigir relações de hierarquia
                     </div>
                   </div>
@@ -162,7 +162,7 @@ const AdminTagManagement = () => {
                 <Button variant="outline" className="justify-start h-auto p-4">
                   <div className="text-left">
                     <div className="font-medium text-foreground">Recriar Índices</div>
-                    <div className="text-sm text-secondary">
+                    <div className="text-sm text-muted-foreground">
                       Otimizar performance de busca de tags
                     </div>
                   </div>

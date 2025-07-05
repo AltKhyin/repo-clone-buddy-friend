@@ -55,12 +55,13 @@ Deno.serve(async req => {
         search: url.searchParams.get('search') || '',
         authorId: url.searchParams.get('authorId') || '',
         reviewerId: url.searchParams.get('reviewerId') || '',
+        contentType: url.searchParams.get('contentType') || '',
       };
     }
 
     console.log('Content queue request:', params);
 
-    // Build the base query
+    // Build the base query including new metadata fields
     let query = supabase.from('Reviews').select(`
         id,
         title,
@@ -78,6 +79,11 @@ Deno.serve(async req => {
         reviewer_id,
         publication_notes,
         view_count,
+        edicao,
+        original_article_title,
+        original_article_authors,
+        original_article_publication_date,
+        study_type,
         Practitioners!Reviews_author_id_fkey(
           id,
           full_name,
@@ -87,6 +93,15 @@ Deno.serve(async req => {
           id,
           full_name,
           avatar_url
+        ),
+        ReviewContentTypes(
+          ContentTypes(
+            id,
+            label,
+            text_color,
+            border_color,
+            background_color
+          )
         )
       `);
 
@@ -109,6 +124,10 @@ Deno.serve(async req => {
 
     if (params.reviewerId) {
       query = query.eq('reviewer_id', params.reviewerId);
+    }
+
+    if (params.contentType && params.contentType !== 'all') {
+      query = query.eq('ReviewContentTypes.content_type_id', params.contentType);
     }
 
     // Apply pagination
@@ -149,12 +168,38 @@ Deno.serve(async req => {
       countQuery = countQuery.eq('reviewer_id', params.reviewerId);
     }
 
+    if (params.contentType && params.contentType !== 'all') {
+      countQuery = countQuery.eq('ReviewContentTypes.content_type_id', params.contentType);
+    }
+
     const { count, error: countError } = await countQuery;
 
     if (countError) {
       console.error('Error getting count:', countError);
       throw new Error(`Count error: ${countError.message}`);
     }
+
+    // Transform the reviews data to flatten content types
+    const transformedReviews = (reviews || []).map(review => ({
+      ...review,
+      author: review.Practitioners ? {
+        id: review.Practitioners.id,
+        full_name: review.Practitioners.full_name,
+        avatar_url: review.Practitioners.avatar_url
+      } : null,
+      reviewer: review.ReviewerProfile ? {
+        id: review.ReviewerProfile.id,
+        full_name: review.ReviewerProfile.full_name,
+        avatar_url: review.ReviewerProfile.avatar_url
+      } : null,
+      content_types: (review.ReviewContentTypes || [])
+        .map(rct => rct.ContentTypes)
+        .filter(ct => ct !== null),
+      // Remove the nested objects to clean up the response
+      Practitioners: undefined,
+      ReviewerProfile: undefined,
+      ReviewContentTypes: undefined
+    }));
 
     // Get summary statistics
     const { data: statusStats } = await supabase.rpc('get_content_analytics');
@@ -165,7 +210,7 @@ Deno.serve(async req => {
     const hasMore = params.page < totalPages;
 
     const response = {
-      reviews: reviews || [],
+      reviews: transformedReviews,
       posts: [], // For future community posts management
       pagination: {
         page: params.page,
@@ -183,7 +228,7 @@ Deno.serve(async req => {
     };
 
     console.log('Content queue response:', {
-      reviewCount: reviews?.length || 0,
+      reviewCount: transformedReviews?.length || 0,
       total,
       page: params.page,
     });

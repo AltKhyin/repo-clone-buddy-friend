@@ -3,8 +3,6 @@
 import React from 'react';
 import { useParams } from 'react-router-dom';
 import { ReviewMetadataPanel } from '@/components/admin/ReviewManagement/ReviewMetadataPanel';
-import { PublicationControlPanel } from '@/components/admin/ReviewManagement/PublicationControlPanel';
-import { ReviewAnalyticsPanel } from '@/components/admin/ReviewManagement/ReviewAnalyticsPanel';
 import { UnifiedSaveProvider } from '@/components/admin/common/UnifiedSaveProvider';
 import { SaveButton } from '@/components/admin/common/SaveButton';
 import { useAdminReviewManagement } from '../../packages/hooks/useAdminReviewManagement';
@@ -30,10 +28,10 @@ export default function ReviewManagementPage() {
         showBackButton={true}
       >
         <StandardLayout type="wide" contentClassName="space-y-6">
-          <Skeleton className="h-8 w-1/3" />
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Skeleton className="h-10 w-1/3" />
+          <div className="space-y-6">
             <Skeleton className="h-96" />
-            <Skeleton className="h-96" />
+            <Skeleton className="h-64" />
           </div>
         </StandardLayout>
       </ErrorBoundary>
@@ -50,10 +48,10 @@ export default function ReviewManagementPage() {
         showBackButton={true}
       >
         <StandardLayout type="wide" contentClassName="space-y-6">
-          <div className="text-center py-12">
-            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-foreground mb-2">Error Loading Review</h3>
-            <p className="text-secondary mb-4">
+          <div className="text-center py-16">
+            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-6" />
+            <h3 className="text-xl font-semibold text-foreground mb-3">Error Loading Review</h3>
+            <p className="text-muted-foreground mb-6">
               {error instanceof Error ? error.message : 'Failed to load review'}
             </p>
             <Link to="/admin/content">
@@ -80,21 +78,21 @@ export default function ReviewManagementPage() {
         <UnifiedSaveProvider reviewId={review.id}>
           {/* Header Section - Enhanced typography hierarchy */}
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-6">
               <Link to="/admin/content">
                 <Button variant="ghost" size="sm">
                   <ArrowLeft className="h-4 w-4 mr-2" />
                   Content Queue
                 </Button>
               </Link>
-              <div>
+              <div className="space-y-1">
                 <h1 className="text-3xl font-bold text-foreground font-serif">{review.title}</h1>
-                <p className="text-sm text-secondary">Review ID: {review.id}</p>
+                <p className="text-sm text-muted-foreground">Review ID: {review.id}</p>
               </div>
             </div>
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-3">
               <span
-                className={`px-2 py-1 text-xs font-medium rounded-full ${
+                className={`px-3 py-1 text-xs font-medium rounded-full ${
                   review.status === 'published'
                     ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
                     : review.status === 'scheduled'
@@ -112,18 +110,9 @@ export default function ReviewManagementPage() {
             </div>
           </div>
 
-          {/* Main Layout - Updated to 2-column for improved focus */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Left Panel: Metadata */}
-            <div>
-              <ReviewMetadataPanel review={review} />
-            </div>
-
-            {/* Right Panel: Publication & Analytics */}
-            <div className="space-y-6">
-              <PublicationControlPanel review={review} />
-              <ReviewAnalyticsPanel review={review} />
-            </div>
+          {/* Main Content - Linear single-column layout optimized for review editing workflow */}
+          <div className="max-w-4xl">
+            <ReviewMetadataPanel review={review} />
           </div>
         </UnifiedSaveProvider>
       </StandardLayout>

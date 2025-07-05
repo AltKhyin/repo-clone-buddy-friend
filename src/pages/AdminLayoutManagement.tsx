@@ -55,10 +55,10 @@ const AdminLayoutManagement: React.FC = () => {
     >
       <StandardLayout type="centered" contentClassName="space-y-6">
         <div className="mb-6">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+          <h2 className="text-2xl font-bold text-foreground mb-2">
             Gestão de Layout
           </h2>
-          <p className="text-gray-600 dark:text-gray-300">
+          <p className="text-muted-foreground">
             Configure o sistema visual, temas e componentes de layout da plataforma.
           </p>
         </div>
@@ -174,19 +174,19 @@ const AdminLayoutManagement: React.FC = () => {
                   className="flex items-center justify-between p-4 border rounded-lg"
                 >
                   <div className="flex items-center space-x-4">
-                    <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-lg flex items-center justify-between">
-                      <Layout className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+                    <div className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center">
+                      <Layout className="h-5 w-5 text-muted-foreground" />
                     </div>
                     <div>
-                      <h3 className="font-medium">{component.name}</h3>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">{component.type}</p>
+                      <h3 className="font-medium text-foreground">{component.name}</h3>
+                      <p className="text-sm text-muted-foreground">{component.type}</p>
                     </div>
                   </div>
                   <div className="flex items-center space-x-4">
                     <Badge variant={component.status === 'ativo' ? 'default' : 'secondary'}>
                       {component.status}
                     </Badge>
-                    <span className="text-sm text-gray-500 dark:text-gray-400">
+                    <span className="text-sm text-muted-foreground">
                       {new Date(component.lastModified).toLocaleDateString('pt-BR')}
                     </span>
                     <Button variant="ghost" size="sm">

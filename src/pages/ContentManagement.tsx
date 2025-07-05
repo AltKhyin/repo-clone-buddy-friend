@@ -14,11 +14,11 @@ const ContentManagement = () => {
       showHomeButton={true}
       showBackButton={true}
     >
-      <StandardLayout type="wide" contentClassName="space-y-6">
+      <StandardLayout type="wide" contentClassName="space-y-8">
         {/* Header Section - Enhanced typography hierarchy */}
-        <div className="mb-6 space-y-2">
-          <h2 className="text-3xl font-bold text-foreground mb-2 font-serif">Gestão de Conteúdo</h2>
-          <p className="text-secondary text-lg">
+        <div className="space-y-3">
+          <h1 className="text-3xl font-bold text-foreground font-serif">Gestão de Conteúdo</h1>
+          <p className="text-muted-foreground text-base">
             Gerencie o fluxo de publicação de todas as reviews e conteúdo.
           </p>
         </div>

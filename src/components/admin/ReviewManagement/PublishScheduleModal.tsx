@@ -1,6 +1,6 @@
 // ABOUTME: Professional modal for scheduling review publication with calendar picker and validation
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -161,7 +161,7 @@ export const PublishScheduleModal: React.FC<PublishScheduleModalProps> = ({
       <DialogContent className="sm:max-w-lg" data-testid="publish-schedule-modal">
         <DialogHeader>
           <DialogTitle>Schedule Publication</DialogTitle>
-          <p className="text-sm text-muted-foreground">Choose when to publish this review</p>
+          <DialogDescription>Choose when to publish this review</DialogDescription>
         </DialogHeader>
 
         {isLoading ? (

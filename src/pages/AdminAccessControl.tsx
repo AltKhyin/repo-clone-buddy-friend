@@ -18,7 +18,7 @@ const AdminAccessControl = () => {
         {/* Header Section - Enhanced typography hierarchy */}
         <div className="mb-6 space-y-2">
           <h2 className="text-3xl font-bold text-foreground mb-2 font-serif">Controle de Acesso</h2>
-          <p className="text-secondary text-lg">
+          <p className="text-muted-foreground text-lg">
             Configure regras de acesso para páginas e recursos da plataforma.
           </p>
         </div>

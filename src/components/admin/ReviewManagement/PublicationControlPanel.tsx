@@ -104,21 +104,21 @@ export const PublicationControlPanel: React.FC<PublicationControlPanelProps> = (
 
   return (
     <Card className="bg-surface border-border shadow-sm">
-      <CardHeader>
+      <CardHeader className="pb-4">
         <CardTitle className="text-xl font-semibold text-foreground">Publication Control</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-6">
         {/* Current Status */}
-        <div className="flex items-center space-x-3 p-3 bg-surface-muted rounded-lg">
+        <div className="flex items-center space-x-4 p-4 bg-surface-muted rounded-lg">
           <StatusIcon className={`h-5 w-5 text-${statusInfo.color}-500`} />
           <div>
             <div className="font-medium text-foreground">{statusInfo.text}</div>
-            <div className="text-sm text-secondary">{statusInfo.description}</div>
+            <div className="text-sm text-muted-foreground">{statusInfo.description}</div>
           </div>
         </div>
 
         {/* Publication Actions - Now handled by unified save buttons in header */}
-        <div className="space-y-2">
+        <div className="space-y-3">
           <Button
             onClick={() => setShowScheduleModal(true)}
             variant="outline"
@@ -147,16 +147,16 @@ export const PublicationControlPanel: React.FC<PublicationControlPanelProps> = (
         </div>
 
         {/* Quick Stats */}
-        <div className="grid grid-cols-2 gap-4 pt-4 border-t border-border">
+        <div className="grid grid-cols-2 gap-6 pt-6 border-t border-border">
           <div className="text-center">
             <div className="text-2xl font-bold text-foreground">{review.view_count || 0}</div>
-            <div className="text-sm text-secondary">Views</div>
+            <div className="text-sm text-muted-foreground">Views</div>
           </div>
           <div className="text-center">
             <div className="text-2xl font-bold text-foreground">
               {new Date(review.created_at).toLocaleDateString('pt-BR')}
             </div>
-            <div className="text-sm text-secondary">Created</div>
+            <div className="text-sm text-muted-foreground">Created</div>
           </div>
         </div>
       </CardContent>

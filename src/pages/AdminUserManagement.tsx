@@ -18,7 +18,7 @@ const AdminUserManagement = () => {
         {/* Header Section - Enhanced typography hierarchy */}
         <div className="mb-6 space-y-2">
           <h2 className="text-3xl font-bold text-foreground mb-2 font-serif">Gestão de Usuários</h2>
-          <p className="text-secondary text-lg">
+          <p className="text-muted-foreground text-lg">
             Gerencie usuários, papéis e permissões da plataforma.
           </p>
         </div>

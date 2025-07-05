@@ -67,6 +67,7 @@ export interface ContentQueueFilters {
   search: string;
   authorId: string;
   reviewerId: string;
+  contentType?: string;
 }
 
 export interface ContentQueueSummary {

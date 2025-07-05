@@ -15,12 +15,14 @@ import {
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { useUpdateReviewMetadataMutation } from '../../../../packages/hooks/useUpdateReviewMetadataMutation';
-import { ReviewManagementData } from '../../../../packages/hooks/useReviewManagementQuery';
+import { ReviewManagementData } from '../../../../packages/hooks/useAdminReviewManagement';
 import { useSaveContext } from '../common/UnifiedSaveProvider';
 import { Save, Upload, X } from 'lucide-react';
 import { TagSelector } from './TagSelector';
 import { CoverImageUpload } from './CoverImageUpload';
 import { AccessLevelSelector } from './AccessLevelSelector';
+import { ContentTypeSelector } from './ContentTypeSelector';
+import { ArticleDataSection } from './ArticleDataSection';
 
 interface ReviewMetadataPanelProps {
   review: ReviewManagementData;
@@ -32,10 +34,20 @@ export const ReviewMetadataPanel: React.FC<ReviewMetadataPanelProps> = ({ review
     description: review.description || '',
     access_level: review.access_level || 'free',
     cover_image_url: review.cover_image_url || '',
+    // New metadata fields
+    edicao: review.edicao || '',
+    original_article_title: review.original_article_title || '',
+    original_article_authors: review.original_article_authors || '',
+    original_article_publication_date: review.original_article_publication_date || '',
+    study_type: review.study_type || '',
   });
 
   const [selectedTagIds, setSelectedTagIds] = useState<number[]>(
     review.tags?.map(tag => tag.id) || []
+  );
+
+  const [selectedContentTypes, setSelectedContentTypes] = useState<number[]>(
+    review.content_types?.map(ct => ct.id) || []
   );
 
   const updateMutation = useUpdateReviewMetadataMutation();
@@ -51,69 +63,106 @@ export const ReviewMetadataPanel: React.FC<ReviewMetadataPanelProps> = ({ review
     updateField('tags', newTagIds);
   };
 
+  const handleContentTypesChange = (newContentTypeIds: number[]) => {
+    setSelectedContentTypes(newContentTypeIds);
+    updateField('content_types', newContentTypeIds);
+  };
+
   // Sync initial data with save context only once on mount
   useEffect(() => {
     Object.entries(formData).forEach(([key, value]) => {
       updateField(key, value);
     });
     updateField('tags', selectedTagIds);
+    updateField('content_types', selectedContentTypes);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Intentionally empty - only run on mount
 
   return (
-    <Card className="bg-surface border-border shadow-sm">
-      <CardHeader>
-        <CardTitle className="text-xl font-semibold text-foreground">Review Metadata</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Title */}
-        <div className="space-y-2">
-          <Label htmlFor="title">Title</Label>
-          <Input
-            id="title"
-            value={formData.title}
-            onChange={e => handleInputChange('title', e.target.value)}
-            placeholder="Enter review title..."
+    <div className="space-y-6">
+      {/* Main Metadata Card */}
+      <Card className="bg-surface border-border shadow-sm">
+        <CardHeader className="pb-6">
+          <CardTitle className="text-xl font-semibold text-foreground">Review Metadata</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Title */}
+          <div className="space-y-3">
+            <Label htmlFor="title" className="text-sm font-medium text-foreground">Title</Label>
+            <Input
+              id="title"
+              value={formData.title}
+              onChange={e => handleInputChange('title', e.target.value)}
+              placeholder="Enter review title..."
+            />
+          </div>
+
+          {/* Description */}
+          <div className="space-y-3">
+            <Label htmlFor="description" className="text-sm font-medium text-foreground">Description</Label>
+            <Textarea
+              id="description"
+              value={formData.description}
+              onChange={e => handleInputChange('description', e.target.value)}
+              placeholder="Enter review description..."
+              rows={3}
+            />
+          </div>
+
+          {/* Access Level */}
+          <AccessLevelSelector
+            value={formData.access_level}
+            onChange={value => handleInputChange('access_level', value)}
           />
-        </div>
 
-        {/* Description */}
-        <div className="space-y-2">
-          <Label htmlFor="description">Description</Label>
-          <Textarea
-            id="description"
-            value={formData.description}
-            onChange={e => handleInputChange('description', e.target.value)}
-            placeholder="Enter review description..."
-            rows={3}
-          />
-        </div>
+          {/* Cover Image */}
+          <div className="space-y-3">
+            <Label className="text-sm font-medium text-foreground">Cover Image</Label>
+            <CoverImageUpload
+              reviewId={review.id}
+              currentImageUrl={formData.cover_image_url}
+              onImageChange={url => handleInputChange('cover_image_url', url)}
+            />
+          </div>
 
-        {/* Access Level */}
-        <AccessLevelSelector
-          value={formData.access_level}
-          onChange={value => handleInputChange('access_level', value)}
-        />
-
-        {/* Cover Image */}
-        <div className="space-y-2">
-          <Label>Cover Image</Label>
-          <CoverImageUpload
+          {/* Tags */}
+          <TagSelector
             reviewId={review.id}
-            currentImageUrl={formData.cover_image_url}
-            onImageChange={url => handleInputChange('cover_image_url', url)}
+            selectedTags={selectedTagIds}
+            onTagsChange={handleTagsChange}
           />
-        </div>
 
-        {/* Tags */}
-        <TagSelector
-          reviewId={review.id}
-          selectedTags={selectedTagIds}
-          onTagsChange={handleTagsChange}
-        />
+          {/* New: Edição field */}
+          <div className="space-y-3">
+            <Label htmlFor="edicao" className="text-sm font-medium text-foreground">Edição</Label>
+            <Input
+              id="edicao"
+              value={formData.edicao}
+              onChange={e => handleInputChange('edicao', e.target.value)}
+              placeholder="Ex: 1ª edição, 2ª edição revisada..."
+            />
+          </div>
 
-        {/* Save functionality is now handled by the unified save buttons in the header */}
-      </CardContent>
-    </Card>
+          {/* New: Content Type Selector */}
+          <ContentTypeSelector
+            selectedContentTypes={selectedContentTypes}
+            onChange={handleContentTypesChange}
+          />
+
+          {/* Save functionality is now handled by the unified save buttons in the header */}
+        </CardContent>
+      </Card>
+
+      {/* Article Data Section */}
+      <ArticleDataSection
+        data={{
+          original_article_title: formData.original_article_title,
+          original_article_authors: formData.original_article_authors,
+          original_article_publication_date: formData.original_article_publication_date,
+          study_type: formData.study_type,
+        }}
+        onChange={handleInputChange}
+      />
+    </div>
   );
 };

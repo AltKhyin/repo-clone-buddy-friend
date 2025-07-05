@@ -16,6 +16,7 @@ export const ContentQueue = () => {
     search: '',
     authorId: '',
     reviewerId: '',
+    contentType: 'all',
   });
 
   const [selectedReviews, setSelectedReviews] = useState<number[]>([]);
@@ -55,7 +56,7 @@ export const ContentQueue = () => {
       <div className="text-center py-12">
         <AlertCircle className="h-12 w-12 text-red-500 dark:text-red-400 mx-auto mb-4" />
         <h3 className="text-lg font-semibold text-foreground mb-2">Error Loading Content Queue</h3>
-        <p className="text-secondary mb-4">
+        <p className="text-muted-foreground mb-4">
           {error instanceof Error ? error.message : 'Failed to load content queue'}
         </p>
         <Button onClick={() => refetch()} variant="outline">
@@ -67,7 +68,7 @@ export const ContentQueue = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Filter Panel */}
       <FilterPanel filters={filters} onFiltersChange={handleFilterChange} summary={stats} />
 
@@ -81,12 +82,12 @@ export const ContentQueue = () => {
 
       {/* Content Queue - Enhanced with surface tokens */}
       <div className="bg-surface rounded-lg border border-border shadow-sm">
-        <div className="p-4 border-b border-border">
+        <div className="p-6 border-b border-border">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-foreground">
+            <h2 className="text-xl font-semibold text-foreground">
               Content Queue ({allReviews.length} items)
             </h2>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <CreateReviewButton />
               <Button variant="outline" size="sm" onClick={handleSelectAll}>
                 {selectedReviews.length === allReviews.length ? 'Deselect All' : 'Select All'}
@@ -98,17 +99,17 @@ export const ContentQueue = () => {
           </div>
         </div>
 
-        <div className="divide-y divide-border">
+        <div>
           {isLoading ? (
             // Loading skeletons
             Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="p-4">
-                <Skeleton className="h-20 w-full" />
+              <div key={i} className="p-6">
+                <Skeleton className="h-24 w-full" />
               </div>
             ))
           ) : allReviews.length === 0 ? (
-            <div className="p-8 text-center text-secondary">
-              No content found matching your filters.
+            <div className="p-12 text-center text-muted-foreground">
+              <p className="text-base">No content found matching your filters.</p>
             </div>
           ) : (
             allReviews.map(review => (
@@ -124,7 +125,7 @@ export const ContentQueue = () => {
 
         {/* Load More Button */}
         {hasNextPage && (
-          <div className="p-4 border-t border-border text-center">
+          <div className="p-6 border-t border-border text-center">
             <Button variant="outline" onClick={() => fetchNextPage()} disabled={isFetchingNextPage}>
               {isFetchingNextPage ? (
                 <>

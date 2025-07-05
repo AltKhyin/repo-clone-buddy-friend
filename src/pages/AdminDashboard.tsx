@@ -52,7 +52,7 @@ const AdminDashboardContent = () => {
         <h2 className="text-3xl font-bold text-foreground font-serif">
           Bem-vindo, {user?.user_metadata?.full_name || 'Admin'}
         </h2>
-        <p className="text-secondary text-lg">Visão geral do sistema e estatísticas principais</p>
+        <p className="text-muted-foreground text-lg">Visão geral do sistema e estatísticas principais</p>
       </div>
 
       {/* Stats Grid - Enhanced with proper tokens and spacing */}
@@ -69,11 +69,11 @@ const AdminDashboardContent = () => {
                 <CardTitle className="text-sm font-semibold text-foreground">
                   {stat.title}
                 </CardTitle>
-                <Icon className="h-5 w-5 text-secondary" />
+                <Icon className="h-5 w-5 text-muted-foreground" />
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold text-foreground mb-1">{stat.value}</div>
-                <p className="text-sm text-secondary mb-2">{stat.description}</p>
+                <p className="text-sm text-muted-foreground mb-2">{stat.description}</p>
                 <p
                   className={`text-sm font-medium ${stat.trendUp ? 'text-green-600 dark:text-green-300' : 'text-red-600 dark:text-red-300'}`}
                 >
@@ -98,17 +98,17 @@ const AdminDashboardContent = () => {
             <div className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-surface-muted cursor-pointer transition-colors">
               <div className="space-y-1">
                 <h3 className="font-semibold text-foreground">Fila de Publicação</h3>
-                <p className="text-sm text-secondary">3 reviews aguardando aprovação</p>
+                <p className="text-sm text-muted-foreground">3 reviews aguardando aprovação</p>
               </div>
-              <FileText className="h-5 w-5 text-secondary" />
+              <FileText className="h-5 w-5 text-muted-foreground" />
             </div>
 
             <div className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-surface-muted cursor-pointer transition-colors">
               <div className="space-y-1">
                 <h3 className="font-semibold text-foreground">Moderação</h3>
-                <p className="text-sm text-secondary">2 posts reportados</p>
+                <p className="text-sm text-muted-foreground">2 posts reportados</p>
               </div>
-              <MessageSquare className="h-5 w-5 text-secondary" />
+              <MessageSquare className="h-5 w-5 text-muted-foreground" />
             </div>
           </CardContent>
         </Card>
@@ -130,7 +130,7 @@ const AdminDashboardContent = () => {
                   <p className="text-sm font-medium text-foreground">
                     Review "Análise de Performance" aprovada
                   </p>
-                  <p className="text-xs text-secondary">há 2 horas</p>
+                  <p className="text-xs text-muted-foreground">há 2 horas</p>
                 </div>
               </div>
 
@@ -138,7 +138,7 @@ const AdminDashboardContent = () => {
                 <div className="w-3 h-3 bg-blue-500 dark:bg-blue-400 rounded-full flex-shrink-0"></div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-foreground">Novo usuário registrado</p>
-                  <p className="text-xs text-secondary">há 4 horas</p>
+                  <p className="text-xs text-muted-foreground">há 4 horas</p>
                 </div>
               </div>
 
@@ -146,7 +146,7 @@ const AdminDashboardContent = () => {
                 <div className="w-3 h-3 bg-yellow-500 dark:bg-yellow-400 rounded-full flex-shrink-0"></div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-foreground">Post da comunidade moderado</p>
-                  <p className="text-xs text-secondary">há 6 horas</p>
+                  <p className="text-xs text-muted-foreground">há 6 horas</p>
                 </div>
               </div>
             </div>

@@ -97,7 +97,7 @@ const AdminAnalytics: React.FC = () => {
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div className="space-y-2">
             <h2 className="text-3xl font-bold text-foreground mb-2 font-serif">Analytics</h2>
-            <p className="text-secondary text-lg">Métricas detalhadas e insights da plataforma</p>
+            <p className="text-muted-foreground text-lg">Métricas detalhadas e insights da plataforma</p>
           </div>
 
           <div className="flex items-center gap-2">
@@ -132,7 +132,7 @@ const AdminAnalytics: React.FC = () => {
               <CardTitle className="text-sm font-medium text-foreground">
                 Total de Usuários
               </CardTitle>
-              <Users className="h-4 w-4 text-secondary" />
+              <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-foreground">
@@ -140,7 +140,7 @@ const AdminAnalytics: React.FC = () => {
                   ? '---'
                   : analyticsData?.userStats.totalUsers.toLocaleString() || '1,234'}
               </div>
-              <p className="text-xs text-secondary">
+              <p className="text-xs text-muted-foreground">
                 <span className="text-green-600 dark:text-green-300">+12%</span> vs mês anterior
               </p>
             </CardContent>
@@ -151,13 +151,13 @@ const AdminAnalytics: React.FC = () => {
               <CardTitle className="text-sm font-medium text-foreground">
                 Reviews Publicadas
               </CardTitle>
-              <FileText className="h-4 w-4 text-secondary" />
+              <FileText className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-foreground">
                 {isLoading ? '---' : analyticsData?.contentStats.publishedReviews || '89'}
               </div>
-              <p className="text-xs text-secondary">
+              <p className="text-xs text-muted-foreground">
                 <span className="text-green-600 dark:text-green-300">+5</span> esta semana
               </p>
             </CardContent>
@@ -168,13 +168,13 @@ const AdminAnalytics: React.FC = () => {
               <CardTitle className="text-sm font-medium text-foreground">
                 Engajamento Médio
               </CardTitle>
-              <TrendingUp className="h-4 w-4 text-secondary" />
+              <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-foreground">
                 {isLoading ? '---' : `${analyticsData?.engagementStats.avgEngagement || 78}%`}
               </div>
-              <p className="text-xs text-secondary">
+              <p className="text-xs text-muted-foreground">
                 <span className="text-blue-600 dark:text-blue-300">+3%</span> vs média anterior
               </p>
             </CardContent>
@@ -185,13 +185,13 @@ const AdminAnalytics: React.FC = () => {
               <CardTitle className="text-sm font-medium text-foreground">
                 Uptime do Sistema
               </CardTitle>
-              <Activity className="h-4 w-4 text-secondary" />
+              <Activity className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-foreground">
                 {isLoading ? '---' : analyticsData?.systemStats.uptime || '99.9%'}
               </div>
-              <p className="text-xs text-secondary">Últimos 30 dias</p>
+              <p className="text-xs text-muted-foreground">Últimos 30 dias</p>
             </CardContent>
           </Card>
         </div>
@@ -209,7 +209,7 @@ const AdminAnalytics: React.FC = () => {
             <CardTitle className="text-xl font-semibold text-foreground">
               Conteúdo Mais Performático
             </CardTitle>
-            <CardDescription className="text-secondary">
+            <CardDescription className="text-muted-foreground">
               Reviews e posts com maior engajamento
             </CardDescription>
           </CardHeader>
@@ -244,14 +244,14 @@ const AdminAnalytics: React.FC = () => {
                   <div className="flex items-center space-x-4">
                     <div className="w-10 h-10 bg-surface-muted rounded-lg flex items-center justify-center">
                       {content.type === 'review' ? (
-                        <FileText className="h-5 w-5 text-secondary" />
+                        <FileText className="h-5 w-5 text-muted-foreground" />
                       ) : (
-                        <BarChart3 className="h-5 w-5 text-secondary" />
+                        <BarChart3 className="h-5 w-5 text-muted-foreground" />
                       )}
                     </div>
                     <div>
                       <h3 className="font-medium text-foreground">{content.title}</h3>
-                      <p className="text-sm text-secondary">
+                      <p className="text-sm text-muted-foreground">
                         {content.views.toLocaleString()} visualizações
                       </p>
                     </div>

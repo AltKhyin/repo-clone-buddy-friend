@@ -1,13 +1,15 @@
 // ABOUTME: Individual review card for content queue display
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
-import { Calendar, Clock, User, ImageIcon } from 'lucide-react';
+import { Calendar, Clock, User, ImageIcon, FileText, Users, Edit } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { ReviewQueueItem } from '../../../../packages/hooks/useAdminContentQueue';
+import type { ContentType } from '@/types';
+import { ContentTypeEditModal } from '../ReviewManagement/ContentTypeEditModal';
 
 interface ReviewCardProps {
   review: ReviewQueueItem;
@@ -15,7 +17,73 @@ interface ReviewCardProps {
   onSelect: (selected: boolean) => void;
 }
 
+// Enhanced Article Metadata Section Component
+const ArticleMetadataSection = ({ review }: { review: ReviewQueueItem }) => {
+  const hasArticleData = review.original_article_title || 
+                        review.original_article_authors || 
+                        review.original_article_publication_date || 
+                        review.study_type ||
+                        review.edicao;
+
+  if (!hasArticleData) return null;
+
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return null;
+    return new Date(dateString).toLocaleDateString('pt-BR');
+  };
+
+  return (
+    <div className="pt-3">
+      <div className="space-y-3 text-xs bg-surface-muted/30 rounded p-3">
+        {/* Compact fields with proper spacing */}
+        <div className="flex flex-wrap gap-4">
+          {review.edicao && (
+            <div className="space-y-0.5 min-w-0 flex-shrink-0">
+              <div className="text-muted-foreground font-medium">Edição:</div>
+              <div className="whitespace-nowrap" title={review.edicao}>{review.edicao}</div>
+            </div>
+          )}
+          {review.study_type && (
+            <div className="space-y-0.5 min-w-0 flex-shrink-0">
+              <div className="text-muted-foreground font-medium">Tipo:</div>
+              <div className="whitespace-nowrap" title={review.study_type}>{review.study_type}</div>
+            </div>
+          )}
+          {review.original_article_publication_date && (
+            <div className="space-y-0.5 min-w-0 flex-shrink-0">
+              <div className="text-muted-foreground font-medium">Data:</div>
+              <div className="whitespace-nowrap" title={formatDate(review.original_article_publication_date)}>
+                {formatDate(review.original_article_publication_date)}
+              </div>
+            </div>
+          )}
+        </div>
+        
+        {/* Full-width rows for longer fields: Título and Autores */}
+        {review.original_article_title && (
+          <div className="space-y-0.5">
+            <div className="text-muted-foreground font-medium">Título:</div>
+            <div className="leading-relaxed line-clamp-2 sm:line-clamp-3" title={review.original_article_title}>
+              {review.original_article_title}
+            </div>
+          </div>
+        )}
+        {review.original_article_authors && (
+          <div className="space-y-0.5">
+            <div className="text-muted-foreground font-medium">Autores:</div>
+            <div className="line-clamp-1 sm:line-clamp-2" title={review.original_article_authors}>
+              {review.original_article_authors}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 export const ReviewCard = ({ review, isSelected, onSelect }: ReviewCardProps) => {
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingContentType, setEditingContentType] = useState<any>(null);
   const getStatusInfo = (review: ReviewQueueItem) => {
     // Priority: show publication status first (status field), then review status
     const primaryStatus = review.status;
@@ -91,75 +159,159 @@ export const ReviewCard = ({ review, isSelected, onSelect }: ReviewCardProps) =>
   const statusInfo = getStatusInfo(review);
 
   return (
-    <div className="p-4 hover:bg-surface-muted transition-colors">
-      <div className="flex items-center gap-4">
-        <Checkbox checked={isSelected} onCheckedChange={onSelect} />
+    <div 
+      className="p-6 hover:bg-surface-muted/50 transition-colors border-b border-border cursor-pointer"
+      onClick={() => onSelect(!isSelected)}
+    >
+      <div className="flex gap-4">
+        <Checkbox 
+          checked={isSelected} 
+          onCheckedChange={onSelect} 
+          className="self-center" 
+          onClick={(e) => e.stopPropagation()}
+        />
 
-        {/* Cover Image */}
-        <div className="flex-shrink-0">
-          {review.cover_image_url ? (
-            <img
-              src={review.cover_image_url}
-              alt={review.title}
-              className="w-24 h-24 object-cover rounded-lg border border-border"
-            />
-          ) : (
-            <div className="w-24 h-24 bg-surface-muted rounded-lg border border-border flex items-center justify-center">
-              <ImageIcon className="h-8 w-8 text-secondary" />
+        {/* Unified Review Item Container */}
+        <div className="flex-1 bg-surface rounded border border-border overflow-hidden">
+          {/* Header Section: Cover Image + Title/Description/Content Types */}
+          <div className="flex flex-col sm:flex-row">
+            {/* Cover Image with proper spacing */}
+            <div className="flex-shrink-0 p-4 pb-2 sm:pb-0">
+              {review.cover_image_url ? (
+                <img
+                  src={review.cover_image_url}
+                  alt={review.title}
+                  className="w-full h-32 sm:w-24 sm:h-24 object-cover rounded border border-border"
+                />
+              ) : (
+                <div className="w-full h-32 sm:w-24 sm:h-24 bg-surface-muted rounded border border-border flex items-center justify-center">
+                  <ImageIcon className="h-8 w-8 sm:h-6 sm:w-6 text-muted-foreground" />
+                </div>
+              )}
             </div>
-          )}
-        </div>
 
-        <Card className="flex-1 bg-surface border-border shadow-sm">
-          <CardHeader className="pb-3">
-            <div className="flex items-start justify-between">
-              <CardTitle className="text-base text-foreground">{review.title}</CardTitle>
-              <Badge className={statusInfo.color}>
-                {statusInfo.label}
-              </Badge>
+            {/* Header Content: Title, Description, Content Types */}
+            <div className="flex-1 px-4 pb-2 sm:p-4 sm:pb-0 min-w-0">
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-base font-semibold text-foreground line-clamp-2 mb-2 leading-tight">
+                    {review.title}
+                  </h3>
+                  {review.description && (
+                    <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed mb-3">
+                      {review.description}
+                    </p>
+                  )}
+                </div>
+                <Badge className={`${statusInfo.color} ml-3 flex-shrink-0`}>
+                  {statusInfo.label}
+                </Badge>
+              </div>
+
+              {/* Content Type Pills */}
+              {review.content_types && review.content_types.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {review.content_types.map(type => (
+                    <div key={type.id} className="group relative">
+                      <Badge
+                        style={{
+                          color: type.text_color,
+                          borderColor: type.border_color,
+                          backgroundColor: type.background_color,
+                          border: `1px solid ${type.border_color}`
+                        }}
+                        className="text-xs px-2 py-1 pr-6 cursor-pointer"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditingContentType(type);
+                          setShowEditModal(true);
+                        }}
+                        title={`Clique para editar ${type.label}`}
+                      >
+                        {type.label}
+                      </Badge>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditingContentType(type);
+                          setShowEditModal(true);
+                        }}
+                        className="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity p-0.5 hover:bg-black/10 dark:hover:bg-white/10 rounded flex items-center justify-center"
+                        title={`Editar ${type.label}`}
+                      >
+                        <Edit className="h-2.5 w-2.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-            {review.description && (
-              <p className="text-sm text-secondary line-clamp-2">{review.description}</p>
-            )}
-          </CardHeader>
+          </div>
 
-          <CardContent className="pt-0">
-            <div className="flex items-center gap-4 text-sm text-secondary">
-              <div className="flex items-center gap-1">
-                <Calendar className="h-4 w-4" />
+          {/* Body Section: Article Metadata and Footer */}
+          <div className="flex flex-col sm:flex-row">
+            {/* Article Metadata positioned under cover image */}
+            <div className="w-full sm:w-32 px-4 pb-4">
+              <ArticleMetadataSection review={review} />
+            </div>
+
+            {/* Spacer for desktop layout */}
+            <div className="flex-1"></div>
+          </div>
+
+          {/* Footer Section: Dates on left, Actions on right */}
+          <div className="flex justify-between items-end p-4 pt-0">
+            {/* Date Information moved to bottom left */}
+            <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+              <div className="flex items-center gap-1.5">
+                <Calendar className="h-3.5 w-3.5" />
                 <span>Criado: {formatDate(review.created_at)}</span>
               </div>
 
               {review.scheduled_publish_at && (
-                <div className="flex items-center gap-1">
-                  <Clock className="h-4 w-4" />
+                <div className="flex items-center gap-1.5">
+                  <Clock className="h-3.5 w-3.5" />
                   <span>Agendado: {formatDate(review.scheduled_publish_at)}</span>
                 </div>
               )}
 
               {review.published_at && (
-                <div className="flex items-center gap-1">
-                  <User className="h-4 w-4" />
+                <div className="flex items-center gap-1.5">
+                  <User className="h-3.5 w-3.5" />
                   <span>Publicado: {formatDate(review.published_at)}</span>
                 </div>
               )}
             </div>
-          </CardContent>
-        </Card>
 
-        <div className="flex gap-2">
-          <Link to={`/reviews/${review.id}`}>
-            <Button variant="outline" size="sm">
-              Visualizar
-            </Button>
-          </Link>
-          <Link to={`/admin/review/${review.id}`}>
-            <Button variant="outline" size="sm">
-              Manage
-            </Button>
-          </Link>
+            {/* Action Buttons */}
+            <div className="flex gap-2 flex-shrink-0">
+              <Link to={`/reviews/${review.id}`}>
+                <Button variant="outline" size="sm" className="h-8 px-3 text-xs font-medium min-w-[80px]">
+                  Visualizar
+                </Button>
+              </Link>
+              <Link to={`/admin/review/${review.id}`}>
+                <Button variant="outline" size="sm" className="h-8 px-3 text-xs font-medium min-w-[70px]">
+                  Manage
+                </Button>
+              </Link>
+            </div>
+          </div>
         </div>
       </div>
+      
+      {/* Content Type Edit Modal */}
+      {editingContentType && (
+        <ContentTypeEditModal
+          isOpen={showEditModal}
+          onClose={() => {
+            setShowEditModal(false);
+            setEditingContentType(null);
+          }}
+          contentType={editingContentType}
+        />
+      )}
     </div>
   );
 };

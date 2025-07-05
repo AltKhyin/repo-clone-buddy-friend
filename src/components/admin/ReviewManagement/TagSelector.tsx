@@ -104,8 +104,8 @@ export const TagSelector: React.FC<TagSelectorProps> = ({
     return (
       <div
         key={tag.id}
-        className={`flex items-center space-x-3 py-3 px-3 rounded-md transition-colors hover:bg-muted/50 touch-target ${
-          level > 0 ? 'ml-4 sm:ml-6 border-l-2 border-muted' : ''
+        className={`flex items-center space-x-3 py-2.5 px-3 rounded transition-colors hover:bg-muted/50 ${
+          level > 0 ? 'ml-6 border-l-2 border-muted' : ''
         }`}
       >
         <Checkbox
@@ -128,7 +128,7 @@ export const TagSelector: React.FC<TagSelectorProps> = ({
             <TooltipTrigger asChild>
               <label
                 htmlFor={`tag-${tag.id}`}
-                className="flex-1 text-base sm:text-sm font-medium cursor-pointer leading-relaxed break-words touch-target"
+                className="flex-1 text-sm font-medium cursor-pointer leading-relaxed break-words"
               >
                 {tag.tag_name}
               </label>
@@ -161,14 +161,14 @@ export const TagSelector: React.FC<TagSelectorProps> = ({
 
   if (isLoading) {
     return (
-      <div className="space-y-4 p-4 border rounded-lg" data-testid="tag-selector-loading">
+      <div className="space-y-6 p-6 border rounded" data-testid="tag-selector-loading">
         <div className="flex items-center gap-2">
           <Tag className="h-5 w-5 animate-pulse" />
           <h3 className="font-medium">Loading tags...</h3>
         </div>
-        <div className="space-y-2">
+        <div className="space-y-3">
           {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="h-8 bg-muted rounded animate-pulse" />
+            <div key={i} className="h-10 bg-muted rounded animate-pulse" />
           ))}
         </div>
       </div>
@@ -177,7 +177,7 @@ export const TagSelector: React.FC<TagSelectorProps> = ({
 
   if (isError) {
     return (
-      <div className="p-4 border rounded-lg" data-testid="tag-selector-error">
+      <div className="p-6 border rounded" data-testid="tag-selector-error">
         <Alert variant="destructive">
           <AlertDescription>
             {error instanceof Error ? error.message : 'Failed to load tags'}
@@ -188,8 +188,8 @@ export const TagSelector: React.FC<TagSelectorProps> = ({
   }
 
   return (
-    <div className="space-y-4 p-3 border rounded-lg sm:p-6" data-testid="tag-selector">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div className="space-y-6 p-6 border rounded" data-testid="tag-selector">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <h3 className="font-medium flex items-center gap-2">
           <Tag className="h-5 w-5" />
           Tags
@@ -214,14 +214,14 @@ export const TagSelector: React.FC<TagSelectorProps> = ({
           placeholder="Search tags..."
           value={searchTerm}
           onChange={e => setSearchTerm(e.target.value)}
-          className="pl-10 text-base sm:text-sm"
+          className="pl-10 text-sm"
           aria-label="Search tags"
         />
       </div>
 
       {/* Selected Tags Display */}
       <div
-        className="space-y-2"
+        className="space-y-3"
         role="group"
         aria-label="Selected tags"
         data-testid="selected-tags"
@@ -229,22 +229,26 @@ export const TagSelector: React.FC<TagSelectorProps> = ({
         <h4 className="text-sm font-medium text-muted-foreground">
           Selected Tags ({selectedTags.length})
         </h4>
-        <div className="flex flex-wrap gap-2 min-h-[2rem]">
+        <div className="flex flex-wrap gap-2 min-h-[2.5rem]">
           {getSelectedTagNames().length > 0 ? (
             getSelectedTagNames().map((tagName, index) => (
               <Badge
                 key={index}
                 variant="secondary"
-                className="gap-1 text-sm py-1 px-2 touch-target"
+                className="gap-2 text-sm py-1.5 px-3 flex items-center"
               >
                 <span className="break-all">{tagName}</span>
-                <X
-                  className="h-3 w-3 cursor-pointer hover:text-destructive transition-colors touch-target"
+                <button
+                  type="button"
+                  className="inline-flex items-center justify-center hover:text-destructive transition-colors"
                   onClick={() => {
                     const tag = tags?.find(t => t.tag_name === tagName);
                     if (tag) handleTagToggle(tag.id);
                   }}
-                />
+                  aria-label={`Remove ${tagName} tag`}
+                >
+                  <X className="h-3 w-3" />
+                </button>
               </Badge>
             ))
           ) : (
@@ -255,7 +259,7 @@ export const TagSelector: React.FC<TagSelectorProps> = ({
 
       {/* Tag List */}
       <div
-        className="space-y-1 max-h-80 sm:max-h-96 overflow-y-auto border rounded-md p-2"
+        className="space-y-1 max-h-80 overflow-y-auto border rounded p-4"
         role="group"
         aria-label="Tag selection"
       >

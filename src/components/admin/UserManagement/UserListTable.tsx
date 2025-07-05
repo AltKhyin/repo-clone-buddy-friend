@@ -184,7 +184,7 @@ export const UserListTable = () => {
           {/* Search and Filters */}
           <div className="flex flex-col md:flex-row gap-4">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-secondary" />
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Buscar usuários por nome..."
                 className="pl-9"
@@ -231,7 +231,7 @@ export const UserListTable = () => {
           {/* Bulk Operations */}
           {hasSelectedUsers && (
             <div className="flex items-center justify-between p-3 bg-surface-muted rounded-lg border border-border">
-              <span className="text-sm text-primary">
+              <span className="text-sm text-foreground">
                 {selectedUserIds.length} usuário(s) selecionado(s)
               </span>
               <Button variant="outline" size="sm" onClick={() => setShowBulkOperations(true)}>
@@ -281,7 +281,7 @@ export const UserListTable = () => {
                   ))
                 ) : userListData?.users?.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-secondary">
+                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                       Nenhum usuário encontrado
                     </TableCell>
                   </TableRow>
@@ -305,7 +305,7 @@ export const UserListTable = () => {
                             <div className="font-medium text-foreground">
                               {user.full_name || 'Nome não informado'}
                             </div>
-                            <div className="text-sm text-secondary">
+                            <div className="text-sm text-muted-foreground">
                               ID: {user.id.slice(0, 8)}...
                             </div>
                           </div>
@@ -320,7 +320,7 @@ export const UserListTable = () => {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-1 text-sm text-secondary">
+                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
                           <Calendar className="h-3 w-3" />
                           {new Date(user.created_at).toLocaleDateString('pt-BR')}
                         </div>
@@ -359,7 +359,7 @@ export const UserListTable = () => {
           {userListData?.pagination &&
             userListData.pagination.total > userListData.pagination.limit && (
               <div className="flex items-center justify-between p-4 border-t border-border">
-                <div className="text-sm text-secondary">
+                <div className="text-sm text-muted-foreground">
                   Mostrando {(userListData.pagination.page - 1) * userListData.pagination.limit + 1}{' '}
                   a{' '}
                   {Math.min(

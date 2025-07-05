@@ -216,7 +216,7 @@ export const TagHierarchy = () => {
           <CardTitle className="text-xl font-semibold text-foreground">
             Hierarquia de Tags
           </CardTitle>
-          <CardDescription className="text-secondary">
+          <CardDescription className="text-muted-foreground">
             Carregando estrutura de tags...
           </CardDescription>
         </CardHeader>
@@ -238,7 +238,7 @@ export const TagHierarchy = () => {
           <CardTitle className="text-xl font-semibold text-foreground">
             Hierarquia de Tags
           </CardTitle>
-          <CardDescription className="text-secondary">Erro ao carregar tags</CardDescription>
+          <CardDescription className="text-muted-foreground">Erro ao carregar tags</CardDescription>
         </CardHeader>
         <CardContent>
           <p className="text-red-600 dark:text-red-400">Falha ao carregar a hierarquia de tags.</p>
@@ -256,7 +256,7 @@ export const TagHierarchy = () => {
               <CardTitle className="text-xl font-semibold text-foreground">
                 Hierarquia de Tags
               </CardTitle>
-              <CardDescription className="text-secondary">
+              <CardDescription className="text-muted-foreground">
                 Organize tags em uma estrutura hierárquica e gerencie relações
               </CardDescription>
             </div>
@@ -272,7 +272,7 @@ export const TagHierarchy = () => {
         <CardContent className="space-y-4">
           {/* Search Bar */}
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-secondary" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Buscar tags..."
               value={searchTerm}
@@ -300,14 +300,14 @@ export const TagHierarchy = () => {
             {filteredTree.length > 0 ? (
               <div className="space-y-1">{filteredTree.map(renderTagNode)}</div>
             ) : (
-              <div className="text-center py-8 text-secondary">
+              <div className="text-center py-8 text-muted-foreground">
                 {searchTerm ? 'Nenhuma tag encontrada' : 'Nenhuma tag disponível'}
               </div>
             )}
           </div>
 
           {/* Summary Stats */}
-          <div className="flex gap-4 text-sm text-secondary pt-4 border-t border-border">
+          <div className="flex gap-4 text-sm text-muted-foreground pt-4 border-t border-border">
             <span>Total: {tags.length} tags</span>
             <span>
               Selecionada:{' '}

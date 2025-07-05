@@ -43,7 +43,7 @@ export const TagCleanup = () => {
         <CardContent>
           <div className="space-y-3">
             {[...Array(3)].map((_, i) => (
-              <div key={i} className="h-8 bg-gray-100 rounded animate-pulse" />
+              <div key={i} className="h-8 bg-surface-muted rounded animate-pulse" />
             ))}
           </div>
         </CardContent>
@@ -68,7 +68,7 @@ export const TagCleanup = () => {
                 <AlertTriangle className="h-5 w-5 text-orange-600 dark:text-orange-400" />
                 <div>
                   <div className="font-semibold">{unusedTags.length}</div>
-                  <div className="text-sm text-gray-600">Tags Não Utilizadas</div>
+                  <div className="text-sm text-muted-foreground">Tags Não Utilizadas</div>
                 </div>
               </div>
             </CardContent>
@@ -80,7 +80,7 @@ export const TagCleanup = () => {
                 <Search className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                 <div>
                   <div className="font-semibold">{analytics?.orphanedTags?.length || 0}</div>
-                  <div className="text-sm text-gray-600">Tags Órfãs</div>
+                  <div className="text-sm text-muted-foreground">Tags Órfãs</div>
                 </div>
               </div>
             </CardContent>
@@ -94,7 +94,7 @@ export const TagCleanup = () => {
                   <div className="font-semibold">
                     {(analytics?.totalTags || 0) - unusedTags.length}
                   </div>
-                  <div className="text-sm text-gray-600">Tags Ativas</div>
+                  <div className="text-sm text-muted-foreground">Tags Ativas</div>
                 </div>
               </div>
             </CardContent>
@@ -146,7 +146,7 @@ export const TagCleanup = () => {
         {unusedTags.length > 0 && (
           <div className="space-y-3">
             <h4 className="font-medium">Tags que serão removidas:</h4>
-            <div className="max-h-40 overflow-y-auto space-y-2 p-3 bg-gray-50 rounded-lg">
+            <div className="max-h-40 overflow-y-auto space-y-2 p-3 bg-surface-muted rounded-lg">
               {unusedTags.map(tag => (
                 <div key={tag.id} className="flex items-center justify-between text-sm">
                   <span className="font-medium">{tag.tag_name}</span>

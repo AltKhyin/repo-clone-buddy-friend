@@ -122,3 +122,93 @@ export interface ExtendedUserProfile extends UserProfile {
   twitter_url?: string | null;
   website_url?: string | null;
 }
+
+// Content Type system interfaces for review metadata
+export interface ContentType {
+  id: number;
+  label: string;
+  description?: string | null;
+  text_color: string;
+  border_color: string;
+  background_color: string;
+  created_at: string;
+  created_by?: string | null;
+  is_system: boolean;
+}
+
+// Content Type operation interfaces for API calls
+export interface ContentTypeOperation {
+  action: 'create' | 'update' | 'delete' | 'list';
+  contentType?: {
+    label: string;
+    description?: string;
+    text_color: string;
+    border_color: string;
+    background_color: string;
+  };
+  contentTypeId?: number;
+}
+
+export interface ContentTypeOperationResponse {
+  success: boolean;
+  contentType?: ContentType;
+  contentTypes?: ContentType[];
+  message?: string;
+  error?: string;
+}
+
+// Extended review metadata interfaces
+export interface ReviewMetadataExtended {
+  id: number;
+  title: string;
+  description?: string | null;
+  cover_image_url?: string | null;
+  // Existing fields...
+  status: string;
+  access_level: string;
+  view_count: number;
+  review_status: string;
+  reviewer_id?: string | null;
+  scheduled_publish_at?: string | null;
+  publication_notes?: string | null;
+  created_at: string;
+  published_at?: string | null;
+  // New metadata fields
+  edicao?: string | null;
+  original_article_title?: string | null;
+  original_article_authors?: string | null;
+  original_article_publication_date?: string | null;
+  study_type?: string | null;
+  // Related data
+  author?: {
+    id: string;
+    full_name: string;
+    avatar_url?: string | null;
+  };
+  content_types: ContentType[];
+}
+
+// Article data subset for form components
+export interface ArticleData {
+  original_article_title?: string | null;
+  original_article_authors?: string | null;
+  original_article_publication_date?: string | null;
+  study_type?: string | null;
+}
+
+// Form data interfaces for review editing
+export interface ReviewFormData {
+  title: string;
+  description: string;
+  access_level: string;
+  cover_image_url: string;
+  edicao: string;
+  original_article_title: string;
+  original_article_authors: string;
+  original_article_publication_date: string;
+  study_type: string;
+}
+
+// Study types configuration
+export type StudyType = string;
+export type StudyTypes = StudyType[];

@@ -64,6 +64,12 @@ const config: Config = {
         tertiary: "hsl(var(--text-tertiary))",
         "comment-thread": "hsl(var(--comment-thread))",
         "action-hover": "hsl(var(--action-hover))",
+        // Add proper text color hierarchy mappings
+        text: {
+          primary: "hsl(var(--text-primary))",
+          secondary: "hsl(var(--text-secondary))",
+          tertiary: "hsl(var(--text-tertiary))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
