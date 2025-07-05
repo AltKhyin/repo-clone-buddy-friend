@@ -253,15 +253,4 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-// PERFORMANCE: Add performance monitoring matchers
-expect.extend(performanceMatchers);
-
-// PERFORMANCE: Print test suite summary at the end
-afterAll(() => {
-  if (process.env.NODE_ENV !== 'test' || process.env.VITEST_PERFORMANCE_SUMMARY === 'false') {
-    return;
-  }
-
-  // Print performance summary
-  globalTestTracker.printSummary();
-});
+// Test setup complete - all essential mocks and polyfills configured
