@@ -1,4 +1,5 @@
-// ABOUTME: Individual review card for content queue display
+// ABOUTME: Individual review card for content queue display  
+// Test comment to trigger pre-commit hook
 
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
