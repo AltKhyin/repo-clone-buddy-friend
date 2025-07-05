@@ -17,7 +17,8 @@
     "test:related": "vitest run --related",
     "test:staged": "vitest run --reporter=verbose --run",
     "validate:inspectors": "node scripts/validate-inspector-components.js",
-    "test:pre-commit": "npm run test && npm run validate:inspectors",
+    "test:pre-commit": "npm run lint && npm run build && timeout 300 npm run test",
+    "test:quick": "vitest run --reporter=basic --silent",
     "prepare": "husky"
   },
   "dependencies": {

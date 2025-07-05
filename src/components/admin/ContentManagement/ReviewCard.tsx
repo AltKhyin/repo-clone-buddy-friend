@@ -252,7 +252,7 @@ export const ReviewCard = ({ review, isSelected, onSelect }: ReviewCardProps) =>
           {/* Body Section: Article Metadata and Footer */}
           <div className="flex flex-col sm:flex-row">
             {/* Article Metadata positioned under cover image */}
-            <div className="w-full sm:w-32 px-4 pb-4">
+            <div className="w-full px-4 pb-4">
               <ArticleMetadataSection review={review} />
             </div>
 
