@@ -1,8 +1,8 @@
 # [DOC_9] EVIDENS Testing Framework
 
 **Version:** 1.0.0  
-**Date:** June 28, 2025  
-**Purpose:** Complete testing framework documentation for the EVIDENS platform, establishing testing standards, patterns, and enforcement mechanisms for professional-grade development.
+**Date:** July 6, 2025  
+**Purpose:** Testing framework documentation for the EVIDENS platform. Note: This document contains both implemented features and planned enhancements. See implementation status sections for current reality vs. planned features.
 
 ---
 
@@ -31,7 +31,7 @@ The EVIDENS testing framework ensures **reliability, maintainability, and confid
 
 1. **Safety First**: Medical professionals rely on EVIDENS - testing prevents bugs that could impact their work
 2. **TDD Enforcement**: No production code without corresponding tests
-3. **Professional Standards**: 80% minimum coverage with comprehensive scenarios
+3. **Professional Standards**: 70% minimum coverage with strategic test scenarios (configurable)
 4. **Developer Experience**: Tools that make testing easier, not harder
 5. **Architectural Compliance**: Tests reinforce, not violate, system architecture
 
@@ -102,10 +102,10 @@ export default defineConfig({
       ],
       thresholds: {
         global: {
-          statements: 80, // 80% minimum coverage
-          branches: 80,
-          functions: 80,
-          lines: 80,
+          statements: 70, // 70% minimum coverage (actual configuration)
+          branches: 70,
+          functions: 70,
+          lines: 70,
         },
       },
     },
@@ -126,25 +126,23 @@ export default defineConfig({
   "test": "vitest run", // Run all tests once
   "test:watch": "vitest", // Run tests in watch mode
   "test:coverage": "vitest run --coverage", // Run with coverage report
-  "test:ui": "vitest --ui", // Visual test runner
-  "dev:with-tests": "concurrently \"npm run dev\" \"npm run test:watch\""
+  "test:critical": "vitest run src/components/auth src/lib", // Strategic tests for pre-commit
+  "test:security": "vitest run src/components/auth", // Security-focused tests
+  "test:business": "vitest run src/lib" // Business logic tests
 }
 ```
 
 ### 2. Test Utilities Infrastructure
 
-The EVIDENS testing framework provides a comprehensive set of utilities located in `src/test-utils/`:
+The EVIDENS testing framework provides basic test utilities located in `src/test-utils/`:
 
-#### Central Export (`src/test-utils/index.ts`)
+#### Current Implementation (`src/test-utils/index.ts`)
 
 ```typescript
-// ABOUTME: Centralized test utilities export for easy importing
-export * from './render-helpers';
-export * from './query-client-wrapper';
-export * from './mock-providers';
-export * from './test-data-factories';
-export * from './custom-matchers';
-export * from './test-constants';
+// ABOUTME: Basic test utilities for component and hook testing
+export { renderWithProviders, TestProviders } from './test-providers';
+export { screen, fireEvent, waitFor, act, renderHook } from '@testing-library/react';
+export { vi } from 'vitest';
 ```
 
 #### Global Test Setup (`src/test-setup.ts`)
@@ -322,34 +320,49 @@ npm test
 
 #### 2. Pre-Commit Hook Enforcement
 
-Every commit is automatically validated through `.husky/pre-commit`:
+**IMPLEMENTATION STATUS**: ✅ **ACTIVE** - Automated Git hooks are implemented and working
+
+**Husky Pre-commit Hook** (`.husky/pre-commit`):
+
+```bash
+# Strategic Testing Pre-commit Hook - Fast and Reliable Quality Gates
+npx lint-staged         # Staged file linting and formatting
+npm run lint           # Full ESLint validation
+npx tsc --noEmit       # TypeScript compilation check
+npm run test:critical  # Strategic tests (auth + lib) with 3min timeout
+```
+
+**Manual Validation Script** (`scripts/pre-commit.sh`):
 
 ```bash
 #!/usr/bin/env sh
-npm run test:coverage    # All tests must pass
-npm run lint            # No linting errors allowed
+npx lint-staged        # Staged file processing
+npm run lint           # No linting errors allowed
 npm run build          # TypeScript must compile
+npm test              # Full test suite with timeout protection
 ```
 
 #### 3. Lint-Staged Integration
 
-Changes are tested incrementally via `.lintstagedrc.json`:
+Actual lint-staged configuration (`.lintstagedrc.json`):
 
 ```json
 {
-  "*.{ts,tsx}": ["eslint --fix", "npm run test -- --related --passWithNoTests"],
+  "*.{ts,tsx}": ["eslint --fix"],
   "*.{js,jsx,ts,tsx,json,css,md}": ["prettier --write"]
 }
 ```
 
+**Note**: Tests are handled separately by the Husky pre-commit hook, not by lint-staged, for better performance and clearer separation of concerns.
+
 ### Coverage Requirements
 
-All new code must maintain **80% minimum coverage** across:
+All new code must maintain **70% minimum coverage** across (configurable to 80%):
 
-- **Statements**: 80%
-- **Branches**: 80%
-- **Functions**: 80%
-- **Lines**: 80%
+- **Statements**: 70%
+- **Branches**: 70%
+- **Functions**: 70%
+- **Lines**: 70%
 
 ### Enforcement Mechanisms
 
@@ -649,10 +662,10 @@ Duration: ~5 seconds
 
 ### Coverage Metrics (Target vs Current)
 
-- **Statements**: 80% target | 6.76% current
-- **Branches**: 80% target | 4.12% current
-- **Functions**: 80% target | 8.33% current
-- **Lines**: 80% target | 6.76% current
+- **Statements**: 70% target | 6.76% current
+- **Branches**: 70% target | 4.12% current
+- **Functions**: 70% target | 8.33% current
+- **Lines**: 70% target | 6.76% current
 
 **Note**: Low current coverage reflects recent framework implementation. As more components are tested, coverage will increase rapidly.
 
@@ -770,7 +783,7 @@ Recommended extensions and settings:
 
 #### Test Suite Optimization Results
 
-**Achievement**: Reduced test execution from 20+ minutes to <30 seconds (97% improvement)
+**Current Status**: Test execution optimized to approximately 100 seconds for full suite
 
 #### 5-Milestone Optimization Implementation
 
@@ -830,12 +843,12 @@ Recommended extensions and settings:
 - Pre-commit: 7+ minutes (420+ seconds)
 - Developer Experience: Poor (blocking workflow)
 
-**After Optimization:**
+**Current Performance:**
 
-- Ultra-Fast Tests: <30 seconds (target achieved)
-- Pre-commit: <30 seconds (95% improvement)
-- Unit Tests: <2 minutes (90% improvement)
-- Developer Experience: Excellent (immediate feedback)
+- Full Test Suite: ~100 seconds
+- Strategic Test Subset: ~60 seconds
+- Unit Tests: ~40 seconds
+- Developer Experience: Good (reasonable feedback)
 
 #### Test Execution Optimization
 
@@ -982,7 +995,7 @@ The EVIDENS testing framework provides a robust, scalable foundation for maintai
 **Next Steps:**
 
 1. Systematic refactoring of remaining test files using automated tools
-2. Expand test coverage to meet 80% threshold
+2. Expand test coverage to meet 70% threshold (configurable to 80%)
 3. Implement E2E testing with Playwright using optimized patterns
 4. Add visual regression testing capabilities
 5. CI/CD integration with smart test execution
@@ -1016,12 +1029,12 @@ The testing framework is production-ready with industry-leading performance opti
 npm test                    # Run all tests once
 npm run test:watch         # Watch mode for development
 npm run test:coverage      # Run with coverage report
-npm run test:ui           # Visual test runner
+npm run test:critical     # Strategic tests (auth + lib)
 
 # TDD Workflow
 npm test -- --watch ComponentName    # Start TDD for specific component
 npm test -- --related file.tsx       # Test only related files
-npm run dev:with-tests               # Dev server + test watching
+npm run test:watch                   # Test watching mode
 ```
 
 ### 📋 Component Test Template (Copy & Paste)
@@ -1102,7 +1115,7 @@ import { renderMinimal } from '../../test-utils';
 - [ ] Create failing test first (`npm test -- --watch ComponentName`)
 - [ ] Write minimal code to pass (`npm test -- --related file.tsx`)
 - [ ] Refactor while keeping tests green (`npm test`)
-- [ ] Ensure coverage meets 80% threshold
+- [ ] Ensure coverage meets 70% threshold
 - [ ] Run full test suite before commit (`npm test`)
 - [ ] Check accessibility and responsive requirements
 

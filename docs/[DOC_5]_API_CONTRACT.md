@@ -1,4 +1,3 @@
-
 # **[DOC_5] EVIDENS API Contract**
 
 **Version:** 3.5  
@@ -7,6 +6,7 @@
 **Purpose:** This document defines the canonical contract for all server‑side business logic within the EVIDENS ecosystem. It specifies when to use Supabase's auto‑generated API and provides the definitive blueprint for all custom Supabase Edge Functions. The AI developer must adhere to this specification to ensure all backend interactions are secure, transactional, and predictable.
 
 **CHANGELOG (v3.5):**
+
 - **CRITICAL UPDATE**: Added Section 1.5 "Mandatory Edge Function Structure" to prevent recurring CORS and authentication errors
 - Enhanced error prevention protocols for systematic Edge Function development
 - Established canonical 7-step implementation pattern for all new functions
@@ -16,15 +16,15 @@
 ## **1.0 Core Principles & The Dual API Strategy**
 
 **PRINCIPLE 1 (Default to Auto‑API):**  
-For all simple Create, Read, Update, and Delete (CRUD) operations, the primary method of data interaction is through Supabase's auto‑generated REST API, secured by RLS policies in [DOC_4]_ROW_LEVEL_SECURITY.md. Custom Edge Functions **must not** be created for these tasks.
+For all simple Create, Read, Update, and Delete (CRUD) operations, the primary method of data interaction is through Supabase's auto‑generated REST API, secured by RLS policies in [DOC_4]\_ROW_LEVEL_SECURITY.md. Custom Edge Functions **must not** be created for these tasks.
 
-*Use Case: Fetching lists (e.g., reviews, user profiles), updating simple fields (e.g., biography).*  
-*Implementation: Use the `supabase-js` client directly within the data‑fetching hooks defined in [DOC_6]_DATA_FETCHING_STRATEGY.md.*
+_Use Case: Fetching lists (e.g., reviews, user profiles), updating simple fields (e.g., biography)._  
+_Implementation: Use the `supabase-js` client directly within the data‑fetching hooks defined in [DOC_6]\_DATA_FETCHING_STRATEGY.md._
 
 **PRINCIPLE 2 (Edge Functions for Business Logic):**  
 Use Edge Functions exclusively for operations that involve complex, multi‑step, or transactional business logic beyond a single CRUD action.
 
-*Use Case: Casting a community vote (atomic updates across tables), creating content with side effects (auto‑upvote), publishing a review with auto‑generated discussion, processing analytics ETL.*
+_Use Case: Casting a community vote (atomic updates across tables), creating content with side effects (auto‑upvote), publishing a review with auto‑generated discussion, processing analytics ETL._
 
 **PRINCIPLE 3 (Security First):**  
 Every Edge Function must validate inputs, enforce authorization, and handle errors explicitly before executing core logic.
@@ -70,7 +70,6 @@ try {
 
   // STEP 6: Standardized Success Response
   return createSuccessResponse(result, rateLimitHeaders(rateLimitResult));
-
 } catch (error) {
   // STEP 7: Centralized Error Handling
   return createErrorResponse(error);
@@ -96,18 +95,18 @@ try {
 
 ## **2.0 Rate Limiting Architecture**
 
-**IMPLEMENTATION STATUS:** Comprehensive rate limiting infrastructure has been implemented and is ready for deployment. The following rate limits are configured:
+**IMPLEMENTATION STATUS:** Basic rate limiting infrastructure with in-memory implementation has been implemented for development. Production-ready database-backed rate limiting requires implementation. The following rate limits are specified for production deployment:
 
-| Function | Rate Limit | Window | Purpose |
-|----------|------------|--------|---------|
-| `get-homepage-feed` | 60 requests | 60 seconds | Prevent homepage abuse |
-| `get-acervo-data` | 30 requests | 60 seconds | Protect search/filter endpoints |
-| `submit-suggestion` | 5 requests | 300 seconds | Prevent suggestion spam |
-| `cast-suggestion-vote` | 10 requests | 60 seconds | Limit voting frequency |
-| `cast-vote` | 20 requests | 60 seconds | Community voting protection |
-| `get-personalized-recommendations` | 10 requests | 60 seconds | Expensive computation protection |
-| `save-post` | 30 requests | 60 seconds | Prevent save/unsave spam |
-| `get-saved-posts` | 20 requests | 60 seconds | Limit saved posts retrieval |
+| Function                           | Rate Limit  | Window      | Purpose                          |
+| ---------------------------------- | ----------- | ----------- | -------------------------------- |
+| `get-homepage-feed`                | 60 requests | 60 seconds  | Prevent homepage abuse           |
+| `get-acervo-data`                  | 30 requests | 60 seconds  | Protect search/filter endpoints  |
+| `submit-suggestion`                | 5 requests  | 300 seconds | Prevent suggestion spam          |
+| `cast-suggestion-vote`             | 10 requests | 60 seconds  | Limit voting frequency           |
+| `cast-vote`                        | 20 requests | 60 seconds  | Community voting protection      |
+| `get-personalized-recommendations` | 10 requests | 60 seconds  | Expensive computation protection |
+| `save-post`                        | 30 requests | 60 seconds  | Prevent save/unsave spam         |
+| `get-saved-posts`                  | 20 requests | 60 seconds  | Limit saved posts retrieval      |
 
 **Rate Limiting Implementation:**
 
@@ -119,19 +118,22 @@ import { checkRateLimit, rateLimitHeaders } from '../_shared/rate-limit.ts';
 // In each Edge Function:
 const rateLimitResult = await checkRateLimit(supabase, 'function-name', userId);
 if (!rateLimitResult.allowed) {
-  return new Response(JSON.stringify({
-    error: { message: 'Rate limit exceeded', code: 'RATE_LIMIT_EXCEEDED' }
-  }), {
-    status: 429,
-    headers: {
-      'Content-Type': 'application/json',
-      ...rateLimitHeaders(rateLimitResult)
+  return new Response(
+    JSON.stringify({
+      error: { message: 'Rate limit exceeded', code: 'RATE_LIMIT_EXCEEDED' },
+    }),
+    {
+      status: 429,
+      headers: {
+        'Content-Type': 'application/json',
+        ...rateLimitHeaders(rateLimitResult),
+      },
     }
-  });
+  );
 }
 ```
 
-**Database Table:** The `rate_limit_log` table tracks API usage with automatic cleanup of entries older than 1 hour.
+**Database Table:** The `rate_limit_log` table exists for production rate limiting integration. Current implementation uses in-memory tracking (see `supabase/functions/_shared/rate-limit.ts` for details).
 
 ---
 
@@ -156,38 +158,38 @@ This enables uniform error handling on the frontend.
 
 ### **4.1 Function: `upsert-review`**
 
-* **Trigger:** `POST /functions/v1/upsert-review`
-* **Purpose:** Create or update a Review, validating the `structured_content` v2.0 payload.
-* **Auth:** Required (`admin` role).
-* **Rate Limit:** Not applicable (admin-only function)
+- **Trigger:** `POST /functions/v1/upsert-review`
+- **Purpose:** Create or update a Review, validating the `structured_content` v2.0 payload.
+- **Auth:** Required (`admin` role).
+- **Rate Limit:** Not applicable (admin-only function)
 
 **Request Body Schema (Zod):**
 
 ```typescript
 import { z } from 'zod';
 
-const Position   = z.object({ x: z.number(), y: z.number() });
-const Size       = z.object({ width: z.number(), height: z.number() });
+const Position = z.object({ x: z.number(), y: z.number() });
+const Size = z.object({ width: z.number(), height: z.number() });
 const LayoutItem = z.object({ nodeId: z.string(), position: Position, size: Size });
-const Node       = z.object({ id: z.string(), type: z.string(), data: z.record(z.any()) });
-const ContentV2  = z.object({
-  version: z.literal("2.0"),
-  nodes:   z.array(Node),
+const Node = z.object({ id: z.string(), type: z.string(), data: z.record(z.any()) });
+const ContentV2 = z.object({
+  version: z.literal('2.0'),
+  nodes: z.array(Node),
   layouts: z.object({
     desktop: z.array(LayoutItem),
-    mobile:  z.array(LayoutItem),
+    mobile: z.array(LayoutItem),
   }),
   canvasState: z.any(),
 });
 
 const UpsertReview = z.object({
-  reviewId:               z.number().int().optional().nullable(),
-  source_article_title:   z.string().min(1),
-  source_article_citation:z.string().min(1),
-  cover_image_url:        z.string().url().optional().nullable(),
-  access_level:           z.enum(['public','free_users_only','paying_users_only']),
-  status:                 z.enum(['draft','published']),
-  structured_content:     ContentV2,
+  reviewId: z.number().int().optional().nullable(),
+  source_article_title: z.string().min(1),
+  source_article_citation: z.string().min(1),
+  cover_image_url: z.string().url().optional().nullable(),
+  access_level: z.enum(['public', 'free_users_only', 'paying_users_only']),
+  status: z.enum(['draft', 'published']),
+  structured_content: ContentV2,
 });
 ```
 
@@ -213,10 +215,10 @@ const UpsertReview = z.object({
 
 ### **4.2 Function: `create-community-post`**
 
-* **Trigger:** `POST /functions/v1/create-community-post`
-* **Purpose:** Create a community post/comment, auto‑upvote, update `contribution_score`, optionally create a poll.
-* **Auth:** Required (authenticated).
-* **Rate Limit:** 5 requests per 5 minutes per user
+- **Trigger:** `POST /functions/v1/create-community-post`
+- **Purpose:** Create a community post/comment, auto‑upvote, update `contribution_score`, optionally create a poll.
+- **Auth:** Required (authenticated).
+- **Rate Limit:** 5 requests per 5 minutes per user
 
 **Request Body Schema (Zod):**
 
@@ -224,15 +226,17 @@ const UpsertReview = z.object({
 import { z } from 'zod';
 
 const CreatePost = z.object({
-  review_id:      z.number().int().optional().nullable(),
+  review_id: z.number().int().optional().nullable(),
   parent_post_id: z.number().int().optional().nullable(),
-  title:          z.string().min(1).optional().nullable(),
-  content:        z.string().min(1),
-  category:       z.string().min(1),
-  poll: z.object({
-    question: z.string().min(1),
-    options:  z.array(z.string().min(1)).min(2),
-  }).optional(),
+  title: z.string().min(1).optional().nullable(),
+  content: z.string().min(1),
+  category: z.string().min(1),
+  poll: z
+    .object({
+      question: z.string().min(1),
+      options: z.array(z.string().min(1)).min(2),
+    })
+    .optional(),
 });
 ```
 
@@ -243,10 +247,10 @@ const CreatePost = z.object({
 3. Extract `practitioner_id` from JWT.
 4. Validate input; else 400.
 5. RPC transaction:  
-    a. INSERT into `CommunityPosts` with `upvotes = 1`.  
-    b. INSERT into `CommunityPost_Votes` for auto‑upvote.  
-    c. UPDATE `Practitioners.contribution_score` +1.  
-    d. If `poll`, INSERT into `Polls` & `Poll_Options`.
+   a. INSERT into `CommunityPosts` with `upvotes = 1`.  
+   b. INSERT into `CommunityPost_Votes` for auto‑upvote.  
+   c. UPDATE `Practitioners.contribution_score` +1.  
+   d. If `poll`, INSERT into `Polls` & `Poll_Options`.
 
 **Success Response:** `201 Created`
 
@@ -258,10 +262,10 @@ const CreatePost = z.object({
 
 ### **4.3 Function: `cast-post-vote`**
 
-* **Trigger:** `POST /functions/v1/cast-post-vote`
-* **Purpose:** Cast, change, or retract a vote; update post counters and contributor score.
-* **Auth:** Required (authenticated).
-* **Rate Limit:** 20 requests per minute per user
+- **Trigger:** `POST /functions/v1/cast-post-vote`
+- **Purpose:** Cast, change, or retract a vote; update post counters and contributor score.
+- **Auth:** Required (authenticated).
+- **Rate Limit:** 20 requests per minute per user
 
 **Request Body Schema (Zod):**
 
@@ -269,8 +273,8 @@ const CreatePost = z.object({
 import { z } from 'zod';
 
 const CastVote = z.object({
-  post_id:   z.number().int(),
-  vote_type: z.enum(['up','down','none']),
+  post_id: z.number().int(),
+  vote_type: z.enum(['up', 'down', 'none']),
 });
 ```
 
@@ -280,9 +284,9 @@ const CastVote = z.object({
 2. Check rate limit; return 429 if exceeded.
 3. Validate input; else 400.
 4. RPC transaction:  
-    a. UPSERT/DELETE in `CommunityPost_Votes`.  
-    b. UPDATE `CommunityPosts.upvotes / downvotes`.  
-    c. UPDATE author's `contribution_score` by delta.
+   a. UPSERT/DELETE in `CommunityPost_Votes`.  
+   b. UPDATE `CommunityPosts.upvotes / downvotes`.  
+   c. UPDATE author's `contribution_score` by delta.
 
 **Success Response:** `200 OK`
 
@@ -294,10 +298,10 @@ const CastVote = z.object({
 
 ### **4.4 Function: `publish-review`**
 
-* **Trigger:** `POST /functions/v1/publish-review`
-* **Purpose:** Mark Review as `published` and auto‑create discussion post.
-* **Auth:** Required (`admin` role).
-* **Rate Limit:** Not applicable (admin-only function)
+- **Trigger:** `POST /functions/v1/publish-review`
+- **Purpose:** Mark Review as `published` and auto‑create discussion post.
+- **Auth:** Required (`admin` role).
+- **Rate Limit:** Not applicable (admin-only function)
 
 **Request Body Schema (Zod):**
 
@@ -313,9 +317,9 @@ const PublishReview = z.object({ review_id: z.number().int() });
 2. Verify `admin` role; else 403.
 3. Validate input; else 400.
 4. Transaction:  
-    a. UPDATE `Reviews.status` to `published`.  
-    b. FETCH `Review.title`.  
-    c. INSERT into `CommunityPosts` with title `Discussão: [Review Title]`.
+   a. UPDATE `Reviews.status` to `published`.  
+   b. FETCH `Review.title`.  
+   c. INSERT into `CommunityPosts` with title `Discussão: [Review Title]`.
 
 **Success Response:** `200 OK`
 
@@ -331,10 +335,10 @@ const PublishReview = z.object({ review_id: z.number().int() });
 
 ### **4.5 Cron Function: `run-analytics-etl`**
 
-* **Trigger:** Scheduled (e.g., hourly) via Supabase Cron.
-* **Purpose:** Process `Analytics_Events` into `Summary_*` tables.
-* **Auth:** Runs with `service_role`.
-* **Rate Limit:** Not applicable (internal cron function)
+- **Trigger:** Scheduled (e.g., hourly) via Supabase Cron.
+- **Purpose:** Process `Analytics_Events` into `Summary_*` tables.
+- **Auth:** Runs with `service_role`.
+- **Rate Limit:** Not applicable (internal cron function)
 
 **Business Logic:**
 
@@ -349,10 +353,10 @@ const PublishReview = z.object({ review_id: z.number().int() });
 
 ### **4.6 Function: `save-post`**
 
-* **Trigger:** `POST /functions/v1/save-post`
-* **Purpose:** Save or unsave a community post for the authenticated user.
-* **Auth:** Required (authenticated).
-* **Rate Limit:** 30 requests per minute per user
+- **Trigger:** `POST /functions/v1/save-post`
+- **Purpose:** Save or unsave a community post for the authenticated user.
+- **Auth:** Required (authenticated).
+- **Rate Limit:** 30 requests per minute per user
 
 **Request Body Schema (Zod):**
 
@@ -389,10 +393,10 @@ const SavePost = z.object({
 
 ### **4.7 Function: `get-saved-posts`**
 
-* **Trigger:** `GET /functions/v1/get-saved-posts?page=0&limit=20`
-* **Purpose:** Retrieve authenticated user's saved posts with pagination.
-* **Auth:** Required (authenticated).
-* **Rate Limit:** 20 requests per minute per user
+- **Trigger:** `GET /functions/v1/get-saved-posts?page=0&limit=20`
+- **Purpose:** Retrieve authenticated user's saved posts with pagination.
+- **Auth:** Required (authenticated).
+- **Rate Limit:** 20 requests per minute per user
 
 **Query Parameters:**
 
@@ -422,7 +426,7 @@ const SavePost = z.object({
         "full_name": "Author Name",
         "avatar_url": "url"
       },
-      "is_saved": true,
+      "is_saved": true
       // ... other post fields
     }
   ],
@@ -441,10 +445,10 @@ const SavePost = z.object({
 
 ### **4.8 Function: `get-community-post-detail`**
 
-* **Trigger:** `POST /functions/v1/get-community-post-detail`
-* **Purpose:** Retrieve individual community post with full details, user vote status, and save status.
-* **Auth:** Optional (authenticated users get personalized data).
-* **Rate Limit:** 60 requests per minute per user/IP
+- **Trigger:** `POST /functions/v1/get-community-post-detail`
+- **Purpose:** Retrieve individual community post with full details, user vote status, and save status.
+- **Auth:** Optional (authenticated users get personalized data).
+- **Rate Limit:** 60 requests per minute per user/IP
 
 **Request Body Schema (Zod):**
 
@@ -500,4 +504,4 @@ const GetPostDetail = z.object({
 
 ---
 
-*End of [DOC_5] EVIDENS API Contract*
+_End of [DOC_5] EVIDENS API Contract_
