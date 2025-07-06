@@ -48,6 +48,11 @@ vi.mock('../../../../packages/hooks/useContentTypeManagement', () => ({
     mutateAsync: vi.fn(),
     isPending: false,
   }),
+  getDefaultContentTypeColors: vi.fn(() => ({
+    text_color: '#1e40af',
+    border_color: '#3b82f6',
+    background_color: '#dbeafe',
+  })),
 }));
 
 describe('ContentTypeSelector', () => {
@@ -62,10 +67,7 @@ describe('ContentTypeSelector', () => {
     it('should render the content type selector with label', () => {
       render(
         <MockAllProviders>
-          <ContentTypeSelector 
-            selectedContentTypes={[]} 
-            onChange={mockOnChange} 
-          />
+          <ContentTypeSelector selectedContentTypes={[]} onChange={mockOnChange} />
         </MockAllProviders>
       );
 
@@ -75,10 +77,7 @@ describe('ContentTypeSelector', () => {
     it('should display available content types as checkboxes', () => {
       render(
         <MockAllProviders>
-          <ContentTypeSelector 
-            selectedContentTypes={[]} 
-            onChange={mockOnChange} 
-          />
+          <ContentTypeSelector selectedContentTypes={[]} onChange={mockOnChange} />
         </MockAllProviders>
       );
 
@@ -90,10 +89,7 @@ describe('ContentTypeSelector', () => {
     it('should show "Create New Content Type" button', () => {
       render(
         <MockAllProviders>
-          <ContentTypeSelector 
-            selectedContentTypes={[]} 
-            onChange={mockOnChange} 
-          />
+          <ContentTypeSelector selectedContentTypes={[]} onChange={mockOnChange} />
         </MockAllProviders>
       );
 
@@ -105,17 +101,14 @@ describe('ContentTypeSelector', () => {
     it('should display selected content types as styled pills', () => {
       render(
         <MockAllProviders>
-          <ContentTypeSelector 
-            selectedContentTypes={[1, 2]} 
-            onChange={mockOnChange} 
-          />
+          <ContentTypeSelector selectedContentTypes={[1, 2]} onChange={mockOnChange} />
         </MockAllProviders>
       );
 
       // Should show pills for selected content types
       const pills = screen.getAllByText('Review');
       expect(pills.length).toBeGreaterThan(0);
-      
+
       const analysisPills = screen.getAllByText('Análise de Artigo');
       expect(analysisPills.length).toBeGreaterThan(0);
     });
@@ -123,10 +116,7 @@ describe('ContentTypeSelector', () => {
     it('should call onChange when content type is selected', async () => {
       render(
         <MockAllProviders>
-          <ContentTypeSelector 
-            selectedContentTypes={[]} 
-            onChange={mockOnChange} 
-          />
+          <ContentTypeSelector selectedContentTypes={[]} onChange={mockOnChange} />
         </MockAllProviders>
       );
 
@@ -139,10 +129,7 @@ describe('ContentTypeSelector', () => {
     it('should call onChange when content type is deselected', async () => {
       render(
         <MockAllProviders>
-          <ContentTypeSelector 
-            selectedContentTypes={[1, 2]} 
-            onChange={mockOnChange} 
-          />
+          <ContentTypeSelector selectedContentTypes={[1, 2]} onChange={mockOnChange} />
         </MockAllProviders>
       );
 
@@ -155,17 +142,14 @@ describe('ContentTypeSelector', () => {
     it('should allow removing content type via pill X button', async () => {
       render(
         <MockAllProviders>
-          <ContentTypeSelector 
-            selectedContentTypes={[1]} 
-            onChange={mockOnChange} 
-          />
+          <ContentTypeSelector selectedContentTypes={[1]} onChange={mockOnChange} />
         </MockAllProviders>
       );
 
       // Find the X button in the pill (assuming it has an accessible name or role)
       const removeButtons = screen.getAllByRole('button');
-      const removeButton = removeButtons.find(button => 
-        button.textContent?.includes('×') || button.className?.includes('remove')
+      const removeButton = removeButtons.find(
+        button => button.textContent?.includes('×') || button.className?.includes('remove')
       );
 
       if (removeButton) {
@@ -179,10 +163,7 @@ describe('ContentTypeSelector', () => {
     it('should show edit and delete buttons on hover for all content types', () => {
       render(
         <MockAllProviders>
-          <ContentTypeSelector 
-            selectedContentTypes={[]} 
-            onChange={mockOnChange} 
-          />
+          <ContentTypeSelector selectedContentTypes={[]} onChange={mockOnChange} />
         </MockAllProviders>
       );
 
@@ -195,10 +176,7 @@ describe('ContentTypeSelector', () => {
     it('should show edit and delete buttons for all content types', () => {
       render(
         <MockAllProviders>
-          <ContentTypeSelector 
-            selectedContentTypes={[]} 
-            onChange={mockOnChange} 
-          />
+          <ContentTypeSelector selectedContentTypes={[]} onChange={mockOnChange} />
         </MockAllProviders>
       );
 
@@ -211,10 +189,7 @@ describe('ContentTypeSelector', () => {
     it('should open create modal when create button is clicked', async () => {
       render(
         <MockAllProviders>
-          <ContentTypeSelector 
-            selectedContentTypes={[]} 
-            onChange={mockOnChange} 
-          />
+          <ContentTypeSelector selectedContentTypes={[]} onChange={mockOnChange} />
         </MockAllProviders>
       );
 
@@ -230,10 +205,7 @@ describe('ContentTypeSelector', () => {
     it('should apply custom colors to content type pills', () => {
       render(
         <MockAllProviders>
-          <ContentTypeSelector 
-            selectedContentTypes={[2]} 
-            onChange={mockOnChange} 
-          />
+          <ContentTypeSelector selectedContentTypes={[2]} onChange={mockOnChange} />
         </MockAllProviders>
       );
 
@@ -246,10 +218,7 @@ describe('ContentTypeSelector', () => {
     it('should display content type pills with proper borders', () => {
       render(
         <MockAllProviders>
-          <ContentTypeSelector 
-            selectedContentTypes={[1]} 
-            onChange={mockOnChange} 
-          />
+          <ContentTypeSelector selectedContentTypes={[1]} onChange={mockOnChange} />
         </MockAllProviders>
       );
 
@@ -262,7 +231,9 @@ describe('ContentTypeSelector', () => {
   describe('Error Handling', () => {
     it('should handle empty content types list gracefully', () => {
       // Mock empty data
-      vi.mocked(require('../../../../packages/hooks/useContentTypeManagement').useContentTypeManagement).mockReturnValue({
+      vi.mocked(
+        require('../../../../packages/hooks/useContentTypeManagement').useContentTypeManagement
+      ).mockReturnValue({
         data: [],
         isLoading: false,
         error: null,
@@ -270,10 +241,7 @@ describe('ContentTypeSelector', () => {
 
       render(
         <MockAllProviders>
-          <ContentTypeSelector 
-            selectedContentTypes={[]} 
-            onChange={mockOnChange} 
-          />
+          <ContentTypeSelector selectedContentTypes={[]} onChange={mockOnChange} />
         </MockAllProviders>
       );
 
@@ -282,7 +250,9 @@ describe('ContentTypeSelector', () => {
     });
 
     it('should handle loading state appropriately', () => {
-      vi.mocked(require('../../../../packages/hooks/useContentTypeManagement').useContentTypeManagement).mockReturnValue({
+      vi.mocked(
+        require('../../../../packages/hooks/useContentTypeManagement').useContentTypeManagement
+      ).mockReturnValue({
         data: [],
         isLoading: true,
         error: null,
@@ -290,10 +260,7 @@ describe('ContentTypeSelector', () => {
 
       render(
         <MockAllProviders>
-          <ContentTypeSelector 
-            selectedContentTypes={[]} 
-            onChange={mockOnChange} 
-          />
+          <ContentTypeSelector selectedContentTypes={[]} onChange={mockOnChange} />
         </MockAllProviders>
       );
 

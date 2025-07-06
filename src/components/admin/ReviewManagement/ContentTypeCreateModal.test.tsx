@@ -13,6 +13,11 @@ vi.mock('../../../../packages/hooks/useContentTypeManagement', () => ({
     mutateAsync: mockMutateAsync,
     isPending: false,
   }),
+  getDefaultContentTypeColors: vi.fn(() => ({
+    text_color: '#1e40af',
+    border_color: '#3b82f6',
+    background_color: '#dbeafe',
+  })),
 }));
 
 describe('ContentTypeCreateModal', () => {

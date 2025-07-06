@@ -14,12 +14,13 @@ export default defineConfig({
     testTimeout: 10000, // 10 second timeout per test (was 30s)
     hookTimeout: 5000, // 5 second timeout for hooks (was 10s)
     teardownTimeout: 3000, // 3 second teardown timeout (was 10s)
-    // WSL2 FIX: Use forks for better WSL2 compatibility
+    // WSL2 FIX: Use forks with single worker to prevent crashes
     pool: 'forks', // Better WSL2 compatibility than threads
     poolOptions: {
       forks: {
-        maxForks: 2, // Limit concurrent forks for WSL2
-        minForks: 1, // Minimum forks
+        maxForks: 1, // Single fork to prevent worker crashes
+        minForks: 1, // Single worker
+        isolate: true, // Isolate workers for stability
       },
     },
     // PERFORMANCE: Enable test categorization
