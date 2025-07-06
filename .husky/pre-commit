@@ -1,96 +1,92 @@
 #!/bin/sh
 
-# Pre-commit hook using Node.js to avoid WSL compatibility issues
+# Strategic Testing Pre-commit Hook - Fast and Reliable Quality Gates
 cd "$(dirname "$0")/.."
 
-node -e "
-const { spawn } = require('child_process');
+echo "🛡️  EVIDENS Strategic Testing - Quality Gates Active"
+echo "=================================================="
 
-console.log('🛡️ EVIDENS Pre-commit Protection Active');
-console.log('======================================');
+# Function to run commands with proper error handling
+run_check() {
+  local name="$1"
+  local command="$2"
+  
+  echo "🔄 Running $name..."
+  
+  if eval "$command"; then
+    echo "✅ $name passed"
+    return 0
+  else
+    echo "❌ $name failed"
+    return 1
+  fi
+}
 
-function runCommand(name, command, args = []) {
-  return new Promise((resolve, reject) => {
-    console.log(\`🔄 Running \${name}...\`);
+# Main validation sequence
+echo ""
+echo "🔍 Phase 1: Code Quality Checks"
+echo "--------------------------------"
+
+# Run lint-staged for file-specific checks
+if ! run_check "Staged File Linting" "npx lint-staged"; then
+  echo "🚫 COMMIT BLOCKED - Staged file linting failed"
+  exit 1
+fi
+
+# Run ESLint validation
+if ! run_check "ESLint Validation" "npm run lint"; then
+  echo "🚫 COMMIT BLOCKED - ESLint validation failed"
+  exit 1
+fi
+
+# Run TypeScript compilation check
+if ! run_check "TypeScript Check" "npx tsc --noEmit"; then
+  echo "🚫 COMMIT BLOCKED - TypeScript compilation failed"
+  exit 1
+fi
+
+echo ""
+echo "🧪 Phase 2: Strategic Test Execution"
+echo "------------------------------------"
+
+# Run our strategic tests with timeout
+echo "🔄 Running strategic tests..."
+echo "⚡ Testing critical security boundaries and business logic..."
+
+# Use timeout to prevent hanging (3 minute limit for strategic tests)
+if timeout 180s npm run test:critical > /tmp/test-output.log 2>&1; then
+  # Parse test results
+  if grep -q "✓" /tmp/test-output.log; then
+    echo "✅ Strategic tests passed"
     
-    const child = spawn(command, args, {
-      stdio: 'inherit',
-      shell: true
-    });
+    # Show test summary
+    echo ""
+    echo "📊 Test Summary:"
+    grep -E "(✓|Test Files|Tests)" /tmp/test-output.log | tail -3
+  else
+    echo "❌ Strategic tests failed - No passing tests detected"
+    echo ""
+    echo "📄 Test Output:"
+    cat /tmp/test-output.log
+    echo ""
+    echo "🚫 COMMIT BLOCKED - Fix failing tests before committing"
+    exit 1
+  fi
+else
+  echo "❌ Strategic tests failed or timed out"
+  echo ""
+  echo "📄 Test Output:"
+  cat /tmp/test-output.log
+  echo ""
+  echo "🚫 COMMIT BLOCKED - Tests failed or took too long (3min limit)"
+  echo "💡 Run 'npm run test:critical' manually to debug issues"
+  exit 1
+fi
 
-    child.on('close', (code) => {
-      if (code === 0) {
-        console.log(\`✅ \${name} completed successfully\`);
-        resolve();
-      } else {
-        console.log(\`❌ \${name} failed with code \${code}\`);
-        reject(new Error(\`\${name} failed\`));
-      }
-    });
+# Cleanup
+rm -f /tmp/test-output.log
 
-    child.on('error', (err) => {
-      console.log(\`❌ \${name} error:\`, err.message);
-      reject(err);
-    });
-  });
-}
-
-function runTests() {
-  return new Promise((resolve, reject) => {
-    console.log('🧪 Running optimized test suite...');
-    console.log('⚡ Running minimal test validation - allowing up to 90 seconds for completion...');
-    
-    const child = spawn('npm', ['run', 'test:commit'], {
-      stdio: 'inherit',
-      shell: true
-    });
-
-    const timeout = setTimeout(() => {
-      child.kill('SIGTERM');
-      console.log('');
-      console.log('⏰ ❌ TESTS TIMED OUT AFTER 90 SECONDS! ❌ ⏰');
-      console.log('💡 Pre-commit BLOCKED - Minimal test validation taking too long.');
-      console.log('🔧 Run \"npm run test:commit\" to test the simplified validation.');
-      console.log('🚫 COMMIT PREVENTED for your protection.');
-      reject(new Error('Tests timed out'));
-    }, 90000);
-
-    child.on('close', (code) => {
-      clearTimeout(timeout);
-      if (code === 0) {
-        console.log('');
-        console.log('✅ ✅ ✅ ALL CHECKS PASSED! ✅ ✅ ✅');
-        console.log('🛡️ Your commit is safe - all tests pass!');
-        console.log('🚀 Proceeding with commit...');
-        resolve();
-      } else {
-        console.log('');
-        console.log('❌ ❌ ❌ TESTS FAILED! ❌ ❌ ❌');
-        console.log('💡 Pre-commit BLOCKED - You are not allowed to commit with failing tests.');
-        console.log('🔧 Run \"npm test\" to see detailed test failures and fix them.');
-        console.log('🚫 COMMIT PREVENTED for your protection.');
-        reject(new Error('Tests failed'));
-      }
-    });
-
-    child.on('error', (err) => {
-      clearTimeout(timeout);
-      reject(err);
-    });
-  });
-}
-
-async function main() {
-  try {
-    await runCommand('lint-staged', 'npx', ['lint-staged']);
-    await runCommand('ESLint validation', 'npm', ['run', 'lint']);
-    await runCommand('TypeScript check', 'npx', ['tsc', '--noEmit']);
-    await runTests();
-  } catch (error) {
-    console.log('🚫 COMMIT BLOCKED - Fix the issues above before committing.');
-    process.exit(1);
-  }
-}
-
-main();
-"
+echo ""
+echo "✅ ✅ ✅ ALL QUALITY GATES PASSED! ✅ ✅ ✅"
+echo "🛡️  Your commit is safe - all checks passed!"
+echo "🚀 Proceeding with commit..."

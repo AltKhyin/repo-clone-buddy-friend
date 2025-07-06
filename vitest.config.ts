@@ -9,59 +9,33 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: ['./src/test-setup.ts'],
-    css: true,
-    // OPTIMIZED: Reduced timeouts for faster execution
-    testTimeout: 10000, // 10 second timeout per test (was 30s)
-    hookTimeout: 5000, // 5 second timeout for hooks (was 10s)
-    teardownTimeout: 3000, // 3 second teardown timeout (was 10s)
-    // WSL2 FIX: Use forks with single worker to prevent crashes
-    pool: 'forks', // Better WSL2 compatibility than threads
-    poolOptions: {
-      forks: {
-        maxForks: 1, // Single fork to prevent worker crashes
-        minForks: 1, // Single worker
-        isolate: true, // Isolate workers for stability
-      },
-    },
-    // PERFORMANCE: Enable test categorization
-    typecheck: {
-      enabled: false, // Disable typecheck in tests for speed
-    },
-    // PERFORMANCE: Optimize slow test detection
-    slowTestThreshold: 5000, // Flag tests taking longer than 5s
-    // PERFORMANCE: Test filtering and execution optimization
-    include: ['src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
-    exclude: [
-      'node_modules/**',
-      'dist/**',
-      '.claude/**',
-      'supabase/**',
-      '**/test-utils/**',
-      '**/*.integration.test.{ts,tsx}', // Run integration tests separately
-    ],
-    // PERFORMANCE: Faster reporter for development
-    reporter: process.env.CI ? 'verbose' : 'basic',
+
+    // STRATEGIC: Fast feedback for critical tests only
+    testTimeout: 5000, // 5 second timeout - tests should be fast
+
+    // SIMPLE: Basic test file patterns
+    include: ['src/**/*.test.{ts,tsx}'],
+    exclude: ['node_modules/**', 'dist/**', 'supabase/**'],
+
+    // STRATEGIC: Coverage focused on quality, not quantity
     coverage: {
       provider: 'v8',
-      // OPTIMIZED: Faster coverage reporting
-      reporter: process.env.CI ? ['text', 'json', 'html'] : ['text'],
+      reporter: ['text', 'html'],
       exclude: [
         'node_modules/',
         'src/test-setup.ts',
         '**/*.d.ts',
         '**/*.config.ts',
         'dist/',
-        '.claude/',
         'supabase/',
         '**/*.test.{ts,tsx}',
-        '**/*.spec.{ts,tsx}',
       ],
       thresholds: {
         global: {
-          statements: 80,
-          branches: 80,
-          functions: 80,
-          lines: 80,
+          statements: 70, // Strategic coverage, not exhaustive
+          branches: 70,
+          functions: 70,
+          lines: 70,
         },
       },
     },

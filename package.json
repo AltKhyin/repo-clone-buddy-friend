@@ -12,7 +12,10 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "test:commit": "node src/test-runner-node.cjs",
+    "test:critical": "vitest run src/components/auth src/lib",
+    "test:security": "vitest run src/components/auth",
+    "test:business": "vitest run src/lib",
+    "test:commit": "npm run test:critical",
     "validate:inspectors": "node scripts/validate-inspector-components.js",
     "prepare": "husky"
   },

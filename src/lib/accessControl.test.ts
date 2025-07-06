@@ -1,135 +1,157 @@
-// ABOUTME: Tests for access control utility functions ensuring proper 4-tier hierarchy validation
-
+// ABOUTME: Critical access control business logic tests - strategic testing for 4-tier security system
 import { describe, it, expect } from 'vitest';
 import {
-  ACCESS_LEVELS,
   hasAccessLevel,
   getUserAccessLevel,
   validateAccessLevel,
   getAccessLevelHierarchy,
+  ACCESS_LEVELS,
 } from './accessControl';
 
-describe('Access Control Utilities', () => {
-  describe('ACCESS_LEVELS constants', () => {
-    it('should define correct 4-tier hierarchy', () => {
-      expect(ACCESS_LEVELS.public).toBe(0);
-      expect(ACCESS_LEVELS.free).toBe(1);
-      expect(ACCESS_LEVELS.premium).toBe(2);
-      expect(ACCESS_LEVELS.editor_admin).toBe(3);
-    });
-
-    it('should have proper ordering', () => {
-      expect(ACCESS_LEVELS.public).toBeLessThan(ACCESS_LEVELS.free);
-      expect(ACCESS_LEVELS.free).toBeLessThan(ACCESS_LEVELS.premium);
-      expect(ACCESS_LEVELS.premium).toBeLessThan(ACCESS_LEVELS.editor_admin);
-    });
-  });
-
-  describe('hasAccessLevel', () => {
-    it('should allow access when user level equals required level', () => {
-      expect(hasAccessLevel('free', 'free')).toBe(true);
-      expect(hasAccessLevel('premium', 'premium')).toBe(true);
-    });
-
-    it('should allow access when user level exceeds required level', () => {
+describe('AccessControl - Critical Security Business Logic', () => {
+  describe('hasAccessLevel - Permission Checking', () => {
+    it('grants access when user level meets requirement', () => {
       expect(hasAccessLevel('premium', 'free')).toBe(true);
       expect(hasAccessLevel('editor_admin', 'premium')).toBe(true);
-      expect(hasAccessLevel('editor_admin', 'public')).toBe(true);
+      expect(hasAccessLevel('free', 'public')).toBe(true);
     });
 
-    it('should deny access when user level is below required level', () => {
-      expect(hasAccessLevel('public', 'free')).toBe(false);
-      expect(hasAccessLevel('free', 'premium')).toBe(false);
+    it('denies access when user level is insufficient', () => {
+      expect(hasAccessLevel('public', 'premium')).toBe(false);
+      expect(hasAccessLevel('free', 'editor_admin')).toBe(false);
       expect(hasAccessLevel('premium', 'editor_admin')).toBe(false);
     });
 
-    it('should handle invalid access levels gracefully', () => {
-      expect(hasAccessLevel('invalid', 'free')).toBe(false);
-      expect(hasAccessLevel('free', 'invalid')).toBe(false);
-      expect(hasAccessLevel('invalid', 'invalid')).toBe(false);
+    it('handles null and undefined values securely', () => {
+      expect(hasAccessLevel(null, 'premium')).toBe(false);
+      expect(hasAccessLevel('premium', null)).toBe(false);
+      expect(hasAccessLevel(undefined, 'free')).toBe(false);
+      expect(hasAccessLevel('free', undefined)).toBe(false);
     });
 
-    it('should handle null/undefined values', () => {
-      expect(hasAccessLevel(null as any, 'free')).toBe(false);
-      expect(hasAccessLevel('free', null as any)).toBe(false);
-      expect(hasAccessLevel(undefined as any, 'free')).toBe(false);
+    it('handles invalid access levels securely', () => {
+      expect(hasAccessLevel('invalid', 'premium')).toBe(false);
+      expect(hasAccessLevel('premium', 'invalid')).toBe(false);
+      expect(hasAccessLevel('', 'premium')).toBe(false);
+    });
+
+    it('allows same-level access', () => {
+      expect(hasAccessLevel('public', 'public')).toBe(true);
+      expect(hasAccessLevel('free', 'free')).toBe(true);
+      expect(hasAccessLevel('premium', 'premium')).toBe(true);
+      expect(hasAccessLevel('editor_admin', 'editor_admin')).toBe(true);
     });
   });
 
-  describe('getUserAccessLevel', () => {
-    const mockUser = {
-      app_metadata: { role: 'admin' },
-      subscription_tier: 'premium',
-    };
-
-    it('should return editor_admin for admin role', () => {
-      const user = { ...mockUser, app_metadata: { role: 'admin' } };
-      expect(getUserAccessLevel(user as any)).toBe('editor_admin');
+  describe('getUserAccessLevel - User Level Determination', () => {
+    it('returns editor_admin for admin users', () => {
+      const adminUser = { app_metadata: { role: 'admin' } };
+      expect(getUserAccessLevel(adminUser)).toBe('editor_admin');
     });
 
-    it('should return editor_admin for editor role', () => {
-      const user = { ...mockUser, app_metadata: { role: 'editor' } };
-      expect(getUserAccessLevel(user as any)).toBe('editor_admin');
+    it('returns editor_admin for editor users', () => {
+      const editorUser = { app_metadata: { role: 'editor' } };
+      expect(getUserAccessLevel(editorUser)).toBe('editor_admin');
     });
 
-    it('should return premium for premium subscription', () => {
-      const user = {
-        app_metadata: { role: 'practitioner' },
-        subscription_tier: 'premium',
-      };
-      expect(getUserAccessLevel(user as any)).toBe('premium');
+    it('returns premium for premium subscribers', () => {
+      const premiumUser = { subscription_tier: 'premium' };
+      expect(getUserAccessLevel(premiumUser)).toBe('premium');
     });
 
-    it('should return free for free subscription', () => {
-      const user = {
-        app_metadata: { role: 'practitioner' },
-        subscription_tier: 'free',
-      };
-      expect(getUserAccessLevel(user as any)).toBe('free');
+    it('returns free for free subscribers', () => {
+      const freeUser = { subscription_tier: 'free' };
+      expect(getUserAccessLevel(freeUser)).toBe('free');
     });
 
-    it('should return public for anonymous users', () => {
+    it('returns public for null/undefined users', () => {
       expect(getUserAccessLevel(null)).toBe('public');
       expect(getUserAccessLevel(undefined)).toBe('public');
     });
 
-    it('should default to public for users without metadata', () => {
-      expect(getUserAccessLevel({} as any)).toBe('public');
+    it('returns public for users without subscription info', () => {
+      const anonymousUser = {};
+      expect(getUserAccessLevel(anonymousUser)).toBe('public');
+    });
+
+    it('prioritizes admin/editor role over subscription tier', () => {
+      const adminWithPremium = {
+        app_metadata: { role: 'admin' },
+        subscription_tier: 'premium',
+      };
+      expect(getUserAccessLevel(adminWithPremium)).toBe('editor_admin');
+    });
+
+    it('handles alternative role property location', () => {
+      const userWithDirectRole = { role: 'editor' };
+      expect(getUserAccessLevel(userWithDirectRole)).toBe('editor_admin');
     });
   });
 
-  describe('validateAccessLevel', () => {
-    it('should return true for valid access levels', () => {
+  describe('validateAccessLevel - Level Validation', () => {
+    it('validates all 4 valid access levels', () => {
       expect(validateAccessLevel('public')).toBe(true);
       expect(validateAccessLevel('free')).toBe(true);
       expect(validateAccessLevel('premium')).toBe(true);
       expect(validateAccessLevel('editor_admin')).toBe(true);
     });
 
-    it('should return false for invalid access levels', () => {
-      expect(validateAccessLevel('admin')).toBe(false);
-      expect(validateAccessLevel('paying')).toBe(false);
+    it('rejects invalid access levels', () => {
       expect(validateAccessLevel('invalid')).toBe(false);
+      expect(validateAccessLevel('administrator')).toBe(false);
+      expect(validateAccessLevel('user')).toBe(false);
+    });
+
+    it('rejects null and undefined values', () => {
+      expect(validateAccessLevel(null)).toBe(false);
+      expect(validateAccessLevel(undefined)).toBe(false);
       expect(validateAccessLevel('')).toBe(false);
-      expect(validateAccessLevel(null as any)).toBe(false);
     });
   });
 
-  describe('getAccessLevelHierarchy', () => {
-    it('should return all levels user has access to', () => {
-      expect(getAccessLevelHierarchy('public')).toEqual(['public']);
-      expect(getAccessLevelHierarchy('free')).toEqual(['public', 'free']);
-      expect(getAccessLevelHierarchy('premium')).toEqual(['public', 'free', 'premium']);
-      expect(getAccessLevelHierarchy('editor_admin')).toEqual([
-        'public',
-        'free',
-        'premium',
-        'editor_admin',
-      ]);
+  describe('getAccessLevelHierarchy - Hierarchical Access', () => {
+    it('returns correct hierarchy for public level', () => {
+      const hierarchy = getAccessLevelHierarchy('public');
+      expect(hierarchy).toEqual(['public']);
     });
 
-    it('should return empty array for invalid levels', () => {
+    it('returns correct hierarchy for free level', () => {
+      const hierarchy = getAccessLevelHierarchy('free');
+      expect(hierarchy).toEqual(['public', 'free']);
+    });
+
+    it('returns correct hierarchy for premium level', () => {
+      const hierarchy = getAccessLevelHierarchy('premium');
+      expect(hierarchy).toEqual(['public', 'free', 'premium']);
+    });
+
+    it('returns correct hierarchy for editor_admin level', () => {
+      const hierarchy = getAccessLevelHierarchy('editor_admin');
+      expect(hierarchy).toEqual(['public', 'free', 'premium', 'editor_admin']);
+    });
+
+    it('returns empty array for invalid levels', () => {
       expect(getAccessLevelHierarchy('invalid')).toEqual([]);
+      expect(getAccessLevelHierarchy('')).toEqual([]);
+    });
+  });
+
+  describe('ACCESS_LEVELS - Security Constants', () => {
+    it('maintains correct hierarchical order', () => {
+      expect(ACCESS_LEVELS.public).toBe(0);
+      expect(ACCESS_LEVELS.free).toBe(1);
+      expect(ACCESS_LEVELS.premium).toBe(2);
+      expect(ACCESS_LEVELS.editor_admin).toBe(3);
+    });
+
+    it('has exactly 4 security levels', () => {
+      expect(Object.keys(ACCESS_LEVELS)).toHaveLength(4);
+    });
+
+    it('contains no duplicate values', () => {
+      const values = Object.values(ACCESS_LEVELS);
+      const uniqueValues = [...new Set(values)];
+      expect(values).toHaveLength(uniqueValues.length);
     });
   });
 });

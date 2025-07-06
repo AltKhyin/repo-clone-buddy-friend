@@ -1,8 +1,10 @@
-// ABOUTME: Centralized test utilities export for easy importing across test files
+// ABOUTME: Essential testing utilities for strategic testing approach - minimal, focused exports
+export { renderWithProviders, TestProviders } from './test-providers';
 
-export * from './render-helpers';
-export * from './query-client-wrapper';
-export * from './mock-providers';
-export * from './test-data-factories';
-export * from './custom-matchers';
-export * from './test-constants';
+// Re-export essential testing library functions
+export { screen, fireEvent, waitFor, act, renderHook } from '@testing-library/react';
+
+export { userEvent } from '@testing-library/user-event';
+
+// Re-export essential Vitest functions
+export { vi, expect, describe, it, beforeEach, afterEach, beforeAll, afterAll } from 'vitest';
