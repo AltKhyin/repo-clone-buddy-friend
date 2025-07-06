@@ -3,7 +3,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Save, Send, Loader2 } from 'lucide-react';
-import { useSaveContext } from './UnifiedSaveProvider';
+import { useSaveContext } from '@/hooks/useSaveContext';
 import { cn } from '@/lib/utils';
 
 interface SaveButtonProps {
@@ -56,14 +56,7 @@ export const SaveButton: React.FC<SaveButtonProps> = ({
         className
       )}
     >
-      {showIcon && (
-        <Icon
-          className={cn(
-            'h-4 w-4 mr-2',
-            isLoading && 'animate-spin'
-          )}
-        />
-      )}
+      {showIcon && <Icon className={cn('h-4 w-4 mr-2', isLoading && 'animate-spin')} />}
       {config.label}
     </Button>
   );

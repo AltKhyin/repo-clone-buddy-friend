@@ -1,4 +1,3 @@
-
 // ABOUTME: Network-aware fallback component with offline detection and cache-first strategies for community module.
 
 import React from 'react';
@@ -25,7 +24,7 @@ export const NetworkAwareFallback = ({
   onRetry,
   onRefresh,
   context = 'conteúdo',
-  showCachedBadge = true
+  showCachedBadge = true,
 }: NetworkAwareFallbackProps) => {
   const [isRetrying, setIsRetrying] = React.useState(false);
   const [networkStatus, setNetworkStatus] = React.useState(isOnline);
@@ -46,7 +45,7 @@ export const NetworkAwareFallback = ({
 
   const handleRetry = async () => {
     if (!onRetry) return;
-    
+
     setIsRetrying(true);
     try {
       await onRetry();
@@ -58,7 +57,7 @@ export const NetworkAwareFallback = ({
   const formatLastSync = (date: Date) => {
     const now = new Date();
     const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
-    
+
     if (diffInMinutes < 1) return 'agora mesmo';
     if (diffInMinutes < 60) return `${diffInMinutes} min atrás`;
     if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h atrás`;
@@ -80,16 +79,14 @@ export const NetworkAwareFallback = ({
               </Badge>
             </AlertTitle>
             <AlertDescription>
-              Você está vendo o {context} salvo no seu dispositivo. 
-              Conecte-se à internet para ver as atualizações mais recentes.
+              Você está vendo o {context} salvo no seu dispositivo. Conecte-se à internet para ver
+              as atualizações mais recentes.
             </AlertDescription>
           </Alert>
         )}
-        
+
         {/* Render cached content here - this would be passed as children or data */}
-        <div className="opacity-90">
-          {cachedData}
-        </div>
+        <div className="opacity-90">{cachedData}</div>
       </div>
     );
   }
@@ -108,9 +105,9 @@ export const NetworkAwareFallback = ({
           <p className="text-muted-foreground">
             Não foi possível carregar o {context}. Verifique sua conexão com a internet.
           </p>
-          
-          <Button 
-            variant="outline" 
+
+          <Button
+            variant="outline"
             onClick={handleRetry}
             disabled={isRetrying}
             className="flex items-center gap-2"
@@ -145,25 +142,14 @@ export const NetworkAwareFallback = ({
             <Clock className="h-4 w-4" />
             <AlertTitle>Dados Desatualizados</AlertTitle>
             <AlertDescription className="flex items-center justify-between">
-              <span>
-                Última atualização: {formatLastSync(lastSync)}
-              </span>
-              <Button 
-                size="sm" 
-                variant="outline"
-                onClick={onRefresh}
-                className="ml-2"
-              >
+              <span>Última atualização: {formatLastSync(lastSync)}</span>
+              <Button size="sm" variant="outline" onClick={onRefresh} className="ml-2">
                 Atualizar
               </Button>
             </AlertDescription>
           </Alert>
-          
-          {cachedData && (
-            <div className="opacity-95">
-              {cachedData}
-            </div>
-          )}
+
+          {cachedData && <div className="opacity-95">{cachedData}</div>}
         </div>
       );
     }
@@ -172,8 +158,5 @@ export const NetworkAwareFallback = ({
   // Default: render nothing if online and data is fresh
   return null;
 };
-
-// Import hook from separate file to avoid Fast Refresh warnings
-export { useNetworkStatus } from '@/hooks/useNetworkStatus';
 
 export default NetworkAwareFallback;

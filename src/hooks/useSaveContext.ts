@@ -1,7 +1,8 @@
 // ABOUTME: Save context hook separated to avoid Fast Refresh warnings
 
 import { useContext } from 'react';
-import { UnifiedSaveContext, UnifiedSaveContextValue } from '@/components/admin/common/UnifiedSaveProvider';
+import { UnifiedSaveContext } from '@/contexts/UnifiedSaveContext';
+import { UnifiedSaveContextValue } from '@/types/admin';
 
 export const useSaveContext = (): UnifiedSaveContextValue => {
   const context = useContext(UnifiedSaveContext);

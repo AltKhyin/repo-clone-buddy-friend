@@ -1,12 +1,11 @@
 // ABOUTME: Unified save state management provider for consistent admin form handling
 
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import React, { useState, useCallback, ReactNode } from 'react';
 import { SaveState, UnifiedSaveContextValue } from '@/types/admin';
+import { UnifiedSaveContext } from '@/contexts/UnifiedSaveContext';
 import { usePublicationActionMutation } from '../../../../packages/hooks/usePublicationActionMutation';
 import { useUpdateReviewMetadataMutation } from '../../../../packages/hooks/useUpdateReviewMetadataMutation';
 import { useToast } from '@/hooks/use-toast';
-
-export const UnifiedSaveContext = createContext<UnifiedSaveContextValue | null>(null);
 
 interface UnifiedSaveProviderProps {
   children: ReactNode;
@@ -83,7 +82,14 @@ export const UnifiedSaveProvider: React.FC<UnifiedSaveProviderProps> = ({
         variant: 'destructive',
       });
     }
-  }, [saveState.hasChanges, saveState.pendingChanges, reviewId, metadataMutation, toast, onSaveComplete]);
+  }, [
+    saveState.hasChanges,
+    saveState.pendingChanges,
+    reviewId,
+    metadataMutation,
+    toast,
+    onSaveComplete,
+  ]);
 
   const publish = useCallback(async () => {
     // First save any pending changes
@@ -156,12 +162,5 @@ export const UnifiedSaveProvider: React.FC<UnifiedSaveProviderProps> = ({
     clearErrors,
   };
 
-  return (
-    <UnifiedSaveContext.Provider value={contextValue}>
-      {children}
-    </UnifiedSaveContext.Provider>
-  );
+  return <UnifiedSaveContext.Provider value={contextValue}>{children}</UnifiedSaveContext.Provider>;
 };
-
-// Import hook from separate file to avoid Fast Refresh warnings
-export { useSaveContext } from '@/hooks/useSaveContext';

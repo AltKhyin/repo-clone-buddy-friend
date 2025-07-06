@@ -16,7 +16,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { useUpdateReviewMetadataMutation } from '../../../../packages/hooks/useUpdateReviewMetadataMutation';
 import { ReviewManagementData } from '../../../../packages/hooks/useAdminReviewManagement';
-import { useSaveContext } from '../common/UnifiedSaveProvider';
+import { useSaveContext } from '@/hooks/useSaveContext';
 import { Save, Upload, X } from 'lucide-react';
 import { TagSelector } from './TagSelector';
 import { CoverImageUpload } from './CoverImageUpload';
@@ -88,7 +88,9 @@ export const ReviewMetadataPanel: React.FC<ReviewMetadataPanelProps> = ({ review
         <CardContent className="space-y-6">
           {/* Title */}
           <div className="space-y-3">
-            <Label htmlFor="title" className="text-sm font-medium text-foreground">Title</Label>
+            <Label htmlFor="title" className="text-sm font-medium text-foreground">
+              Title
+            </Label>
             <Input
               id="title"
               value={formData.title}
@@ -99,7 +101,9 @@ export const ReviewMetadataPanel: React.FC<ReviewMetadataPanelProps> = ({ review
 
           {/* Description */}
           <div className="space-y-3">
-            <Label htmlFor="description" className="text-sm font-medium text-foreground">Description</Label>
+            <Label htmlFor="description" className="text-sm font-medium text-foreground">
+              Description
+            </Label>
             <Textarea
               id="description"
               value={formData.description}
@@ -134,7 +138,9 @@ export const ReviewMetadataPanel: React.FC<ReviewMetadataPanelProps> = ({ review
 
           {/* New: Edição field */}
           <div className="space-y-3">
-            <Label htmlFor="edicao" className="text-sm font-medium text-foreground">Edição</Label>
+            <Label htmlFor="edicao" className="text-sm font-medium text-foreground">
+              Edição
+            </Label>
             <Input
               id="edicao"
               value={formData.edicao}

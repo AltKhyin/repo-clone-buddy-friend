@@ -39,33 +39,36 @@ export const CoverImageUpload: React.FC<CoverImageUploadProps> = ({
     return null;
   };
 
-  const uploadImage = async (file: File): Promise<string | null> => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) throw new Error('User not authenticated');
+  const uploadImage = useCallback(
+    async (file: File): Promise<string | null> => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
 
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${reviewId}/${Date.now()}.${fileExt}`;
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${reviewId}/${Date.now()}.${fileExt}`;
 
-    setUploadProgress(25);
+      setUploadProgress(25);
 
-    const { data, error } = await supabase.storage.from('review-images').upload(fileName, file, {
-      cacheControl: '3600',
-      upsert: true,
-    });
+      const { data, error } = await supabase.storage.from('review-images').upload(fileName, file, {
+        cacheControl: '3600',
+        upsert: true,
+      });
 
-    if (error) throw error;
+      if (error) throw error;
 
-    setUploadProgress(75);
+      setUploadProgress(75);
 
-    const {
-      data: { publicUrl },
-    } = supabase.storage.from('review-images').getPublicUrl(data.path);
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from('review-images').getPublicUrl(data.path);
 
-    setUploadProgress(100);
-    return publicUrl;
-  };
+      setUploadProgress(100);
+      return publicUrl;
+    },
+    [reviewId]
+  );
 
   const handleFileUpload = useCallback(
     async (files: File[]) => {
@@ -103,7 +106,7 @@ export const CoverImageUpload: React.FC<CoverImageUploadProps> = ({
         setUploadProgress(0);
       }
     },
-[onImageChange, toast, uploadImage]
+    [onImageChange, toast, uploadImage]
   );
 
   const handleRemoveImage = async () => {

@@ -1,26 +1,9 @@
-
 // ABOUTME: PWA provider for managing installation state and lifecycle - simplified without header button.
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
+import { PWAContext, PWAContextType } from '@/contexts/PWAContext';
 import { usePWA } from '@/hooks/usePWA';
 import PWAInstallPrompt from './PWAInstallPrompt';
-
-interface PWAContextType {
-  showInstallPrompt: boolean;
-  setShowInstallPrompt: (show: boolean) => void;
-  isInstalled: boolean;
-  isInstallable: boolean;
-}
-
-const PWAContext = createContext<PWAContextType | undefined>(undefined);
-
-export const usePWAContext = () => {
-  const context = useContext(PWAContext);
-  if (context === undefined) {
-    throw new Error('usePWAContext must be used within a PWAProvider');
-  }
-  return context;
-};
 
 interface PWAProviderProps {
   children: React.ReactNode;
@@ -34,11 +17,12 @@ const PWAProvider: React.FC<PWAProviderProps> = ({ children }) => {
     // Register service worker
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js')
-          .then((registration) => {
+        navigator.serviceWorker
+          .register('/sw.js')
+          .then(registration => {
             console.log('SW registered: ', registration);
           })
-          .catch((registrationError) => {
+          .catch(registrationError => {
             console.log('SW registration failed: ', registrationError);
           });
       });
@@ -64,11 +48,7 @@ const PWAProvider: React.FC<PWAProviderProps> = ({ children }) => {
   return (
     <PWAContext.Provider value={contextValue}>
       {children}
-      {showInstallPrompt && (
-        <PWAInstallPrompt 
-          onDismiss={() => setShowInstallPrompt(false)} 
-        />
-      )}
+      {showInstallPrompt && <PWAInstallPrompt onDismiss={() => setShowInstallPrompt(false)} />}
     </PWAContext.Provider>
   );
 };

@@ -170,6 +170,54 @@ vi.mock('@/hooks/use-mobile', () => ({
   useIsMobile: vi.fn(() => false),
 }));
 
+// Mock editor store with complete layout structure
+vi.mock('@/store/editorStore', () => ({
+  useEditorStore: vi.fn(() => ({
+    // Layout data with proper structure
+    layouts: {
+      desktop: {
+        isGenerated: true,
+        hasCustomizations: false,
+        nodes: [],
+      },
+      mobile: {
+        isGenerated: true,
+        hasCustomizations: false,
+        nodes: [],
+      },
+    },
+
+    // Editor state
+    currentViewport: 'desktop',
+    nodes: [],
+    selectedNodeId: null,
+    isDirty: false,
+    isPreviewMode: false,
+
+    // Editor actions
+    updateNode: vi.fn(),
+    addNode: vi.fn(),
+    removeNode: vi.fn(),
+    selectNode: vi.fn(),
+    switchViewport: vi.fn(),
+    generateMobileFromDesktop: vi.fn(),
+    setPreviewMode: vi.fn(),
+    clearGuidelines: vi.fn(),
+
+    // Layout utilities
+    ensureMasterDerivedLayouts: vi.fn(layouts => ({
+      desktop: layouts?.desktop || { isGenerated: true, hasCustomizations: false },
+      mobile: layouts?.mobile || { isGenerated: true, hasCustomizations: false },
+    })),
+
+    // Viewport functions
+    getViewport: vi.fn(() => ({ width: 1024, height: 768 })),
+  })),
+}));
+
+// Mock viewport context for editor components
+global.getViewport = vi.fn(() => ({ width: 1024, height: 768 }));
+
 // Mock toast notifications
 vi.mock('@/hooks/use-toast', () => ({
   useToast: vi.fn(() => ({
