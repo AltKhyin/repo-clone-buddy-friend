@@ -1,19 +1,22 @@
-
 // ABOUTME: Module component for displaying a horizontal carousel of review cards with mobile optimization.
 
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import ReviewCard, { Review } from './ReviewCard';
+import ReviewCard from './ReviewCard';
+import { HomepageReview } from '../../../packages/hooks/useHomepageFeedQuery';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 interface ReviewCarouselProps {
   title: string;
-  reviews: Review[];
+  reviews: HomepageReview[];
 }
 
 const ReviewCarousel: React.FC<ReviewCarouselProps> = ({ title, reviews }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
+
+  // State for mobile expansion - only one card can be expanded at a time
+  const [expandedCardId, setExpandedCardId] = useState<number | null>(null);
 
   const scrollLeft = () => {
     if (scrollRef.current) {
@@ -25,6 +28,11 @@ const ReviewCarousel: React.FC<ReviewCarouselProps> = ({ title, reviews }) => {
     if (scrollRef.current) {
       scrollRef.current.scrollBy({ left: 300, behavior: 'smooth' });
     }
+  };
+
+  // Handle mobile card expansion toggle
+  const handleToggleExpand = (reviewId: number) => {
+    setExpandedCardId(expandedCardId === reviewId ? null : reviewId);
   };
 
   if (!reviews || reviews.length === 0) {
@@ -43,7 +51,7 @@ const ReviewCarousel: React.FC<ReviewCarouselProps> = ({ title, reviews }) => {
       {/* Section Title */}
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-foreground text-2xl font-bold font-serif">{title}</h2>
-        
+
         {/* Desktop Navigation Arrows - Hidden on mobile per DOC_8 */}
         {!isMobile && (
           <div className="flex items-center gap-2">
@@ -64,22 +72,23 @@ const ReviewCarousel: React.FC<ReviewCarouselProps> = ({ title, reviews }) => {
           </div>
         )}
       </div>
-      
+
       {/* Scrollable Reviews Container - Reduced gaps by 50% for improved content density */}
-      <div 
+      <div
         ref={scrollRef}
         className={`flex overflow-x-auto scrollbar-hide pb-2 gap-1.5 md:gap-3 ${isMobile ? 'mobile-carousel-hint' : ''}`}
-        style={{ 
-          scrollbarWidth: 'none', 
-          msOverflowStyle: 'none'
+        style={{
+          scrollbarWidth: 'none',
+          msOverflowStyle: 'none',
         }}
       >
-        {reviews.map((review) => (
-          <div 
-            key={review.id} 
-            className={`flex-shrink-0 ${isMobile ? 'w-72' : 'w-72'}`}
-          >
-            <ReviewCard review={review} />
+        {reviews.map(review => (
+          <div key={review.id} className={`flex-shrink-0 ${isMobile ? 'w-72' : 'w-72'}`}>
+            <ReviewCard
+              review={review}
+              isExpanded={expandedCardId === review.id}
+              onToggleExpand={isMobile ? () => handleToggleExpand(review.id) : undefined}
+            />
           </div>
         ))}
       </div>

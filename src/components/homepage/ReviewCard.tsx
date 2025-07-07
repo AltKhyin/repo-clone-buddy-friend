@@ -5,14 +5,16 @@ import { Link } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Calendar, Eye, Clock } from 'lucide-react';
+import { Calendar, Eye, Clock, ChevronDown } from 'lucide-react';
 import { HomepageReview } from '../../../packages/hooks/useHomepageFeedQuery';
 
 interface ReviewCardProps {
   review: HomepageReview;
+  isExpanded?: boolean;
+  onToggleExpand?: () => void;
 }
 
-const ReviewCard: React.FC<ReviewCardProps> = ({ review }) => {
+const ReviewCard: React.FC<ReviewCardProps> = ({ review, isExpanded = false, onToggleExpand }) => {
   // Use review ID for reliable navigation
   const reviewId = review.id;
 
@@ -82,15 +84,47 @@ const ReviewCard: React.FC<ReviewCardProps> = ({ review }) => {
             )}
           </div>
 
-          {/* Information Overlay - Expands to cover whole image on hover */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent group-hover:from-black/90 group-hover:via-black/70 group-hover:to-black/30 transition-all duration-300" />
+          {/* Information Overlay - Expands to cover whole image on expansion or hover */}
+          <div
+            className={`absolute inset-0 bg-gradient-to-t transition-all duration-300
+                          ${
+                            isExpanded
+                              ? 'from-black/90 via-black/70 to-black/30'
+                              : 'from-black/80 via-black/20 to-transparent md:group-hover:from-black/90 md:group-hover:via-black/70 md:group-hover:to-black/30'
+                          }`}
+          />
 
-          {/* Content Container - Baseline: bottom-aligned header only, Hover: full center layout */}
-          <div className="absolute inset-x-0 bottom-0 p-4 group-hover:inset-0 group-hover:flex group-hover:flex-col group-hover:justify-center transition-all duration-300 z-10">
+          {/* Content Container - Baseline: bottom-aligned header only, Expanded: full center layout */}
+          <div
+            className={`absolute inset-x-0 bottom-0 p-4 transition-all duration-300 z-10
+                          ${isExpanded ? 'inset-0 flex flex-col justify-center' : 'md:group-hover:inset-0 md:group-hover:flex md:group-hover:flex-col md:group-hover:justify-center'}`}
+          >
             {/* Header: Always visible content (Title + Stats) */}
             <div className="space-y-3">
-              {/* Content Type Pills - Only visible on hover, above title */}
-              <div className="hidden group-hover:block">
+              {/* Mobile-only Expand Toggle - Positioned above everything, centered */}
+              {onToggleExpand && (
+                <div className="flex justify-center mb-3 md:hidden">
+                  <button
+                    onClick={e => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      onToggleExpand();
+                    }}
+                    className="bg-black/50 backdrop-blur-sm rounded-full p-2 
+                               hover:bg-black/70 transition-all duration-200
+                               focus:outline-none focus:ring-2 focus:ring-white/50"
+                    aria-label={isExpanded ? 'Collapse review details' : 'Expand review details'}
+                  >
+                    <ChevronDown
+                      className={`h-4 w-4 text-white transition-transform duration-200 
+                                 ${isExpanded ? 'rotate-0' : 'rotate-180'}`}
+                    />
+                  </button>
+                </div>
+              )}
+
+              {/* Content Type Pills - Visible on mobile expansion or desktop hover */}
+              <div className={`${isExpanded ? 'block' : 'hidden md:group-hover:block'}`}>
                 {review.content_types && review.content_types.length > 0 && (
                   <div className="flex gap-2 flex-wrap mb-2">
                     {review.content_types.slice(0, 2).map(contentType => (
@@ -137,8 +171,10 @@ const ReviewCard: React.FC<ReviewCardProps> = ({ review }) => {
               </div>
             </div>
 
-            {/* Hover-only Information - Hidden in baseline, visible on hover */}
-            <div className="hidden group-hover:block space-y-4 mt-4">
+            {/* Expanded Information - Visible on mobile expansion or desktop hover */}
+            <div
+              className={`space-y-4 mt-4 ${isExpanded ? 'block' : 'hidden md:group-hover:block'}`}
+            >
               {/* Description */}
               {review.description && (
                 <p className="text-white/90 text-sm leading-relaxed line-clamp-4">
