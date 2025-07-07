@@ -17,6 +17,10 @@ interface UpdateMetadataData {
     original_article_authors?: string | null;
     original_article_publication_date?: string | null;
     study_type?: string | null;
+    // Dynamic review card fields
+    reading_time_minutes?: number | null;
+    custom_author_name?: string | null;
+    custom_author_avatar_url?: string | null;
     content_types?: number[];
   };
 }
@@ -26,12 +30,12 @@ const updateReviewMetadata = async ({ reviewId, metadata }: UpdateMetadataData) 
 
   // Clean up data before sending to database
   const cleanedReviewData = { ...reviewData };
-  
+
   // Convert empty date strings to null for PostgreSQL
   if (cleanedReviewData.original_article_publication_date === '') {
     cleanedReviewData.original_article_publication_date = null;
   }
-  
+
   // Convert empty strings to null for other optional fields
   if (cleanedReviewData.edicao === '') {
     cleanedReviewData.edicao = null;
@@ -44,6 +48,12 @@ const updateReviewMetadata = async ({ reviewId, metadata }: UpdateMetadataData) 
   }
   if (cleanedReviewData.study_type === '') {
     cleanedReviewData.study_type = null;
+  }
+  if (cleanedReviewData.custom_author_name === '') {
+    cleanedReviewData.custom_author_name = null;
+  }
+  if (cleanedReviewData.custom_author_avatar_url === '') {
+    cleanedReviewData.custom_author_avatar_url = null;
   }
 
   // Update review metadata (including new fields)

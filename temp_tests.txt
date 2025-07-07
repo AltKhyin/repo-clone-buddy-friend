@@ -1,0 +1,33 @@
+  it('should show expanded information on hover', () => {
+    renderCard()
+    
+    // Check hover expansion elements exist in DOM
+    const expandedInfo = document.querySelector('.group-hover\\:opacity-100')
+    expect(expandedInfo).toBeInTheDocument()
+    
+    // Check description is in expanded section
+    const description = screen.getByText('Test description')
+    expect(description).toBeInTheDocument()
+  })
+
+  it('should have full cover image background with dark overlay', () => {
+    renderCard()
+    
+    // Check cover image is present
+    const coverImage = screen.getByAltText('Test Review Title')
+    expect(coverImage).toBeInTheDocument()
+    expect(coverImage).toHaveClass('object-cover')
+    
+    // Check for dark overlay gradient
+    const overlay = document.querySelector('.bg-gradient-to-t')
+    expect(overlay).toBeInTheDocument()
+  })
+
+  it('should be 10% shorter than current cards', () => {
+    renderCard()
+    
+    // Check height is 90% via inline style
+    const card = document.querySelector('.group')
+    expect(card).toHaveStyle('height: 90%')
+  })
+EOF < /dev/null

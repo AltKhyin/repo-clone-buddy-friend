@@ -40,6 +40,10 @@ export const ReviewMetadataPanel: React.FC<ReviewMetadataPanelProps> = ({ review
     original_article_authors: review.original_article_authors || '',
     original_article_publication_date: review.original_article_publication_date || '',
     study_type: review.study_type || '',
+    // Dynamic review card fields
+    reading_time_minutes: review.reading_time_minutes?.toString() || '',
+    custom_author_name: review.custom_author_name || '',
+    custom_author_avatar_url: review.custom_author_avatar_url || '',
   });
 
   const [selectedTagIds, setSelectedTagIds] = useState<number[]>(
@@ -156,6 +160,60 @@ export const ReviewMetadataPanel: React.FC<ReviewMetadataPanelProps> = ({ review
           />
 
           {/* Save functionality is now handled by the unified save buttons in the header */}
+        </CardContent>
+      </Card>
+
+      {/* Dynamic Review Card Fields Section */}
+      <Card className="bg-surface border-border shadow-sm">
+        <CardHeader className="pb-6">
+          <CardTitle className="text-xl font-semibold text-foreground">
+            Dynamic Card Display Settings
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Reading Time */}
+          <div className="space-y-3">
+            <Label htmlFor="reading_time_minutes" className="text-sm font-medium text-foreground">
+              Reading Time (minutes)
+            </Label>
+            <Input
+              id="reading_time_minutes"
+              type="number"
+              min="1"
+              value={formData.reading_time_minutes}
+              onChange={e => handleInputChange('reading_time_minutes', e.target.value)}
+              placeholder="Ex: 8"
+            />
+          </div>
+
+          {/* Custom Author Name */}
+          <div className="space-y-3">
+            <Label htmlFor="custom_author_name" className="text-sm font-medium text-foreground">
+              Custom Author Name
+            </Label>
+            <Input
+              id="custom_author_name"
+              value={formData.custom_author_name}
+              onChange={e => handleInputChange('custom_author_name', e.target.value)}
+              placeholder="Leave empty to use review creator"
+            />
+          </div>
+
+          {/* Custom Author Avatar URL */}
+          <div className="space-y-3">
+            <Label
+              htmlFor="custom_author_avatar_url"
+              className="text-sm font-medium text-foreground"
+            >
+              Custom Author Avatar URL
+            </Label>
+            <Input
+              id="custom_author_avatar_url"
+              value={formData.custom_author_avatar_url}
+              onChange={e => handleInputChange('custom_author_avatar_url', e.target.value)}
+              placeholder="Leave empty to use review creator avatar"
+            />
+          </div>
         </CardContent>
       </Card>
 

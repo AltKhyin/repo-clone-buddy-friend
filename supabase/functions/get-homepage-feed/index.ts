@@ -2,9 +2,13 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.50.0';
-import { corsHeaders, handleCorsPreflightRequest } from '../_shared/cors.ts';
-import { createSuccessResponse, createErrorResponse, authenticateUser } from '../_shared/api-helpers.ts';
-import { checkRateLimit, rateLimitHeaders, RateLimitError } from '../_shared/rate-limit.ts';
+
+// Inline CORS headers (replacing problematic shared import)
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+};
 
 // --- Define TypeScript interfaces for our data shapes for type safety ---
 interface Review {
@@ -14,6 +18,24 @@ interface Review {
   cover_image_url: string;
   published_at: string;
   view_count: number;
+  // Dynamic review card fields
+  reading_time_minutes?: number | null;
+  custom_author_name?: string | null;
+  custom_author_avatar_url?: string | null;
+  edicao?: string | null;
+  // Author and content type data
+  author?: {
+    id: string;
+    full_name: string;
+    avatar_url?: string | null;
+  } | null;
+  content_types?: {
+    id: number;
+    label: string;
+    text_color: string;
+    border_color: string;
+    background_color: string;
+  }[];
 }
 interface Suggestion {
   id: number;
@@ -48,15 +70,35 @@ const getResultData = (result: PromiseSettledResult<any>, fallback: any = null) 
     return result.value.data;
   }
   if (result.status === 'rejected') {
-    console.error("A promise failed:", result.reason);
+    console.error('A promise failed:', result.reason);
   }
   return fallback;
+};
+
+// Helper to transform review data with proper content_types structure
+const transformReviewData = (reviews: any[]): Review[] => {
+  if (!Array.isArray(reviews)) return [];
+
+  return reviews.map(review => ({
+    ...review,
+    content_types: review.content_types?.map((ctRel: any) => ctRel.content_type) || [],
+  }));
+};
+
+// Helper to transform single review data
+const transformSingleReview = (review: any): Review | null => {
+  if (!review) return null;
+
+  return {
+    ...review,
+    content_types: review.content_types?.map((ctRel: any) => ctRel.content_type) || [],
+  };
 };
 
 // --- Main server logic ---
 serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
-    return handleCorsPreflightRequest();
+    return new Response(null, { status: 200, headers: corsHeaders });
   }
 
   try {
@@ -78,14 +120,69 @@ serve(async (req: Request) => {
     // --- Define all data queries ---
     const promises = [
       supabase.from('SiteSettings').select('value').eq('key', 'homepage_layout').single(),
-      supabase.from('Reviews').select('id, title, description, cover_image_url, published_at, view_count').eq('status', 'published').order('published_at', { ascending: false }).limit(1).maybeSingle(),
-      supabase.from('Reviews').select('id, title, description, cover_image_url, published_at, view_count').eq('status', 'published').order('published_at', { ascending: false }).limit(10),
+      supabase
+        .from('Reviews')
+        .select(
+          `
+        id, title, description, cover_image_url, published_at, view_count,
+        reading_time_minutes, custom_author_name, custom_author_avatar_url, edicao,
+        author:Practitioners!Reviews_author_id_fkey(id, full_name, avatar_url),
+        content_types:ReviewContentTypes(
+          content_type:ContentTypes(id, label, text_color, border_color, background_color)
+        )
+      `
+        )
+        .eq('status', 'published')
+        .order('published_at', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      supabase
+        .from('Reviews')
+        .select(
+          `
+        id, title, description, cover_image_url, published_at, view_count,
+        reading_time_minutes, custom_author_name, custom_author_avatar_url, edicao,
+        author:Practitioners!Reviews_author_id_fkey(id, full_name, avatar_url),
+        content_types:ReviewContentTypes(
+          content_type:ContentTypes(id, label, text_color, border_color, background_color)
+        )
+      `
+        )
+        .eq('status', 'published')
+        .order('published_at', { ascending: false })
+        .limit(10),
       // Use the robust RPC function to get suggestions with user vote status and recency boost
       supabase.rpc('get_homepage_suggestions', { p_user_id: practitionerId }),
-      supabase.from('Reviews').select('id, title, description, cover_image_url, published_at, view_count').eq('status', 'published').order('view_count', { ascending: false }).limit(10),
-      practitionerId ? supabase.functions.invoke('get-personalized-recommendations', { body: { practitionerId } }) : Promise.resolve({ data: [] }),
-      practitionerId ? supabase.from('Practitioners').select('*').eq('id', practitionerId).single() : Promise.resolve({ data: null }),
-      practitionerId ? supabase.from('Notifications').select('*', { count: 'exact', head: true }).eq('practitioner_id', practitionerId).eq('is_read', false) : Promise.resolve({ data: null, count: 0 })
+      supabase
+        .from('Reviews')
+        .select(
+          `
+        id, title, description, cover_image_url, published_at, view_count,
+        reading_time_minutes, custom_author_name, custom_author_avatar_url, edicao,
+        author:Practitioners!Reviews_author_id_fkey(id, full_name, avatar_url),
+        content_types:ReviewContentTypes(
+          content_type:ContentTypes(id, label, text_color, border_color, background_color)
+        )
+      `
+        )
+        .eq('status', 'published')
+        .order('view_count', { ascending: false })
+        .limit(10),
+      practitionerId
+        ? supabase.functions.invoke('get-personalized-recommendations', {
+            body: { practitionerId },
+          })
+        : Promise.resolve({ data: [] }),
+      practitionerId
+        ? supabase.from('Practitioners').select('*').eq('id', practitionerId).single()
+        : Promise.resolve({ data: null }),
+      practitionerId
+        ? supabase
+            .from('Notifications')
+            .select('*', { count: 'exact', head: true })
+            .eq('practitioner_id', practitionerId)
+            .eq('is_read', false)
+        : Promise.resolve({ data: null, count: 0 }),
     ];
 
     const results = await Promise.allSettled(promises);
@@ -97,26 +194,56 @@ serve(async (req: Request) => {
       popularResult,
       recommendationsResult,
       userProfileResult,
-      notificationCountResult
+      notificationCountResult,
     ] = results;
 
     // --- CORRECTLY Assemble the final response object ---
     const responseData: ConsolidatedHomepageData = {
       // THE FIX: Directly access the 'value' property. It's already an array.
-      layout: getResultData(layoutResult)?.value || ["featured", "recent", "suggestions", "popular"],
-      featured: getResultData(featuredResult, null),
-      recent: getResultData(recentResult, []),
-      popular: getResultData(popularResult, []),
+      layout: getResultData(layoutResult)?.value || [
+        'featured',
+        'recent',
+        'suggestions',
+        'popular',
+      ],
+      featured: transformSingleReview(getResultData(featuredResult, null)),
+      recent: transformReviewData(getResultData(recentResult, [])),
+      popular: transformReviewData(getResultData(popularResult, [])),
       suggestions: getResultData(suggestionsResult, []),
-      recommendations: getResultData(recommendationsResult, []),
+      recommendations: transformReviewData(getResultData(recommendationsResult, [])),
       userProfile: getResultData(userProfileResult, null),
-      notificationCount: (notificationCountResult.status === 'fulfilled' && notificationCountResult.value.count) ? notificationCountResult.value.count : 0,
+      notificationCount:
+        notificationCountResult.status === 'fulfilled' && notificationCountResult.value.count
+          ? notificationCountResult.value.count
+          : 0,
     };
 
-    return createSuccessResponse(responseData);
-
+    return new Response(
+      JSON.stringify({
+        success: true,
+        data: responseData,
+      }),
+      {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json',
+          ...corsHeaders,
+        },
+      }
+    );
   } catch (error) {
     console.error('Critical error in get-homepage-feed:', error.message);
-    return createErrorResponse(error);
+    return new Response(
+      JSON.stringify({
+        error: { message: error.message, code: 'INTERNAL_ERROR' },
+      }),
+      {
+        status: 500,
+        headers: {
+          'Content-Type': 'application/json',
+          ...corsHeaders,
+        },
+      }
+    );
   }
 });

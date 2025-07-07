@@ -1,4 +1,3 @@
-
 // ABOUTME: TanStack Query hook for fetching consolidated homepage feed data.
 
 import { useQuery } from '@tanstack/react-query';
@@ -11,6 +10,24 @@ export interface HomepageReview {
   cover_image_url: string | null;
   published_at: string;
   view_count: number;
+  // Dynamic review card fields
+  reading_time_minutes?: number | null;
+  custom_author_name?: string | null;
+  custom_author_avatar_url?: string | null;
+  edicao?: string | null;
+  // Author and content type data
+  author?: {
+    id: string;
+    full_name: string;
+    avatar_url?: string | null;
+  } | null;
+  content_types?: {
+    id: number;
+    label: string;
+    text_color: string;
+    border_color: string;
+    background_color: string;
+  }[];
 }
 
 export interface HomepageSuggestion {
@@ -50,7 +67,7 @@ export const useConsolidatedHomepageFeedQuery = () => {
     queryKey: ['consolidated-homepage-feed'],
     queryFn: async () => {
       console.log('Fetching consolidated homepage data...');
-      
+
       try {
         const data = await invokeFunctionGet<ConsolidatedHomepageData>('get-homepage-feed');
         console.log('Homepage data fetched successfully:', data);

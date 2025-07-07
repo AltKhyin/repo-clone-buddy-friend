@@ -23,6 +23,6 @@ dist-ssr
 *.sln
 *.sw?
 
-# Claude Code development files
-.claude/
+# Claude Code development files - commit settings but not local overrides
+.claude/settings.local.json
 coverage/

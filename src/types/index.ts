@@ -1,8 +1,7 @@
-
 // ABOUTME: Central type exports for the EVIDENS application - fixed and consolidated
 
 // Re-export community types
-export type { 
+export type {
   CommunityPost,
   AuthorInfo,
   PostType,
@@ -20,19 +19,19 @@ export type {
   CreatePostPayload,
   ModerationAction,
   PostActionParams,
-  VotePayload
+  VotePayload,
 } from './community';
 
 // Re-export API types
-export type { 
-  ApiResponse, 
-  ApiError, 
-  FormFieldError, 
+export type {
+  ApiResponse,
+  ApiError,
+  FormFieldError,
   FormValidationResult,
   PaginationParams,
   PaginationResponse,
   HttpMethod,
-  QueryParams
+  QueryParams,
 } from './api';
 
 // Re-export admin types
@@ -47,7 +46,7 @@ export type {
   ContentQueueFilters,
   ContentQueueSummary,
   SaveState,
-  UnifiedSaveContextValue
+  UnifiedSaveContextValue,
 } from './admin';
 
 // Import and re-export UserProfile from Supabase types
@@ -179,6 +178,10 @@ export interface ReviewMetadataExtended {
   original_article_authors?: string | null;
   original_article_publication_date?: string | null;
   study_type?: string | null;
+  // Dynamic review card fields
+  reading_time_minutes?: number | null;
+  custom_author_name?: string | null;
+  custom_author_avatar_url?: string | null;
   // Related data
   author?: {
     id: string;
