@@ -1,4 +1,3 @@
-
 // ABOUTME: Desktop shell layout component with proper content constraints and overflow handling.
 
 import React, { useState } from 'react';
@@ -18,25 +17,18 @@ const DesktopShell = ({ children }: DesktopShellProps) => {
   };
 
   return (
-    <div className="min-h-screen w-full bg-background flex">
-      {/* Fixed sidebar - independent positioning */}
-      <CollapsibleSidebar
-        isCollapsed={isCollapsed}
-        onToggle={toggleSidebar}
-      />
+    <div className="min-h-screen w-full bg-background">
+      {/* Fixed sidebar with restored positioning */}
+      <CollapsibleSidebar isCollapsed={isCollapsed} onToggle={toggleSidebar} />
 
-      {/* Main content wrapper - positioned to avoid sidebar overlap with proper constraints */}
-      <div
-        className={cn(
-          'flex-1 transition-all duration-300 ease-in-out min-w-0', // FIXED: Added min-w-0 to prevent flex item overflow
-          isCollapsed ? 'ml-20' : 'ml-60' // Match sidebar widths exactly
-        )}
+      {/* Main content area with precise positioning and constrained scrolling */}
+      <main
+        className={`min-h-screen overflow-y-auto transition-all duration-300 ${
+          isCollapsed ? 'ml-20' : 'ml-60'
+        }`}
       >
-        {/* Content area - full space provision without content constraints */}
-        <main className="w-full h-full min-h-screen overflow-y-auto overflow-x-hidden">
-          {children}
-        </main>
-      </div>
+        <div className="w-full max-w-[1200px] mx-auto">{children}</div>
+      </main>
     </div>
   );
 };

@@ -1,8 +1,7 @@
-// ABOUTME: ContentGrid component implementing Reddit-inspired CSS Grid layout with proper centering and total content width allocation
+// ABOUTME: Simplified ContentGrid component following Gemini's architectural recommendations
 
 import React from 'react';
 import { type ContentGridProps } from '@/types/layout';
-import { layoutClasses, generateContentClasses, generateCenteringClasses, generateContentGrid } from '@/lib/layout-utils';
 import { cn } from '@/lib/utils';
 
 export const ContentGrid: React.FC<ContentGridProps> = ({
@@ -14,50 +13,29 @@ export const ContentGrid: React.FC<ContentGridProps> = ({
   className,
   children,
 }) => {
-  // Generate content area classes (enhanced for new layout approach)
-  const mainContentClasses = generateContentClasses('main', mainClassName);
-  const sidebarContentClasses = generateContentClasses('sidebar', sidebarClassName);
-
   // Determine if sidebar should be rendered
   const shouldShowSidebar = sidebarType !== 'none' && sidebarContent;
 
   return (
-    // NEW: Outer centering wrapper - centers content within available shell space
-    <div className={cn(
-      layoutClasses.container.responsive, // Responsive padding
-      generateCenteringClasses(), // Proper centering within available space
-      className
-    )}>
-      {/* NEW: Inner content grid with proper total width allocation */}
-      <div 
-        className={cn(
-          // Use new content grid generator for proper width allocation
-          generateContentGrid(
-            shouldShowSidebar 
-              ? (sidebarType === 'fixed' ? 'two-column-fixed' : 'two-column-flex')
-              : 'single'
-          ),
-          // Anti-compression utilities
-          layoutClasses.antiCompression.gridItem
-        )}
-      >
-        {/* Main content area */}
-        <main 
-          className={mainContentClasses}
-          role="main"
-        >
-          {mainContent}
-          {children}
-        </main>
-
-        {/* Sidebar content area (conditional) */}
-        {shouldShowSidebar && (
-          <aside 
-            className={sidebarContentClasses}
-            role="complementary"
-          >
-            {sidebarContent}
-          </aside>
+    <div className={cn('w-full min-h-screen bg-background', className)}>
+      <div className="w-full max-w-[1200px] mx-auto px-4 py-6 lg:px-8">
+        {shouldShowSidebar ? (
+          // Two-column layout with sidebar
+          <div className="grid grid-cols-1 lg:grid-cols-[756px_316px] gap-6 lg:gap-8">
+            <main className={cn('min-w-0', mainClassName)} role="main">
+              {mainContent}
+              {children}
+            </main>
+            <aside className={cn('w-full max-w-[316px]', sidebarClassName)} role="complementary">
+              {sidebarContent}
+            </aside>
+          </div>
+        ) : (
+          // Single-column layout
+          <main className={cn('w-full', mainClassName)} role="main">
+            {mainContent}
+            {children}
+          </main>
         )}
       </div>
     </div>

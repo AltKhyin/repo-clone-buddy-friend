@@ -52,25 +52,23 @@ const ReviewCarousel: React.FC<ReviewCarouselProps> = ({ title, reviews }) => {
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-foreground text-2xl font-bold font-serif">{title}</h2>
 
-        {/* Desktop Navigation Arrows - Hidden on mobile per DOC_8 */}
-        {!isMobile && (
-          <div className="flex items-center gap-2">
-            <button
-              onClick={scrollLeft}
-              className="p-2 bg-surface text-foreground rounded-md hover:bg-surface-muted transition-colors border border-border"
-              aria-label="Scroll left"
-            >
-              <ChevronLeft size={20} />
-            </button>
-            <button
-              onClick={scrollRight}
-              className="p-2 bg-surface text-foreground rounded-md hover:bg-surface-muted transition-colors border border-border"
-              aria-label="Scroll right"
-            >
-              <ChevronRight size={20} />
-            </button>
-          </div>
-        )}
+        {/* Navigation Arrows - Hidden only on phone-sized screens */}
+        <div className="hidden sm:flex items-center gap-2">
+          <button
+            onClick={scrollLeft}
+            className="p-2 bg-surface text-foreground rounded-md hover:bg-surface-muted transition-colors border border-border"
+            aria-label="Scroll left"
+          >
+            <ChevronLeft size={20} />
+          </button>
+          <button
+            onClick={scrollRight}
+            className="p-2 bg-surface text-foreground rounded-md hover:bg-surface-muted transition-colors border border-border"
+            aria-label="Scroll right"
+          >
+            <ChevronRight size={20} />
+          </button>
+        </div>
       </div>
 
       {/* Scrollable Reviews Container - Reduced gaps by 50% for improved content density */}
@@ -87,7 +85,7 @@ const ReviewCarousel: React.FC<ReviewCarouselProps> = ({ title, reviews }) => {
             <ReviewCard
               review={review}
               isExpanded={expandedCardId === review.id}
-              onToggleExpand={isMobile ? () => handleToggleExpand(review.id) : undefined}
+              onToggleExpand={() => handleToggleExpand(review.id)}
             />
           </div>
         ))}

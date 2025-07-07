@@ -90,20 +90,20 @@ const ReviewCard: React.FC<ReviewCardProps> = ({ review, isExpanded = false, onT
                           ${
                             isExpanded
                               ? 'from-black/90 via-black/70 to-black/30'
-                              : 'from-black/80 via-black/20 to-transparent md:group-hover:from-black/90 md:group-hover:via-black/70 md:group-hover:to-black/30'
+                              : 'from-black/80 via-black/20 to-transparent sm:group-hover:from-black/90 sm:group-hover:via-black/70 sm:group-hover:to-black/30'
                           }`}
           />
 
           {/* Content Container - Baseline: bottom-aligned header only, Expanded: full center layout */}
           <div
             className={`absolute inset-x-0 bottom-0 p-4 transition-all duration-300 z-10
-                          ${isExpanded ? 'inset-0 flex flex-col justify-center' : 'md:group-hover:inset-0 md:group-hover:flex md:group-hover:flex-col md:group-hover:justify-center'}`}
+                          ${isExpanded ? 'inset-0 flex flex-col justify-center' : 'sm:group-hover:inset-0 sm:group-hover:flex sm:group-hover:flex-col sm:group-hover:justify-center'}`}
           >
             {/* Header: Always visible content (Title + Stats) */}
             <div className="space-y-3">
-              {/* Mobile-only Expand Toggle - Positioned above everything, centered */}
+              {/* Phone-only Expand Toggle - Positioned above everything, centered */}
               {onToggleExpand && (
-                <div className="flex justify-center mb-3 md:hidden">
+                <div className="flex justify-center mb-3 sm:hidden">
                   <button
                     onClick={e => {
                       e.preventDefault();
@@ -123,8 +123,8 @@ const ReviewCard: React.FC<ReviewCardProps> = ({ review, isExpanded = false, onT
                 </div>
               )}
 
-              {/* Content Type Pills - Visible on mobile expansion or desktop hover */}
-              <div className={`${isExpanded ? 'block' : 'hidden md:group-hover:block'}`}>
+              {/* Content Type Pills - Visible on phone expansion or tablet/desktop hover */}
+              <div className={`${isExpanded ? 'block' : 'hidden sm:group-hover:block'}`}>
                 {review.content_types && review.content_types.length > 0 && (
                   <div className="flex gap-2 flex-wrap mb-2">
                     {review.content_types.slice(0, 2).map(contentType => (
@@ -171,9 +171,9 @@ const ReviewCard: React.FC<ReviewCardProps> = ({ review, isExpanded = false, onT
               </div>
             </div>
 
-            {/* Expanded Information - Visible on mobile expansion or desktop hover */}
+            {/* Expanded Information - Visible on phone expansion or tablet/desktop hover */}
             <div
-              className={`space-y-4 mt-4 ${isExpanded ? 'block' : 'hidden md:group-hover:block'}`}
+              className={`space-y-4 mt-4 ${isExpanded ? 'block' : 'hidden sm:group-hover:block'}`}
             >
               {/* Description */}
               {review.description && (

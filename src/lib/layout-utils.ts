@@ -1,4 +1,4 @@
-// ABOUTME: Reddit-inspired layout utility system with standardized content width constraints and responsive patterns
+// ABOUTME: Simplified layout utility system following Gemini's architectural recommendations - complex functions deprecated
 
 import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -7,81 +7,80 @@ import { twMerge } from 'tailwind-merge';
 export const LAYOUT_CONSTANTS = {
   // Content width constraints (based on Reddit's approach)
   MAIN_CONTENT_MAX_WIDTH: 756, // px - Main content area max width
-  SIDEBAR_MAX_WIDTH: 316,       // px - Sidebar max width  
-  SIDEBAR_MIN_WIDTH: 280,       // px - Sidebar min width
-  TOTAL_CONTENT_WIDTH: 1200,    // px - Total content width (756 + 316 + gaps)
-  
+  SIDEBAR_MAX_WIDTH: 316, // px - Sidebar max width
+  SIDEBAR_MIN_WIDTH: 280, // px - Sidebar min width
+  TOTAL_CONTENT_WIDTH: 1200, // px - Total content width (756 + 316 + gaps)
+
   // Responsive breakpoints (aligned with useIsMobile hook)
-  MOBILE_BREAKPOINT: 768,       // px - Mobile/desktop breakpoint
-  TABLET_BREAKPOINT: 1024,      // px - Tablet breakpoint
-  DESKTOP_BREAKPOINT: 1280,     // px - Desktop breakpoint
-  
+  MOBILE_BREAKPOINT: 768, // px - Mobile/desktop breakpoint
+  TABLET_BREAKPOINT: 1024, // px - Tablet breakpoint
+  DESKTOP_BREAKPOINT: 1280, // px - Desktop breakpoint
+
   // Spacing scale
   CONTENT_PADDING: {
-    mobile: 16,    // px - Mobile content padding
-    tablet: 24,    // px - Tablet content padding  
-    desktop: 32,   // px - Desktop content padding
+    mobile: 16, // px - Mobile content padding
+    tablet: 24, // px - Tablet content padding
+    desktop: 32, // px - Desktop content padding
   },
-  
+
   // Grid gaps
   GRID_GAP: {
-    small: 16,     // px - Small gap
-    medium: 24,    // px - Medium gap
-    large: 32,     // px - Large gap
-  }
+    small: 16, // px - Small gap
+    medium: 24, // px - Medium gap
+    large: 32, // px - Large gap
+  },
 } as const;
 
 // Layout type definitions
-export type LayoutType = 
-  | 'standard'        // Standard content + sidebar layout
-  | 'content-only'    // Content only, no sidebar
-  | 'centered'        // Centered content (articles, forms)
-  | 'wide'           // Wide content (dashboards, tables)
-  | 'full-width'     // Full width (editor, special pages)
-  | 'admin';         // Admin layout patterns
+export type LayoutType =
+  | 'standard' // Standard content + sidebar layout
+  | 'content-only' // Content only, no sidebar
+  | 'centered' // Centered content (articles, forms)
+  | 'wide' // Wide content (dashboards, tables)
+  | 'full-width' // Full width (editor, special pages)
+  | 'admin'; // Admin layout patterns
 
-export type SidebarType = 
-  | 'fixed'          // Fixed width sidebar (316px)
-  | 'flexible'       // Flexible width sidebar (auto)
-  | 'none';          // No sidebar
+export type SidebarType =
+  | 'fixed' // Fixed width sidebar (316px)
+  | 'flexible' // Flexible width sidebar (auto)
+  | 'none'; // No sidebar
 
 // Reddit-inspired layout class generators
 export const layoutClasses = {
   // Main container classes (CSS Grid based)
   container: {
-    base: "w-full min-h-screen bg-background",
-    grid: "grid gap-6 lg:gap-8",
-    responsive: "px-4 py-6 lg:px-8",
-    centering: "flex justify-center", // NEW: Centering container
+    base: 'w-full min-h-screen bg-background',
+    grid: 'grid gap-6 lg:gap-8',
+    responsive: 'px-4 py-6 lg:px-8',
   },
-  
+
   // Content grid patterns (Reddit-inspired)
   contentGrid: {
     // Single column (mobile-first)
-    singleColumn: "grid-cols-1",
-    
-    // Two column with fixed sidebar (Reddit pattern) - ENHANCED: Fixed dimensions
+    singleColumn: 'grid-cols-1',
+
+    // Two column with fixed sidebar (Reddit pattern)
     twoColumnFixed: `
       grid-cols-1 
       lg:grid-cols-[756px_316px]
     `,
-    
-    // Two column with flexible sidebar - ENHANCED: Fixed main, auto sidebar
+
+    // Two column with flexible sidebar
     twoColumnFlex: `
       grid-cols-1 
       lg:grid-cols-[756px_auto]
     `,
-    
-    // Centered content (articles, forms) - ENHANCED: With centering support
-    centered: "grid-cols-1 max-w-4xl mx-auto",
-    
-    // Wide content (dashboards) - ENHANCED: With centering support
-    wide: "grid-cols-1 max-w-6xl mx-auto",
-    
+
+    // Centered content (articles, forms)
+    centered: 'grid-cols-1 max-w-4xl mx-auto',
+
+    // Wide content (dashboards)
+    wide: 'grid-cols-1 max-w-6xl mx-auto',
+
     // Admin content
-    admin: "grid-cols-1 space-y-6",
+    admin: 'grid-cols-1 space-y-6',
   },
-  
+
   // Content area classes
   content: {
     // Main content area with proper constraints
@@ -91,7 +90,7 @@ export const layoutClasses = {
       w-full
       overflow-hidden
     `,
-    
+
     // Sidebar content area
     sidebar: `
       min-w-0 
@@ -99,70 +98,64 @@ export const layoutClasses = {
       w-full
       hidden lg:block
     `,
-    
+
     // Article content (centered, readable width)
-    article: "max-w-4xl mx-auto w-full prose prose-lg dark:prose-invert",
-    
-    // Wide content 
-    wide: "max-w-6xl mx-auto w-full",
-    
+    article: 'max-w-4xl mx-auto w-full prose prose-lg dark:prose-invert',
+
+    // Wide content
+    wide: 'max-w-6xl mx-auto w-full',
+
     // Full width content
-    fullWidth: "w-full",
+    fullWidth: 'w-full',
   },
-  
+
   // Responsive utilities
   responsive: {
     // Hide on mobile
-    desktopOnly: "hidden lg:block",
-    
-    // Show only on mobile  
-    mobileOnly: "block lg:hidden",
-    
+    desktopOnly: 'hidden lg:block',
+
+    // Show only on mobile
+    mobileOnly: 'block lg:hidden',
+
     // Responsive padding
-    padding: "px-4 py-6 lg:px-8 lg:py-8",
-    
+    padding: 'px-4 py-6 lg:px-8 lg:py-8',
+
     // Responsive gaps
-    gap: "gap-4 lg:gap-6 xl:gap-8",
+    gap: 'gap-4 lg:gap-6 xl:gap-8',
   },
-  
+
   // Anti-compression utilities (prevents layout breaking)
   antiCompression: {
     // Prevents horizontal overflow
-    preventOverflow: "overflow-hidden min-w-0",
-    
+    preventOverflow: 'overflow-hidden min-w-0',
+
     // Flexible content that can shrink
-    flexContent: "min-w-0 flex-1",
-    
+    flexContent: 'min-w-0 flex-1',
+
     // Fixed content that maintains size
-    fixedContent: "flex-shrink-0",
-    
+    fixedContent: 'flex-shrink-0',
+
     // Grid item that can shrink
-    gridItem: "min-w-0",
-  }
+    gridItem: 'min-w-0',
+  },
 };
 
-// ENHANCED: Centering class generator for shell content
+// @deprecated - Use simplified approach in StandardLayout/ContentGrid instead
+// DEPRECATED: Centering class generator - caused layout conflicts
 export const generateCenteringClasses = (
   maxWidth: number = LAYOUT_CONSTANTS.TOTAL_CONTENT_WIDTH,
   className?: string
 ): string => {
-  return twMerge(clsx(
-    'w-full',
-    'flex',
-    'justify-center',
-    `max-w-[${maxWidth}px]`,
-    'mx-auto',
-    className
-  ));
+  return twMerge(clsx('w-full', `max-w-[${maxWidth}px]`, 'mx-auto', className));
 };
 
-// ENHANCED: Content grid generator for two-column layouts
+// Content grid generator for two-column layouts
 export const generateContentGrid = (
   gridType: 'single' | 'two-column-fixed' | 'two-column-flex',
   className?: string
 ): string => {
   const baseClasses = ['w-full', 'grid'];
-  
+
   switch (gridType) {
     case 'single':
       baseClasses.push('grid-cols-1');
@@ -174,13 +167,14 @@ export const generateContentGrid = (
       baseClasses.push('grid-cols-1', 'lg:grid-cols-[756px_auto]', 'gap-6', 'lg:gap-8');
       break;
   }
-  
+
   return twMerge(clsx(baseClasses, className));
 };
 
-// Layout pattern generators - ENHANCED: With centering support
+// @deprecated - Use simplified approach in StandardLayout/ContentGrid instead
+// Layout pattern generators - DEPRECATED: Complex nested layout approach
 export const generateLayoutClasses = (
-  type: LayoutType, 
+  type: LayoutType,
   sidebarType: SidebarType = 'none',
   className?: string
 ): string => {
@@ -189,69 +183,52 @@ export const generateLayoutClasses = (
     layoutClasses.container.responsive,
     layoutClasses.antiCompression.preventOverflow,
   ];
-  
-  // Add grid classes based on layout type - ENHANCED: With centering
+
+  // Add grid classes based on layout type
   switch (type) {
     case 'standard':
       baseClasses.push(
         layoutClasses.container.grid,
-        'justify-center', // NEW: Centering support
-        `lg:max-w-[${LAYOUT_CONSTANTS.TOTAL_CONTENT_WIDTH}px]`, // NEW: Total width constraint
-        'mx-auto', // NEW: Center the constrained content
-        sidebarType === 'fixed' 
+        sidebarType === 'fixed'
           ? layoutClasses.contentGrid.twoColumnFixed
           : sidebarType === 'flexible'
-          ? layoutClasses.contentGrid.twoColumnFlex  
-          : layoutClasses.contentGrid.singleColumn
+            ? layoutClasses.contentGrid.twoColumnFlex
+            : layoutClasses.contentGrid.singleColumn
       );
       break;
-      
+
     case 'content-only':
-      baseClasses.push(
-        layoutClasses.container.grid,
-        'justify-center', // NEW: Centering support
-        layoutClasses.contentGrid.singleColumn
-      );
+      baseClasses.push(layoutClasses.container.grid, layoutClasses.contentGrid.singleColumn);
       break;
-      
+
     case 'centered':
-      baseClasses.push(
-        layoutClasses.container.grid,
-        'justify-center', // NEW: Centering support
-        layoutClasses.contentGrid.centered
-      );
+      baseClasses.push(layoutClasses.container.grid, layoutClasses.contentGrid.centered);
       break;
-      
+
     case 'wide':
-      baseClasses.push(
-        layoutClasses.container.grid,
-        'justify-center', // NEW: Centering support
-        layoutClasses.contentGrid.wide
-      );
+      baseClasses.push(layoutClasses.container.grid, layoutClasses.contentGrid.wide);
       break;
-      
+
     case 'admin':
-      baseClasses.push(
-        'justify-center', // NEW: Centering support
-        layoutClasses.contentGrid.admin
-      );
+      baseClasses.push(layoutClasses.contentGrid.admin);
       break;
-      
+
     case 'full-width':
       // Full width doesn't need additional grid classes
       break;
   }
-  
+
   return twMerge(clsx(baseClasses, className));
 };
 
-// Content area class generators
+// @deprecated - Use simplified approach in StandardLayout/ContentGrid instead
+// Content area class generators - DEPRECATED: Complex class generation
 export const generateContentClasses = (
   type: 'main' | 'sidebar' | 'article' | 'wide' | 'full-width',
   className?: string
 ): string => {
   const baseClasses = [layoutClasses.antiCompression.gridItem];
-  
+
   switch (type) {
     case 'main':
       baseClasses.push(layoutClasses.content.main);
@@ -269,7 +246,7 @@ export const generateContentClasses = (
       baseClasses.push(layoutClasses.content.fullWidth);
       break;
   }
-  
+
   return twMerge(clsx(baseClasses, className));
 };
 
@@ -279,7 +256,7 @@ export const generateResponsiveClasses = (
   className?: string
 ): string => {
   let baseClass: string;
-  
+
   switch (pattern) {
     case 'desktop-only':
       baseClass = layoutClasses.responsive.desktopOnly;
@@ -296,7 +273,7 @@ export const generateResponsiveClasses = (
     default:
       baseClass = '';
   }
-  
+
   return twMerge(clsx(baseClass, className));
 };
 
@@ -306,7 +283,7 @@ export const generateAntiCompressionClasses = (
   className?: string
 ): string => {
   let baseClass: string;
-  
+
   switch (pattern) {
     case 'prevent-overflow':
       baseClass = layoutClasses.antiCompression.preventOverflow;
@@ -323,7 +300,7 @@ export const generateAntiCompressionClasses = (
     default:
       baseClass = '';
   }
-  
+
   return twMerge(clsx(baseClass, className));
 };
 
@@ -341,15 +318,15 @@ export const breakpoints = {
   mobile: `(max-width: ${LAYOUT_CONSTANTS.MOBILE_BREAKPOINT - 1}px)`,
   tablet: `(min-width: ${LAYOUT_CONSTANTS.MOBILE_BREAKPOINT}px) and (max-width: ${LAYOUT_CONSTANTS.TABLET_BREAKPOINT - 1}px)`,
   desktop: `(min-width: ${LAYOUT_CONSTANTS.TABLET_BREAKPOINT}px)`,
-  
+
   // Utility to check if current viewport matches breakpoint
   matches: (breakpoint: keyof typeof breakpoints) => {
     if (typeof window === 'undefined') return false;
     return window.matchMedia(breakpoints[breakpoint]).matches;
-  }
+  },
 };
 
-// Export everything for easy consumption - ENHANCED: With new functions
+// Export everything for easy consumption
 export default {
   LAYOUT_CONSTANTS,
   layoutClasses,
@@ -358,7 +335,7 @@ export default {
   generateResponsiveClasses,
   generateAntiCompressionClasses,
   generateCenteringClasses, // NEW
-  generateContentGrid,      // NEW
+  generateContentGrid, // NEW
   calculateGridCols,
   breakpoints,
 };
