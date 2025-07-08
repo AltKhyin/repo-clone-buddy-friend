@@ -1,4 +1,3 @@
-
 // ABOUTME: Atomic component for displaying and voting on individual suggestions with optimistic updates.
 
 import React from 'react';
@@ -29,9 +28,9 @@ const SuggestionPollItem: React.FC<SuggestionPollItemProps> = ({ suggestion }) =
 
     // The mutation now handles optimistic updates automatically
     mutation.mutate({
-      entity_id: suggestion.id.toString(), 
-      vote_type, 
-      entity_type: 'suggestion' 
+      entity_id: suggestion.id.toString(),
+      vote_type,
+      entity_type: 'suggestion',
     });
   };
 
@@ -44,7 +43,7 @@ const SuggestionPollItem: React.FC<SuggestionPollItemProps> = ({ suggestion }) =
             {suggestion.Practitioners?.full_name?.charAt(0) || 'A'}
           </AvatarFallback>
         </Avatar>
-        
+
         <div className="flex-1 min-w-0">
           <h4 className="font-medium text-sm text-foreground line-clamp-3 leading-relaxed">
             {suggestion.title}
@@ -54,7 +53,7 @@ const SuggestionPollItem: React.FC<SuggestionPollItemProps> = ({ suggestion }) =
           </p>
         </div>
       </div>
-      
+
       <div className="flex items-center gap-2 ml-3 mt-0.5">
         <span className="text-sm font-medium text-foreground min-w-[2rem] text-right">
           {suggestion.upvotes}
@@ -65,13 +64,14 @@ const SuggestionPollItem: React.FC<SuggestionPollItemProps> = ({ suggestion }) =
           onClick={handleVote}
           disabled={mutation.isPending}
           className={cn(
-            "p-2 h-8 w-8",
-            suggestion.user_has_voted && "text-green-600 bg-green-50 dark:bg-green-950/20 hover:bg-green-100 dark:hover:bg-green-900/30"
+            'p-2 h-8 w-8',
+            suggestion.user_has_voted &&
+              'text-success bg-success-muted hover:bg-success-muted-hover'
           )}
         >
-          <ChevronUp 
-            size={14} 
-            className={suggestion.user_has_voted ? "text-current" : "text-muted-foreground"} 
+          <ChevronUp
+            size={14}
+            className={suggestion.user_has_voted ? 'text-current' : 'text-muted-foreground'}
           />
         </Button>
       </div>

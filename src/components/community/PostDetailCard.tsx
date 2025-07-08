@@ -1,4 +1,3 @@
-
 // ABOUTME: Reddit-style detailed post card with unified header structure and consistent styling.
 
 import React from 'react';
@@ -7,7 +6,15 @@ import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { formatDistanceToNow, isValid, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Pin, Lock, ChevronUp, ChevronDown, Bookmark, BookmarkCheck, MessageCircle } from 'lucide-react';
+import {
+  Pin,
+  Lock,
+  ChevronUp,
+  ChevronDown,
+  Bookmark,
+  BookmarkCheck,
+  MessageCircle,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '../../lib/utils';
 import type { CommunityPost } from '@/types';
@@ -35,7 +42,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   general: 'Discussão Geral',
   review_discussion: 'Review',
   question: 'Pergunta',
-  announcement: 'Anúncio'
+  announcement: 'Anúncio',
 };
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -51,7 +58,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   general: 'default',
   review_discussion: 'secondary',
   question: 'outline',
-  announcement: 'destructive'
+  announcement: 'destructive',
 };
 
 // Safe date formatting helper
@@ -64,21 +71,21 @@ const formatPostDate = (dateString: string | null | undefined): string => {
   try {
     // Try parsing as ISO string first
     let date = parseISO(dateString);
-    
+
     // If not valid, try as direct Date constructor
     if (!isValid(date)) {
       date = new Date(dateString);
     }
-    
+
     // Final validation
     if (!isValid(date)) {
       console.error('PostDetailCard: Invalid date after parsing:', dateString);
       return 'Data inválida';
     }
-    
+
     return formatDistanceToNow(date, {
       addSuffix: true,
-      locale: ptBR
+      locale: ptBR,
     });
   } catch (error) {
     console.error('PostDetailCard: Date formatting error:', error, 'for date:', dateString);
@@ -90,7 +97,7 @@ export const PostDetailCard = ({ post }: PostDetailCardProps) => {
   const { user } = useAuthStore();
   const castVoteMutation = useCastVoteMutation();
   const savePostMutation = useSavePostMutation();
-  
+
   const categoryLabel = CATEGORY_LABELS[post.category] || post.category;
   const categoryColor = CATEGORY_COLORS[post.category] || 'default';
 
@@ -106,7 +113,7 @@ export const PostDetailCard = ({ post }: PostDetailCardProps) => {
     castVoteMutation.mutate({
       entity_id: post.id.toString(),
       vote_type: newVoteType || 'none',
-      entity_type: 'community_post'
+      entity_type: 'community_post',
     });
   };
 
@@ -119,42 +126,39 @@ export const PostDetailCard = ({ post }: PostDetailCardProps) => {
     try {
       await savePostMutation.mutateAsync({
         post_id: post.id,
-        is_saved: !post.is_saved
+        is_saved: !post.is_saved,
       });
-      
-      toast.success(
-        post.is_saved ? 'Post removido dos salvos' : 'Post salvo com sucesso'
-      );
+
+      toast.success(post.is_saved ? 'Post removido dos salvos' : 'Post salvo com sucesso');
     } catch (error) {
       toast.error('Erro ao salvar post. Tente novamente.');
     }
   };
 
-
   return (
-    <div className={cn(
-      "reddit-post-item mb-4",
-      post.is_pinned && "ring-2 ring-primary/20 bg-primary/5"
-    )}>
+    <div
+      className={cn(
+        'reddit-post-item mb-4',
+        post.is_pinned && 'ring-2 ring-primary/20 bg-primary/5'
+      )}
+    >
       <div className="p-4">
         {/* UNIFIED HEADER: Avatar + Author + Time + Badges (matching PostCard) */}
         <div className="flex items-start justify-between gap-3 mb-3">
           <div className="flex items-center gap-3 min-w-0 flex-1">
             <Avatar className="w-10 h-10 flex-shrink-0">
               <AvatarImage src={post.author?.avatar_url || undefined} />
-              <AvatarFallback>
-                {post.author?.full_name?.charAt(0) || '?'}
-              </AvatarFallback>
+              <AvatarFallback>{post.author?.full_name?.charAt(0) || '?'}</AvatarFallback>
             </Avatar>
-            
+
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 flex-wrap mb-1">
                 <span className="reddit-post-author text-base font-semibold">
                   {post.author?.full_name || 'Usuário Anônimo'}
                 </span>
-                
+
                 <span className="text-muted-foreground text-sm">•</span>
-                
+
                 <span className="reddit-post-timestamp text-sm">
                   {formatPostDate(post.created_at)}
                 </span>
@@ -169,7 +173,7 @@ export const PostDetailCard = ({ post }: PostDetailCardProps) => {
                     </div>
                   </>
                 )}
-                
+
                 {post.is_locked && (
                   <>
                     <span className="text-muted-foreground text-sm">•</span>
@@ -186,21 +190,24 @@ export const PostDetailCard = ({ post }: PostDetailCardProps) => {
           <div className="flex items-center gap-2 flex-shrink-0">
             {/* Custom flair */}
             {post.flair_text && (
-              <Badge 
-                variant="secondary" 
+              <Badge
+                variant="secondary"
                 className="text-sm"
-                style={{ 
+                style={{
                   backgroundColor: post.flair_color ? `${post.flair_color}20` : undefined,
                   borderColor: post.flair_color || undefined,
-                  color: post.flair_color || undefined
+                  color: post.flair_color || undefined,
                 }}
               >
                 {post.flair_text}
               </Badge>
             )}
-            
+
             {/* Category badge */}
-            <Badge variant={categoryColor as "default" | "destructive" | "outline" | "secondary"} className="flex-shrink-0">
+            <Badge
+              variant={categoryColor as 'default' | 'destructive' | 'outline' | 'secondary'}
+              className="flex-shrink-0"
+            >
               {categoryLabel}
             </Badge>
 
@@ -210,25 +217,23 @@ export const PostDetailCard = ({ post }: PostDetailCardProps) => {
         </div>
 
         {/* Title - Always Present */}
-        <h1 className="reddit-post-title text-xl mb-3">
-          {post.title || 'Post sem título'}
-        </h1>
+        <h1 className="reddit-post-title text-xl mb-3">{post.title || 'Post sem título'}</h1>
 
         {/* Full content - Text first, then media */}
         {post.content && (
-          <div 
+          <div
             className="prose dark:prose-invert prose-sm max-w-none text-foreground mb-4"
             dangerouslySetInnerHTML={{ __html: post.content }}
           />
         )}
 
         {/* Media content - Displayed based on post_type */}
-        
+
         {post.post_type === 'image' && post.image_url && (
           <div className="mb-4">
-            <img 
-              src={post.image_url} 
-              alt="Post image" 
+            <img
+              src={post.image_url}
+              alt="Post image"
               className="w-full aspect-video object-cover rounded-lg border"
               loading="lazy"
             />
@@ -240,7 +245,7 @@ export const PostDetailCard = ({ post }: PostDetailCardProps) => {
             {(() => {
               const processedUrl = processVideoUrl(post.video_url);
               const videoType = getVideoType(processedUrl);
-              
+
               return videoType === 'youtube' || videoType === 'vimeo' ? (
                 <div className="relative">
                   <iframe
@@ -252,14 +257,15 @@ export const PostDetailCard = ({ post }: PostDetailCardProps) => {
                     title="Video content"
                     loading="lazy"
                     sandbox="allow-scripts allow-same-origin allow-presentation allow-forms"
-                    onError={(e) => {
+                    onError={e => {
                       console.error('Embed video load error:', e);
                       const iframe = e.target as HTMLIFrameElement;
                       const container = iframe.parentElement;
                       if (container) {
-                        const originalUrl = videoType === 'youtube' 
-                          ? processedUrl.replace('/embed/', '/watch?v=')
-                          : processedUrl.replace('player.vimeo.com/video/', 'vimeo.com/');
+                        const originalUrl =
+                          videoType === 'youtube'
+                            ? processedUrl.replace('/embed/', '/watch?v=')
+                            : processedUrl.replace('player.vimeo.com/video/', 'vimeo.com/');
                         container.innerHTML = `
                           <div class="flex items-center justify-center h-64 bg-muted rounded-lg border">
                             <div class="text-center text-muted-foreground">
@@ -277,13 +283,13 @@ export const PostDetailCard = ({ post }: PostDetailCardProps) => {
                   />
                 </div>
               ) : (
-                <video 
-                  src={processedUrl} 
-                  controls 
+                <video
+                  src={processedUrl}
+                  controls
                   className="w-full aspect-video object-cover rounded-lg border"
                   preload="metadata"
                   crossOrigin="anonymous"
-                  onError={(e) => {
+                  onError={e => {
                     console.error('Direct video load error:', e);
                     const video = e.target as HTMLVideoElement;
                     const container = video.parentElement;
@@ -310,7 +316,7 @@ export const PostDetailCard = ({ post }: PostDetailCardProps) => {
 
         {post.post_type === 'poll' && post.poll_data && (
           <div className="mb-4">
-            <PollDisplay 
+            <PollDisplay
               pollData={post.poll_data}
               isCompact={false}
               allowVoting={true}
@@ -329,8 +335,9 @@ export const PostDetailCard = ({ post }: PostDetailCardProps) => {
               variant="ghost"
               size="sm"
               className={cn(
-                "reddit-action-button",
-                post.user_vote === 'up' && "text-green-600 bg-green-50 dark:bg-green-950/20 hover:bg-green-100 dark:hover:bg-green-900/30"
+                'reddit-action-button',
+                post.user_vote === 'up' &&
+                  'text-success bg-success-muted hover:bg-success-muted-hover'
               )}
               onClick={() => handleVote('up')}
               disabled={castVoteMutation.isPending}
@@ -343,8 +350,8 @@ export const PostDetailCard = ({ post }: PostDetailCardProps) => {
               variant="ghost"
               size="sm"
               className={cn(
-                "reddit-action-button",
-                post.user_vote === 'down' && "text-red-600 bg-red-50 dark:bg-red-950/20 hover:bg-red-100 dark:hover:bg-red-900/30"
+                'reddit-action-button',
+                post.user_vote === 'down' && 'text-error bg-error-muted hover:bg-error-muted-hover'
               )}
               onClick={() => handleVote('down')}
               disabled={castVoteMutation.isPending}
@@ -355,11 +362,7 @@ export const PostDetailCard = ({ post }: PostDetailCardProps) => {
           </div>
 
           {/* Comments */}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="reddit-action-button"
-          >
+          <Button variant="ghost" size="sm" className="reddit-action-button">
             <MessageCircle className="w-4 h-4 mr-1" />
             {post.reply_count > 0 ? `${post.reply_count} respostas` : 'Nenhuma resposta'}
           </Button>

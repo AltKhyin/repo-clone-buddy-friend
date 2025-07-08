@@ -1,5 +1,4 @@
-
-// ABOUTME: Client-side sorting component for Acervo page with improved tag priority algorithm.
+// ABOUTME: Client-side sorting component for Acervo page with tag-based reordering (no filtering) and improved priority algorithm.
 
 import React, { useMemo } from 'react';
 import type { Tag } from '@/types';
@@ -11,10 +10,7 @@ interface ClientSideSorterProps {
   selectedTags: number[];
   searchQuery: string;
   sortBy: 'recent' | 'popular' | 'alphabetical';
-  children: (data: {
-    sortedReviews: AcervoReview[];
-    sortedTags: Tag[];
-  }) => React.ReactNode;
+  children: (data: { sortedReviews: AcervoReview[]; sortedTags: Tag[] }) => React.ReactNode;
 }
 
 export const ClientSideSorter = ({
@@ -23,7 +19,7 @@ export const ClientSideSorter = ({
   selectedTags,
   searchQuery,
   sortBy,
-  children
+  children,
 }: ClientSideSorterProps) => {
   const sortedData = useMemo(() => {
     // Defensive checks for tags and reviews
@@ -31,7 +27,7 @@ export const ClientSideSorter = ({
       console.warn('ClientSideSorter: tags is not a valid array:', tags);
       return {
         sortedReviews: Array.isArray(reviews) ? reviews : [],
-        sortedTags: []
+        sortedTags: [],
       };
     }
 
@@ -39,7 +35,7 @@ export const ClientSideSorter = ({
       console.warn('ClientSideSorter: reviews is not a valid array:', reviews);
       return {
         sortedReviews: [],
-        sortedTags: tags
+        sortedTags: tags,
       };
     }
 
@@ -56,44 +52,66 @@ export const ClientSideSorter = ({
       return priorityDiff !== 0 ? priorityDiff : a.tag_name.localeCompare(b.tag_name);
     });
 
-    // Filter reviews based on search query and selected tags
-    const filteredReviews = reviews.filter(review => {
-      // Search query filter
+    // TASK 2.2: Apply search query filter but NOT tag filtering (use reordering instead)
+    const searchFilteredReviews = reviews.filter(review => {
+      // Search query filter - still applies filtering
       if (searchQuery) {
         const searchLower = searchQuery.toLowerCase();
         const matchesTitle = review.title.toLowerCase().includes(searchLower);
         const matchesDescription = review.description?.toLowerCase().includes(searchLower);
-        if (!matchesTitle && !matchesDescription) return false;
+        return matchesTitle || matchesDescription;
       }
-
-      // Tag filter - check against tags_json structure
-      if (selectedTags.length > 0) {
-        const reviewTagNames = Object.entries(review.tags_json).flatMap(([categoria, subtags]) => {
-          const allTags = [categoria];
-          if (subtags && subtags.length > 0) {
-            allTags.push(...subtags);
-          }
-          return allTags;
-        });
-        
-        // Convert selected tag IDs to tag names for comparison
-        const selectedTagNames = selectedTags.map(tagId => {
-          const tag = tags.find(t => t.id === tagId);
-          return tag?.tag_name || '';
-        }).filter(Boolean);
-        
-        return selectedTagNames.some(tagName => reviewTagNames.includes(tagName));
-      }
-
       return true;
     });
 
-    // Sort reviews based on sortBy criteria
-    const sortedReviews = [...filteredReviews].sort((a, b) => {
+    // TASK 2.2: Tag matching logic for reordering (no filtering)
+    const getTagMatchPriority = (review: AcervoReview) => {
+      if (selectedTags.length === 0) return 1; // No tags selected, all reviews equal priority
+
+      const reviewTagNames = Object.entries(review.tags_json).flatMap(([categoria, subtags]) => {
+        const allTags = [categoria];
+        if (subtags && subtags.length > 0) {
+          allTags.push(...subtags);
+        }
+        return allTags;
+      });
+
+      // Convert selected tag IDs to tag names for comparison
+      const selectedTagNames = selectedTags
+        .map(tagId => {
+          const tag = tags.find(t => t.id === tagId);
+          return tag?.tag_name || '';
+        })
+        .filter(Boolean);
+
+      // Calculate match score - more matches = higher priority (lower number)
+      const matchCount = selectedTagNames.filter(tagName =>
+        reviewTagNames.includes(tagName)
+      ).length;
+
+      if (matchCount > 0) {
+        return 0; // Matching reviews get top priority
+      } else {
+        return 1; // Non-matching reviews get lower priority
+      }
+    };
+
+    // TASK 2.2: Sort reviews with tag priority first, then by sortBy criteria
+    const sortedReviews = [...searchFilteredReviews].sort((a, b) => {
+      // Primary sort: Tag match priority (matching reviews first)
+      const aPriority = getTagMatchPriority(a);
+      const bPriority = getTagMatchPriority(b);
+
+      if (aPriority !== bPriority) {
+        return aPriority - bPriority; // Lower priority number = higher importance
+      }
+
+      // Secondary sort: Within same priority group, apply sortBy criteria
       switch (sortBy) {
         case 'recent':
-          return new Date(b.published_at || '').getTime() - 
-                 new Date(a.published_at || '').getTime();
+          return (
+            new Date(b.published_at || '').getTime() - new Date(a.published_at || '').getTime()
+          );
         case 'popular':
           return (b.view_count || 0) - (a.view_count || 0);
         case 'alphabetical':
@@ -105,7 +123,7 @@ export const ClientSideSorter = ({
 
     return {
       sortedReviews,
-      sortedTags
+      sortedTags,
     };
   }, [reviews, tags, selectedTags, searchQuery, sortBy]);
 

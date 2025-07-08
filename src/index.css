@@ -41,6 +41,17 @@
     --accent-foreground: 220 5.9% 10%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
+
+    /* Vote colors for upvote/downvote functionality */
+    --success: 140 60% 40%; /* Green for upvotes */
+    --success-foreground: 0 0% 98%;
+    --success-muted: 140 60% 95%; /* Light green background */
+    --success-muted-hover: 140 60% 90%; /* Hover state */
+
+    --error: 0 84.2% 60.2%; /* Red for downvotes (matches destructive) */
+    --error-foreground: 0 0% 98%;
+    --error-muted: 0 84.2% 95%; /* Light red background */
+    --error-muted-hover: 0 84.2% 90%; /* Hover state */
     --input: 220 5.9% 90%;
     --ring: 240 10% 3.9%;
   }
@@ -83,6 +94,17 @@
     --accent-foreground: 210 40% 95%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
+
+    /* Vote colors for upvote/downvote functionality */
+    --success: 140 60% 45%; /* Green for upvotes */
+    --success-foreground: 0 0% 98%;
+    --success-muted: 140 40% 15%; /* Dark green background */
+    --success-muted-hover: 140 40% 18%; /* Hover state */
+
+    --error: 0 62.8% 50%; /* Red for downvotes */
+    --error-foreground: 0 0% 98%;
+    --error-muted: 0 40% 15%; /* Dark red background */
+    --error-muted-hover: 0 40% 18%; /* Hover state */
     --input: 0 0% 13%; /* #212121 */
     --ring: 240 4.9% 83.9%;
   }

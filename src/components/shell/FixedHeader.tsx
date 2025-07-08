@@ -2,6 +2,11 @@
 
 import React from 'react';
 import { cn } from '@/lib/utils';
+import { NotificationBell } from '@/components/header/NotificationBell';
+import { ThemeSelector } from '@/components/header/ThemeSelector';
+import { UserMenu } from '@/components/header/UserMenu';
+import { MobileUserMenu } from '@/components/header/MobileUserMenu';
+import { SearchBar } from '@/components/header/SearchBar';
 
 interface FixedHeaderProps {
   className?: string;
@@ -12,23 +17,23 @@ interface FixedHeaderProps {
 
 const FixedHeader = ({ className, children, isCollapsed, isMobile }: FixedHeaderProps) => {
   return (
-    <header 
+    <header
       className={cn(
         // Fixed positioning and dimensions - higher z-index for proper layering
-        "fixed top-0 left-0 right-0 z-[60] h-16",
-        
+        'fixed top-0 left-0 right-0 z-[60] h-16',
+
         // Glass effect with pure blur, no background opacity
-        "backdrop-blur-md",
-        
+        'backdrop-blur-md',
+
         // Smooth transitions for theme changes
-        "transition-all duration-200",
-        
+        'transition-all duration-200',
+
         // Ensure content is properly centered and padded
-        "flex items-center",
-        
+        'flex items-center',
+
         // Relative positioning for absolute logo placement
-        "relative",
-        
+        'relative',
+
         className
       )}
       style={{
@@ -38,26 +43,26 @@ const FixedHeader = ({ className, children, isCollapsed, isMobile }: FixedHeader
         left: 0,
         right: 0,
         zIndex: 60,
-        height: '4rem'
+        height: '4rem',
       }}
     >
       {/* Logo positioned to match sidebar location */}
       {!isMobile && (
-        <h1 
+        <h1
           className={cn(
             // Absolute positioning to match sidebar centering - CENTER the text around calculated points
-            "absolute top-1/2 transform -translate-x-1/2 -translate-y-1/2",
-            "font-serif font-medium tracking-tight text-3xl text-foreground",
-            "transition-all duration-300",
-            "z-10",
+            'absolute top-1/2 transform -translate-x-1/2 -translate-y-1/2',
+            'font-serif font-medium tracking-tight text-3xl text-foreground',
+            'transition-all duration-300',
+            'z-10',
             // Position calculations: center text around sidebar center points
-            isCollapsed ? "left-10" : "left-[120px]" // Center text at 40px and 120px respectively
+            isCollapsed ? 'left-10' : 'left-[120px]' // Center text at 40px and 120px respectively
           )}
         >
-          {isCollapsed ? "R." : "Reviews."}
+          {isCollapsed ? 'R.' : 'Reviews.'}
         </h1>
       )}
-      
+
       {/* Mobile logo - always show full logo, centered */}
       {isMobile && (
         <h1 className="absolute left-4 top-1/2 transform -translate-y-1/2 font-serif font-medium tracking-tight text-3xl text-foreground">
@@ -65,9 +70,40 @@ const FixedHeader = ({ className, children, isCollapsed, isMobile }: FixedHeader
         </h1>
       )}
 
-      {/* Content container with responsive padding */}
-      <div className="w-full max-w-[1200px] mx-auto px-4 lg:px-8">
-        {children}
+      {/* Header Content Container - Simple layout */}
+      <div className="h-full w-full">
+        {/* Desktop Header Layout */}
+        <div className="hidden md:flex h-full w-full relative">
+          {/* Search Bar - Positioned in main content area */}
+          <div
+            className="absolute top-1/2 transform -translate-y-1/2 transition-all duration-300 z-20"
+            style={{
+              left: `${isCollapsed ? 80 + 16 : 240 + 16}px`, // sidebar width + padding
+            }}
+          >
+            <SearchBar />
+          </div>
+
+          {/* Icons - All the way to right edge of screen */}
+          <div className="absolute top-1/2 right-4 transform -translate-y-1/2 z-20">
+            <div className="flex items-center space-x-4">
+              <NotificationBell />
+              <ThemeSelector />
+              <UserMenu />
+            </div>
+          </div>
+        </div>
+
+        {/* Mobile Header Layout - Icons right aligned */}
+        <div className="md:hidden h-full flex items-center justify-end px-4">
+          <div className="flex items-center space-x-3">
+            <NotificationBell />
+            <MobileUserMenu />
+          </div>
+        </div>
+
+        {/* Legacy children container for any future content */}
+        <div className="hidden">{children}</div>
       </div>
     </header>
   );

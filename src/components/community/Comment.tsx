@@ -1,4 +1,3 @@
-
 // ABOUTME: Core UI component for displaying a single comment with nesting support and reward badges.
 
 import React, { useState } from 'react';
@@ -33,21 +32,21 @@ const formatCommentDate = (dateString: string | null | undefined): string => {
   try {
     // Try parsing as ISO string first
     let date = parseISO(dateString);
-    
+
     // If not valid, try as direct Date constructor
     if (!isValid(date)) {
       date = new Date(dateString);
     }
-    
+
     // Final validation
     if (!isValid(date)) {
       console.error('Comment: Invalid date after parsing:', dateString);
       return 'Data inválida';
     }
-    
+
     return formatDistanceToNow(date, {
       addSuffix: true,
-      locale: ptBR
+      locale: ptBR,
     });
   } catch (error) {
     console.error('Comment: Date formatting error:', error, 'for date:', dateString);
@@ -55,7 +54,12 @@ const formatCommentDate = (dateString: string | null | undefined): string => {
   }
 };
 
-export const Comment = ({ comment, indentationLevel, rootPostId, onCommentPosted }: CommentProps) => {
+export const Comment = ({
+  comment,
+  indentationLevel,
+  rootPostId,
+  onCommentPosted,
+}: CommentProps) => {
   const [isReplying, setIsReplying] = useState(false);
   const { user } = useAuthStore();
   const castVoteMutation = useCastVoteMutation();
@@ -81,7 +85,7 @@ export const Comment = ({ comment, indentationLevel, rootPostId, onCommentPosted
     castVoteMutation.mutate({
       entity_id: comment.id.toString(),
       vote_type: newVoteType || 'none',
-      entity_type: 'community_post'
+      entity_type: 'community_post',
     });
   };
 
@@ -95,10 +99,13 @@ export const Comment = ({ comment, indentationLevel, rootPostId, onCommentPosted
       )}
 
       <div className="flex-1">
-        <div className={cn(
-          "p-2 transition-colors hover:bg-surface/20",
-          comment.is_rewarded && "border-l-2 border-yellow-500 bg-yellow-50/50 dark:bg-yellow-950/20"
-        )}>
+        <div
+          className={cn(
+            'p-2 transition-colors hover:bg-surface/20',
+            comment.is_rewarded &&
+              'border-l-2 border-yellow-500 bg-yellow-50/50 dark:bg-yellow-950/20'
+          )}
+        >
           {/* Comment Header */}
           <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
             <div className="flex items-center gap-2">
@@ -110,7 +117,10 @@ export const Comment = ({ comment, indentationLevel, rootPostId, onCommentPosted
               <span>•</span>
               <span>{formatCommentDate(comment.created_at)}</span>
               {comment.is_rewarded && (
-                <Badge variant="secondary" className="text-yellow-600 border-yellow-500/50 bg-yellow-100 dark:bg-yellow-900/30">
+                <Badge
+                  variant="secondary"
+                  className="text-yellow-600 border-yellow-500/50 bg-yellow-100 dark:bg-yellow-900/30"
+                >
                   <Award className="w-3 h-3 mr-1" />
                   Recompensa
                 </Badge>
@@ -133,8 +143,9 @@ export const Comment = ({ comment, indentationLevel, rootPostId, onCommentPosted
                 variant="ghost"
                 size="sm"
                 className={cn(
-                  "h-8 px-2 text-xs hover:bg-surface-muted/50",
-                  comment.user_vote === 'up' && "text-green-600 bg-green-50 dark:bg-green-950/20 hover:bg-green-100 dark:hover:bg-green-900/30"
+                  'h-8 px-2 text-xs hover:bg-surface-muted/50',
+                  comment.user_vote === 'up' &&
+                    'text-success bg-success-muted hover:bg-success-muted-hover'
                 )}
                 onClick={() => handleVote('up')}
                 disabled={castVoteMutation.isPending}
@@ -147,8 +158,9 @@ export const Comment = ({ comment, indentationLevel, rootPostId, onCommentPosted
                 variant="ghost"
                 size="sm"
                 className={cn(
-                  "h-8 px-2 text-xs hover:bg-surface-muted/50",
-                  comment.user_vote === 'down' && "text-red-600 bg-red-50 dark:bg-red-950/20 hover:bg-red-100 dark:hover:bg-red-900/30"
+                  'h-8 px-2 text-xs hover:bg-surface-muted/50',
+                  comment.user_vote === 'down' &&
+                    'text-error bg-error-muted hover:bg-error-muted-hover'
                 )}
                 onClick={() => handleVote('down')}
                 disabled={castVoteMutation.isPending}
@@ -159,9 +171,9 @@ export const Comment = ({ comment, indentationLevel, rootPostId, onCommentPosted
             </div>
 
             {/* Reply Button */}
-            <Button 
-              variant="ghost" 
-              size="sm" 
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => setIsReplying(!isReplying)}
               className="h-8 px-2 text-xs hover:bg-surface-muted/50"
             >
@@ -169,7 +181,7 @@ export const Comment = ({ comment, indentationLevel, rootPostId, onCommentPosted
             </Button>
           </div>
         </div>
-        
+
         {/* Reply Input */}
         {isReplying && (
           <div className="mt-2 ml-4">

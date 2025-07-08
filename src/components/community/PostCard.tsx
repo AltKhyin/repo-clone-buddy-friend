@@ -1,11 +1,18 @@
-
 // ABOUTME: Reddit-style flat post card with unified header structure and mobile-optimized touch targets.
 
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { formatDistanceToNow, isValid, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { MessageCircle, Pin, Lock, ChevronUp, ChevronDown, Bookmark, BookmarkCheck } from 'lucide-react';
+import {
+  MessageCircle,
+  Pin,
+  Lock,
+  ChevronUp,
+  ChevronDown,
+  Bookmark,
+  BookmarkCheck,
+} from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
@@ -36,7 +43,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   general: 'Geral',
   review_discussion: 'Review',
   question: 'Pergunta',
-  announcement: 'Anúncio'
+  announcement: 'Anúncio',
 };
 
 // Safe date formatting helper
@@ -49,21 +56,21 @@ const formatPostDate = (dateString: string | null | undefined): string => {
   try {
     // Try parsing as ISO string first
     let date = parseISO(dateString);
-    
+
     // If not valid, try as direct Date constructor
     if (!isValid(date)) {
       date = new Date(dateString);
     }
-    
+
     // Final validation
     if (!isValid(date)) {
       console.error('PostCard: Invalid date after parsing:', dateString);
       return 'Data inválida';
     }
-    
+
     return formatDistanceToNow(date, {
       addSuffix: true,
-      locale: ptBR
+      locale: ptBR,
     });
   } catch (error) {
     console.error('PostCard: Date formatting error:', error, 'for date:', dateString);
@@ -95,7 +102,7 @@ export const PostCard = ({ post }: PostCardProps) => {
     castVoteMutation.mutate({
       entity_id: post.id.toString(),
       vote_type: newVoteType || 'none',
-      entity_type: 'community_post'
+      entity_type: 'community_post',
     });
   };
 
@@ -108,17 +115,14 @@ export const PostCard = ({ post }: PostCardProps) => {
     try {
       await savePostMutation.mutateAsync({
         post_id: post.id,
-        is_saved: !post.is_saved
+        is_saved: !post.is_saved,
       });
-      
-      toast.success(
-        post.is_saved ? 'Post removido dos salvos' : 'Post salvo com sucesso'
-      );
+
+      toast.success(post.is_saved ? 'Post removido dos salvos' : 'Post salvo com sucesso');
     } catch (error) {
       toast.error('Erro ao salvar post. Tente novamente.');
     }
   };
-
 
   const getCategoryLabel = (category: string) => {
     return CATEGORY_LABELS[category] || category;
@@ -126,15 +130,15 @@ export const PostCard = ({ post }: PostCardProps) => {
 
   const getFlairColor = (color?: string) => {
     if (!color) return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200';
-    
+
     const colorMap: Record<string, string> = {
-      'blue': 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-      'green': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-      'red': 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
-      'yellow': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
-      'purple': 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
+      blue: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+      green: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+      red: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
+      yellow: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
+      purple: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
     };
-    
+
     return colorMap[color] || 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200';
   };
 
@@ -150,15 +154,15 @@ export const PostCard = ({ post }: PostCardProps) => {
                 {post.author?.full_name?.charAt(0) || '?'}
               </AvatarFallback>
             </Avatar>
-            
+
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="reddit-post-author text-sm font-medium">
                   {post.author?.full_name || 'Usuário Anônimo'}
                 </span>
-                
+
                 <span className="text-muted-foreground text-sm">•</span>
-                
+
                 <span className="reddit-post-timestamp text-sm">
                   {formatPostDate(post.created_at)}
                 </span>
@@ -173,7 +177,7 @@ export const PostCard = ({ post }: PostCardProps) => {
                     </div>
                   </>
                 )}
-                
+
                 {post.is_locked && (
                   <>
                     <span className="text-muted-foreground text-sm">•</span>
@@ -191,7 +195,7 @@ export const PostCard = ({ post }: PostCardProps) => {
             <Badge variant="outline" className="text-xs">
               {getCategoryLabel(post.category)}
             </Badge>
-            
+
             {post.flair_text && (
               <Badge className={`text-xs ${getFlairColor(post.flair_color)}`}>
                 {post.flair_text}
@@ -203,16 +207,14 @@ export const PostCard = ({ post }: PostCardProps) => {
         </div>
 
         {/* Title - Always Present */}
-        <h3 className="reddit-post-title mb-3 line-clamp-2">
-          {post.title || 'Post sem título'}
-        </h3>
+        <h3 className="reddit-post-title mb-3 line-clamp-2">{post.title || 'Post sem título'}</h3>
 
         {/* Content Preview or Multimedia */}
         {post.post_type === 'image' && post.image_url ? (
           <div className="mb-3">
-            <img 
-              src={post.image_url} 
-              alt="Post image" 
+            <img
+              src={post.image_url}
+              alt="Post image"
               className="w-full aspect-video object-cover rounded border"
               loading="lazy"
             />
@@ -222,7 +224,7 @@ export const PostCard = ({ post }: PostCardProps) => {
             {(() => {
               const processedUrl = processVideoUrl(post.video_url);
               const videoType = getVideoType(processedUrl);
-              
+
               return videoType === 'youtube' || videoType === 'vimeo' ? (
                 <div className="relative">
                   <iframe
@@ -234,14 +236,15 @@ export const PostCard = ({ post }: PostCardProps) => {
                     title="Video content"
                     loading="lazy"
                     sandbox="allow-scripts allow-same-origin allow-presentation allow-forms"
-                    onError={(e) => {
+                    onError={e => {
                       console.error('Embed video load error:', e);
                       const iframe = e.target as HTMLIFrameElement;
                       const container = iframe.parentElement;
                       if (container) {
-                        const originalUrl = videoType === 'youtube' 
-                          ? processedUrl.replace('/embed/', '/watch?v=')
-                          : processedUrl.replace('player.vimeo.com/video/', 'vimeo.com/');
+                        const originalUrl =
+                          videoType === 'youtube'
+                            ? processedUrl.replace('/embed/', '/watch?v=')
+                            : processedUrl.replace('player.vimeo.com/video/', 'vimeo.com/');
                         container.innerHTML = `
                           <div class="flex items-center justify-center h-48 bg-muted rounded border">
                             <div class="text-center text-muted-foreground">
@@ -256,13 +259,13 @@ export const PostCard = ({ post }: PostCardProps) => {
                   />
                 </div>
               ) : (
-                <video 
-                  src={processedUrl} 
-                  controls 
+                <video
+                  src={processedUrl}
+                  controls
                   className="w-full aspect-video object-cover rounded border"
                   preload="metadata"
                   crossOrigin="anonymous"
-                  onError={(e) => {
+                  onError={e => {
                     console.error('Direct video load error:', e);
                     const video = e.target as HTMLVideoElement;
                     const container = video.parentElement;
@@ -284,7 +287,7 @@ export const PostCard = ({ post }: PostCardProps) => {
           </div>
         ) : post.post_type === 'poll' && post.poll_data ? (
           <div className="mb-3">
-            <PollDisplay 
+            <PollDisplay
               pollData={post.poll_data}
               isCompact={true}
               allowVoting={true}
@@ -292,12 +295,11 @@ export const PostCard = ({ post }: PostCardProps) => {
             />
           </div>
         ) : post.content ? (
-          <div 
+          <div
             className="reddit-post-body mb-3 line-clamp-3"
-            dangerouslySetInnerHTML={{ 
-              __html: post.content.length > 300 
-                ? `${post.content.substring(0, 300)}...` 
-                : post.content 
+            dangerouslySetInnerHTML={{
+              __html:
+                post.content.length > 300 ? `${post.content.substring(0, 300)}...` : post.content,
             }}
           />
         ) : null}
@@ -312,10 +314,11 @@ export const PostCard = ({ post }: PostCardProps) => {
               variant="ghost"
               size="sm"
               className={cn(
-                "reddit-action-button",
-                post.user_vote === 'up' && "text-green-600 bg-green-50 dark:bg-green-950/20 hover:bg-green-100 dark:hover:bg-green-900/30"
+                'reddit-action-button',
+                post.user_vote === 'up' &&
+                  'text-success bg-success-muted hover:bg-success-muted-hover'
               )}
-              onClick={(e) => {
+              onClick={e => {
                 e.stopPropagation();
                 handleVote('up');
               }}
@@ -329,10 +332,10 @@ export const PostCard = ({ post }: PostCardProps) => {
               variant="ghost"
               size="sm"
               className={cn(
-                "reddit-action-button",
-                post.user_vote === 'down' && "text-red-600 bg-red-50 dark:bg-red-950/20 hover:bg-red-100 dark:hover:bg-red-900/30"
+                'reddit-action-button',
+                post.user_vote === 'down' && 'text-error bg-error-muted hover:bg-error-muted-hover'
               )}
-              onClick={(e) => {
+              onClick={e => {
                 e.stopPropagation();
                 handleVote('down');
               }}
@@ -348,7 +351,7 @@ export const PostCard = ({ post }: PostCardProps) => {
             variant="ghost"
             size="sm"
             className="reddit-action-button"
-            onClick={(e) => {
+            onClick={e => {
               e.stopPropagation();
               navigate(`/comunidade/${post.id}`);
             }}

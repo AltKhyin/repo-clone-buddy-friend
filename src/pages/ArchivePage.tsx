@@ -9,7 +9,6 @@ import { AccessUpgradePrompt } from '@/components/ui/AccessUpgradePrompt';
 import TagsPanel from '@/components/acervo/TagsPanel';
 import MobileTagsModal from '@/components/acervo/MobileTagsModal';
 import MasonryGrid from '@/components/acervo/MasonryGrid';
-import SearchInput from '@/components/acervo/SearchInput';
 import { ClientSideSorter } from '@/components/acervo/ClientSideSorter';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { StandardLayout } from '@/components/layout/StandardLayout';
@@ -17,7 +16,6 @@ import { StandardLayout } from '@/components/layout/StandardLayout';
 export const ArchivePageContent = () => {
   const isMobile = useIsMobile();
   const [selectedTags, setSelectedTags] = useState<number[]>([]);
-  const [searchQuery, setSearchQuery] = useState<string>('');
   const [sortBy, setSortBy] = useState<'recent' | 'popular' | 'alphabetical'>('recent');
 
   const { data: acervoData, isLoading, error } = useAcervoDataQuery();
@@ -33,13 +31,6 @@ export const ArchivePageContent = () => {
           return [...prev, tagId];
         }
       });
-    },
-    []
-  );
-
-  const handleSearchChange = useMemo(
-    () => (query: string) => {
-      setSearchQuery(query);
     },
     []
   );
@@ -129,83 +120,69 @@ export const ArchivePageContent = () => {
 
   return (
     <StandardLayout type="content-only" contentClassName="px-6 pb-6">
-        {/* Header Section */}
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold mb-4">Acervo</h1>
-
-          {/* Search Bar */}
-          <div className="mb-4">
-            <SearchInput searchQuery={searchQuery} onSearchChange={handleSearchChange} />
-          </div>
-        </div>
-
-        {/* Desktop: Horizontal Tags Panel */}
-        {!isMobile && (
-          <TagsPanel
-            allTags={acervoData.tags}
-            selectedTags={selectedTags}
-            onTagSelect={handleTagSelect}
-          />
-        )}
-
-        {/* Mobile: Tags Filter Button */}
-        {isMobile && (
-          <MobileTagsModal
-            allTags={acervoData.tags}
-            selectedTags={selectedTags}
-            onTagSelect={handleTagSelect}
-          />
-        )}
-
-        {/* Access Control Upgrade Prompt */}
-        {totalFiltered > 0 && (
-          <AccessUpgradePrompt
-            filteredCount={totalFiltered}
-            statistics={statistics}
-            userAccessLevel={userAccessLevel}
-            onUpgradeClick={() => {
-              // Navigate to pricing page
-              window.location.href = '/pricing';
-            }}
-            onLoginClick={() => {
-              // Navigate to login page
-              window.location.href = '/login';
-            }}
-          />
-        )}
-
-        {/* Reviews Grid with Client-Side Sorting and Search */}
-        <ClientSideSorter
-          reviews={accessibleReviews}
-          tags={acervoData.tags}
+      {/* Desktop: Horizontal Tags Panel */}
+      {!isMobile && (
+        <TagsPanel
+          allTags={acervoData.tags}
           selectedTags={selectedTags}
-          searchQuery={searchQuery}
-          sortBy={sortBy}
-        >
-          {({ sortedReviews }) => (
-            <>
-              {sortedReviews.length === 0 ? (
-                <div className="text-center py-12">
-                  <h3 className="text-xl font-semibold mb-2">Nenhum review encontrado</h3>
-                  <p className="text-muted-foreground">
-                    {searchQuery.trim()
-                      ? `Tente uma busca diferente ou ajuste os filtros selecionados`
-                      : `Tente ajustar os filtros selecionados`}
-                  </p>
-                </div>
-              ) : (
-                <MasonryGrid reviews={sortedReviews} />
-              )}
+          onTagSelect={handleTagSelect}
+        />
+      )}
 
-              {/* Results summary */}
-              <div className="text-center py-4 text-sm text-muted-foreground">
-                {searchQuery.trim() || selectedTags.length > 0
-                  ? `${sortedReviews.length} reviews encontrados`
-                  : `${sortedReviews.length} reviews no total`}
+      {/* Mobile: Tags Filter Button */}
+      {isMobile && (
+        <MobileTagsModal
+          allTags={acervoData.tags}
+          selectedTags={selectedTags}
+          onTagSelect={handleTagSelect}
+        />
+      )}
+
+      {/* Access Control Upgrade Prompt */}
+      {totalFiltered > 0 && (
+        <AccessUpgradePrompt
+          filteredCount={totalFiltered}
+          statistics={statistics}
+          userAccessLevel={userAccessLevel}
+          onUpgradeClick={() => {
+            // Navigate to pricing page
+            window.location.href = '/pricing';
+          }}
+          onLoginClick={() => {
+            // Navigate to login page
+            window.location.href = '/login';
+          }}
+        />
+      )}
+
+      {/* Reviews Grid with Client-Side Sorting */}
+      <ClientSideSorter
+        reviews={accessibleReviews}
+        tags={acervoData.tags}
+        selectedTags={selectedTags}
+        searchQuery=""
+        sortBy={sortBy}
+      >
+        {({ sortedReviews }) => (
+          <>
+            {sortedReviews.length === 0 ? (
+              <div className="text-center py-12">
+                <h3 className="text-xl font-semibold mb-2">Nenhum review encontrado</h3>
+                <p className="text-muted-foreground">Tente ajustar os filtros selecionados</p>
               </div>
-            </>
-          )}
-        </ClientSideSorter>
+            ) : (
+              <MasonryGrid reviews={sortedReviews} />
+            )}
+
+            {/* Results summary */}
+            <div className="text-center py-4 text-sm text-muted-foreground">
+              {selectedTags.length > 0
+                ? `${sortedReviews.length} reviews encontrados`
+                : `${sortedReviews.length} reviews no total`}
+            </div>
+          </>
+        )}
+      </ClientSideSorter>
     </StandardLayout>
   );
 };
