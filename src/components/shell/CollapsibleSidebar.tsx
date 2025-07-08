@@ -32,7 +32,7 @@ const CollapsibleSidebar = ({ isCollapsed, onToggle }: CollapsibleSidebarProps) 
   });
 
   return (
-    <aside className={`fixed left-0 top-0 z-40 h-screen bg-background border-r border-border transition-all duration-300 ${isCollapsed ? 'w-20' : 'w-60'} hidden md:flex flex-col`}>
+    <aside className={`fixed left-0 top-16 z-40 h-[calc(100vh-4rem)] bg-background border-r border-border transition-all duration-300 ${isCollapsed ? 'w-20' : 'w-60'} hidden md:flex flex-col`}>
       {/* Header with logo - fixed height to match main header */}
       <div className={`flex items-center border-b border-border h-16 ${isCollapsed ? 'justify-center px-2' : 'justify-center px-4'}`}>
         {!isCollapsed ? (

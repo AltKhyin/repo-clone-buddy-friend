@@ -7,6 +7,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { ErrorBoundary } from '../ErrorBoundary';
 import DesktopShell from './DesktopShell';
 import MobileShell from './MobileShell';
+import FixedHeader from './FixedHeader';
 
 const AppShell = () => {
   const isMobile = useIsMobile();
@@ -26,12 +27,22 @@ const AppShell = () => {
     </ErrorBoundary>
   );
 
-  // Shell Component Factory - AppShell is now data-independent
-  if (isMobile) {
-    return <MobileShell>{PageContent}</MobileShell>;
-  }
-
-  return <DesktopShell>{PageContent}</DesktopShell>;
+  // Shell Component Factory - AppShell is now data-independent with fixed header
+  return (
+    <>
+      {/* Fixed glass header - appears on all pages */}
+      <FixedHeader>
+        {/* Empty for now - ready for future content */}
+      </FixedHeader>
+      
+      {/* Shell content with header spacing compensation */}
+      {isMobile ? (
+        <MobileShell>{PageContent}</MobileShell>
+      ) : (
+        <DesktopShell>{PageContent}</DesktopShell>
+      )}
+    </>
+  );
 };
 
 export default AppShell;

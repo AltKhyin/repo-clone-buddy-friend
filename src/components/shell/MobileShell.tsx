@@ -10,8 +10,8 @@ interface MobileShellProps {
 const MobileShell = ({ children }: MobileShellProps) => {
   return (
     <div className="flex flex-col h-screen w-full bg-background">
-      {/* Main Content - full space provision without content constraints */}
-      <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden">
+      {/* Main Content - full space provision with fixed header spacing */}
+      <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden pt-16">
         <div className="w-full h-full min-w-0 pb-20">{children}</div>
       </main>
 

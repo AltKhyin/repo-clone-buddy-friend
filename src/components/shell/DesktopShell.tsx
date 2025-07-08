@@ -21,9 +21,9 @@ const DesktopShell = ({ children }: DesktopShellProps) => {
       {/* Fixed sidebar with restored positioning */}
       <CollapsibleSidebar isCollapsed={isCollapsed} onToggle={toggleSidebar} />
 
-      {/* Main content area with precise positioning and constrained scrolling */}
+      {/* Main content area with precise positioning, header spacing, and constrained scrolling */}
       <main
-        className={`min-h-screen overflow-y-auto transition-all duration-300 ${
+        className={`min-h-screen overflow-y-auto transition-all duration-300 pt-16 ${
           isCollapsed ? 'ml-20' : 'ml-60'
         }`}
       >
