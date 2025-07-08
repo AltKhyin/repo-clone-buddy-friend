@@ -64,7 +64,7 @@ export const ProfileMenu = ({ isCollapsed }: ProfileMenuProps) => {
         case 'dark':
           return 'escuro';
         case 'anthropic':
-          return 'Anthropic';
+          return 'Clássico';
         case 'black':
           return 'Black';
         case 'system':
@@ -106,7 +106,7 @@ export const ProfileMenu = ({ isCollapsed }: ProfileMenuProps) => {
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => handleThemeChange('anthropic')}>
               <Palette className="mr-2 h-4 w-4" />
-              <span>Anthropic</span>
+              <span>Clássico</span>
               {theme === 'anthropic' && <span className="ml-auto">✓</span>}
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => handleThemeChange('black')}>
