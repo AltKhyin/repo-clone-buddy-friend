@@ -33,20 +33,7 @@ const CollapsibleSidebar = ({ isCollapsed, onToggle }: CollapsibleSidebarProps) 
 
   return (
     <aside className={`fixed left-0 top-16 z-40 h-[calc(100vh-4rem)] bg-background border-r border-border transition-all duration-300 ${isCollapsed ? 'w-20' : 'w-60'} hidden md:flex flex-col`}>
-      {/* Header with logo - fixed height to match main header */}
-      <div className={`flex items-center border-b border-border h-16 ${isCollapsed ? 'justify-center px-2' : 'justify-center px-4'}`}>
-        {!isCollapsed ? (
-          <h1 className="font-serif font-medium tracking-tight text-3xl text-foreground">
-            Reviews.
-          </h1>
-        ) : (
-          <h1 className="font-serif font-medium tracking-tight text-3xl text-foreground">
-            R.
-          </h1>
-        )}
-      </div>
-
-      {/* Navigation items */}
+      {/* Navigation items - logo moved to header */}
       <nav className={`flex-1 space-y-2 ${isCollapsed ? 'px-2 py-4' : 'px-4 py-4'}`}>
         {/* Core navigation */}
         {coreItems.map((item) => (

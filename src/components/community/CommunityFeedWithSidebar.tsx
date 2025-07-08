@@ -63,7 +63,7 @@ export const CommunityFeedWithSidebar = ({
   return (
     <ContentGrid
       sidebarType="fixed"
-      className="py-6"
+      className="pb-6"
       sidebarContent={
         !isMobile && sidebarData ? (
           <CommunityErrorBoundary context="sidebar da comunidade">

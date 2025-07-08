@@ -83,7 +83,7 @@ serve(async req => {
 
     // STEP 5: Core Business Logic (Optimized - No N+1 queries)
 
-    // Query 1: Fetch all published reviews based on user's access level
+    // Query 1: Fetch all published reviews with complete data (aligned with homepage)
     const reviewsQuery = supabase
       .from('Reviews')
       .select(
@@ -94,7 +94,12 @@ serve(async req => {
         cover_image_url,
         published_at,
         view_count,
-        access_level
+        access_level,
+        reading_time_minutes,
+        custom_author_name,
+        custom_author_avatar_url,
+        edicao,
+        author:Practitioners!Reviews_author_id_fkey(id, full_name, avatar_url)
       `
       )
       .eq('status', 'published')
@@ -136,9 +141,30 @@ serve(async req => {
     }
     const tagMap = new Map(allTags?.map(t => [t.id, t]) || []);
 
+    // Query 4: Fetch review content types (aligned with homepage)
+    const { data: reviewContentTypes, error: contentTypesError } = await supabase
+      .from('ReviewContentTypes')
+      .select(`
+        review_id,
+        content_type:ContentTypes(id, label, text_color, border_color, background_color)
+      `);
+    if (contentTypesError) {
+      throw new Error(`Failed to fetch content types: ${contentTypesError.message}`);
+    }
+
+    // Create content types map for efficient lookup
+    const contentTypesMap = new Map<number, any[]>();
+    for (const rct of reviewContentTypes || []) {
+      if (!contentTypesMap.has(rct.review_id)) {
+        contentTypesMap.set(rct.review_id, []);
+      }
+      contentTypesMap.get(rct.review_id)?.push(rct.content_type);
+    }
+
     // Assemble the final payload efficiently without N+1 queries
     let reviewsWithTags = (reviews || []).map(review => {
       const tagsForReview = reviewTagsMap.get(review.id) || [];
+      const contentTypesForReview = contentTypesMap.get(review.id) || [];
       const tagsJson: { [categoria: string]: string[] } = {};
 
       for (const tag of tagsForReview) {
@@ -163,6 +189,7 @@ serve(async req => {
         ...review,
         review_id: review.id, // Add expected field name
         tags_json: tagsJson,
+        content_types: contentTypesForReview, // Add content types with styling
       };
     });
 
@@ -189,7 +216,7 @@ serve(async req => {
     }
 
     console.log(
-      `Fetched ${reviewsWithTags.length} reviews and ${allTags?.length || 0} tags in 3 optimized queries.`
+      `Fetched ${reviewsWithTags.length} reviews, ${allTags?.length || 0} tags, and content types in 4 optimized queries.`
     );
 
     const result = {

@@ -1,7 +1,7 @@
 
 // ABOUTME: The main application shell controller - pure layout manager with no data dependencies.
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { ErrorBoundary } from '../ErrorBoundary';
@@ -11,6 +11,13 @@ import FixedHeader from './FixedHeader';
 
 const AppShell = () => {
   const isMobile = useIsMobile();
+  
+  // Sidebar state management - moved from DesktopShell for header coordination
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  
+  const toggleSidebar = () => {
+    setIsCollapsed(!isCollapsed);
+  };
 
   console.log('AppShell render state:', { isMobile });
 
@@ -27,19 +34,21 @@ const AppShell = () => {
     </ErrorBoundary>
   );
 
-  // Shell Component Factory - AppShell is now data-independent with fixed header
+  // Shell Component Factory - AppShell coordinates header and sidebar state
   return (
     <>
-      {/* Fixed glass header - appears on all pages */}
-      <FixedHeader>
-        {/* Empty for now - ready for future content */}
+      {/* Fixed glass header with logo - appears on all pages */}
+      <FixedHeader isCollapsed={isCollapsed} isMobile={isMobile}>
+        {/* Logo will be positioned here */}
       </FixedHeader>
       
       {/* Shell content with header spacing compensation */}
       {isMobile ? (
         <MobileShell>{PageContent}</MobileShell>
       ) : (
-        <DesktopShell>{PageContent}</DesktopShell>
+        <DesktopShell isCollapsed={isCollapsed} onToggleSidebar={toggleSidebar}>
+          {PageContent}
+        </DesktopShell>
       )}
     </>
   );

@@ -10,7 +10,24 @@ export interface AcervoReview {
   description: string | null;
   cover_image_url: string | null;
   published_at: string;
-  view_count: number; // Added missing property
+  view_count: number;
+  // Additional fields for parity with HomepageReview
+  reading_time_minutes?: number | null;
+  custom_author_name?: string | null;
+  custom_author_avatar_url?: string | null;
+  edicao?: string | null;
+  author?: {
+    id: string;
+    full_name: string;
+    avatar_url?: string | null;
+  } | null;
+  content_types?: {
+    id: number;
+    label: string;
+    text_color: string;
+    border_color: string;
+    background_color: string;
+  }[];
   tags_json: { [categoria: string]: string[] };
 }
 

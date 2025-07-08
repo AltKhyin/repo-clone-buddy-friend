@@ -1,25 +1,20 @@
 // ABOUTME: Desktop shell layout component with proper content constraints and overflow handling.
 
-import React, { useState } from 'react';
+import React from 'react';
 import CollapsibleSidebar from './CollapsibleSidebar';
-import { cn } from '@/lib/utils';
 
 interface DesktopShellProps {
   children: React.ReactNode;
+  isCollapsed: boolean;
+  onToggleSidebar: () => void;
 }
 
-const DesktopShell = ({ children }: DesktopShellProps) => {
-  // This component manages the collapsed state to coordinate sidebar and content layout
-  const [isCollapsed, setIsCollapsed] = useState(false);
-
-  const toggleSidebar = () => {
-    setIsCollapsed(!isCollapsed);
-  };
+const DesktopShell = ({ children, isCollapsed, onToggleSidebar }: DesktopShellProps) => {
 
   return (
     <div className="min-h-screen w-full bg-background">
       {/* Fixed sidebar with restored positioning */}
-      <CollapsibleSidebar isCollapsed={isCollapsed} onToggle={toggleSidebar} />
+      <CollapsibleSidebar isCollapsed={isCollapsed} onToggle={onToggleSidebar} />
 
       {/* Main content area with precise positioning, header spacing, and constrained scrolling */}
       <main

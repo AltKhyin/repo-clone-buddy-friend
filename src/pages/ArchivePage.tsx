@@ -82,7 +82,7 @@ export const ArchivePageContent = () => {
 
   if (isLoading) {
     return (
-      <StandardLayout type="content-only" contentClassName="p-6">
+      <StandardLayout type="content-only" contentClassName="px-6 pb-6">
         <Skeleton className="h-8 w-32 mb-6" />
         <div className="flex gap-2 mb-6">
           <Skeleton className="h-8 w-24" />
@@ -128,7 +128,7 @@ export const ArchivePageContent = () => {
   }
 
   return (
-    <StandardLayout type="content-only" contentClassName="p-6">
+    <StandardLayout type="content-only" contentClassName="px-6 pb-6">
         {/* Header Section */}
         <div className="mb-6">
           <h1 className="text-3xl font-bold mb-4">Acervo</h1>

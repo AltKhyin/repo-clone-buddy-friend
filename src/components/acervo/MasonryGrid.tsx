@@ -3,7 +3,7 @@
 
 import React from 'react';
 import Masonry from 'react-masonry-css';
-import ReviewCard from './ReviewCard';
+import AcervoReviewCard from './AcervoReviewCard';
 import { useIsMobile } from '@/hooks/use-mobile';
 import type { AcervoReview } from '../../../packages/hooks/useAcervoDataQuery';
 
@@ -26,12 +26,12 @@ const MasonryGrid: React.FC<MasonryGridProps> = ({ reviews }) => {
     <div className="w-full">
       <Masonry
         breakpointCols={breakpointColumnsObj}
-        className="flex w-auto -ml-4"
-        columnClassName="pl-4 bg-clip-padding"
+        className="flex w-auto -ml-1"
+        columnClassName="pl-1 bg-clip-padding"
       >
         {reviews.map((review) => (
-          <div key={review.review_id} className="mb-4">
-            <ReviewCard review={review} />
+          <div key={review.review_id} className="mb-1">
+            <AcervoReviewCard review={review} />
           </div>
         ))}
       </Masonry>

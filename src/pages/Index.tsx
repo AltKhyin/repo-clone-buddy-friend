@@ -17,7 +17,7 @@ const IndexContent = () => {
   // Loading state with skeleton loaders
   if (isLoading) {
     return (
-      <StandardLayout type="content-only" contentClassName="py-6 space-y-8">
+      <StandardLayout type="content-only" contentClassName="pb-6 space-y-8">
         <>
           {/* Featured Review Skeleton */}
           <Skeleton className="w-full h-96 rounded-md" />
@@ -45,7 +45,7 @@ const IndexContent = () => {
   if (isError) {
     console.error('Homepage error details:', error);
     return (
-      <StandardLayout type="centered" contentClassName="py-6 text-center space-y-4">
+      <StandardLayout type="centered" contentClassName="pb-6 text-center space-y-4">
         <div className="max-w-md mx-auto p-6">
           <h1 className="text-2xl font-bold text-foreground font-serif">Erro ao carregar a página</h1>
           <p className="text-muted-foreground">
@@ -65,7 +65,7 @@ const IndexContent = () => {
   // If no data, show empty state
   if (!data) {
     return (
-      <StandardLayout type="centered" contentClassName="py-6 text-center space-y-4">
+      <StandardLayout type="centered" contentClassName="pb-6 text-center space-y-4">
         <div className="max-w-md mx-auto p-6">
           <h1 className="text-2xl font-bold text-foreground font-serif">Nenhum conteúdo disponível</h1>
           <p className="text-muted-foreground">
@@ -125,7 +125,7 @@ const IndexContent = () => {
   };
 
   return (
-    <StandardLayout type="content-only" contentClassName="py-6 space-y-8">
+    <StandardLayout type="content-only" contentClassName="pb-6 space-y-8">
       {/* Render modules in the order specified by the layout array */}
       {data?.layout?.map((moduleType) => renderModule(moduleType))}
     </StandardLayout>
