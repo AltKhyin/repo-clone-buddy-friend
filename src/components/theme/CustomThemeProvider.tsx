@@ -1,13 +1,12 @@
-
 // ABOUTME: Custom theme provider optimized for Vite environment, replacing next-themes.
 import React, { createContext, useContext, useEffect, useState } from 'react';
 
-type Theme = 'dark' | 'light' | 'system';
+type Theme = 'dark' | 'light' | 'anthropic' | 'system';
 
 interface ThemeContextType {
   theme: Theme;
   setTheme: (theme: Theme) => void;
-  actualTheme: 'dark' | 'light';
+  actualTheme: 'dark' | 'light' | 'anthropic';
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -21,16 +20,16 @@ interface ThemeProviderProps {
 export function CustomThemeProvider({
   children,
   defaultTheme = 'dark',
-  storageKey = 'evidens-theme'
+  storageKey = 'evidens-theme',
 }: ThemeProviderProps) {
   const [theme, setThemeState] = useState<Theme>(defaultTheme);
-  const [actualTheme, setActualTheme] = useState<'dark' | 'light'>('dark');
+  const [actualTheme, setActualTheme] = useState<'dark' | 'light' | 'anthropic'>('dark');
 
   // Initialize theme from localStorage or default - runs once on mount
   useEffect(() => {
     try {
       const savedTheme = localStorage.getItem(storageKey) as Theme;
-      if (savedTheme && ['dark', 'light', 'system'].includes(savedTheme)) {
+      if (savedTheme && ['dark', 'light', 'anthropic', 'system'].includes(savedTheme)) {
         console.log('CustomThemeProvider: Loading saved theme:', savedTheme);
         setThemeState(savedTheme);
       } else {
@@ -47,7 +46,7 @@ export function CustomThemeProvider({
   // Handle system theme changes and apply theme to document
   useEffect(() => {
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    
+
     const handleSystemThemeChange = () => {
       if (theme === 'system') {
         const systemTheme = mediaQuery.matches ? 'dark' : 'light';
@@ -73,17 +72,19 @@ export function CustomThemeProvider({
     return () => mediaQuery.removeEventListener('change', handleSystemThemeChange);
   }, [theme]);
 
-  const updateDocumentTheme = (newTheme: 'dark' | 'light') => {
+  const updateDocumentTheme = (newTheme: 'dark' | 'light' | 'anthropic') => {
     const root = document.documentElement;
     const body = document.body;
-    
+
     // Remove all theme classes and add the new one
-    root.classList.remove('light', 'dark');
+    root.classList.remove('light', 'dark', 'anthropic');
     root.classList.add(newTheme);
-    
+
     // Ensure body has proper background
     if (newTheme === 'dark') {
       body.style.backgroundColor = 'hsl(0 0% 7%)'; // --background dark
+    } else if (newTheme === 'anthropic') {
+      body.style.backgroundColor = 'hsl(0 0% 98%)'; // --background anthropic
     } else {
       body.style.backgroundColor = 'hsl(220 20% 98%)'; // --background light
     }
@@ -94,7 +95,7 @@ export function CustomThemeProvider({
   const setTheme = (newTheme: Theme) => {
     console.log('CustomThemeProvider: Setting theme to:', newTheme);
     setThemeState(newTheme);
-    
+
     try {
       localStorage.setItem(storageKey, newTheme);
       console.log('CustomThemeProvider: Saved theme to localStorage:', newTheme);
@@ -103,9 +104,14 @@ export function CustomThemeProvider({
     }
 
     if (newTheme === 'system') {
-      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches
+        ? 'dark'
+        : 'light';
       setActualTheme(systemTheme);
       updateDocumentTheme(systemTheme);
+    } else if (newTheme === 'anthropic') {
+      setActualTheme('anthropic');
+      updateDocumentTheme('anthropic');
     } else {
       setActualTheme(newTheme);
       updateDocumentTheme(newTheme);
@@ -115,14 +121,10 @@ export function CustomThemeProvider({
   const value = {
     theme,
     setTheme,
-    actualTheme
+    actualTheme,
   };
 
-  return (
-    <ThemeContext.Provider value={value}>
-      {children}
-    </ThemeContext.Provider>
-  );
+  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }
 
 export function useTheme() {

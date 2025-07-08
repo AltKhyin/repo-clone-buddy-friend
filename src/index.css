@@ -87,6 +87,48 @@
     --ring: 240 4.9% 83.9%;
   }
 
+  .anthropic {
+    /* Anthropic Theme Tokens - Inspired by Anthropic's design with eye-strain reduction */
+    --background: 0 0% 98%; /* Softened white background - easier on eyes than pure white */
+    --foreground: 0 0% 8%; /* Near-black for strong contrast */
+
+    --surface: 0 0% 96%; /* Very light gray surfaces - softer than pure white */
+    --surface-muted: 0 0% 92%; /* Light gray for input fields, disabled states */
+
+    --border: 0 0% 88%; /* Light gray borders - subtle definition */
+    --border-hover: 0 0% 82%; /* Slightly darker border on hover */
+
+    /* Primary action color - Anthropic's signature purple */
+    --primary: 250 85% 62%; /* rgb(82, 102, 235) converted to HSL */
+    --primary-foreground: 0 0% 98%;
+
+    --text-primary: 0 0% 8%; /* Near-black primary text */
+    --text-secondary: 0 0% 40%; /* Medium gray secondary text - rgb(102, 102, 102) */
+
+    /* Enhanced hierarchy tokens adapted for Anthropic aesthetic */
+    --text-tertiary: 0 0% 55%; /* Lighter gray for metadata */
+    --surface-hover: 0 0% 94%; /* Subtle hover backgrounds */
+    --border-strong: 0 0% 78%; /* Emphasized separators */
+    --comment-thread: 0 0% 85%; /* Threading lines */
+    --action-hover: 0 0% 90%; /* Action button hovers */
+
+    /* Legacy tokens for compatibility - adapted to Anthropic palette */
+    --card: 0 0% 96%; /* Cards match surface */
+    --card-foreground: 0 0% 8%;
+    --popover: 0 0% 98%; /* Slightly brighter for popover emphasis */
+    --popover-foreground: 0 0% 8%;
+    --secondary: 0 0% 94%; /* Secondary surfaces */
+    --secondary-foreground: 0 0% 8%;
+    --muted: 0 0% 94%; /* Muted surfaces */
+    --muted-foreground: 0 0% 45%; /* Muted text - good contrast */
+    --accent: 0 0% 94%; /* Accent surfaces */
+    --accent-foreground: 0 0% 8%;
+    --destructive: 0 65% 51%; /* Red for destructive actions */
+    --destructive-foreground: 0 0% 98%;
+    --input: 0 0% 94%; /* Input backgrounds */
+    --ring: 250 85% 62%; /* Focus rings match primary */
+  }
+
   /* Universal Semantic & Utility Tokens */
   :root {
     --font-sans: 'Inter', sans-serif;

@@ -1,8 +1,7 @@
-
 // ABOUTME: Profile dropdown menu component that provides logout and theme selection functionality.
 
 import React from 'react';
-import { LogOut, Settings, Monitor, Moon, Sun } from 'lucide-react';
+import { LogOut, Settings, Monitor, Moon, Sun, Palette } from 'lucide-react';
 import { useTheme } from '@/components/theme/CustomThemeProvider';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -33,33 +32,49 @@ export const ProfileMenu = ({ isCollapsed }: ProfileMenuProps) => {
       // Clean up any existing auth state
       localStorage.clear();
       sessionStorage.clear();
-      
+
       // Sign out from Supabase
       await supabase.auth.signOut({ scope: 'global' });
-      
+
       // Show success message
       toast({
-        title: "Logout realizado",
-        description: "Você foi desconectado com sucesso.",
+        title: 'Logout realizado',
+        description: 'Você foi desconectado com sucesso.',
       });
-      
+
       // Navigate to login page
       navigate('/auth');
     } catch (error) {
       console.error('Logout error:', error);
       toast({
-        title: "Erro no logout",
-        description: "Houve um problema ao desconectar. Tente novamente.",
-        variant: "destructive",
+        title: 'Erro no logout',
+        description: 'Houve um problema ao desconectar. Tente novamente.',
+        variant: 'destructive',
       });
     }
   };
 
   const handleThemeChange = (newTheme: string) => {
-    setTheme(newTheme as 'light' | 'dark' | 'system');
+    setTheme(newTheme as 'light' | 'dark' | 'anthropic' | 'system');
+
+    const getThemeDisplayName = (theme: string) => {
+      switch (theme) {
+        case 'light':
+          return 'claro';
+        case 'dark':
+          return 'escuro';
+        case 'anthropic':
+          return 'Anthropic';
+        case 'system':
+          return 'sistema';
+        default:
+          return theme;
+      }
+    };
+
     toast({
-      title: "Tema alterado",
-      description: `Tema alterado para ${newTheme === 'light' ? 'claro' : newTheme === 'dark' ? 'escuro' : 'sistema'}.`,
+      title: 'Tema alterado',
+      description: `Tema alterado para ${getThemeDisplayName(newTheme)}.`,
     });
   };
 
@@ -70,11 +85,7 @@ export const ProfileMenu = ({ isCollapsed }: ProfileMenuProps) => {
           <UserProfileBlock isCollapsed={isCollapsed} />
         </div>
       </DropdownMenuTrigger>
-      <DropdownMenuContent 
-        className="w-56" 
-        align={isCollapsed ? "center" : "start"}
-        side="top"
-      >
+      <DropdownMenuContent className="w-56" align={isCollapsed ? 'center' : 'start'} side="top">
         <DropdownMenuSub>
           <DropdownMenuSubTrigger>
             <Settings className="mr-2 h-4 w-4" />
@@ -90,6 +101,11 @@ export const ProfileMenu = ({ isCollapsed }: ProfileMenuProps) => {
               <Moon className="mr-2 h-4 w-4" />
               <span>Escuro</span>
               {theme === 'dark' && <span className="ml-auto">✓</span>}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleThemeChange('anthropic')}>
+              <Palette className="mr-2 h-4 w-4" />
+              <span>Anthropic</span>
+              {theme === 'anthropic' && <span className="ml-auto">✓</span>}
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => handleThemeChange('system')}>
               <Monitor className="mr-2 h-4 w-4" />
