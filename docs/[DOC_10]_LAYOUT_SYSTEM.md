@@ -13,6 +13,7 @@
 The EVIDENS platform implements a **Reddit-inspired layout system** that provides consistent content presentation across all pages while maintaining flexibility for different content types and use cases.
 
 **Key Principles:**
+
 1. **Consistent Constraints:** All content respects standardized width boundaries
 2. **Responsive Design:** Automatic adaptation from mobile to desktop
 3. **Centralized Logic:** Layout calculations are handled by utility functions
@@ -49,36 +50,42 @@ interface StandardLayoutProps {
 ### **2.2 Layout Types**
 
 #### **2.2.1 Standard Layout**
+
 - **Use Case:** Traditional content pages with optional sidebar
 - **Dimensions:** 756px main content + 316px sidebar = 1200px total
 - **CSS Class:** `max-w-[1200px]`
 - **Examples:** Homepage, review detail pages
 
 #### **2.2.2 Content-Only Layout**
+
 - **Use Case:** Full-width content without sidebar constraints
 - **Dimensions:** Uses available width within shell constraints
 - **CSS Class:** `w-full`
 - **Examples:** Community pages, search results
 
 #### **2.2.3 Centered Layout**
+
 - **Use Case:** Article-style reading with narrow, focused content
 - **Dimensions:** Optimized for readability (typically 65-75ch)
 - **CSS Class:** `max-w-4xl`
 - **Examples:** Documentation, long-form content
 
 #### **2.2.4 Wide Layout**
+
 - **Use Case:** Admin interfaces and complex content requiring more space
 - **Dimensions:** Enhanced width constraints
 - **CSS Class:** `max-w-6xl` (1152px)
 - **Examples:** Admin dashboard, analytics pages
 
 #### **2.2.5 Admin Layout**
+
 - **Use Case:** Administrative interface with consistent spacing
 - **Dimensions:** Similar to wide but with admin-specific styling
 - **CSS Class:** Custom admin spacing with `space-y-6`
 - **Examples:** User management, content moderation
 
 #### **2.2.6 Full-Width Layout**
+
 - **Use Case:** Special cases requiring maximum available width
 - **Dimensions:** No width constraints
 - **CSS Class:** `w-full min-h-screen`
@@ -87,6 +94,7 @@ interface StandardLayoutProps {
 ### **2.3 Usage Patterns**
 
 #### **2.3.1 Basic Usage**
+
 ```typescript
 import { StandardLayout } from '@/components/layout/StandardLayout';
 
@@ -101,10 +109,11 @@ export default function MyPage() {
 ```
 
 #### **2.3.2 With Sidebar**
+
 ```typescript
 export default function MyPageWithSidebar() {
   return (
-    <StandardLayout 
+    <StandardLayout
       type="standard"
       sidebarType="right"
       sidebarContent={<MySidebar />}
@@ -118,6 +127,7 @@ export default function MyPageWithSidebar() {
 ```
 
 #### **2.3.3 Error Boundary Integration**
+
 ```typescript
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
@@ -141,13 +151,15 @@ export default function ProtectedPage() {
 Located in `/src/lib/layout-utils.ts`:
 
 #### **3.1.1 generateLayoutClasses()**
+
 ```typescript
 export function generateLayoutClasses(
   type: StandardLayoutType,
   sidebarType: SidebarType = 'none',
   className?: string
-): string
+): string;
 ```
+
 - **Purpose:** Generates container classes based on layout type
 - **Returns:** Tailwind CSS classes for the layout container
 - **Examples:**
@@ -155,25 +167,29 @@ export function generateLayoutClasses(
   - `wide` → `"max-w-6xl mx-auto w-full"`
 
 #### **3.1.2 generateContentClasses()**
+
 ```typescript
 export function generateContentClasses(
   contentType: 'main' | 'sidebar' | 'full-width' | 'article' | 'wide',
   className?: string
-): string
+): string;
 ```
+
 - **Purpose:** Applies content-specific styling
 - **Returns:** Tailwind CSS classes for content areas
 - **Examples:**
   - `main` → `"min-w-0 max-w-[756px] mx-auto w-full"`
   - `wide` → `"min-w-0 max-w-6xl mx-auto w-full"`
 
-#### **3.1.3 generateCenteringClasses()**
+#### **3.1.3 generateCenteringClasses()** 🚨 DEPRECATED
+
 ```typescript
-export function generateCenteringClasses(): string
+export function generateCenteringClasses(): string;
 ```
-- **Purpose:** Ensures proper centering within available space
-- **Returns:** `"w-full flex justify-center max-w-[1200px] mx-auto"`
-- **Usage:** Wraps layout containers for proper shell integration
+
+- **Status:** **DEPRECATED** - Caused layout conflicts with fixed sidebar architecture
+- **Replacement:** Use simplified approach in StandardLayout/ContentGrid with direct `max-w-[1200px] mx-auto`
+- **Migration:** Replace calls with `"w-full max-w-[1200px] mx-auto"` class pattern
 
 ### **3.2 Layout Constants**
 
@@ -221,32 +237,42 @@ const layoutClasses = generateLayoutClasses(type, isMobile ? 'none' : sidebarTyp
 
 ### **5.1 Shell Boundaries**
 
-The StandardLayout system works within the AppShell constraints:
+The StandardLayout system works within the AppShell constraints using a **hybrid fixed sidebar + positioned content architecture**:
 
 ```
 AppShell (100vw)
-├── CollapsibleSidebar (if not mobile)
-└── Main Content Area
-    └── StandardLayout (max-w-[1200px])
-        ├── Centering Wrapper
-        └── Layout Container
+├── CollapsibleSidebar (fixed left-0 top-0, w-60/w-20)
+└── Main Content Area (ml-60/ml-20, positioned)
+    └── Content Constraint Container (max-w-[1200px] mx-auto)
+        └── StandardLayout
+            ├── Layout Container
             ├── Main Content
             └── Sidebar (optional)
 ```
 
+**Architecture Notes:**
+
+- **Fixed Sidebar:** Uses `position: fixed` for persistent navigation during content scrolling
+- **Margin Compensation:** Main content uses `ml-60/ml-20` to avoid fixed sidebar overlap
+- **Constrained Scrolling:** Only content within 1200px constraint scrolls, sidebar stays fixed
+
 ### **5.2 Mobile Shell Integration**
 
 On mobile devices:
+
 - AppShell collapses sidebar to bottom navigation
 - StandardLayout uses full available width
 - Content is properly padded and centered
 
 ### **5.3 Desktop Shell Integration**
 
-On desktop:
-- AppShell maintains left sidebar navigation
-- StandardLayout centers within remaining space
-- Maximum content width is enforced (1200px)
+On desktop using **hybrid fixed sidebar + positioned content**:
+
+- **Fixed Sidebar:** CollapsibleSidebar uses `position: fixed left-0 top-0` for persistent navigation
+- **Content Positioning:** Main content area uses responsive margin compensation (`ml-60` expanded, `ml-20` collapsed)
+- **Scroll Behavior:** Sidebar remains fixed during scroll, only content within 1200px constraint scrolls
+- **Layout Transitions:** Smooth 300ms transitions when sidebar collapses/expands
+- **Maximum Content Width:** StandardLayout enforces 1200px constraint within positioned content area
 
 ---
 
@@ -295,14 +321,14 @@ All pages using StandardLayout follow this pattern:
 
 ### **7.2 Layout Selection Guide**
 
-| Content Type | Recommended Layout | Rationale |
-|--------------|-------------------|-----------|
-| Homepage | `content-only` | Optimized for feed content |
-| Review Detail | `standard` | Traditional reading with sidebar |
-| Community Posts | `content-only` | Thread-style content |
-| Admin Dashboard | `wide` | Complex interface needs space |
-| Documentation | `centered` | Optimized for reading |
-| Editor | `full-width` | Needs maximum available space |
+| Content Type    | Recommended Layout | Rationale                        |
+| --------------- | ------------------ | -------------------------------- |
+| Homepage        | `content-only`     | Optimized for feed content       |
+| Review Detail   | `standard`         | Traditional reading with sidebar |
+| Community Posts | `content-only`     | Thread-style content             |
+| Admin Dashboard | `wide`             | Complex interface needs space    |
+| Documentation   | `centered`         | Optimized for reading            |
+| Editor          | `full-width`       | Needs maximum available space    |
 
 ### **7.3 Performance Considerations**
 
@@ -341,7 +367,7 @@ describe('Layout Integration', () => {
 it('should adapt to mobile breakpoint', () => {
   // Mock useIsMobile hook
   vi.mocked(useIsMobile).mockReturnValue(true);
-  
+
   render(<MyPage />);
   const main = screen.getByRole('main');
   expect(main).toHaveClass('w-full'); // Mobile adaptation
@@ -353,10 +379,10 @@ it('should adapt to mobile breakpoint', () => {
 ```typescript
 it('should have proper semantic structure', () => {
   render(<MyPage />);
-  
+
   const main = screen.getByRole('main');
   expect(main).toBeInTheDocument();
-  
+
   const heading = screen.getByRole('heading', { level: 1 });
   expect(heading).toBeInTheDocument();
 });
@@ -369,6 +395,7 @@ it('should have proper semantic structure', () => {
 ### **9.1 From Custom Layouts**
 
 **Before:**
+
 ```typescript
 export default function OldPage() {
   return (
@@ -382,6 +409,7 @@ export default function OldPage() {
 ```
 
 **After:**
+
 ```typescript
 export default function NewPage() {
   return (
@@ -409,10 +437,10 @@ export default function NewPage() {
 ### **10.1 Custom Styling**
 
 ```typescript
-<StandardLayout 
+<StandardLayout
   type="standard"
   className="custom-page-styles" // Applied to centering wrapper
-  containerClassName="custom-container" // Applied to layout container  
+  containerClassName="custom-container" // Applied to layout container
   contentClassName="custom-content" // Applied to main content
   sidebarClassName="custom-sidebar" // Applied to sidebar
 >
@@ -425,7 +453,7 @@ export default function NewPage() {
 ```typescript
 const PageWithDynamicLayout = ({ isAdmin }: { isAdmin: boolean }) => {
   const layoutType = isAdmin ? 'wide' : 'standard';
-  
+
   return (
     <StandardLayout type={layoutType} contentClassName="space-y-6">
       {/* Content adapts based on user role */}
@@ -444,7 +472,7 @@ const ComplexPage = () => {
         <div>Left content</div>
         <div>Right content</div>
       </section>
-      
+
       <StandardLayout type="centered" containerClassName="mt-8">
         <article>Nested centered content</article>
       </StandardLayout>
@@ -459,24 +487,24 @@ const ComplexPage = () => {
 
 ### **A.1 Layout Container Classes**
 
-| Layout Type | CSS Classes |
-|-------------|-------------|
-| `standard` | `max-w-[1200px] mx-auto grid gap-6 lg:gap-8 justify-center grid-cols-1 lg:grid-cols-[756px_316px]` |
-| `content-only` | `w-full min-h-screen bg-background px-4 py-6 lg:px-8` |
-| `centered` | `max-w-4xl mx-auto w-full min-h-screen bg-background px-4 py-6 lg:px-8` |
-| `wide` | `w-full min-h-screen bg-background px-4 py-6 lg:px-8 overflow-hidden min-w-0 grid gap-6 lg:gap-8 justify-center grid-cols-1 max-w-6xl mx-auto` |
-| `admin` | `w-full min-h-screen bg-background px-4 py-6 lg:px-8` |
-| `full-width` | `w-full min-h-screen` |
+| Layout Type    | CSS Classes                                                                                                                                    |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `standard`     | `max-w-[1200px] mx-auto grid gap-6 lg:gap-8 justify-center grid-cols-1 lg:grid-cols-[756px_316px]`                                             |
+| `content-only` | `w-full min-h-screen bg-background px-4 py-6 lg:px-8`                                                                                          |
+| `centered`     | `max-w-4xl mx-auto w-full min-h-screen bg-background px-4 py-6 lg:px-8`                                                                        |
+| `wide`         | `w-full min-h-screen bg-background px-4 py-6 lg:px-8 overflow-hidden min-w-0 grid gap-6 lg:gap-8 justify-center grid-cols-1 max-w-6xl mx-auto` |
+| `admin`        | `w-full min-h-screen bg-background px-4 py-6 lg:px-8`                                                                                          |
+| `full-width`   | `w-full min-h-screen`                                                                                                                          |
 
 ### **A.2 Content Area Classes**
 
-| Content Type | CSS Classes |
-|--------------|-------------|
-| `main` | `min-w-0 max-w-[756px] mx-auto w-full` |
-| `sidebar` | `w-full max-w-[316px]` |
-| `full-width` | `w-full` |
-| `article` | `max-w-4xl mx-auto w-full` |
-| `wide` | `min-w-0 max-w-6xl mx-auto w-full` |
+| Content Type | CSS Classes                            |
+| ------------ | -------------------------------------- |
+| `main`       | `min-w-0 max-w-[756px] mx-auto w-full` |
+| `sidebar`    | `w-full max-w-[316px]`                 |
+| `full-width` | `w-full`                               |
+| `article`    | `max-w-4xl mx-auto w-full`             |
+| `wide`       | `min-w-0 max-w-6xl mx-auto w-full`     |
 
 ---
 

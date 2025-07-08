@@ -12,7 +12,28 @@ This registry documents technical debt items discovered during the comprehensive
 
 ## 🔥 High Priority Technical Debt
 
-### 1. **Editor Blueprint Consolidation** ⚠️ URGENT
+### 1. **Hybrid Shell Architecture Technical Debt** ⚠️ NEW
+
+**Issue:** Current implementation uses margin compensation (`ml-60/ml-20`) for fixed sidebar layout
+**Files Affected:**
+
+- `src/components/shell/DesktopShell.tsx`
+- `src/components/shell/CollapsibleSidebar.tsx`
+
+**Technical Context:**
+After architectural investigation by Gemini AI identified flexbox conflicts, implemented hybrid approach combining `position: fixed` sidebar with margin compensation to avoid layout calculation issues while maintaining UX requirements.
+
+**Problems:**
+
+- Margin compensation creates layout dependency between sidebar and content
+- Not pure CSS flexbox or grid solution
+- Potential responsiveness edge cases on very wide screens
+
+**Impact:** Maintainable but not architecturally pure solution
+**Future Resolution:** Investigate CSS Grid or Flexbox solutions that avoid fixed positioning conflicts
+**Status:** Acceptable technical debt - prioritize other architectural improvements first
+
+### 2. **Editor Blueprint Consolidation** ⚠️ URGENT
 
 **Issue:** 3 separate editor blueprint files with overlapping/conflicting information
 **Files Affected:**

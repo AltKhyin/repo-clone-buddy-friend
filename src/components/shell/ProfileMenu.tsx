@@ -1,7 +1,7 @@
 // ABOUTME: Profile dropdown menu component that provides logout and theme selection functionality.
 
 import React from 'react';
-import { LogOut, Settings, Monitor, Moon, Sun, Palette } from 'lucide-react';
+import { LogOut, Settings, Monitor, Moon, Sun, Palette, Circle } from 'lucide-react';
 import { useTheme } from '@/components/theme/CustomThemeProvider';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -55,7 +55,7 @@ export const ProfileMenu = ({ isCollapsed }: ProfileMenuProps) => {
   };
 
   const handleThemeChange = (newTheme: string) => {
-    setTheme(newTheme as 'light' | 'dark' | 'anthropic' | 'system');
+    setTheme(newTheme as 'light' | 'dark' | 'anthropic' | 'black' | 'system');
 
     const getThemeDisplayName = (theme: string) => {
       switch (theme) {
@@ -65,6 +65,8 @@ export const ProfileMenu = ({ isCollapsed }: ProfileMenuProps) => {
           return 'escuro';
         case 'anthropic':
           return 'Anthropic';
+        case 'black':
+          return 'Black';
         case 'system':
           return 'sistema';
         default:
@@ -106,6 +108,11 @@ export const ProfileMenu = ({ isCollapsed }: ProfileMenuProps) => {
               <Palette className="mr-2 h-4 w-4" />
               <span>Anthropic</span>
               {theme === 'anthropic' && <span className="ml-auto">✓</span>}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleThemeChange('black')}>
+              <Circle className="mr-2 h-4 w-4 fill-current" />
+              <span>Black</span>
+              {theme === 'black' && <span className="ml-auto">✓</span>}
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => handleThemeChange('system')}>
               <Monitor className="mr-2 h-4 w-4" />

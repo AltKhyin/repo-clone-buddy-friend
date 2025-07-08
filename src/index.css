@@ -88,45 +88,87 @@
   }
 
   .anthropic {
-    /* Anthropic Theme Tokens - Inspired by Anthropic's design with eye-strain reduction */
-    --background: 0 0% 98%; /* Softened white background - easier on eyes than pure white */
-    --foreground: 0 0% 8%; /* Near-black for strong contrast */
+    /* Anthropic Theme Tokens - Sophisticated monochromatic palette with warm undertones */
+    --background: 48 33.3% 97.1%; /* #f0efea - Warm off-white background */
+    --foreground: 60 2.6% 7.6%; /* Very dark charcoal text */
 
-    --surface: 0 0% 96%; /* Very light gray surfaces - softer than pure white */
-    --surface-muted: 0 0% 92%; /* Light gray for input fields, disabled states */
+    --surface: 53 28.6% 94.5%; /* Subtle warm gray surfaces */
+    --surface-muted: 48 25% 92.2%; /* Slightly darker for input fields */
 
-    --border: 0 0% 88%; /* Light gray borders - subtle definition */
-    --border-hover: 0 0% 82%; /* Slightly darker border on hover */
+    --border: 50 20.7% 88.6%; /* Light warm gray borders */
+    --border-hover: 51 16.5% 84.5%; /* Slightly darker border on hover */
 
-    /* Primary action color - Anthropic's signature purple */
-    --primary: 250 85% 62%; /* rgb(82, 102, 235) converted to HSL */
-    --primary-foreground: 0 0% 98%;
+    /* Primary action color - Near black for monochromatic feel */
+    --primary: 60 2.6% 7.6%; /* Very dark charcoal matching text */
+    --primary-foreground: 48 33.3% 97.1%; /* Warm off-white */
 
-    --text-primary: 0 0% 8%; /* Near-black primary text */
-    --text-secondary: 0 0% 40%; /* Medium gray secondary text - rgb(102, 102, 102) */
+    --text-primary: 60 2.6% 7.6%; /* Very dark charcoal */
+    --text-secondary: 60 2.5% 23.3%; /* Medium dark gray */
 
-    /* Enhanced hierarchy tokens adapted for Anthropic aesthetic */
-    --text-tertiary: 0 0% 55%; /* Lighter gray for metadata */
-    --surface-hover: 0 0% 94%; /* Subtle hover backgrounds */
-    --border-strong: 0 0% 78%; /* Emphasized separators */
-    --comment-thread: 0 0% 85%; /* Threading lines */
-    --action-hover: 0 0% 90%; /* Action button hovers */
+    /* Enhanced hierarchy tokens for sophisticated monochromatic design */
+    --text-tertiary: 51 3.1% 43.7%; /* Medium gray for metadata */
+    --surface-hover: 50 20.7% 88.6%; /* Subtle hover backgrounds */
+    --border-strong: 51 16.5% 84.5%; /* Emphasized separators */
+    --comment-thread: 50 11.5% 79.6%; /* Threading lines */
+    --action-hover: 50 20.7% 88.6%; /* Action button hovers */
 
-    /* Legacy tokens for compatibility - adapted to Anthropic palette */
-    --card: 0 0% 96%; /* Cards match surface */
-    --card-foreground: 0 0% 8%;
-    --popover: 0 0% 98%; /* Slightly brighter for popover emphasis */
-    --popover-foreground: 0 0% 8%;
-    --secondary: 0 0% 94%; /* Secondary surfaces */
-    --secondary-foreground: 0 0% 8%;
-    --muted: 0 0% 94%; /* Muted surfaces */
-    --muted-foreground: 0 0% 45%; /* Muted text - good contrast */
-    --accent: 0 0% 94%; /* Accent surfaces */
-    --accent-foreground: 0 0% 8%;
-    --destructive: 0 65% 51%; /* Red for destructive actions */
-    --destructive-foreground: 0 0% 98%;
-    --input: 0 0% 94%; /* Input backgrounds */
-    --ring: 250 85% 62%; /* Focus rings match primary */
+    /* Legacy tokens for compatibility - warm monochromatic palette */
+    --card: 53 28.6% 94.5%; /* Cards match surface */
+    --card-foreground: 60 2.6% 7.6%;
+    --popover: 48 33.3% 97.1%; /* Slightly brighter for popover emphasis */
+    --popover-foreground: 60 2.6% 7.6%;
+    --secondary: 48 25% 92.2%; /* Secondary surfaces */
+    --secondary-foreground: 60 2.6% 7.6%;
+    --muted: 48 25% 92.2%; /* Muted surfaces */
+    --muted-foreground: 51 3.1% 43.7%; /* Muted text with good contrast */
+    --accent: 15 63.1% 59.6%; /* Warm brown accent for highlights */
+    --accent-foreground: 48 33.3% 97.1%;
+    --destructive: 0 61.4% 22.4%; /* Deep red for destructive actions */
+    --destructive-foreground: 48 33.3% 97.1%;
+    --input: 48 25% 92.2%; /* Input backgrounds */
+    --ring: 15 63.1% 59.6%; /* Focus rings with warm accent */
+  }
+
+  .black {
+    /* Black Theme Tokens - Notion-inspired pure dark aesthetic */
+    --background: 0 0% 0%; /* Pure black background */
+    --foreground: 0 0% 90%; /* Almost white text with slight dimming */
+
+    --surface: 210 6% 28%; /* #474c50 - Dark gray surfaces */
+    --surface-muted: 210 6% 25%; /* #3f4447 - Slightly darker for inputs */
+
+    --border: 210 6% 20%; /* Dark borders for definition */
+    --border-hover: 210 6% 25%; /* Slightly lighter on hover */
+
+    /* Primary action color - Notion blue accent */
+    --primary: 196 73% 52%; /* #2eaadc - Notion select color */
+    --primary-foreground: 0 0% 100%;
+
+    --text-primary: 0 0% 90%; /* Almost white primary text */
+    --text-secondary: 0 0% 70%; /* Dimmed secondary text */
+
+    /* Enhanced hierarchy tokens for Notion-style dark interface */
+    --text-tertiary: 0 0% 60%; /* More dimmed for metadata */
+    --surface-hover: 210 6% 30%; /* Subtle hover backgrounds */
+    --border-strong: 210 6% 35%; /* Emphasized separators */
+    --comment-thread: 210 6% 22%; /* Threading lines */
+    --action-hover: 210 6% 32%; /* Action button hovers */
+
+    /* Legacy tokens for compatibility - pure dark palette */
+    --card: 210 6% 28%; /* Cards match surface */
+    --card-foreground: 0 0% 90%;
+    --popover: 210 6% 25%; /* Slightly darker for depth */
+    --popover-foreground: 0 0% 90%;
+    --secondary: 210 6% 25%; /* Secondary surfaces */
+    --secondary-foreground: 0 0% 90%;
+    --muted: 210 6% 25%; /* Muted surfaces */
+    --muted-foreground: 0 0% 60%; /* Muted text */
+    --accent: 196 73% 52%; /* Notion blue accent */
+    --accent-foreground: 0 0% 100%;
+    --destructive: 6 93% 71%; /* #ff7369 - Notion red */
+    --destructive-foreground: 0 0% 100%;
+    --input: 210 6% 25%; /* Input backgrounds */
+    --ring: 196 73% 52%; /* Focus rings with blue accent */
   }
 
   /* Universal Semantic & Utility Tokens */

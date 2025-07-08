@@ -1,12 +1,12 @@
 // ABOUTME: Custom theme provider optimized for Vite environment, replacing next-themes.
 import React, { createContext, useContext, useEffect, useState } from 'react';
 
-type Theme = 'dark' | 'light' | 'anthropic' | 'system';
+type Theme = 'dark' | 'light' | 'anthropic' | 'black' | 'system';
 
 interface ThemeContextType {
   theme: Theme;
   setTheme: (theme: Theme) => void;
-  actualTheme: 'dark' | 'light' | 'anthropic';
+  actualTheme: 'dark' | 'light' | 'anthropic' | 'black';
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -23,13 +23,13 @@ export function CustomThemeProvider({
   storageKey = 'evidens-theme',
 }: ThemeProviderProps) {
   const [theme, setThemeState] = useState<Theme>(defaultTheme);
-  const [actualTheme, setActualTheme] = useState<'dark' | 'light' | 'anthropic'>('dark');
+  const [actualTheme, setActualTheme] = useState<'dark' | 'light' | 'anthropic' | 'black'>('dark');
 
   // Initialize theme from localStorage or default - runs once on mount
   useEffect(() => {
     try {
       const savedTheme = localStorage.getItem(storageKey) as Theme;
-      if (savedTheme && ['dark', 'light', 'anthropic', 'system'].includes(savedTheme)) {
+      if (savedTheme && ['dark', 'light', 'anthropic', 'black', 'system'].includes(savedTheme)) {
         console.log('CustomThemeProvider: Loading saved theme:', savedTheme);
         setThemeState(savedTheme);
       } else {
@@ -72,19 +72,21 @@ export function CustomThemeProvider({
     return () => mediaQuery.removeEventListener('change', handleSystemThemeChange);
   }, [theme]);
 
-  const updateDocumentTheme = (newTheme: 'dark' | 'light' | 'anthropic') => {
+  const updateDocumentTheme = (newTheme: 'dark' | 'light' | 'anthropic' | 'black') => {
     const root = document.documentElement;
     const body = document.body;
 
     // Remove all theme classes and add the new one
-    root.classList.remove('light', 'dark', 'anthropic');
+    root.classList.remove('light', 'dark', 'anthropic', 'black');
     root.classList.add(newTheme);
 
     // Ensure body has proper background
     if (newTheme === 'dark') {
       body.style.backgroundColor = 'hsl(0 0% 7%)'; // --background dark
     } else if (newTheme === 'anthropic') {
-      body.style.backgroundColor = 'hsl(0 0% 98%)'; // --background anthropic
+      body.style.backgroundColor = 'hsl(48 33.3% 97.1%)'; // --background anthropic warm off-white
+    } else if (newTheme === 'black') {
+      body.style.backgroundColor = 'hsl(0 0% 0%)'; // --background black pure black
     } else {
       body.style.backgroundColor = 'hsl(220 20% 98%)'; // --background light
     }
@@ -112,6 +114,9 @@ export function CustomThemeProvider({
     } else if (newTheme === 'anthropic') {
       setActualTheme('anthropic');
       updateDocumentTheme('anthropic');
+    } else if (newTheme === 'black') {
+      setActualTheme('black');
+      updateDocumentTheme('black');
     } else {
       setActualTheme(newTheme);
       updateDocumentTheme(newTheme);
