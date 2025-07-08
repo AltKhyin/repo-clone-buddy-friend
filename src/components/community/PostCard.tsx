@@ -4,15 +4,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { formatDistanceToNow, isValid, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import {
-  MessageCircle,
-  Pin,
-  Lock,
-  ChevronUp,
-  ChevronDown,
-  Bookmark,
-  BookmarkCheck,
-} from 'lucide-react';
+import { MessageCircle, Pin, Lock } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
@@ -20,11 +12,11 @@ import { PostActionMenu } from './PostActionMenu';
 import { PollDisplay } from './PollDisplay';
 import { cn } from '../../lib/utils';
 import type { CommunityPost } from '../../types/community';
-import { useCastVoteMutation } from '../../../packages/hooks/useCastVoteMutation';
 import { useSavePostMutation } from '../../../packages/hooks/useSavePostMutation';
 import { useAuthStore } from '../../store/auth';
 import { toast } from 'sonner';
 import { processVideoUrl, getVideoType } from '../../lib/video-utils';
+import { VoteButton } from '../ui/VoteButton';
 
 interface PostCardProps {
   post: CommunityPost;
@@ -81,29 +73,12 @@ const formatPostDate = (dateString: string | null | undefined): string => {
 export const PostCard = ({ post }: PostCardProps) => {
   const navigate = useNavigate();
   const { user } = useAuthStore();
-  const castVoteMutation = useCastVoteMutation();
   const savePostMutation = useSavePostMutation();
 
   const handlePostClick = (e: React.MouseEvent) => {
     // Don't navigate if clicking on interactive elements
     if ((e.target as HTMLElement).closest('button, a')) return;
     navigate(`/comunidade/${post.id}`);
-  };
-
-  const handleVote = (voteType: 'up' | 'down') => {
-    if (!user) {
-      toast.error('Você precisa estar logado para votar');
-      return;
-    }
-
-    const newVoteType = post.user_vote === voteType ? null : voteType;
-
-    // The mutation now handles optimistic updates and error handling automatically
-    castVoteMutation.mutate({
-      entity_id: post.id.toString(),
-      vote_type: newVoteType || 'none',
-      entity_type: 'community_post',
-    });
   };
 
   const handleSave = async () => {
@@ -307,43 +282,18 @@ export const PostCard = ({ post }: PostCardProps) => {
 
       {/* Bottom Action Row - Mobile-Optimized Touch Targets */}
       <div className="px-4 pb-3">
-        <div className="flex items-center gap-1 text-muted-foreground">
+        <div className="flex items-center gap-3 text-muted-foreground">
           {/* Vote Section */}
-          <div className="flex items-center gap-1">
-            <Button
-              variant="ghost"
-              size="sm"
-              className={cn(
-                'reddit-action-button',
-                post.user_vote === 'up' &&
-                  'text-success bg-success-muted hover:bg-success-muted-hover'
-              )}
-              onClick={e => {
-                e.stopPropagation();
-                handleVote('up');
-              }}
-              disabled={castVoteMutation.isPending}
-            >
-              <ChevronUp className="w-4 h-4 mr-1" />
-              {post.upvotes}
-            </Button>
-
-            <Button
-              variant="ghost"
-              size="sm"
-              className={cn(
-                'reddit-action-button',
-                post.user_vote === 'down' && 'text-error bg-error-muted hover:bg-error-muted-hover'
-              )}
-              onClick={e => {
-                e.stopPropagation();
-                handleVote('down');
-              }}
-              disabled={castVoteMutation.isPending}
-            >
-              <ChevronDown className="w-4 h-4 mr-1" />
-              {post.downvotes}
-            </Button>
+          <div onClick={e => e.stopPropagation()}>
+            <VoteButton
+              entityId={post.id.toString()}
+              entityType="community_post"
+              upvotes={post.upvotes}
+              downvotes={post.downvotes}
+              userVote={post.user_vote}
+              orientation="horizontal"
+              size="md"
+            />
           </div>
 
           {/* Comments */}

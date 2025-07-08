@@ -8,12 +8,10 @@ import { formatDistanceToNow, isValid, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { MinimalCommentInput } from './MinimalCommentInput';
 import { PostActionMenu } from './PostActionMenu';
-import { ChevronUp, ChevronDown, Award } from 'lucide-react';
+import { Award } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { toast } from 'sonner';
 import type { CommunityPost } from '../../types/community';
-import { useCastVoteMutation } from '../../../packages/hooks/useCastVoteMutation';
-import { useAuthStore } from '../../store/auth';
+import { VoteButton } from '../ui/VoteButton';
 
 interface CommentProps {
   comment: CommunityPost;
@@ -61,8 +59,6 @@ export const Comment = ({
   onCommentPosted,
 }: CommentProps) => {
   const [isReplying, setIsReplying] = useState(false);
-  const { user } = useAuthStore();
-  const castVoteMutation = useCastVoteMutation();
 
   // Calculate left margin for nesting effect (max 6 levels to prevent UI overflow)
   const effectiveLevel = Math.min(indentationLevel, 6);
@@ -71,22 +67,6 @@ export const Comment = ({
   const handleReplyPosted = () => {
     setIsReplying(false);
     onCommentPosted();
-  };
-
-  const handleVote = (voteType: 'up' | 'down') => {
-    if (!user) {
-      toast.error('Você precisa estar logado para votar');
-      return;
-    }
-
-    const newVoteType = comment.user_vote === voteType ? null : voteType;
-
-    // The mutation now handles optimistic updates and error handling automatically
-    castVoteMutation.mutate({
-      entity_id: comment.id.toString(),
-      vote_type: newVoteType || 'none',
-      entity_type: 'community_post',
-    });
   };
 
   return (
@@ -136,39 +116,17 @@ export const Comment = ({
           />
 
           {/* Comment Actions - Reddit Style Bottom Row */}
-          <div className="flex items-center gap-1 text-muted-foreground">
+          <div className="flex items-center gap-3 text-muted-foreground">
             {/* Vote Section */}
-            <div className="flex items-center gap-1">
-              <Button
-                variant="ghost"
-                size="sm"
-                className={cn(
-                  'h-8 px-2 text-xs hover:bg-surface-muted/50',
-                  comment.user_vote === 'up' &&
-                    'text-success bg-success-muted hover:bg-success-muted-hover'
-                )}
-                onClick={() => handleVote('up')}
-                disabled={castVoteMutation.isPending}
-              >
-                <ChevronUp className="w-4 h-4 mr-1" />
-                {comment.upvotes || 0}
-              </Button>
-
-              <Button
-                variant="ghost"
-                size="sm"
-                className={cn(
-                  'h-8 px-2 text-xs hover:bg-surface-muted/50',
-                  comment.user_vote === 'down' &&
-                    'text-error bg-error-muted hover:bg-error-muted-hover'
-                )}
-                onClick={() => handleVote('down')}
-                disabled={castVoteMutation.isPending}
-              >
-                <ChevronDown className="w-4 h-4 mr-1" />
-                {comment.downvotes || 0}
-              </Button>
-            </div>
+            <VoteButton
+              entityId={comment.id.toString()}
+              entityType="community_post"
+              upvotes={comment.upvotes || 0}
+              downvotes={comment.downvotes || 0}
+              userVote={comment.user_vote}
+              orientation="horizontal"
+              size="sm"
+            />
 
             {/* Reply Button */}
             <Button

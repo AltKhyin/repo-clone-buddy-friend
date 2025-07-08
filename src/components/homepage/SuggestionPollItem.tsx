@@ -1,39 +1,16 @@
 // ABOUTME: Atomic component for displaying and voting on individual suggestions with optimistic updates.
 
 import React from 'react';
-import { ChevronUp } from 'lucide-react';
-import { Button } from '../ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Suggestion } from './NextEditionModule';
-import { useCastVoteMutation } from '../../../packages/hooks/useCastVoteMutation';
-import { toast } from 'sonner';
 import { cn } from '../../lib/utils';
-import { useAuthStore } from '../../store/auth';
+import { VoteButton } from '../ui/VoteButton';
 
 interface SuggestionPollItemProps {
   suggestion: Suggestion;
 }
 
 const SuggestionPollItem: React.FC<SuggestionPollItemProps> = ({ suggestion }) => {
-  const { user } = useAuthStore();
-  const mutation = useCastVoteMutation();
-
-  const handleVote = () => {
-    if (!user) {
-      toast.error('Você precisa estar logado para votar');
-      return;
-    }
-
-    const vote_type = suggestion.user_has_voted ? 'none' : 'up';
-
-    // The mutation now handles optimistic updates automatically
-    mutation.mutate({
-      entity_id: suggestion.id.toString(),
-      vote_type,
-      entity_type: 'suggestion',
-    });
-  };
-
   return (
     <div className="flex items-start justify-between p-3 bg-surface rounded-md border border-border hover:bg-surface-muted transition-colors">
       <div className="flex items-start gap-3 flex-1 min-w-0">
@@ -55,25 +32,16 @@ const SuggestionPollItem: React.FC<SuggestionPollItemProps> = ({ suggestion }) =
       </div>
 
       <div className="flex items-center gap-2 ml-3 mt-0.5">
-        <span className="text-sm font-medium text-foreground min-w-[2rem] text-right">
-          {suggestion.upvotes}
-        </span>
-        <Button
-          variant="ghost"
+        <VoteButton
+          entityId={suggestion.id.toString()}
+          entityType="suggestion"
+          upvotes={suggestion.upvotes}
+          downvotes={0}
+          userVote={suggestion.user_has_voted ? 'up' : null}
+          orientation="horizontal"
           size="sm"
-          onClick={handleVote}
-          disabled={mutation.isPending}
-          className={cn(
-            'p-2 h-8 w-8',
-            suggestion.user_has_voted &&
-              'text-success bg-success-muted hover:bg-success-muted-hover'
-          )}
-        >
-          <ChevronUp
-            size={14}
-            className={suggestion.user_has_voted ? 'text-current' : 'text-muted-foreground'}
-          />
-        </Button>
+          showDownvote={false}
+        />
       </div>
     </div>
   );
