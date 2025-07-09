@@ -1,12 +1,12 @@
 // ABOUTME: Custom theme provider optimized for Vite environment, replacing next-themes.
 import React, { createContext, useContext, useEffect, useState } from 'react';
 
-type Theme = 'dark' | 'light' | 'anthropic' | 'black' | 'system';
+type Theme = 'dark' | 'light' | 'black';
 
 interface ThemeContextType {
   theme: Theme;
   setTheme: (theme: Theme) => void;
-  actualTheme: 'dark' | 'light' | 'anthropic' | 'black';
+  actualTheme: 'dark' | 'light' | 'black';
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -19,17 +19,17 @@ interface ThemeProviderProps {
 
 export function CustomThemeProvider({
   children,
-  defaultTheme = 'dark',
+  defaultTheme = 'light',
   storageKey = 'evidens-theme',
 }: ThemeProviderProps) {
   const [theme, setThemeState] = useState<Theme>(defaultTheme);
-  const [actualTheme, setActualTheme] = useState<'dark' | 'light' | 'anthropic' | 'black'>('dark');
+  const [actualTheme, setActualTheme] = useState<'dark' | 'light' | 'black'>('light');
 
   // Initialize theme from localStorage or default - runs once on mount
   useEffect(() => {
     try {
       const savedTheme = localStorage.getItem(storageKey) as Theme;
-      if (savedTheme && ['dark', 'light', 'anthropic', 'black', 'system'].includes(savedTheme)) {
+      if (savedTheme && ['dark', 'light', 'black'].includes(savedTheme)) {
         console.log('CustomThemeProvider: Loading saved theme:', savedTheme);
         setThemeState(savedTheme);
       } else {
@@ -43,52 +43,28 @@ export function CustomThemeProvider({
     }
   }, [storageKey, defaultTheme]);
 
-  // Handle system theme changes and apply theme to document
+  // Apply theme to document
   useEffect(() => {
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-
-    const handleSystemThemeChange = () => {
-      if (theme === 'system') {
-        const systemTheme = mediaQuery.matches ? 'dark' : 'light';
-        console.log('CustomThemeProvider: System theme changed to:', systemTheme);
-        setActualTheme(systemTheme);
-        updateDocumentTheme(systemTheme);
-      }
-    };
-
-    // Set initial theme based on current theme state
-    if (theme === 'system') {
-      const systemTheme = mediaQuery.matches ? 'dark' : 'light';
-      console.log('CustomThemeProvider: Using system theme:', systemTheme);
-      setActualTheme(systemTheme);
-      updateDocumentTheme(systemTheme);
-    } else {
-      console.log('CustomThemeProvider: Using explicit theme:', theme);
-      setActualTheme(theme);
-      updateDocumentTheme(theme);
-    }
-
-    mediaQuery.addEventListener('change', handleSystemThemeChange);
-    return () => mediaQuery.removeEventListener('change', handleSystemThemeChange);
+    console.log('CustomThemeProvider: Using explicit theme:', theme);
+    setActualTheme(theme);
+    updateDocumentTheme(theme);
   }, [theme]);
 
-  const updateDocumentTheme = (newTheme: 'dark' | 'light' | 'anthropic' | 'black') => {
+  const updateDocumentTheme = (newTheme: 'dark' | 'light' | 'black') => {
     const root = document.documentElement;
     const body = document.body;
 
     // Remove all theme classes and add the new one
-    root.classList.remove('light', 'dark', 'anthropic', 'black');
+    root.classList.remove('light', 'dark', 'black');
     root.classList.add(newTheme);
 
     // Ensure body has proper background
     if (newTheme === 'dark') {
       body.style.backgroundColor = 'hsl(0 0% 7%)'; // --background dark
-    } else if (newTheme === 'anthropic') {
-      body.style.backgroundColor = 'hsl(48 33.3% 97.1%)'; // --background anthropic warm off-white
     } else if (newTheme === 'black') {
       body.style.backgroundColor = 'hsl(0 0% 0%)'; // --background black pure black
     } else {
-      body.style.backgroundColor = 'hsl(220 20% 98%)'; // --background light
+      body.style.backgroundColor = 'hsl(48 33.3% 97.1%)'; // --background light (formerly anthropic)
     }
 
     console.log('CustomThemeProvider: Applied theme to document:', newTheme);
@@ -105,16 +81,7 @@ export function CustomThemeProvider({
       console.warn('CustomThemeProvider: Failed to save theme to localStorage:', error);
     }
 
-    if (newTheme === 'system') {
-      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches
-        ? 'dark'
-        : 'light';
-      setActualTheme(systemTheme);
-      updateDocumentTheme(systemTheme);
-    } else if (newTheme === 'anthropic') {
-      setActualTheme('anthropic');
-      updateDocumentTheme('anthropic');
-    } else if (newTheme === 'black') {
+    if (newTheme === 'black') {
       setActualTheme('black');
       updateDocumentTheme('black');
     } else {

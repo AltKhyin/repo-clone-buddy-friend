@@ -7,6 +7,7 @@ import { VoteArrowDown } from './icons/VoteArrowDown';
 import { cn } from '../../lib/utils';
 import { useCastVoteMutation } from '../../../packages/hooks/useCastVoteMutation';
 import { useAuthStore } from '../../store/auth';
+import { useTheme } from '../theme/CustomThemeProvider';
 import { toast } from 'sonner';
 
 interface VoteButtonProps {
@@ -35,6 +36,7 @@ export const VoteButton = ({
   showDownvote = true,
 }: VoteButtonProps) => {
   const { user } = useAuthStore();
+  const { actualTheme } = useTheme();
   const castVoteMutation = useCastVoteMutation();
 
   // Calculate net score (Reddit-style)
@@ -82,6 +84,14 @@ export const VoteButton = ({
   const config = sizeConfig[size];
   const isLoading = castVoteMutation.isPending;
 
+  // Theme-aware upvote styling: Use accent color for light theme, primary for others
+  const getUpvoteStyle = () => {
+    if (actualTheme === 'light') {
+      return 'text-accent bg-accent/10 hover:bg-accent/20';
+    }
+    return 'text-primary bg-primary/10 hover:bg-primary/20';
+  };
+
   // Orientation-specific styling
   const containerClass =
     orientation === 'vertical' ? 'flex flex-col items-center gap-1' : 'flex items-center gap-2';
@@ -95,7 +105,7 @@ export const VoteButton = ({
         className={cn(
           config.text,
           'font-medium min-w-[2rem] text-center tabular-nums',
-          userVote === 'up' && 'text-primary',
+          userVote === 'up' && (actualTheme === 'light' ? 'text-accent' : 'text-primary'),
           userVote === 'down' && 'text-muted-foreground',
           !userVote && 'text-foreground'
         )}
@@ -113,8 +123,11 @@ export const VoteButton = ({
             config.button,
             'transition-all duration-150',
             showDownvote ? 'rounded-r-none' : 'rounded-sm',
-            userVote === 'up' && 'text-primary bg-primary/10 hover:bg-primary/20',
-            !userVote && 'text-muted-foreground hover:text-primary hover:bg-primary/10'
+            userVote === 'up' && getUpvoteStyle(),
+            !userVote &&
+              (actualTheme === 'light'
+                ? 'text-muted-foreground hover:text-accent hover:bg-accent/10'
+                : 'text-muted-foreground hover:text-primary hover:bg-primary/10')
           )}
           onClick={() => handleVote('up')}
           disabled={disabled || isLoading}

@@ -1,4 +1,3 @@
-
 // ABOUTME: Stabilized provider chain with isolated error boundaries and React 18 compliant initialization
 
 import React from 'react';
@@ -25,7 +24,10 @@ export const AppProviders = ({ children }: AppProvidersProps) => {
             refetchOnWindowFocus: false,
             retry: (failureCount, error) => {
               // Don't retry on auth errors
-              if (error?.message?.includes('unauthorized') || error?.message?.includes('forbidden')) {
+              if (
+                error?.message?.includes('unauthorized') ||
+                error?.message?.includes('forbidden')
+              ) {
                 return false;
               }
               // Retry up to 2 times for other errors - per KB standards
@@ -47,11 +49,9 @@ export const AppProviders = ({ children }: AppProvidersProps) => {
         <ErrorBoundary tier="provider" context="AuthSessionProvider">
           <AuthSessionProvider>
             <ErrorBoundary tier="provider" context="CustomThemeProvider">
-              <CustomThemeProvider defaultTheme="dark" storageKey="evidens-theme">
+              <CustomThemeProvider defaultTheme="light" storageKey="evidens-theme">
                 <ErrorBoundary tier="provider" context="PWAProvider">
-                  <PWAProvider>
-                    {children}
-                  </PWAProvider>
+                  <PWAProvider>{children}</PWAProvider>
                 </ErrorBoundary>
               </CustomThemeProvider>
             </ErrorBoundary>

@@ -1,7 +1,7 @@
 // ABOUTME: Reusable theme selector component with icon-only design extracted from ProfileMenu.
 
 import React from 'react';
-import { Monitor, Moon, Sun, Palette, Circle } from 'lucide-react';
+import { Moon, Sun, Circle } from 'lucide-react';
 import { useTheme } from '@/components/theme/CustomThemeProvider';
 import {
   DropdownMenu,
@@ -22,7 +22,7 @@ export const ThemeSelector = ({ variant = 'icon', className }: ThemeSelectorProp
   const { toast } = useToast();
 
   const handleThemeChange = (newTheme: string) => {
-    setTheme(newTheme as 'light' | 'dark' | 'anthropic' | 'black' | 'system');
+    setTheme(newTheme as 'light' | 'dark' | 'black');
 
     const getThemeDisplayName = (theme: string) => {
       switch (theme) {
@@ -30,12 +30,8 @@ export const ThemeSelector = ({ variant = 'icon', className }: ThemeSelectorProp
           return 'claro';
         case 'dark':
           return 'escuro';
-        case 'anthropic':
-          return 'Clássico';
         case 'black':
           return 'Black';
-        case 'system':
-          return 'sistema';
         default:
           return theme;
       }
@@ -54,14 +50,10 @@ export const ThemeSelector = ({ variant = 'icon', className }: ThemeSelectorProp
         return <Sun className="h-4 w-4" />;
       case 'dark':
         return <Moon className="h-4 w-4" />;
-      case 'anthropic':
-        return <Palette className="h-4 w-4" />;
       case 'black':
         return <Moon className="h-4 w-4 fill-current" />;
-      case 'system':
-        return <Monitor className="h-4 w-4" />;
       default:
-        return <Monitor className="h-4 w-4" />;
+        return <Moon className="h-4 w-4" />;
     }
   };
 
@@ -87,20 +79,10 @@ export const ThemeSelector = ({ variant = 'icon', className }: ThemeSelectorProp
           <span>Escuro</span>
           {theme === 'dark' && <span className="ml-auto">✓</span>}
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => handleThemeChange('anthropic')}>
-          <Palette className="mr-2 h-4 w-4" />
-          <span>Clássico</span>
-          {theme === 'anthropic' && <span className="ml-auto">✓</span>}
-        </DropdownMenuItem>
         <DropdownMenuItem onClick={() => handleThemeChange('black')}>
           <Circle className="mr-2 h-4 w-4 fill-current" />
           <span>Black</span>
           {theme === 'black' && <span className="ml-auto">✓</span>}
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => handleThemeChange('system')}>
-          <Monitor className="mr-2 h-4 w-4" />
-          <span>Sistema</span>
-          {theme === 'system' && <span className="ml-auto">✓</span>}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

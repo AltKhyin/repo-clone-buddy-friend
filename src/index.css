@@ -3,44 +3,44 @@
 @tailwind utilities;
 
 @layer base {
-  /* Light Theme Tokens (Default - The "Manus" Reference) */
+  /* Light Theme Tokens - Sophisticated monochromatic palette with warm undertones (formerly Clássico) */
   .light {
-    --background: 220 20% 98%; /* Very light, soft off-white */
-    --foreground: 220 10% 15%; /* Dark charcoal, not pure black */
+    --background: 48 33.3% 97.1%; /* #f0efea - Warm off-white background */
+    --foreground: 60 2.6% 7.6%; /* Very dark charcoal text */
 
-    --surface: 220 20% 94%; /* Subtle gray for cards, secondary backgrounds */
-    --surface-muted: 220 20% 88%; /* Gray for input fields, disabled states */
+    --surface: 53 28.6% 94.5%; /* Subtle warm gray surfaces */
+    --surface-muted: 48 25% 92.2%; /* Slightly darker for input fields */
 
-    --border: 220 10% 85%; /* Light gray border */
-    --border-hover: 220 10% 75%; /* Slightly darker border on hover */
+    --border: 50 20.7% 88.6%; /* Light warm gray borders */
+    --border-hover: 51 16.5% 84.5%; /* Slightly darker border on hover */
 
-    /* Primary action color is high-contrast black */
-    --primary: 220 10% 10%;
-    --primary-foreground: 210 40% 98%;
+    /* Primary action color - Near black for monochromatic feel */
+    --primary: 60 2.6% 7.6%; /* Very dark charcoal matching text */
+    --primary-foreground: 48 33.3% 97.1%; /* Warm off-white */
 
-    --text-primary: 220 10% 15%;
-    --text-secondary: 220 10% 35%;
+    --text-primary: 60 2.6% 7.6%; /* Very dark charcoal */
+    --text-secondary: 60 2.5% 23.3%; /* Medium dark gray */
 
-    /* NEW: Enhanced hierarchy tokens for Reddit-style clarity */
-    --text-tertiary: 220 10% 48%; /* For less important metadata */
-    --surface-hover: 220 20% 91%; /* For subtle hover backgrounds */
-    --border-strong: 220 10% 70%; /* For emphasized separators */
-    --comment-thread: 220 10% 82%; /* For threading lines */
-    --action-hover: 220 20% 85%; /* For action button hovers */
+    /* Enhanced hierarchy tokens for sophisticated monochromatic design */
+    --text-tertiary: 51 3.1% 43.7%; /* Medium gray for metadata */
+    --surface-hover: 50 20.7% 88.6%; /* Subtle hover backgrounds */
+    --border-strong: 51 16.5% 84.5%; /* Emphasized separators */
+    --comment-thread: 50 11.5% 79.6%; /* Threading lines */
+    --action-hover: 50 20.7% 88.6%; /* Action button hovers */
 
-    /* Legacy tokens for compatibility */
-    --card: 220 20% 98%;
-    --card-foreground: 220 10% 15%;
-    --popover: 220 20% 98%;
-    --popover-foreground: 220 10% 15%;
-    --secondary: 220 4.8% 95.9%;
-    --secondary-foreground: 220 5.9% 10%;
-    --muted: 220 4.8% 95.9%;
-    --muted-foreground: 220 3.8% 46.1%;
-    --accent: 220 4.8% 95.9%;
-    --accent-foreground: 220 5.9% 10%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
+    /* Legacy tokens for compatibility - warm monochromatic palette */
+    --card: 53 28.6% 94.5%; /* Cards match surface */
+    --card-foreground: 60 2.6% 7.6%;
+    --popover: 48 33.3% 97.1%; /* Slightly brighter for popover emphasis */
+    --popover-foreground: 60 2.6% 7.6%;
+    --secondary: 48 25% 92.2%; /* Secondary surfaces */
+    --secondary-foreground: 60 2.6% 7.6%;
+    --muted: 48 25% 92.2%; /* Muted surfaces */
+    --muted-foreground: 51 3.1% 43.7%; /* Muted text with good contrast */
+    --accent: 15 63.1% 59.6%; /* Warm brown accent for highlights */
+    --accent-foreground: 48 33.3% 97.1%;
+    --destructive: 0 61.4% 22.4%; /* Deep red for destructive actions */
+    --destructive-foreground: 48 33.3% 97.1%;
 
     /* Vote colors for upvote/downvote functionality */
     --success: 140 60% 40%; /* Green for upvotes */
@@ -52,8 +52,8 @@
     --error-foreground: 0 0% 98%;
     --error-muted: 0 84.2% 95%; /* Light red background */
     --error-muted-hover: 0 84.2% 90%; /* Hover state */
-    --input: 220 5.9% 90%;
-    --ring: 240 10% 3.9%;
+    --input: 48 25% 92.2%; /* Input backgrounds */
+    --ring: 15 63.1% 59.6%; /* Focus rings with warm accent */
   }
 
   .dark {
@@ -107,48 +107,6 @@
     --error-muted-hover: 0 40% 18%; /* Hover state */
     --input: 0 0% 13%; /* #212121 */
     --ring: 240 4.9% 83.9%;
-  }
-
-  .anthropic {
-    /* Anthropic Theme Tokens - Sophisticated monochromatic palette with warm undertones */
-    --background: 48 33.3% 97.1%; /* #f0efea - Warm off-white background */
-    --foreground: 60 2.6% 7.6%; /* Very dark charcoal text */
-
-    --surface: 53 28.6% 94.5%; /* Subtle warm gray surfaces */
-    --surface-muted: 48 25% 92.2%; /* Slightly darker for input fields */
-
-    --border: 50 20.7% 88.6%; /* Light warm gray borders */
-    --border-hover: 51 16.5% 84.5%; /* Slightly darker border on hover */
-
-    /* Primary action color - Near black for monochromatic feel */
-    --primary: 60 2.6% 7.6%; /* Very dark charcoal matching text */
-    --primary-foreground: 48 33.3% 97.1%; /* Warm off-white */
-
-    --text-primary: 60 2.6% 7.6%; /* Very dark charcoal */
-    --text-secondary: 60 2.5% 23.3%; /* Medium dark gray */
-
-    /* Enhanced hierarchy tokens for sophisticated monochromatic design */
-    --text-tertiary: 51 3.1% 43.7%; /* Medium gray for metadata */
-    --surface-hover: 50 20.7% 88.6%; /* Subtle hover backgrounds */
-    --border-strong: 51 16.5% 84.5%; /* Emphasized separators */
-    --comment-thread: 50 11.5% 79.6%; /* Threading lines */
-    --action-hover: 50 20.7% 88.6%; /* Action button hovers */
-
-    /* Legacy tokens for compatibility - warm monochromatic palette */
-    --card: 53 28.6% 94.5%; /* Cards match surface */
-    --card-foreground: 60 2.6% 7.6%;
-    --popover: 48 33.3% 97.1%; /* Slightly brighter for popover emphasis */
-    --popover-foreground: 60 2.6% 7.6%;
-    --secondary: 48 25% 92.2%; /* Secondary surfaces */
-    --secondary-foreground: 60 2.6% 7.6%;
-    --muted: 48 25% 92.2%; /* Muted surfaces */
-    --muted-foreground: 51 3.1% 43.7%; /* Muted text with good contrast */
-    --accent: 15 63.1% 59.6%; /* Warm brown accent for highlights */
-    --accent-foreground: 48 33.3% 97.1%;
-    --destructive: 0 61.4% 22.4%; /* Deep red for destructive actions */
-    --destructive-foreground: 48 33.3% 97.1%;
-    --input: 48 25% 92.2%; /* Input backgrounds */
-    --ring: 15 63.1% 59.6%; /* Focus rings with warm accent */
   }
 
   .black {

@@ -25,9 +25,6 @@ const SuggestionPollItem: React.FC<SuggestionPollItemProps> = ({ suggestion }) =
           <h4 className="font-medium text-sm text-foreground line-clamp-3 leading-relaxed">
             {suggestion.title}
           </h4>
-          <p className="text-xs text-secondary mt-1">
-            {suggestion.Practitioners?.full_name || 'Anônimo'}
-          </p>
         </div>
       </div>
 

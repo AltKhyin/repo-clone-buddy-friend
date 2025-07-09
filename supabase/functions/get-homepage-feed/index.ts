@@ -43,7 +43,10 @@ interface Suggestion {
   description: string | null;
   upvotes: number;
   created_at: string;
-  Practitioners: { full_name: string } | null;
+  Practitioners: {
+    full_name: string;
+    avatar_url?: string | null;
+  } | null;
   user_has_voted?: boolean;
 }
 interface UserProfile {

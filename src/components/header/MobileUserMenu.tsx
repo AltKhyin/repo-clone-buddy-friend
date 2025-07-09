@@ -1,7 +1,7 @@
 // ABOUTME: Mobile avatar menu component combining theme selector and logout functionality.
 
 import React from 'react';
-import { LogOut, Monitor, Moon, Sun, Palette, Circle } from 'lucide-react';
+import { LogOut, Moon, Sun, Circle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '@/components/theme/CustomThemeProvider';
 import {
@@ -16,6 +16,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuthStore } from '@/store/auth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useUserProfileQuery } from '../../../packages/hooks/useUserProfileQuery';
 
 interface MobileUserMenuProps {
   className?: string;
@@ -26,9 +27,10 @@ export const MobileUserMenu = ({ className }: MobileUserMenuProps) => {
   const { toast } = useToast();
   const { setTheme, theme } = useTheme();
   const { user } = useAuthStore();
+  const { data: userProfile } = useUserProfileQuery();
 
   const handleThemeChange = (newTheme: string) => {
-    setTheme(newTheme as 'light' | 'dark' | 'anthropic' | 'black' | 'system');
+    setTheme(newTheme as 'light' | 'dark' | 'black');
 
     const getThemeDisplayName = (theme: string) => {
       switch (theme) {
@@ -36,12 +38,8 @@ export const MobileUserMenu = ({ className }: MobileUserMenuProps) => {
           return 'claro';
         case 'dark':
           return 'escuro';
-        case 'anthropic':
-          return 'Clássico';
         case 'black':
           return 'Black';
-        case 'system':
-          return 'sistema';
         default:
           return theme;
       }
@@ -82,8 +80,8 @@ export const MobileUserMenu = ({ className }: MobileUserMenuProps) => {
 
   // Get user initials for avatar fallback
   const getUserInitials = () => {
-    if (user?.user_metadata?.full_name) {
-      return user.user_metadata.full_name
+    if (userProfile?.full_name) {
+      return userProfile.full_name
         .split(' ')
         .map((name: string) => name[0])
         .join('')
@@ -98,7 +96,7 @@ export const MobileUserMenu = ({ className }: MobileUserMenuProps) => {
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="icon" className={`h-8 w-8 rounded-full p-0 ${className}`}>
           <Avatar className="h-7 w-7">
-            <AvatarImage src={user?.user_metadata?.avatar_url} alt="Avatar do usuário" />
+            <AvatarImage src={userProfile?.avatar_url || ''} alt="Avatar do usuário" />
             <AvatarFallback className="text-xs">{getUserInitials()}</AvatarFallback>
           </Avatar>
         </Button>
@@ -115,20 +113,10 @@ export const MobileUserMenu = ({ className }: MobileUserMenuProps) => {
           <span>Tema Escuro</span>
           {theme === 'dark' && <span className="ml-auto">✓</span>}
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => handleThemeChange('anthropic')}>
-          <Palette className="mr-2 h-4 w-4" />
-          <span>Tema Clássico</span>
-          {theme === 'anthropic' && <span className="ml-auto">✓</span>}
-        </DropdownMenuItem>
         <DropdownMenuItem onClick={() => handleThemeChange('black')}>
           <Circle className="mr-2 h-4 w-4 fill-current" />
           <span>Tema Black</span>
           {theme === 'black' && <span className="ml-auto">✓</span>}
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => handleThemeChange('system')}>
-          <Monitor className="mr-2 h-4 w-4" />
-          <span>Sistema</span>
-          {theme === 'system' && <span className="ml-auto">✓</span>}
         </DropdownMenuItem>
 
         <DropdownMenuSeparator />
