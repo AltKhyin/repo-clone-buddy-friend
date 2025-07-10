@@ -21,6 +21,7 @@ interface VoteButtonProps {
   disabled?: boolean;
   className?: string;
   showDownvote?: boolean;
+  isPinned?: boolean;
 }
 
 export const VoteButton = ({
@@ -34,6 +35,7 @@ export const VoteButton = ({
   disabled = false,
   className,
   showDownvote = true,
+  isPinned = false,
 }: VoteButtonProps) => {
   const { user } = useAuthStore();
   const { actualTheme } = useTheme();
@@ -86,10 +88,27 @@ export const VoteButton = ({
 
   // Theme-aware upvote styling: Use accent color for light theme, primary for others
   const getUpvoteStyle = () => {
+    if (isPinned) {
+      if (actualTheme === 'dark') {
+        return 'text-primary-foreground bg-primary-foreground/10 hover:bg-primary-foreground/20';
+      }
+      return 'text-accent-foreground bg-accent-foreground/10 hover:bg-accent-foreground/20';
+    }
     if (actualTheme === 'light') {
       return 'text-accent bg-accent/10 hover:bg-accent/20';
     }
     return 'text-primary bg-primary/10 hover:bg-primary/20';
+  };
+
+  // Theme-aware downvote styling for pinned posts
+  const getDownvoteStyle = () => {
+    if (isPinned) {
+      if (actualTheme === 'dark') {
+        return 'text-primary-foreground bg-primary-foreground/10 hover:bg-primary-foreground/20';
+      }
+      return 'text-accent-foreground bg-accent-foreground/10 hover:bg-accent-foreground/20';
+    }
+    return 'text-error bg-error/10 hover:bg-error/20';
   };
 
   // Orientation-specific styling
@@ -105,9 +124,26 @@ export const VoteButton = ({
         className={cn(
           config.text,
           'font-medium min-w-[2rem] text-center tabular-nums',
-          userVote === 'up' && (actualTheme === 'light' ? 'text-accent' : 'text-primary'),
-          userVote === 'down' && 'text-muted-foreground',
-          !userVote && 'text-foreground'
+          userVote === 'up' &&
+            (isPinned
+              ? actualTheme === 'dark'
+                ? 'text-primary-foreground'
+                : 'text-accent-foreground'
+              : actualTheme === 'light'
+                ? 'text-accent'
+                : 'text-primary'),
+          userVote === 'down' &&
+            (isPinned
+              ? actualTheme === 'dark'
+                ? 'text-primary-foreground/70'
+                : 'text-accent-foreground/70'
+              : 'text-muted-foreground'),
+          !userVote &&
+            (isPinned
+              ? actualTheme === 'dark'
+                ? 'text-primary-foreground'
+                : 'text-accent-foreground'
+              : 'text-foreground')
         )}
       >
         {netScore}
@@ -125,9 +161,13 @@ export const VoteButton = ({
             showDownvote ? 'rounded-r-none' : 'rounded-sm',
             userVote === 'up' && getUpvoteStyle(),
             !userVote &&
-              (actualTheme === 'light'
-                ? 'text-muted-foreground hover:text-accent hover:bg-accent/10'
-                : 'text-muted-foreground hover:text-primary hover:bg-primary/10')
+              (isPinned
+                ? actualTheme === 'dark'
+                  ? 'text-primary-foreground/70 hover:text-primary-foreground hover:bg-primary-foreground/10'
+                  : 'text-accent-foreground/70 hover:text-accent-foreground hover:bg-accent-foreground/10'
+                : actualTheme === 'light'
+                  ? 'text-muted-foreground hover:text-accent hover:bg-accent/10'
+                  : 'text-muted-foreground hover:text-primary hover:bg-primary/10')
           )}
           onClick={() => handleVote('up')}
           disabled={disabled || isLoading}
@@ -147,8 +187,16 @@ export const VoteButton = ({
             className={cn(
               config.button,
               'rounded-l-none transition-all duration-150',
-              userVote === 'down' && 'text-muted-foreground bg-muted/20 hover:bg-muted/30',
-              !userVote && 'text-muted-foreground hover:text-muted-foreground hover:bg-muted/10'
+              userVote === 'down' &&
+                (isPinned
+                  ? getDownvoteStyle()
+                  : 'text-muted-foreground bg-muted/20 hover:bg-muted/30'),
+              !userVote &&
+                (isPinned
+                  ? actualTheme === 'dark'
+                    ? 'text-primary-foreground/70 hover:text-primary-foreground hover:bg-primary-foreground/10'
+                    : 'text-accent-foreground/70 hover:text-accent-foreground hover:bg-accent-foreground/10'
+                  : 'text-muted-foreground hover:text-muted-foreground hover:bg-muted/10')
             )}
             onClick={() => handleVote('down')}
             disabled={disabled || isLoading}

@@ -6,9 +6,22 @@ export interface CommunityPost {
   title?: string;
   content: string;
   category: string;
+  category_id?: number;
+  category_data?: {
+    id: number;
+    name: string;
+    slug: string;
+    description?: string;
+    background_color: string;
+    text_color: string;
+    border_color: string;
+    is_active: boolean;
+    display_order: number;
+  };
   upvotes: number;
   downvotes: number;
   created_at: string;
+  updated_at: string;
   is_pinned?: boolean;
   is_locked?: boolean;
   flair_text?: string;

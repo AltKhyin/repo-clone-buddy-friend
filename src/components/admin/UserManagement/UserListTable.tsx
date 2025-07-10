@@ -160,7 +160,7 @@ export const UserListTable = () => {
     return (
       <Card className="bg-surface border-border shadow-sm">
         <CardContent className="p-6">
-          <div className="text-center text-red-600 dark:text-red-400">
+          <div className="text-center text-destructive">
             Erro ao carregar usuários: {error.message}
           </div>
         </CardContent>
@@ -315,7 +315,7 @@ export const UserListTable = () => {
                       <TableCell>{formatSubscriptionTier(user.subscription_tier)}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1">
-                          <Award className="h-4 w-4 text-yellow-500 dark:text-yellow-400" />
+                          <Award className="h-4 w-4 text-accent" />
                           {user.contribution_score}
                         </div>
                       </TableCell>

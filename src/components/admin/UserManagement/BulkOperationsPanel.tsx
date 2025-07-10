@@ -260,14 +260,14 @@ export const BulkOperationsPanel = ({
                     )}
 
                     {selectedAction && (
-                      <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                      <div className="p-4 bg-accent/10 rounded-lg">
                         <div className="flex items-start gap-2">
-                          <AlertTriangle className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5" />
+                          <AlertTriangle className="h-5 w-5 text-accent mt-0.5" />
                           <div>
-                            <div className="font-medium text-blue-900 dark:text-blue-100">
+                            <div className="font-medium text-accent-foreground">
                               Resumo da Operação
                             </div>
-                            <div className="text-blue-700 dark:text-blue-200 text-sm mt-1">
+                            <div className="text-accent-foreground/80 text-sm mt-1">
                               {getActionDescription()}
                             </div>
                           </div>
@@ -305,7 +305,7 @@ export const BulkOperationsPanel = ({
                   {progress.inProgress ? (
                     <Loader2 className="h-5 w-5 animate-spin" />
                   ) : (
-                    <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
+                    <CheckCircle className="h-5 w-5 text-success" />
                   )}
                   {progress.inProgress ? 'Executando Operação...' : 'Operação Concluída'}
                 </CardTitle>
@@ -323,21 +323,15 @@ export const BulkOperationsPanel = ({
 
                 <div className="grid grid-cols-3 gap-4 text-center">
                   <div>
-                    <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-                      {progress.completed}
-                    </div>
+                    <div className="text-2xl font-bold text-success">{progress.completed}</div>
                     <div className="text-sm text-muted-foreground">Sucesso</div>
                   </div>
                   <div>
-                    <div className="text-2xl font-bold text-red-600 dark:text-red-400">
-                      {progress.failed}
-                    </div>
+                    <div className="text-2xl font-bold text-error">{progress.failed}</div>
                     <div className="text-sm text-muted-foreground">Falhas</div>
                   </div>
                   <div>
-                    <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                      {progress.total}
-                    </div>
+                    <div className="text-2xl font-bold text-primary">{progress.total}</div>
                     <div className="text-sm text-muted-foreground">Total</div>
                   </div>
                 </div>

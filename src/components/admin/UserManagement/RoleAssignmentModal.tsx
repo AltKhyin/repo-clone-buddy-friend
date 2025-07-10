@@ -189,7 +189,7 @@ export const RoleAssignmentModal = ({ userId, open, onOpenChange }: RoleAssignme
                           Concedido em {new Date(role.granted_at).toLocaleDateString('pt-BR')}
                         </div>
                         {role.expires_at && (
-                          <div className="flex items-center gap-1 text-sm text-orange-600 dark:text-orange-400">
+                          <div className="flex items-center gap-1 text-sm text-destructive">
                             <Calendar className="h-3 w-3" />
                             Expira em {new Date(role.expires_at).toLocaleDateString('pt-BR')}
                           </div>
@@ -220,7 +220,7 @@ export const RoleAssignmentModal = ({ userId, open, onOpenChange }: RoleAssignme
                               <AlertDialogCancel>Cancelar</AlertDialogCancel>
                               <AlertDialogAction
                                 onClick={() => handleRevokeRole(role.role_name)}
-                                className="bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800"
+                                className="bg-destructive hover:bg-destructive/90"
                               >
                                 Revogar Papel
                               </AlertDialogAction>

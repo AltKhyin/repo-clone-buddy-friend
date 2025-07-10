@@ -22,9 +22,11 @@ import AdminTagManagement from '@/pages/AdminTagManagement';
 import AdminLayoutManagement from '@/pages/AdminLayoutManagement';
 import AdminAnalytics from '@/pages/AdminAnalytics';
 import AdminAccessControl from '@/pages/AdminAccessControl';
+import AdminCommunityManagement from '@/pages/AdminCommunityManagement';
 import EditorPage from '@/pages/EditorPage';
 import ReviewManagementPage from '@/pages/ReviewManagementPage';
 import { AdminProtectedRoute } from '@/components/routes/AdminProtectedRoute';
+import DebugSidebar from '@/pages/DebugSidebar';
 
 const router = createBrowserRouter([
   {
@@ -94,6 +96,10 @@ const router = createBrowserRouter([
         element: <SuggestionPage />,
       },
       {
+        path: 'debug-sidebar',
+        element: <DebugSidebar />,
+      },
+      {
         path: 'acesso-negado',
         element: <UnauthorizedPage />,
       },
@@ -121,6 +127,14 @@ const router = createBrowserRouter([
         element: (
           <AdminProtectedRoute>
             <ContentManagement />
+          </AdminProtectedRoute>
+        ),
+      },
+      {
+        path: '/admin/community',
+        element: (
+          <AdminProtectedRoute>
+            <AdminCommunityManagement />
           </AdminProtectedRoute>
         ),
       },

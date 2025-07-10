@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Community Sidebar</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.50.0/dist/umd/supabase.min.js"></script>
+</head>
+<body>
+    <h1>Debug Community Sidebar</h1>
+    <button id="testBtn">Test Edge Function</button>
+    <pre id="output"></pre>
+
+    <script>
+        const supabase = window.supabase.createClient(
+            'https://qjoxiowuiiupbvqlssgk.supabase.co',
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFqb3hpb3d1aWl1cGJ2cWxzc2drIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjAwNTYzMjksImV4cCI6MjAzNTYzMjMyOX0.6WKD2qVJFgpw8xEJTz7Lx7HLlJCWL2wRBCL-2pnWVhI'
+        );
+
+        document.getElementById('testBtn').addEventListener('click', async () => {
+            const output = document.getElementById('output');
+            output.textContent = 'Testing...';
+            
+            try {
+                console.log('Testing Edge Function...');
+                
+                // Test 1: Direct fetch with anon key
+                const response1 = await fetch('https://qjoxiowuiiupbvqlssgk.supabase.co/functions/v1/get-community-sidebar-data', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFqb3hpb3d1aWl1cGJ2cWxzc2drIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjAwNTYzMjksImV4cCI6MjAzNTYzMjMyOX0.6WKD2qVJFgpw8xEJTz7Lx7HLlJCWL2wRBCL-2pnWVhI`
+                    }
+                });
+                
+                const text1 = await response1.text();
+                console.log('Direct fetch response:', text1);
+                
+                // Test 2: Using Supabase client
+                const { data, error } = await supabase.functions.invoke('get-community-sidebar-data');
+                console.log('Supabase client response:', { data, error });
+                
+                output.textContent = JSON.stringify({
+                    directFetch: {
+                        status: response1.status,
+                        response: text1
+                    },
+                    supabaseClient: {
+                        data,
+                        error
+                    }
+                }, null, 2);
+                
+            } catch (error) {
+                console.error('Error:', error);
+                output.textContent = `Error: ${error.message}`;
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,4 +1,3 @@
-
 // ABOUTME: Centralized API helper functions for Edge Functions with consistent error handling and responses
 
 import { corsHeaders } from './cors.ts';
@@ -9,9 +8,10 @@ export async function authenticateUser(supabase: any, authHeader: string | null)
     throw new Error('UNAUTHORIZED: Authorization header is required');
   }
 
-  const { data: { user }, error: authError } = await supabase.auth.getUser(
-    authHeader.replace('Bearer ', '')
-  );
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
 
   if (authError || !user) {
     throw new Error('UNAUTHORIZED: Invalid authentication token');
@@ -20,22 +20,22 @@ export async function authenticateUser(supabase: any, authHeader: string | null)
   return user;
 }
 
-// CORS preflight handler - re-exported for backward compatibility
-export { handleCorsPreflightRequest } from './cors.ts';
-
 // Standardized success response
 export function createSuccessResponse(data: any, additionalHeaders: Record<string, string> = {}) {
-  return new Response(JSON.stringify({
-    success: true,
-    data
-  }), {
-    status: 200,
-    headers: {
-      'Content-Type': 'application/json',
-      ...corsHeaders,
-      ...additionalHeaders
+  return new Response(
+    JSON.stringify({
+      success: true,
+      data,
+    }),
+    {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        ...corsHeaders,
+        ...additionalHeaders,
+      },
     }
-  });
+  );
 }
 
 // Standardized error response with proper error handling
@@ -46,7 +46,7 @@ export function createErrorResponse(error: any, additionalHeaders: Record<string
 
   if (error instanceof Error) {
     message = error.message;
-    
+
     // Extract status and code from structured error messages
     if (message.startsWith('UNAUTHORIZED:')) {
       status = 401;
@@ -67,20 +67,17 @@ export function createErrorResponse(error: any, additionalHeaders: Record<string
     }
   }
 
-  return new Response(JSON.stringify({
-    error: { message, code }
-  }), {
-    status,
-    headers: {
-      'Content-Type': 'application/json',
-      ...corsHeaders,
-      ...additionalHeaders
+  return new Response(
+    JSON.stringify({
+      error: { message, code },
+    }),
+    {
+      status,
+      headers: {
+        'Content-Type': 'application/json',
+        ...corsHeaders,
+        ...additionalHeaders,
+      },
     }
-  });
+  );
 }
-
-// Backward compatibility aliases for functions expecting sendSuccess/sendError
-export const sendSuccess = createSuccessResponse;
-export const sendError = (message: string, status: number = 500, additionalHeaders: Record<string, string> = {}) => {
-  return createErrorResponse(new Error(message), additionalHeaders);
-};

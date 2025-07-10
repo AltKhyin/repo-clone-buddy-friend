@@ -7,6 +7,9 @@ verify_jwt = false
 [functions.admin-assign-roles]
 verify_jwt = false
 
+[functions.admin-community-management]
+verify_jwt = false
+
 [functions.admin-audit-logs]
 verify_jwt = false
 
@@ -53,6 +56,9 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.get-community-post-detail]
+verify_jwt = false
+
+[functions.get-community-sidebar-data]
 verify_jwt = false
 
 [functions.get-homepage-feed]

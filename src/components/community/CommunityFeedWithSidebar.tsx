@@ -3,15 +3,17 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../ui/button';
-import { Plus } from 'lucide-react';
+import { Plus, X } from 'lucide-react';
 import { PostCard } from './PostCard';
-import { CommunitySidebar } from './CommunitySidebar';
+import { RedditStyleSidebar } from './RedditStyleSidebar';
 import { CommunityErrorBoundary } from './CommunityErrorBoundary';
 import { CommunityLoadingState } from './CommunityLoadingState';
 import NetworkAwareFallback from './NetworkAwareFallback';
 import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 import { useIsMobile } from '../../hooks/use-mobile';
 import { ContentGrid } from '@/components/layout/ContentGrid';
+import { useCategoryFilter } from '../../contexts/CategoryFilterContext';
+import { Badge } from '../ui/badge';
 import type { CommunityPost, SidebarData } from '../../types/community';
 
 interface CommunityFeedWithSidebarProps {
@@ -38,6 +40,7 @@ export const CommunityFeedWithSidebar = ({
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const { isOnline } = useNetworkStatus();
+  const { selectedCategoryId, clearCategoryFilter } = useCategoryFilter();
 
   const handleCreatePost = () => {
     navigate('/comunidade/criar');
@@ -65,15 +68,9 @@ export const CommunityFeedWithSidebar = ({
       sidebarType="fixed"
       className="pb-6"
       sidebarContent={
-        !isMobile && sidebarData ? (
+        !isMobile ? (
           <CommunityErrorBoundary context="sidebar da comunidade">
-            <CommunitySidebar
-              rules={sidebarData.rules}
-              links={sidebarData.links}
-              trendingDiscussions={sidebarData.trendingDiscussions}
-              featuredPoll={sidebarData.featuredPoll}
-              recentActivity={sidebarData.recentActivity}
-            />
+            <RedditStyleSidebar />
           </CommunityErrorBoundary>
         ) : undefined
       }
@@ -88,6 +85,27 @@ export const CommunityFeedWithSidebar = ({
             {isMobile ? 'Nova' : 'Nova Discussão'}
           </Button>
         </div>
+
+        {/* Category Filter Display */}
+        {selectedCategoryId && (
+          <div className="flex items-center gap-2 py-2">
+            <span className="text-sm text-muted-foreground">Filtrando por:</span>
+            <Badge variant="secondary" className="flex items-center gap-1 px-2 py-1">
+              <span className="text-sm">
+                {sidebarData?.categories?.find(cat => cat.id.toString() === selectedCategoryId)
+                  ?.name || 'Categoria'}
+              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-auto p-0 w-4 h-4 hover:bg-transparent"
+                onClick={clearCategoryFilter}
+              >
+                <X className="w-3 h-3" />
+              </Button>
+            </Badge>
+          </div>
+        )}
 
         {/* Network status indicator for stale data */}
         <NetworkAwareFallback

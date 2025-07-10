@@ -16,6 +16,7 @@ import { useSavePostMutation } from '../../../packages/hooks/useSavePostMutation
 import { useAuthStore } from '../../store/auth';
 import { processVideoUrl, getVideoType } from '../../lib/video-utils';
 import { VoteButton } from '../ui/VoteButton';
+import { useTheme } from '../theme/CustomThemeProvider';
 
 interface PostDetailCardProps {
   post: CommunityPost;
@@ -87,6 +88,7 @@ const formatPostDate = (dateString: string | null | undefined): string => {
 
 export const PostDetailCard = ({ post }: PostDetailCardProps) => {
   const { user } = useAuthStore();
+  const { actualTheme } = useTheme();
   const savePostMutation = useSavePostMutation();
 
   const categoryLabel = CATEGORY_LABELS[post.category] || post.category;
@@ -110,11 +112,58 @@ export const PostDetailCard = ({ post }: PostDetailCardProps) => {
     }
   };
 
+  // Theme-aware pinned post styling
+  const getPinnedBackgroundClass = () => {
+    if (!post.is_pinned) return '';
+
+    switch (actualTheme) {
+      case 'light':
+        return 'bg-accent text-accent-foreground'; // Orange background, white text
+      case 'dark':
+        return 'bg-primary text-primary-foreground'; // White background, dark text
+      case 'black':
+        return 'bg-accent text-accent-foreground'; // Blue background, white text
+      default:
+        return 'bg-accent text-accent-foreground';
+    }
+  };
+
+  const getPinnedTextClass = () => {
+    if (!post.is_pinned) return '';
+
+    switch (actualTheme) {
+      case 'light':
+        return 'text-accent-foreground'; // White text on orange
+      case 'dark':
+        return 'text-primary-foreground'; // Dark text on white
+      case 'black':
+        return 'text-accent-foreground'; // White text on blue
+      default:
+        return 'text-accent-foreground';
+    }
+  };
+
+  const getPinnedMutedTextClass = () => {
+    if (!post.is_pinned) return '';
+
+    switch (actualTheme) {
+      case 'light':
+        return 'text-accent-foreground/80'; // Semi-transparent white on orange
+      case 'dark':
+        return 'text-primary-foreground/70'; // Semi-transparent dark on white
+      case 'black':
+        return 'text-accent-foreground/80'; // Semi-transparent white on blue
+      default:
+        return 'text-accent-foreground/80';
+    }
+  };
+
   return (
     <div
       className={cn(
         'reddit-post-item mb-4',
-        post.is_pinned && 'ring-2 ring-primary/20 bg-primary/5'
+        post.is_pinned && 'pinned-post',
+        getPinnedBackgroundClass()
       )}
     >
       <div className="p-4">
@@ -123,26 +172,38 @@ export const PostDetailCard = ({ post }: PostDetailCardProps) => {
           <div className="flex items-center gap-3 min-w-0 flex-1">
             <Avatar className="w-10 h-10 flex-shrink-0">
               <AvatarImage src={post.author?.avatar_url || undefined} />
-              <AvatarFallback>{post.author?.full_name?.charAt(0) || '?'}</AvatarFallback>
+              <AvatarFallback
+                className={cn(
+                  post.is_pinned && actualTheme === 'dark'
+                    ? 'bg-primary-foreground/20 text-primary-foreground'
+                    : post.is_pinned && 'bg-accent-foreground/20 text-accent-foreground'
+                )}
+              >
+                {post.author?.full_name?.charAt(0) || '?'}
+              </AvatarFallback>
             </Avatar>
 
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 flex-wrap mb-1">
-                <span className="reddit-post-author text-base font-semibold">
+                <span
+                  className={cn('reddit-post-author text-base font-semibold', getPinnedTextClass())}
+                >
                   {post.author?.full_name || 'Usuário Anônimo'}
                 </span>
 
-                <span className="text-muted-foreground text-sm">•</span>
+                <span className={cn('text-muted-foreground text-sm', getPinnedMutedTextClass())}>
+                  •
+                </span>
 
-                <span className="reddit-post-timestamp text-sm">
+                <span className={cn('reddit-post-timestamp text-sm', getPinnedMutedTextClass())}>
                   {formatPostDate(post.created_at)}
                 </span>
 
                 {/* Status indicators */}
                 {post.is_pinned && (
                   <>
-                    <span className="text-muted-foreground text-sm">•</span>
-                    <div className="flex items-center gap-1 text-primary">
+                    <span className={cn('text-sm', getPinnedMutedTextClass())}>•</span>
+                    <div className={cn('flex items-center gap-1', getPinnedTextClass())}>
                       <Pin className="w-4 h-4" />
                       <span className="text-sm font-medium">Fixado</span>
                     </div>
@@ -151,8 +212,17 @@ export const PostDetailCard = ({ post }: PostDetailCardProps) => {
 
                 {post.is_locked && (
                   <>
-                    <span className="text-muted-foreground text-sm">•</span>
-                    <div className="flex items-center gap-1 text-orange-500">
+                    <span
+                      className={cn('text-muted-foreground text-sm', getPinnedMutedTextClass())}
+                    >
+                      •
+                    </span>
+                    <div
+                      className={cn(
+                        'flex items-center gap-1',
+                        post.is_pinned ? getPinnedTextClass() : 'text-orange-500'
+                      )}
+                    >
                       <Lock className="w-4 h-4" />
                       <span className="text-sm font-medium">Bloqueado</span>
                     </div>
@@ -167,11 +237,21 @@ export const PostDetailCard = ({ post }: PostDetailCardProps) => {
             {post.flair_text && (
               <Badge
                 variant="secondary"
-                className="text-sm"
+                className={cn(
+                  'text-sm',
+                  post.is_pinned && actualTheme === 'dark'
+                    ? 'bg-primary-foreground/20 text-primary-foreground border-primary-foreground/30'
+                    : post.is_pinned &&
+                        'bg-accent-foreground/20 text-accent-foreground border-accent-foreground/30'
+                )}
                 style={{
-                  backgroundColor: post.flair_color ? `${post.flair_color}20` : undefined,
-                  borderColor: post.flair_color || undefined,
-                  color: post.flair_color || undefined,
+                  backgroundColor: post.is_pinned
+                    ? undefined
+                    : post.flair_color
+                      ? `${post.flair_color}20`
+                      : undefined,
+                  borderColor: post.is_pinned ? undefined : post.flair_color || undefined,
+                  color: post.is_pinned ? undefined : post.flair_color || undefined,
                 }}
               >
                 {post.flair_text}
@@ -181,23 +261,41 @@ export const PostDetailCard = ({ post }: PostDetailCardProps) => {
             {/* Category badge */}
             <Badge
               variant={categoryColor as 'default' | 'destructive' | 'outline' | 'secondary'}
-              className="flex-shrink-0"
+              className={cn(
+                'flex-shrink-0',
+                post.is_pinned && actualTheme === 'dark'
+                  ? 'border-primary-foreground/30 text-primary-foreground/90'
+                  : post.is_pinned && 'border-accent-foreground/30 text-accent-foreground/90'
+              )}
             >
               {categoryLabel}
             </Badge>
 
             {/* Post Action Menu */}
-            <PostActionMenu post={post} />
+            <PostActionMenu post={post} isPinned={post.is_pinned} />
           </div>
         </div>
 
         {/* Title - Always Present */}
-        <h1 className="reddit-post-title text-xl mb-3">{post.title || 'Post sem título'}</h1>
+        <h1
+          className={cn(
+            'reddit-post-title text-xl mb-3',
+            getPinnedTextClass(),
+            post.is_pinned && 'pinned-post'
+          )}
+        >
+          {post.title || 'Post sem título'}
+        </h1>
 
         {/* Full content - Text first, then media */}
         {post.content && (
           <div
-            className="prose dark:prose-invert prose-sm max-w-none text-foreground mb-4"
+            className={cn(
+              'prose dark:prose-invert prose-sm max-w-none text-foreground mb-4',
+              post.is_pinned && actualTheme === 'dark'
+                ? 'text-primary-foreground/90'
+                : post.is_pinned && 'text-accent-foreground/90'
+            )}
             dangerouslySetInnerHTML={{ __html: post.content }}
           />
         )}
@@ -303,7 +401,9 @@ export const PostDetailCard = ({ post }: PostDetailCardProps) => {
 
       {/* Bottom Action Row - Mobile-Optimized Touch Targets (matching PostCard) */}
       <div className="px-4 pb-3">
-        <div className="flex items-center gap-3 text-muted-foreground">
+        <div
+          className={cn('flex items-center gap-3 text-muted-foreground', getPinnedMutedTextClass())}
+        >
           {/* Vote Section */}
           <VoteButton
             entityId={post.id.toString()}
@@ -313,10 +413,21 @@ export const PostDetailCard = ({ post }: PostDetailCardProps) => {
             userVote={post.user_vote}
             orientation="horizontal"
             size="lg"
+            isPinned={post.is_pinned}
           />
 
           {/* Comments */}
-          <Button variant="ghost" size="sm" className="reddit-action-button">
+          <Button
+            variant="ghost"
+            size="sm"
+            className={cn(
+              'reddit-action-button',
+              post.is_pinned && actualTheme === 'dark'
+                ? 'text-primary-foreground/70 hover:text-primary-foreground hover:bg-primary-foreground/10'
+                : post.is_pinned &&
+                    'text-accent-foreground/70 hover:text-accent-foreground hover:bg-accent-foreground/10'
+            )}
+          >
             <MessageCircle className="w-4 h-4 mr-1" />
             {post.reply_count > 0 ? `${post.reply_count} respostas` : 'Nenhuma resposta'}
           </Button>

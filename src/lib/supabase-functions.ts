@@ -76,18 +76,39 @@ export async function invokeFunctionGet<T>(
     });
   }
 
+  // Build headers object conditionally to avoid empty Authorization header
+  const requestHeaders: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...headers,
+  };
+
+  // Only add Authorization header if we have a valid session token
+  if (session?.access_token) {
+    requestHeaders.Authorization = `Bearer ${session.access_token}`;
+  }
+
+  console.log(`🌐 [${functionName}] Making GET request to: ${url.toString()}`);
+  console.log(`🔑 [${functionName}] Request headers:`, requestHeaders);
+
   const response = await fetch(url.toString(), {
     method: 'GET',
-    headers: {
-      Authorization: session?.access_token ? `Bearer ${session.access_token}` : '',
-      'Content-Type': 'application/json',
-      ...headers,
-    },
+    headers: requestHeaders,
   });
+
+  console.log(`📡 [${functionName}] Response status: ${response.status} ${response.statusText}`);
 
   // Check content type first
   const contentType = response.headers.get('content-type');
   const responseText = await response.text();
+
+  console.log(`📄 [${functionName}] Response content-type: ${contentType}`);
+  console.log(
+    `📄 [${functionName}] Response text (first 500 chars): ${responseText.substring(0, 500)}`
+  );
+
+  if (!response.ok) {
+    console.error(`❌ [${functionName}] HTTP Error ${response.status}: ${responseText}`);
+  }
 
   if (!response.ok) {
     console.error(`Function ${functionName} failed with status ${response.status}:`, responseText);
@@ -162,13 +183,20 @@ export async function invokeFunctionPut<T>(
 
   const url = `https://qjoxiowuiiupbvqlssgk.supabase.co/functions/v1/${functionName}`;
 
+  // Build headers object conditionally to avoid empty Authorization header
+  const requestHeaders: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...headers,
+  };
+
+  // Only add Authorization header if we have a valid session token
+  if (session?.access_token) {
+    requestHeaders.Authorization = `Bearer ${session.access_token}`;
+  }
+
   const response = await fetch(url, {
     method: 'PUT',
-    headers: {
-      Authorization: session?.access_token ? `Bearer ${session.access_token}` : '',
-      'Content-Type': 'application/json',
-      ...headers,
-    },
+    headers: requestHeaders,
     body: JSON.stringify(body),
   });
 
@@ -234,13 +262,20 @@ export async function invokeFunctionDelete<T>(
     });
   }
 
+  // Build headers object conditionally to avoid empty Authorization header
+  const requestHeaders: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...headers,
+  };
+
+  // Only add Authorization header if we have a valid session token
+  if (session?.access_token) {
+    requestHeaders.Authorization = `Bearer ${session.access_token}`;
+  }
+
   const response = await fetch(url.toString(), {
     method: 'DELETE',
-    headers: {
-      Authorization: session?.access_token ? `Bearer ${session.access_token}` : '',
-      'Content-Type': 'application/json',
-      ...headers,
-    },
+    headers: requestHeaders,
   });
 
   const responseText = await response.text();

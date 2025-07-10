@@ -7,11 +7,15 @@ import { CommunityLoadingState } from '../components/community/CommunityLoadingS
 import NetworkAwareFallback from '../components/community/NetworkAwareFallback';
 import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 import { useCommunityPageQuery } from '@packages/hooks/useCommunityPageQuery';
+import { CategoryFilterProvider, useCategoryFilter } from '../contexts/CategoryFilterContext';
 import { Alert, AlertDescription } from '../components/ui/alert';
 import { Button } from '../components/ui/button';
 import { AlertCircle, RefreshCw, WifiOff } from 'lucide-react';
 
-export default function CommunityPage() {
+// Internal component that uses the category filter context
+function CommunityPageContent() {
+  const { selectedCategoryId } = useCategoryFilter();
+
   const {
     data,
     fetchNextPage,
@@ -21,7 +25,7 @@ export default function CommunityPage() {
     error,
     refetch,
     dataUpdatedAt,
-  } = useCommunityPageQuery();
+  } = useCommunityPageQuery({ categoryId: selectedCategoryId });
 
   const { isOnline } = useNetworkStatus();
   const lastSync = dataUpdatedAt ? new Date(dataUpdatedAt) : undefined;
@@ -100,5 +104,14 @@ export default function CommunityPage() {
         error={error}
       />
     </CommunityErrorBoundary>
+  );
+}
+
+// Main component that provides the category filter context
+export default function CommunityPage() {
+  return (
+    <CategoryFilterProvider>
+      <CommunityPageContent />
+    </CategoryFilterProvider>
   );
 }

@@ -1,0 +1,21 @@
+# Community Countdown Edge Function Configuration
+
+[function]
+name = "community-countdown"
+verify_jwt = false  # We handle JWT verification manually for better error handling
+
+[function.permissions]
+read_access = ["authenticated"]
+write_access = ["admin"]
+
+[function.rate_limiting]
+enabled = true
+max_requests_per_minute = 120  # Higher rate limit for real-time countdown calculations
+max_requests_per_hour = 2000
+
+[function.caching]
+enabled = false  # Disable caching for real-time countdown calculations
+
+[function.env]
+SUPABASE_URL = "required"
+SUPABASE_SERVICE_ROLE_KEY = "required"

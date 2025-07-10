@@ -4,16 +4,27 @@ import { useInfiniteQuery } from '@tanstack/react-query';
 import { invokeFunctionPost } from '../../src/lib/supabase-functions';
 import type { CommunityPageResponse, CommunityPost, SidebarData } from '../../src/types/community';
 
-export const useCommunityPageQuery = (options?: { postId?: number }) => {
+export const useCommunityPageQuery = (options?: {
+  postId?: number;
+  categoryId?: string | null;
+}) => {
   return useInfiniteQuery({
-    queryKey: ['community-page-data', { postId: options?.postId }],
+    queryKey: ['community-page-data', { postId: options?.postId, categoryId: options?.categoryId }],
     queryFn: async ({ pageParam = 0 }) => {
-      console.log('Fetching community page data, page:', pageParam, 'postId:', options?.postId);
+      console.log(
+        'Fetching community page data, page:',
+        pageParam,
+        'postId:',
+        options?.postId,
+        'categoryId:',
+        options?.categoryId
+      );
 
       const data = await invokeFunctionPost<CommunityPageResponse>('get-community-page-data', {
         page: pageParam,
         limit: 20,
         ...(options?.postId && { postId: options.postId }),
+        ...(options?.categoryId && { categoryId: options.categoryId }),
       });
 
       console.log('Community page data fetched successfully:', data);

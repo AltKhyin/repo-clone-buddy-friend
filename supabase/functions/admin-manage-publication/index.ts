@@ -80,7 +80,7 @@ Deno.serve(async req => {
           published_at: new Date().toISOString(),
           reviewer_id: user.id,
           reviewed_at: new Date().toISOString(),
-          review_status: 'approved',
+          review_status: 'published',
         };
         historyAction = 'published';
         break;
@@ -91,14 +91,14 @@ Deno.serve(async req => {
           scheduled_publish_at: payload.scheduledAt,
           reviewer_id: user.id,
           reviewed_at: new Date().toISOString(),
-          review_status: 'approved',
+          review_status: 'scheduled',
         };
         historyAction = 'scheduled';
         break;
 
       case 'reject':
         updateData = {
-          review_status: 'rejected',
+          review_status: 'draft',
           reviewer_id: user.id,
           reviewed_at: new Date().toISOString(),
           publication_notes: payload.notes,
@@ -108,7 +108,7 @@ Deno.serve(async req => {
 
       case 'request_changes':
         updateData = {
-          review_status: 'changes_requested',
+          review_status: 'draft',
           reviewer_id: user.id,
           reviewed_at: new Date().toISOString(),
           publication_notes: payload.notes,
@@ -119,6 +119,7 @@ Deno.serve(async req => {
       case 'archive':
         updateData = {
           status: 'archived',
+          review_status: 'archived',
           archived_at: new Date().toISOString(),
           reviewer_id: user.id,
           reviewed_at: new Date().toISOString(),
@@ -130,6 +131,7 @@ Deno.serve(async req => {
       case 'unpublish':
         updateData = {
           status: 'draft',
+          review_status: 'draft',
           published_at: null,
           reviewer_id: user.id,
           reviewed_at: new Date().toISOString(),

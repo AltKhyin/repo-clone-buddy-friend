@@ -54,6 +54,21 @@
     --error-muted-hover: 0 84.2% 90%; /* Hover state */
     --input: 48 25% 92.2%; /* Input backgrounds */
     --ring: 15 63.1% 59.6%; /* Focus rings with warm accent */
+
+    /* Reddit Design Tokens - Light Theme */
+    --reddit-sidebar-background: 48 20% 95%; /* f5f5f0 - Slightly darker than main background */
+    --reddit-background-main: 48 33.3% 97.1%; /* fafaf8 - Main background */
+    --reddit-divider: 50 20.7% 88.6%; /* Subtle divider between sections */
+    --reddit-text-primary: 60 2.6% 7.6%; /* Primary text */
+    --reddit-text-secondary: 51 3.1% 43.7%; /* Secondary/muted text */
+    --reddit-text-meta: 51 3.1% 55%; /* Meta text (slightly lighter than secondary) */
+    --reddit-hover-background: 50 20.7% 88.6%; /* Subtle hover state */
+
+    /* Reddit Spacing Variables */
+    --rem6: 0.375rem; /* 6px */
+    --rem10: 0.625rem; /* 10px */
+    --rem12: 0.75rem; /* 12px */
+    --radius-2: calc(var(--radius) - 4px); /* Reddit's rounded-2 */
   }
 
   .dark {
@@ -107,6 +122,21 @@
     --error-muted-hover: 0 40% 18%; /* Hover state */
     --input: 0 0% 13%; /* #212121 */
     --ring: 240 4.9% 83.9%;
+
+    /* Reddit Design Tokens - Dark Theme */
+    --reddit-sidebar-background: 0 0% 2%; /* #080807 - Slightly darker than main background */
+    --reddit-background-main: 0 0% 7%; /* #121211 - Main background */
+    --reddit-divider: 0 0% 16%; /* Subtle divider between sections */
+    --reddit-text-primary: 210 40% 95%; /* Primary text */
+    --reddit-text-secondary: 0 0% 65%; /* Secondary/muted text */
+    --reddit-text-meta: 0 0% 50%; /* Meta text (slightly darker than secondary) */
+    --reddit-hover-background: 0 0% 12%; /* Subtle hover state */
+
+    /* Reddit Spacing Variables (same in both themes) */
+    --rem6: 0.375rem; /* 6px */
+    --rem10: 0.625rem; /* 10px */
+    --rem12: 0.75rem; /* 12px */
+    --radius-2: calc(var(--radius) - 4px); /* Reddit's rounded-2 */
   }
 
   .black {
@@ -149,6 +179,21 @@
     --destructive-foreground: 0 0% 100%;
     --input: 210 6% 25%; /* Input backgrounds */
     --ring: 196 73% 52%; /* Focus rings with blue accent */
+
+    /* Reddit Design Tokens - Black Theme */
+    --reddit-sidebar-background: 0 0% 0%; /* #000000 - Pure black for high contrast */
+    --reddit-background-main: 0 0% 7%; /* #0e1113 - Main background */
+    --reddit-divider: 210 6% 20%; /* Subtle divider between sections */
+    --reddit-text-primary: 0 0% 90%; /* Primary text */
+    --reddit-text-secondary: 0 0% 70%; /* Secondary/muted text */
+    --reddit-text-meta: 0 0% 60%; /* Meta text (slightly darker than secondary) */
+    --reddit-hover-background: 210 6% 30%; /* Subtle hover state */
+
+    /* Reddit Spacing Variables (same in all themes) */
+    --rem6: 0.375rem; /* 6px */
+    --rem10: 0.625rem; /* 10px */
+    --rem12: 0.75rem; /* 12px */
+    --radius-2: calc(var(--radius) - 4px); /* Reddit's rounded-2 */
   }
 
   /* Universal Semantic & Utility Tokens */
@@ -264,14 +309,24 @@
 /* Reddit-Style Component Utilities - ENHANCED */
 @layer components {
   .reddit-post-item {
-    @apply bg-background border-0 shadow-none rounded-none;
+    @apply bg-background border-0 shadow-none rounded-lg;
     @apply border-b border-border/30 last:border-b-0;
-    @apply hover:bg-surface/20 transition-colors duration-150;
+    @apply transition-colors duration-150;
+  }
+
+  /* Only apply hover effects to non-pinned posts */
+  .reddit-post-item:not(.pinned-post):hover {
+    @apply bg-surface/20;
   }
 
   .reddit-post-title {
     @apply text-lg font-semibold text-foreground leading-tight;
-    @apply hover:text-primary transition-colors duration-150;
+    @apply transition-colors duration-150;
+  }
+
+  /* Only apply hover effects to non-pinned post titles */
+  .reddit-post-title:not(.pinned-post):hover {
+    @apply text-primary;
   }
 
   .reddit-post-body {

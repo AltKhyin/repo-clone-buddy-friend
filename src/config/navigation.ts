@@ -1,17 +1,17 @@
-
 // ABOUTME: Standardized navigation configuration with unified structure and role-based filtering
 
-import { 
-  Home, 
-  BookOpen, 
-  Users, 
+import {
+  Home,
+  BookOpen,
+  Users,
   User,
   Settings,
   Shield,
   FileText,
   Tags,
   Layout,
-  TrendingUp
+  TrendingUp,
+  MessageSquare,
 } from 'lucide-react';
 import { LucideIcon } from 'lucide-react';
 
@@ -42,7 +42,7 @@ export const navigationItems: NavigationItem[] = [
     icon: BookOpen,
     showOnMobile: true,
     showOnDesktop: true,
-  },  
+  },
   {
     path: '/comunidade',
     label: 'Comunidade',
@@ -64,6 +64,14 @@ export const navigationItems: NavigationItem[] = [
     path: '/admin/content',
     label: 'Gestão de Conteúdo',
     icon: FileText,
+    requiredRoles: ['admin', 'editor'],
+    showOnMobile: false,
+    showOnDesktop: true,
+  },
+  {
+    path: '/admin/community',
+    label: 'Gestão da Comunidade',
+    icon: MessageSquare,
     requiredRoles: ['admin', 'editor'],
     showOnMobile: false,
     showOnDesktop: true,
@@ -117,10 +125,9 @@ export const getNavigationItems = (
 ): NavigationItem[] => {
   return navigationItems.filter(item => {
     // Check context visibility
-    const contextVisible = context === 'mobile' 
-      ? (item.showOnMobile ?? false) 
-      : (item.showOnDesktop ?? true);
-    
+    const contextVisible =
+      context === 'mobile' ? (item.showOnMobile ?? false) : (item.showOnDesktop ?? true);
+
     if (!contextVisible) return false;
 
     // Check role requirements
@@ -131,7 +138,7 @@ export const getNavigationItems = (
 
 // DEPRECATED: Remove these after components are updated
 export const getVisibleNavigationItems = (
-  items: NavigationItem[], 
+  items: NavigationItem[],
   userRole: string
 ): NavigationItem[] => {
   console.warn('getVisibleNavigationItems is deprecated. Use getNavigationItems instead.');

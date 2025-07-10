@@ -140,15 +140,6 @@ export const layoutClasses = {
   },
 };
 
-// @deprecated - Use simplified approach in StandardLayout/ContentGrid instead
-// DEPRECATED: Centering class generator - caused layout conflicts
-export const generateCenteringClasses = (
-  maxWidth: number = LAYOUT_CONSTANTS.TOTAL_CONTENT_WIDTH,
-  className?: string
-): string => {
-  return twMerge(clsx('w-full', `max-w-[${maxWidth}px]`, 'mx-auto', className));
-};
-
 // Content grid generator for two-column layouts
 export const generateContentGrid = (
   gridType: 'single' | 'two-column-fixed' | 'two-column-flex',
@@ -165,85 +156,6 @@ export const generateContentGrid = (
       break;
     case 'two-column-flex':
       baseClasses.push('grid-cols-1', 'lg:grid-cols-[756px_auto]', 'gap-6', 'lg:gap-8');
-      break;
-  }
-
-  return twMerge(clsx(baseClasses, className));
-};
-
-// @deprecated - Use simplified approach in StandardLayout/ContentGrid instead
-// Layout pattern generators - DEPRECATED: Complex nested layout approach
-export const generateLayoutClasses = (
-  type: LayoutType,
-  sidebarType: SidebarType = 'none',
-  className?: string
-): string => {
-  const baseClasses = [
-    layoutClasses.container.base,
-    layoutClasses.container.responsive,
-    layoutClasses.antiCompression.preventOverflow,
-  ];
-
-  // Add grid classes based on layout type
-  switch (type) {
-    case 'standard':
-      baseClasses.push(
-        layoutClasses.container.grid,
-        sidebarType === 'fixed'
-          ? layoutClasses.contentGrid.twoColumnFixed
-          : sidebarType === 'flexible'
-            ? layoutClasses.contentGrid.twoColumnFlex
-            : layoutClasses.contentGrid.singleColumn
-      );
-      break;
-
-    case 'content-only':
-      baseClasses.push(layoutClasses.container.grid, layoutClasses.contentGrid.singleColumn);
-      break;
-
-    case 'centered':
-      baseClasses.push(layoutClasses.container.grid, layoutClasses.contentGrid.centered);
-      break;
-
-    case 'wide':
-      baseClasses.push(layoutClasses.container.grid, layoutClasses.contentGrid.wide);
-      break;
-
-    case 'admin':
-      baseClasses.push(layoutClasses.contentGrid.admin);
-      break;
-
-    case 'full-width':
-      // Full width doesn't need additional grid classes
-      break;
-  }
-
-  return twMerge(clsx(baseClasses, className));
-};
-
-// @deprecated - Use simplified approach in StandardLayout/ContentGrid instead
-// Content area class generators - DEPRECATED: Complex class generation
-export const generateContentClasses = (
-  type: 'main' | 'sidebar' | 'article' | 'wide' | 'full-width',
-  className?: string
-): string => {
-  const baseClasses = [layoutClasses.antiCompression.gridItem];
-
-  switch (type) {
-    case 'main':
-      baseClasses.push(layoutClasses.content.main);
-      break;
-    case 'sidebar':
-      baseClasses.push(layoutClasses.content.sidebar);
-      break;
-    case 'article':
-      baseClasses.push(layoutClasses.content.article);
-      break;
-    case 'wide':
-      baseClasses.push(layoutClasses.content.wide);
-      break;
-    case 'full-width':
-      baseClasses.push(layoutClasses.content.fullWidth);
       break;
   }
 
@@ -330,12 +242,9 @@ export const breakpoints = {
 export default {
   LAYOUT_CONSTANTS,
   layoutClasses,
-  generateLayoutClasses,
-  generateContentClasses,
   generateResponsiveClasses,
   generateAntiCompressionClasses,
-  generateCenteringClasses, // NEW
-  generateContentGrid, // NEW
+  generateContentGrid,
   calculateGridCols,
   breakpoints,
 };

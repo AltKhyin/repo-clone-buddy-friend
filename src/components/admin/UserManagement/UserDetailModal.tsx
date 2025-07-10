@@ -34,7 +34,7 @@ export const UserDetailModal = ({ userId, open, onOpenChange }: UserDetailModalP
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({
     full_name: '',
-    profession_flair: '',
+    profession: '',
     display_hover_card: true,
   });
 
@@ -48,7 +48,7 @@ export const UserDetailModal = ({ userId, open, onOpenChange }: UserDetailModalP
     if (userDetail && !isEditing) {
       setEditForm({
         full_name: userDetail.full_name || '',
-        profession_flair: userDetail.profession_flair || '',
+        profession: userDetail.profession || '',
         display_hover_card: userDetail.display_hover_card,
       });
     }
@@ -182,17 +182,17 @@ export const UserDetailModal = ({ userId, open, onOpenChange }: UserDetailModalP
                     </div>
 
                     <div>
-                      <Label htmlFor="profession_flair">Profissão</Label>
+                      <Label htmlFor="profession">Profissão</Label>
                       {isEditing ? (
                         <Input
-                          id="profession_flair"
-                          value={editForm.profession_flair}
-                          onChange={e => handleFieldChange('profession_flair', e.target.value)}
+                          id="profession"
+                          value={editForm.profession}
+                          onChange={e => handleFieldChange('profession', e.target.value)}
                           placeholder="Ex: Médico, Enfermeiro..."
                         />
                       ) : (
                         <div className="mt-1 text-sm">
-                          {userDetail?.profession_flair || 'Não informado'}
+                          {userDetail?.profession || 'Não informado'}
                         </div>
                       )}
                     </div>
@@ -314,7 +314,7 @@ export const UserDetailModal = ({ userId, open, onOpenChange }: UserDetailModalP
                             </div>
                           </div>
                           {role.expires_at && (
-                            <div className="text-sm text-orange-600 dark:text-orange-400">
+                            <div className="text-sm text-destructive">
                               Expira em {new Date(role.expires_at).toLocaleDateString('pt-BR')}
                             </div>
                           )}

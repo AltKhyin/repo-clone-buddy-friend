@@ -4,7 +4,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../ui/button';
 import { ArrowLeft } from 'lucide-react';
-import { CommunitySidebar } from './CommunitySidebar';
+import { RedditStyleSidebar } from './RedditStyleSidebar';
 import { CommunityErrorBoundary } from './CommunityErrorBoundary';
 import { CommunityLoadingState } from './CommunityLoadingState';
 import { PostDetailContent } from './PostDetailContent';
@@ -94,15 +94,9 @@ export const PostDetailWithSidebar = ({ postId }: PostDetailWithSidebarProps) =>
         sidebarType="fixed"
         className="pb-6"
         sidebarContent={
-          !isMobile && communityData?.sidebarData ? (
+          !isMobile ? (
             <CommunityErrorBoundary context="sidebar da comunidade">
-              <CommunitySidebar
-                rules={communityData.sidebarData.rules}
-                links={communityData.sidebarData.links}
-                trendingDiscussions={communityData.sidebarData.trendingDiscussions}
-                featuredPoll={communityData.sidebarData.featuredPoll}
-                recentActivity={communityData.sidebarData.recentActivity}
-              />
+              <RedditStyleSidebar />
             </CommunityErrorBoundary>
           ) : undefined
         }
@@ -135,15 +129,9 @@ export const PostDetailWithSidebar = ({ postId }: PostDetailWithSidebarProps) =>
         sidebarType="fixed"
         className="pb-6"
         sidebarContent={
-          !isMobile && communityData?.sidebarData ? (
+          !isMobile ? (
             <CommunityErrorBoundary context="sidebar da comunidade">
-              <CommunitySidebar
-                rules={communityData.sidebarData.rules}
-                links={communityData.sidebarData.links}
-                trendingDiscussions={communityData.sidebarData.trendingDiscussions}
-                featuredPoll={communityData.sidebarData.featuredPoll}
-                recentActivity={communityData.sidebarData.recentActivity}
-              />
+              <RedditStyleSidebar />
             </CommunityErrorBoundary>
           ) : undefined
         }
@@ -186,15 +174,9 @@ export const PostDetailWithSidebar = ({ postId }: PostDetailWithSidebarProps) =>
       sidebarType="fixed"
       className="pb-6"
       sidebarContent={
-        !isMobile && sidebarData ? (
+        !isMobile ? (
           <CommunityErrorBoundary context="sidebar da comunidade">
-            <CommunitySidebar
-              rules={sidebarData.rules}
-              links={sidebarData.links}
-              trendingDiscussions={sidebarData.trendingDiscussions}
-              featuredPoll={sidebarData.featuredPoll}
-              recentActivity={sidebarData.recentActivity}
-            />
+            <RedditStyleSidebar />
           </CommunityErrorBoundary>
         ) : undefined
       }
