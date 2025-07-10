@@ -79,7 +79,7 @@ export const CommunityFeedWithSidebar = ({
       <div className="space-y-6 pt-0">
         {/* Post Creation Interface */}
         <div
-          className="reddit-post-item cursor-pointer group hover:bg-accent/50 transition-colors"
+          className="reddit-post-item cursor-pointer group hover:bg-accent/70 transition-colors"
           onClick={handleCreatePost}
         >
           <div className="p-4">

@@ -401,7 +401,7 @@ export const PostDetailCard = ({ post }: PostDetailCardProps) => {
         {/* Link preview - Displayed for link posts */}
         {post.post_type === 'link' && (post.link_url || post.link_preview_data) && (
           <div className="mb-4">
-            <div className="border rounded-lg overflow-hidden bg-card hover:bg-accent/5 transition-colors">
+            <div className="border rounded-lg overflow-hidden bg-card hover:bg-accent/15 transition-colors">
               <a
                 href={post.link_url || post.link_preview_data?.url}
                 target="_blank"
@@ -410,12 +410,11 @@ export const PostDetailCard = ({ post }: PostDetailCardProps) => {
               >
                 <div className="flex">
                   {post.link_preview_data?.image && (
-                    <div className="w-32 flex-shrink-0 overflow-hidden bg-muted flex items-center">
+                    <div className="w-32 h-24 flex-shrink-0 overflow-hidden bg-muted">
                       <img
                         src={post.link_preview_data.image}
                         alt="Link preview"
-                        className="w-full object-cover"
-                        style={{ maxHeight: '6rem', height: 'auto' }}
+                        className="w-full h-full object-cover"
                         onError={e => {
                           // Hide broken images gracefully
                           e.currentTarget.style.display = 'none';

@@ -310,13 +310,13 @@
 @layer components {
   .reddit-post-item {
     @apply bg-background border-0 shadow-none rounded-lg;
-    @apply border-b border-border/30 last:border-b-0;
+    @apply border-b border-border/50 last:border-b-0;
     @apply transition-colors duration-150;
   }
 
   /* Only apply hover effects to non-pinned posts */
   .reddit-post-item:not(.pinned-post):hover {
-    @apply bg-surface/20;
+    @apply bg-muted/50;
   }
 
   .reddit-post-title {

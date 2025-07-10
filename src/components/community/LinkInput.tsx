@@ -159,12 +159,11 @@ export const LinkInput = ({
 
               <div className="flex">
                 {previewData.image && (
-                  <div className="w-32 flex-shrink-0 overflow-hidden bg-gray-100 flex items-center">
+                  <div className="w-32 h-24 flex-shrink-0 overflow-hidden bg-gray-100">
                     <img
                       src={previewData.image}
                       alt="Link preview"
-                      className="w-full object-cover"
-                      style={{ maxHeight: '6rem', height: 'auto' }}
+                      className="w-full h-full object-cover"
                       onLoad={e => {
                         console.log('Link preview image loaded successfully:', previewData.image);
                       }}
