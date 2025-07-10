@@ -4,7 +4,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { formatDistanceToNow, isValid, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { MessageCircle, Pin, Lock } from 'lucide-react';
+import { MessageCircle, Pin, Lock, ExternalLink } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
@@ -390,6 +390,86 @@ export const PostCard = ({ post }: PostCardProps) => {
               allowVoting={true}
               postId={post.id}
             />
+          </div>
+        ) : post.post_type === 'link' && (post.link_url || post.link_preview_data) ? (
+          <div className="mb-3">
+            <div className="border rounded-lg overflow-hidden bg-card hover:bg-accent/5 transition-colors">
+              <a
+                href={post.link_url || post.link_preview_data?.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block"
+                onClick={e => e.stopPropagation()}
+              >
+                <div className="flex">
+                  {post.link_preview_data?.image && (
+                    <div className="w-24 flex-shrink-0 overflow-hidden bg-muted flex items-center">
+                      <img
+                        src={post.link_preview_data.image}
+                        alt="Link preview"
+                        className="w-full object-cover"
+                        style={{ maxHeight: '5rem', height: 'auto' }}
+                        loading="lazy"
+                        onError={e => {
+                          e.currentTarget.style.display = 'none';
+                        }}
+                      />
+                    </div>
+                  )}
+
+                  <div className="flex-1 p-3 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Badge variant="outline" className="text-xs">
+                        <ExternalLink className="h-3 w-3 mr-1" />
+                        {post.link_preview_data?.domain ||
+                          (() => {
+                            try {
+                              return post.link_url
+                                ? new URL(post.link_url).hostname
+                                : 'Link externo';
+                            } catch {
+                              return 'Link externo';
+                            }
+                          })()}
+                      </Badge>
+                    </div>
+
+                    {post.link_preview_data?.title && (
+                      <h4
+                        className={cn(
+                          'font-medium text-sm line-clamp-2 mb-1',
+                          getPinnedTextClass()
+                        )}
+                      >
+                        {post.link_preview_data.title}
+                      </h4>
+                    )}
+
+                    {post.link_preview_data?.description && (
+                      <p
+                        className={cn(
+                          'text-xs line-clamp-2',
+                          post.is_pinned ? getPinnedMutedTextClass() : 'text-muted-foreground'
+                        )}
+                      >
+                        {post.link_preview_data.description}
+                      </p>
+                    )}
+
+                    {post.link_preview_data?.siteName && (
+                      <p
+                        className={cn(
+                          'text-xs mt-1',
+                          post.is_pinned ? getPinnedMutedTextClass() : 'text-muted-foreground'
+                        )}
+                      >
+                        {post.link_preview_data.siteName}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </a>
+            </div>
           </div>
         ) : post.content ? (
           <div

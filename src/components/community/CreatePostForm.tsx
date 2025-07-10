@@ -1,4 +1,3 @@
-
 // ABOUTME: Form component for creating new community posts with rich content support.
 
 import React, { useState } from 'react';
@@ -14,10 +13,13 @@ import { TiptapEditor } from './TiptapEditor';
 import { ImageUploadZone } from './ImageUploadZone';
 import { VideoInput } from './VideoInput';
 import { PollCreator } from './PollCreator';
+import { LinkInput } from './LinkInput';
 import { useCreateCommunityPostMutation } from '../../../packages/hooks/useCreateCommunityPostMutation';
+import { usePostCategories } from '../../../packages/hooks/usePostCategories';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuthStore } from '@/store/auth';
 import { processVideoUrl, isValidVideoUrl } from '@/lib/video-utils';
+import type { LinkPreviewData } from '@/types/community';
 
 interface CreatePostFormProps {
   onPostCreated?: (postId: number) => void;
@@ -29,7 +31,7 @@ export const CreatePostForm = ({ onPostCreated }: CreatePostFormProps) => {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [category, setCategory] = useState('');
-  const [postType, setPostType] = useState<'text' | 'image' | 'poll' | 'video'>('text');
+  const [postType, setPostType] = useState<'text' | 'image' | 'poll' | 'video' | 'link'>('text');
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [videoUrl, setVideoUrl] = useState('');
   const [videoFile, setVideoFile] = useState<File | null>(null);
@@ -38,40 +40,42 @@ export const CreatePostForm = ({ onPostCreated }: CreatePostFormProps) => {
     options: Array<{ id: string; text: string }>;
     expiresAt?: string;
   } | null>(null);
+  const [linkUrl, setLinkUrl] = useState('');
+  const [linkPreviewData, setLinkPreviewData] = useState<LinkPreviewData | null>(null);
 
   const createPostMutation = useCreateCommunityPostMutation();
+  const {
+    data: categories = [],
+    isLoading: categoriesLoading,
+    error: categoriesError,
+  } = usePostCategories();
 
-  const categories = [
-    'discussao-geral',
-    'duvida-clinica',
-    'caso-clinico',
-    'evidencia-cientifica',
-    'tecnologia-saude',
-    'carreira-medicina',
-    'bem-estar-medico'
-  ];
+  const getCategoryLabel = (categoryName: string) => {
+    const category = categories.find(cat => cat.name === categoryName);
+    return category?.label || categoryName;
+  };
 
-  const getCategoryLabel = (value: string) => {
-    const labels: Record<string, string> = {
-      'discussao-geral': 'Discussão Geral',
-      'duvida-clinica': 'Dúvida Clínica',
-      'caso-clinico': 'Caso Clínico',
-      'evidencia-cientifica': 'Evidência Científica',
-      'tecnologia-saude': 'Tecnologia & Saúde',
-      'carreira-medicina': 'Carreira em Medicina',
-      'bem-estar-medico': 'Bem-estar Médico'
-    };
-    return labels[value] || value;
+  const getCategoryStyle = (categoryName: string) => {
+    const category = categories.find(cat => cat.name === categoryName);
+    if (category) {
+      return {
+        backgroundColor: category.background_color,
+        color: category.text_color,
+        borderColor: category.border_color,
+      };
+    }
+    return {};
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!content.trim()) {
-      toast.error('O conteúdo da discussão é obrigatório');
+
+    // NEW REQUIREMENT: Title is now mandatory, content is optional
+    if (!title.trim()) {
+      toast.error('O título da discussão é obrigatório');
       return;
     }
-    
+
     if (!category) {
       toast.error('Selecione uma categoria');
       return;
@@ -82,7 +86,7 @@ export const CreatePostForm = ({ onPostCreated }: CreatePostFormProps) => {
       toast.error('Adicione uma imagem para posts do tipo imagem');
       return;
     }
-    
+
     if (postType === 'video' && !videoUrl && !videoFile) {
       toast.error('Adicione um URL de vídeo ou faça upload de um arquivo para posts do tipo vídeo');
       return;
@@ -90,20 +94,29 @@ export const CreatePostForm = ({ onPostCreated }: CreatePostFormProps) => {
 
     // Validate video URL if provided
     if (postType === 'video' && videoUrl && !isValidVideoUrl(videoUrl)) {
-      toast.error('URL de vídeo inválido. Use YouTube, Vimeo ou links diretos para arquivos de vídeo');
+      toast.error(
+        'URL de vídeo inválido. Use YouTube, Vimeo ou links diretos para arquivos de vídeo'
+      );
       return;
     }
-    
+
     if (postType === 'poll' && (!pollData || pollData.options.length < 2)) {
       toast.error('Adicione pelo menos 2 opções para a enquete');
       return;
     }
 
+    if (postType === 'link' && !linkUrl.trim()) {
+      toast.error('Adicione um link válido para posts do tipo link');
+      return;
+    }
+
     // Transform poll data to match API expectations
-    const transformedPollData = pollData ? {
-      question: pollData.question,
-      options: pollData.options.map(opt => ({ text: opt.text }))
-    } : undefined;
+    const transformedPollData = pollData
+      ? {
+          question: pollData.question,
+          options: pollData.options.map(opt => ({ text: opt.text })),
+        }
+      : undefined;
 
     // Handle image upload to Supabase Storage if needed
     let uploadedImageUrl = '';
@@ -112,32 +125,32 @@ export const CreatePostForm = ({ onPostCreated }: CreatePostFormProps) => {
         toast.error('Você precisa estar logado para fazer upload de imagens');
         return;
       }
-      
+
       try {
         // Generate unique filename
         const fileExt = imageFile.name.split('.').pop();
         const fileName = `${user.id}-${Date.now()}.${fileExt}`;
         const filePath = `posts/${fileName}`;
-        
+
         // Upload to Supabase Storage
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from('community-images')
           .upload(filePath, imageFile, {
             cacheControl: '3600',
-            upsert: false
+            upsert: false,
           });
-          
+
         if (uploadError) {
           console.error('Image upload error:', uploadError);
           toast.error('Erro ao fazer upload da imagem');
           return;
         }
-        
+
         // Get public URL
-        const { data: { publicUrl } } = supabase.storage
-          .from('community-images')
-          .getPublicUrl(filePath);
-          
+        const {
+          data: { publicUrl },
+        } = supabase.storage.from('community-images').getPublicUrl(filePath);
+
         uploadedImageUrl = publicUrl;
       } catch (error) {
         console.error('Image upload failed:', error);
@@ -153,32 +166,32 @@ export const CreatePostForm = ({ onPostCreated }: CreatePostFormProps) => {
         toast.error('Você precisa estar logado para fazer upload de vídeos');
         return;
       }
-      
+
       try {
         // Generate unique filename
         const fileExt = videoFile.name.split('.').pop();
         const fileName = `${user.id}-${Date.now()}.${fileExt}`;
         const filePath = `posts/${fileName}`;
-        
+
         // Upload to Supabase Storage
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from('community-videos')
           .upload(filePath, videoFile, {
             cacheControl: '3600',
-            upsert: false
+            upsert: false,
           });
-          
+
         if (uploadError) {
           console.error('Video upload error:', uploadError);
           toast.error('Erro ao fazer upload do vídeo');
           return;
         }
-        
+
         // Get public URL
-        const { data: { publicUrl } } = supabase.storage
-          .from('community-videos')
-          .getPublicUrl(filePath);
-          
+        const {
+          data: { publicUrl },
+        } = supabase.storage.from('community-videos').getPublicUrl(filePath);
+
         uploadedVideoUrl = publicUrl;
       } catch (error) {
         console.error('Video upload failed:', error);
@@ -191,19 +204,21 @@ export const CreatePostForm = ({ onPostCreated }: CreatePostFormProps) => {
     const finalVideoUrl = uploadedVideoUrl || (videoUrl ? processVideoUrl(videoUrl) : null);
 
     const payload = {
-      title: title.trim() || undefined,
-      content: content.trim(),
+      title: title.trim(), // Now mandatory per requirements
+      content: content.trim() || undefined, // Now optional per requirements
       category,
       post_type: postType,
       ...(postType === 'image' && uploadedImageUrl && { image_url: uploadedImageUrl }),
       ...(postType === 'video' && finalVideoUrl && { video_url: finalVideoUrl }),
-      ...(postType === 'poll' && transformedPollData && { poll_data: transformedPollData })
+      ...(postType === 'poll' && transformedPollData && { poll_data: transformedPollData }),
+      ...(postType === 'link' && linkUrl && { link_url: linkUrl.trim() }),
+      ...(postType === 'link' && linkPreviewData && { link_preview_data: linkPreviewData }),
     };
 
     createPostMutation.mutate(payload, {
-      onSuccess: (response) => {
+      onSuccess: response => {
         toast.success('Discussão criada com sucesso!');
-        
+
         // Call the callback if provided
         if (onPostCreated && response.id) {
           onPostCreated(response.id);
@@ -215,10 +230,10 @@ export const CreatePostForm = ({ onPostCreated }: CreatePostFormProps) => {
           navigate('/comunidade');
         }
       },
-      onError: (error) => {
+      onError: error => {
         console.error('Error creating post:', error);
         toast.error('Erro ao criar discussão. Tente novamente.');
-      }
+      },
     });
   };
 
@@ -239,14 +254,52 @@ export const CreatePostForm = ({ onPostCreated }: CreatePostFormProps) => {
           {/* Category Selection */}
           <div className="space-y-2">
             <label className="text-sm font-medium">Categoria *</label>
-            <Select value={category} onValueChange={setCategory}>
+            <Select value={category} onValueChange={setCategory} disabled={categoriesLoading}>
               <SelectTrigger>
-                <SelectValue placeholder="Selecione uma categoria" />
+                <SelectValue
+                  placeholder={
+                    categoriesLoading
+                      ? 'Carregando categorias...'
+                      : categoriesError
+                        ? 'Erro ao carregar categorias'
+                        : 'Selecione uma categoria'
+                  }
+                >
+                  {category &&
+                    (() => {
+                      const selectedCategory = categories.find(cat => cat.name === category);
+                      return selectedCategory ? (
+                        <Badge
+                          style={{
+                            backgroundColor: selectedCategory.background_color,
+                            color: selectedCategory.text_color,
+                            borderColor: selectedCategory.border_color,
+                          }}
+                          className="text-xs font-medium"
+                        >
+                          {selectedCategory.label}
+                        </Badge>
+                      ) : (
+                        category
+                      );
+                    })()}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
-                {categories.map((cat) => (
-                  <SelectItem key={cat} value={cat}>
-                    {getCategoryLabel(cat)}
+                {categories.map(cat => (
+                  <SelectItem key={cat.id} value={cat.name} className="p-2">
+                    <div className="flex items-center gap-2">
+                      <Badge
+                        style={{
+                          backgroundColor: cat.background_color,
+                          color: cat.text_color,
+                          borderColor: cat.border_color,
+                        }}
+                        className="text-xs font-medium"
+                      >
+                        {cat.label}
+                      </Badge>
+                    </div>
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -256,20 +309,21 @@ export const CreatePostForm = ({ onPostCreated }: CreatePostFormProps) => {
           {/* Post Type Selection */}
           <div className="space-y-2">
             <label className="text-sm font-medium">Tipo de Post</label>
-            <Tabs value={postType} onValueChange={(value) => setPostType(value as typeof postType)}>
-              <TabsList className="grid w-full grid-cols-4">
+            <Tabs value={postType} onValueChange={value => setPostType(value as typeof postType)}>
+              <TabsList className="grid w-full grid-cols-5">
                 <TabsTrigger value="text">Texto</TabsTrigger>
                 <TabsTrigger value="image">Imagem</TabsTrigger>
                 <TabsTrigger value="video">Vídeo</TabsTrigger>
                 <TabsTrigger value="poll">Enquete</TabsTrigger>
+                <TabsTrigger value="link">Link</TabsTrigger>
               </TabsList>
 
               <TabsContent value="text" className="space-y-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Título (opcional)</label>
+                  <label className="text-sm font-medium">Título *</label>
                   <Input
                     value={title}
-                    onChange={(e) => setTitle(e.target.value)}
+                    onChange={e => setTitle(e.target.value)}
                     placeholder="Digite um título para sua discussão..."
                     maxLength={200}
                   />
@@ -278,15 +332,15 @@ export const CreatePostForm = ({ onPostCreated }: CreatePostFormProps) => {
 
               <TabsContent value="image" className="space-y-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Título (opcional)</label>
+                  <label className="text-sm font-medium">Título *</label>
                   <Input
                     value={title}
-                    onChange={(e) => setTitle(e.target.value)}
+                    onChange={e => setTitle(e.target.value)}
                     placeholder="Digite um título para sua discussão..."
                     maxLength={200}
                   />
                 </div>
-                <ImageUploadZone 
+                <ImageUploadZone
                   onImageSelect={setImageFile}
                   selectedImage={imageFile}
                   onImageRemove={() => setImageFile(null)}
@@ -295,15 +349,15 @@ export const CreatePostForm = ({ onPostCreated }: CreatePostFormProps) => {
 
               <TabsContent value="video" className="space-y-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Título (opcional)</label>
+                  <label className="text-sm font-medium">Título *</label>
                   <Input
                     value={title}
-                    onChange={(e) => setTitle(e.target.value)}
+                    onChange={e => setTitle(e.target.value)}
                     placeholder="Digite um título para sua discussão..."
                     maxLength={200}
                   />
                 </div>
-                <VideoInput 
+                <VideoInput
                   urlValue={videoUrl}
                   fileValue={videoFile}
                   onUrlChange={setVideoUrl}
@@ -317,10 +371,29 @@ export const CreatePostForm = ({ onPostCreated }: CreatePostFormProps) => {
               </TabsContent>
 
               <TabsContent value="poll" className="space-y-4">
-                <PollCreator 
+                <PollCreator
                   value={pollData}
-                  onChange={setPollData} 
+                  onChange={setPollData}
                   onRemove={() => setPollData(null)}
+                />
+              </TabsContent>
+
+              <TabsContent value="link" className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Título *</label>
+                  <Input
+                    value={title}
+                    onChange={e => setTitle(e.target.value)}
+                    placeholder="Digite um título para o link compartilhado..."
+                    maxLength={200}
+                  />
+                </div>
+                <LinkInput
+                  value={linkUrl}
+                  onValueChange={setLinkUrl}
+                  previewData={linkPreviewData}
+                  onPreviewDataChange={setLinkPreviewData}
+                  disabled={createPostMutation.isPending}
                 />
               </TabsContent>
             </Tabs>
@@ -329,35 +402,41 @@ export const CreatePostForm = ({ onPostCreated }: CreatePostFormProps) => {
           {/* Content Editor */}
           <div className="space-y-2">
             <label className="text-sm font-medium">
-              Conteúdo *
+              Conteúdo (opcional)
               <Badge variant="secondary" className="ml-2">
-                {postType === 'poll' ? 'Descrição da enquete' : 'Sua discussão'}
+                {postType === 'poll'
+                  ? 'Descrição da enquete'
+                  : postType === 'link'
+                    ? 'Comentário sobre o link'
+                    : 'Sua discussão'}
               </Badge>
             </label>
             <TiptapEditor
               content={content}
               onChange={setContent}
               placeholder={
-                postType === 'poll' 
-                  ? "Descreva sua enquete e forneça contexto..."
-                  : "Compartilhe seus pensamentos, faça uma pergunta ou inicie uma discussão..."
+                postType === 'poll'
+                  ? 'Descreva sua enquete e forneça contexto...'
+                  : postType === 'link'
+                    ? 'Adicione um comentário sobre o link (opcional)...'
+                    : 'Compartilhe seus pensamentos, faça uma pergunta ou inicie uma discussão...'
               }
             />
           </div>
 
           {/* Actions */}
           <div className="flex justify-between pt-6 border-t">
-            <Button 
-              type="button" 
-              variant="outline" 
+            <Button
+              type="button"
+              variant="outline"
               onClick={handleCancel}
               disabled={createPostMutation.isPending}
             >
               Cancelar
             </Button>
-            <Button 
+            <Button
               type="submit"
-              disabled={createPostMutation.isPending || !content.trim() || !category}
+              disabled={createPostMutation.isPending || !title.trim() || !category}
             >
               {createPostMutation.isPending ? 'Publicando...' : 'Publicar Discussão'}
             </Button>

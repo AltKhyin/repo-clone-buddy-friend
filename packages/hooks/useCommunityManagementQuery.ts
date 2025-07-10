@@ -78,7 +78,7 @@ export interface CommunityModerator {
   full_name: string;
   avatar_url?: string;
   role: 'admin' | 'editor' | 'moderator';
-  profession_flair?: string;
+  profession?: string;
 }
 
 export interface AdminCommunityRequest {

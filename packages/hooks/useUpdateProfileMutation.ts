@@ -15,7 +15,7 @@ const updateProfile = async (
 
   // Build update data with all supported fields
   const updateData: any = {};
-  
+
   // Include all profile fields that are now available after migration
   if (data.full_name !== undefined) {
     updateData.full_name = data.full_name;
@@ -45,10 +45,7 @@ const updateProfile = async (
     updateData.website_url = data.website_url;
   }
 
-  const { error } = await supabase
-    .from('Practitioners')
-    .update(updateData)
-    .eq('id', userId);
+  const { error } = await supabase.from('Practitioners').update(updateData).eq('id', userId);
 
   if (error) {
     console.error('Error updating profile:', error);
@@ -61,7 +58,7 @@ const updateProfile = async (
 
   return {
     success: true,
-    message: 'Profile updated successfully'
+    message: 'Profile updated successfully',
   };
 };
 
@@ -71,23 +68,29 @@ const updateProfile = async (
  */
 export const useUpdateProfileMutation = () => {
   const queryClient = useQueryClient();
-  const session = useAuthStore((state) => state.session);
+  const session = useAuthStore(state => state.session);
   const userId = session?.user?.id;
 
   return useMutation({
     mutationFn: (data: ProfileUpdateData) => updateProfile(data, userId),
     onSuccess: () => {
       // Invalidate user profile queries to reflect updates
-      queryClient.invalidateQueries({ 
-        queryKey: ['user-profile', userId] 
+      queryClient.invalidateQueries({
+        queryKey: ['user-profile', userId],
       });
-      
+
       // Also invalidate consolidated homepage data if it includes user profile
-      queryClient.invalidateQueries({ 
-        queryKey: ['consolidated-homepage-feed'] 
+      queryClient.invalidateQueries({
+        queryKey: ['consolidated-homepage-feed'],
+      });
+
+      // CRITICAL FIX: Invalidate community sidebar cache for moderators/admins
+      // This ensures profession changes appear immediately in community sidebar
+      queryClient.invalidateQueries({
+        queryKey: ['community-sidebar-data'],
       });
     },
-    onError: (error) => {
+    onError: error => {
       console.error('Error updating profile:', error);
     },
   });

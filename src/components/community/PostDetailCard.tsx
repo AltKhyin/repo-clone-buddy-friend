@@ -6,7 +6,7 @@ import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { formatDistanceToNow, isValid, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Pin, Lock, MessageCircle } from 'lucide-react';
+import { Pin, Lock, MessageCircle, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '../../lib/utils';
 import type { CommunityPost } from '@/types';
@@ -395,6 +395,71 @@ export const PostDetailCard = ({ post }: PostDetailCardProps) => {
               allowVoting={true}
               postId={post.id}
             />
+          </div>
+        )}
+
+        {/* Link preview - Displayed for link posts */}
+        {post.post_type === 'link' && (post.link_url || post.link_preview_data) && (
+          <div className="mb-4">
+            <div className="border rounded-lg overflow-hidden bg-card hover:bg-accent/5 transition-colors">
+              <a
+                href={post.link_url || post.link_preview_data?.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block"
+              >
+                <div className="flex">
+                  {post.link_preview_data?.image && (
+                    <div className="w-32 flex-shrink-0 overflow-hidden bg-muted flex items-center">
+                      <img
+                        src={post.link_preview_data.image}
+                        alt="Link preview"
+                        className="w-full object-cover"
+                        style={{ maxHeight: '6rem', height: 'auto' }}
+                        onError={e => {
+                          // Hide broken images gracefully
+                          e.currentTarget.style.display = 'none';
+                        }}
+                      />
+                    </div>
+                  )}
+                  <div className="flex-1 p-4 min-w-0">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Badge variant="outline" className="text-xs">
+                        <ExternalLink className="h-3 w-3 mr-1" />
+                        {post.link_preview_data?.domain ||
+                          (post.link_url ? new URL(post.link_url).hostname : 'Link externo')}
+                      </Badge>
+                    </div>
+
+                    {post.link_preview_data?.title && (
+                      <h3 className="font-medium text-base line-clamp-2 mb-2 text-foreground">
+                        {post.link_preview_data.title}
+                      </h3>
+                    )}
+
+                    {post.link_preview_data?.description && (
+                      <p className="text-sm text-muted-foreground line-clamp-3 mb-2">
+                        {post.link_preview_data.description}
+                      </p>
+                    )}
+
+                    {post.link_preview_data?.siteName && (
+                      <p className="text-xs text-muted-foreground font-medium">
+                        {post.link_preview_data.siteName}
+                      </p>
+                    )}
+
+                    {!post.link_preview_data && post.link_url && (
+                      <div className="text-sm text-muted-foreground">
+                        <p className="font-medium mb-1">Link compartilhado</p>
+                        <p className="text-xs break-all">{post.link_url}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </a>
+            </div>
           </div>
         )}
       </div>

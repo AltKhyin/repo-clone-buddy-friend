@@ -59,26 +59,28 @@ Deno.serve(async (req: Request) => {
 
     // Parse request body
     const payload: UserManagementPayload = await req.json();
-    const { action, targetUserId, newRole, subscriptionTier, reason, profileData, filters } = payload;
+    const { action, targetUserId, newRole, subscriptionTier, reason, profileData, filters } =
+      payload;
 
     let result;
 
     switch (action) {
       case 'list':
         // List users with filters - join with auth.users to get email
-        let query = supabaseAdmin
-          .from('Practitioners')
-          .select(`
+        let query = supabaseAdmin.from('Practitioners').select(
+          `
             id, 
             full_name, 
             role, 
             subscription_tier, 
             created_at, 
             avatar_url,
-            profession_flair,
+            profession,
             display_hover_card,
             contribution_score
-          `, { count: 'exact' });
+          `,
+          { count: 'exact' }
+        );
 
         if (filters?.role) {
           query = query.eq('role', filters.role);
@@ -114,9 +116,9 @@ Deno.serve(async (req: Request) => {
           subscription_tier: user.subscription_tier || 'free',
           created_at: user.created_at,
           avatar_url: user.avatar_url,
-          profession_flair: user.profession_flair,
+          profession: user.profession,
           display_hover_card: user.display_hover_card || false,
-          contribution_score: user.contribution_score || 0
+          contribution_score: user.contribution_score || 0,
         }));
 
         result = {
@@ -125,8 +127,8 @@ Deno.serve(async (req: Request) => {
             page: page + 1, // Convert back to 1-based for frontend
             limit,
             total: count || 0,
-            hasMore: (normalizedUsers?.length || 0) === limit
-          }
+            hasMore: (normalizedUsers?.length || 0) === limit,
+          },
         };
         break;
 
@@ -138,7 +140,9 @@ Deno.serve(async (req: Request) => {
 
         const { data: singleUser, error: getUserError } = await supabaseAdmin
           .from('Practitioners')
-          .select('id, full_name, role, subscription_tier, created_at, avatar_url, contribution_score')
+          .select(
+            'id, full_name, role, subscription_tier, created_at, avatar_url, contribution_score, profession, display_hover_card'
+          )
           .eq('id', targetUserId)
           .single();
 
@@ -151,7 +155,7 @@ Deno.serve(async (req: Request) => {
 
         result = {
           ...singleUser,
-          email: authUser.user?.email || 'Email não encontrado'
+          email: authUser.user?.email || 'Email não encontrado',
         };
         break;
 
@@ -164,35 +168,32 @@ Deno.serve(async (req: Request) => {
         // Update role in database
         const { error: roleError } = await supabaseAdmin
           .from('Practitioners')
-          .update({ 
+          .update({
             role: newRole,
-            subscription_tier: subscriptionTier || 'free'
+            subscription_tier: subscriptionTier || 'free',
           })
           .eq('id', targetUserId);
 
         if (roleError) throw new Error(`Failed to update role: ${roleError.message}`);
 
         // Update JWT claims
-        const { error: claimsError } = await supabaseAdmin.auth.admin.updateUserById(
-          targetUserId,
-          {
-            app_metadata: {
-              role: newRole,
-              subscription_tier: subscriptionTier || 'free'
-            }
-          }
-        );
+        const { error: claimsError } = await supabaseAdmin.auth.admin.updateUserById(targetUserId, {
+          app_metadata: {
+            role: newRole,
+            subscription_tier: subscriptionTier || 'free',
+          },
+        });
 
         if (claimsError) {
           console.warn('Failed to update JWT claims:', claimsError);
         }
 
-        result = { 
-          success: true, 
+        result = {
+          success: true,
           message: `User ${action}d to ${newRole}`,
           updatedUserId: targetUserId,
           newRole,
-          subscriptionTier: subscriptionTier || 'free'
+          subscriptionTier: subscriptionTier || 'free',
         };
         break;
 
@@ -212,22 +213,20 @@ Deno.serve(async (req: Request) => {
 
         // Log moderation action
         if (reason) {
-          await supabaseAdmin
-            .from('ModerationLogs')
-            .insert({
-              moderator_id: user.id,
-              target_user_id: targetUserId,
-              action: action,
-              reason: reason,
-              created_at: new Date().toISOString()
-            });
+          await supabaseAdmin.from('ModerationLogs').insert({
+            moderator_id: user.id,
+            target_user_id: targetUserId,
+            action: action,
+            reason: reason,
+            created_at: new Date().toISOString(),
+          });
         }
 
-        result = { 
-          success: true, 
+        result = {
+          success: true,
           message: `User ${action}ned successfully`,
           targetUserId,
-          banned
+          banned,
         };
         break;
 
@@ -243,11 +242,11 @@ Deno.serve(async (req: Request) => {
 
         if (profileError) throw new Error(`Failed to update profile: ${profileError.message}`);
 
-        result = { 
-          success: true, 
+        result = {
+          success: true,
           message: 'Profile updated successfully',
           targetUserId,
-          updatedFields: Object.keys(profileData)
+          updatedFields: Object.keys(profileData),
         };
         break;
 
@@ -260,10 +259,10 @@ Deno.serve(async (req: Request) => {
         const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(targetUserId);
         if (deleteError) throw new Error(`Failed to delete user: ${deleteError.message}`);
 
-        result = { 
-          success: true, 
+        result = {
+          success: true,
           message: 'User deleted successfully',
-          deletedUserId: targetUserId
+          deletedUserId: targetUserId,
         };
         break;
 
@@ -272,12 +271,8 @@ Deno.serve(async (req: Request) => {
     }
 
     return sendSuccess(result);
-
   } catch (error) {
     console.error('Admin user management error:', error);
-    return sendError(
-      error instanceof Error ? error.message : 'Internal server error',
-      500
-    );
+    return sendError(error instanceof Error ? error.message : 'Internal server error', 500);
   }
 });

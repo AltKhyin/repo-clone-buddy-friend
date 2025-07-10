@@ -29,7 +29,17 @@ export interface CommunityPost {
   image_url?: string;
   video_url?: string;
   poll_data?: Record<string, any>;
-  post_type?: 'text' | 'image' | 'video' | 'poll';
+  post_type?: 'text' | 'image' | 'video' | 'poll' | 'link';
+  link_url?: string;
+  link_preview_data?: {
+    url: string;
+    title?: string;
+    description?: string;
+    image?: string;
+    siteName?: string;
+    domain: string;
+    favicon?: string;
+  };
   author_id?: string;
   author?: {
     id: string;
@@ -47,7 +57,7 @@ export interface CommunityPost {
 }
 
 // Optimized type definitions with proper enums and unions
-export type PostType = 'text' | 'image' | 'poll' | 'video';
+export type PostType = 'text' | 'image' | 'poll' | 'video' | 'link';
 export type VoteType = 'up' | 'down' | null;
 export type FlairColor = 'blue' | 'green' | 'red' | 'yellow' | 'purple' | 'gray';
 
@@ -139,12 +149,23 @@ export interface PaginationInfo {
 
 // Form and mutation interfaces - improved type safety
 export interface CreatePostPayload {
-  title?: string;
-  content: string;
+  title: string; // NOW MANDATORY per requirements
+  content?: string; // NOW OPTIONAL per requirements
   category: string;
   post_type?: PostType;
+  image_url?: string;
   video_url?: string;
   poll_data?: Omit<PollData, 'total_votes'>;
+  link_url?: string;
+  link_preview_data?: {
+    url: string;
+    title?: string;
+    description?: string;
+    image?: string;
+    siteName?: string;
+    domain: string;
+    favicon?: string;
+  };
 }
 
 // Action and moderation interfaces

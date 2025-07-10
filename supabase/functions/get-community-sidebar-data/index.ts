@@ -90,7 +90,7 @@ serve(async (req: Request) => {
       // Fetch real moderators from Practitioners table (admins and editors act as moderators)
       supabase
         .from('Practitioners')
-        .select('id, full_name, avatar_url, role, profession_flair')
+        .select('id, full_name, avatar_url, role, profession')
         .in('role', ['admin', 'editor'])
         .order('role', { ascending: true }), // admin first, then editor
     ]);

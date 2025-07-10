@@ -51,10 +51,10 @@ export const ModeratorsSection = ({ section, sidebarData, isLast }: ModeratorsSe
   const computedData = section.computed_data || {};
   const moderators = computedData.moderators || sidebarData?.moderators || [];
 
-  // Add profession flair as title
+  // Add profession as title
   const moderatorsWithTitles = moderators.map((moderator: any) => ({
     ...moderator,
-    title: moderator.profession_flair,
+    title: moderator.profession,
   }));
 
   if (!showModerators) {

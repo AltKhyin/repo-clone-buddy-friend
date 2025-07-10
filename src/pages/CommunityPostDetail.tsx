@@ -3,6 +3,7 @@ import React from 'react';
 import { useParams } from 'react-router-dom';
 import { PostDetailWithSidebar } from '../components/community/PostDetailWithSidebar';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { CategoryFilterProvider } from '@/contexts/CategoryFilterContext';
 
 const CommunityPostDetailContent = () => {
   const params = useParams();
@@ -20,15 +21,17 @@ const CommunityPostDetailContent = () => {
 
 const CommunityPostDetail = () => {
   return (
-    <ErrorBoundary
-      tier="page"
-      context="detalhes do post da comunidade"
-      showDetails={false}
-      showHomeButton={true}
-      showBackButton={true}
-    >
-      <CommunityPostDetailContent />
-    </ErrorBoundary>
+    <CategoryFilterProvider>
+      <ErrorBoundary
+        tier="page"
+        context="detalhes do post da comunidade"
+        showDetails={false}
+        showHomeButton={true}
+        showBackButton={true}
+      >
+        <CommunityPostDetailContent />
+      </ErrorBoundary>
+    </CategoryFilterProvider>
   );
 };
 

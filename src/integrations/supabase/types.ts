@@ -849,7 +849,6 @@ export type Database = {
           instagram_url: string | null;
           linkedin_url: string | null;
           profession: string | null;
-          profession_flair: string | null;
           role: string;
           subscription_tier: string;
           twitter_url: string | null;
@@ -867,7 +866,6 @@ export type Database = {
           instagram_url?: string | null;
           linkedin_url?: string | null;
           profession?: string | null;
-          profession_flair?: string | null;
           role?: string;
           subscription_tier?: string;
           twitter_url?: string | null;
@@ -885,7 +883,6 @@ export type Database = {
           instagram_url?: string | null;
           linkedin_url?: string | null;
           profession?: string | null;
-          profession_flair?: string | null;
           role?: string;
           subscription_tier?: string;
           twitter_url?: string | null;

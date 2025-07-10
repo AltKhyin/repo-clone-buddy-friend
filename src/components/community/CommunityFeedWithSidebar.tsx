@@ -76,14 +76,24 @@ export const CommunityFeedWithSidebar = ({
       }
     >
       {/* Main Feed Content */}
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold">Comunidade</h1>
-          <Button onClick={handleCreatePost} size={isMobile ? 'sm' : 'default'}>
-            <Plus className="w-4 h-4 mr-2" />
-            {isMobile ? 'Nova' : 'Nova Discussão'}
-          </Button>
+      <div className="space-y-6 pt-0">
+        {/* Post Creation Interface */}
+        <div
+          className="reddit-post-item cursor-pointer group hover:bg-accent/50 transition-colors"
+          onClick={handleCreatePost}
+        >
+          <div className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                <Plus className="w-4 h-4 text-muted-foreground" />
+              </div>
+              <div className="flex-1">
+                <div className="bg-muted/50 rounded-lg px-4 py-3 text-muted-foreground group-hover:bg-muted transition-colors">
+                  Criar uma discussão...
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Category Filter Display */}
