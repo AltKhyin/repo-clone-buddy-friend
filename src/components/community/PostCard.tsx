@@ -18,6 +18,7 @@ import { toast } from 'sonner';
 import { processVideoUrl, getVideoType } from '../../lib/video-utils';
 import { VoteButton } from '../ui/VoteButton';
 import { useTheme } from '../theme/CustomThemeProvider';
+import { PostAuthor } from './CommunityAuthor';
 
 interface PostCardProps {
   post: CommunityPost;
@@ -199,66 +200,41 @@ export const PostCard = ({ post }: PostCardProps) => {
         {/* UNIFIED HEADER: Avatar + Author + Time + Badges (top-left alignment) */}
         <div className="flex items-start justify-between gap-4 mb-3">
           <div className="flex items-center gap-3 min-w-0 flex-1">
-            <Avatar className="w-8 h-8 flex-shrink-0">
-              <AvatarImage src={post.author?.avatar_url || undefined} />
-              <AvatarFallback
-                className={cn(
-                  'text-xs',
-                  post.is_pinned && actualTheme === 'dark'
-                    ? 'bg-primary-foreground/20 text-primary-foreground'
-                    : post.is_pinned && 'bg-accent-foreground/20 text-accent-foreground'
-                )}
-              >
-                {post.author?.full_name?.charAt(0) || '?'}
-              </AvatarFallback>
-            </Avatar>
+            <PostAuthor
+              author={post.author}
+              size="md"
+              showTimestamp={true}
+              timestamp={formatPostDate(post.created_at)}
+              className={cn(
+                'flex-1',
+                // Apply pinned styling to the entire author component
+                post.is_pinned && actualTheme === 'dark'
+                  ? '[&_.font-medium]:text-primary-foreground [&_.text-muted-foreground]:text-primary-foreground/70'
+                  : post.is_pinned &&
+                      '[&_.font-medium]:text-accent-foreground [&_.text-muted-foreground]:text-accent-foreground/70'
+              )}
+            />
 
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span
-                  className={cn('reddit-post-author text-sm font-medium', getPinnedTextClass())}
+            {/* Status indicators moved to separate section */}
+            <div className="flex items-center gap-2 ml-2">
+              {post.is_pinned && (
+                <div className={cn('flex items-center gap-1', getPinnedTextClass())}>
+                  <Pin className="w-3 h-3" />
+                  <span className="text-xs font-medium">Fixado</span>
+                </div>
+              )}
+
+              {post.is_locked && (
+                <div
+                  className={cn(
+                    'flex items-center gap-1',
+                    post.is_pinned ? getPinnedTextClass() : 'text-orange-500'
+                  )}
                 >
-                  {post.author?.full_name || 'Usuário Anônimo'}
-                </span>
-
-                <span className={cn('text-muted-foreground text-sm', getPinnedMutedTextClass())}>
-                  •
-                </span>
-
-                <span className={cn('reddit-post-timestamp text-sm', getPinnedMutedTextClass())}>
-                  {formatPostDate(post.created_at)}
-                </span>
-
-                {/* Status indicators */}
-                {post.is_pinned && (
-                  <>
-                    <span className={cn('text-sm', getPinnedMutedTextClass())}>•</span>
-                    <div className={cn('flex items-center gap-1', getPinnedTextClass())}>
-                      <Pin className="w-3 h-3" />
-                      <span className="text-xs font-medium">Fixado</span>
-                    </div>
-                  </>
-                )}
-
-                {post.is_locked && (
-                  <>
-                    <span
-                      className={cn('text-muted-foreground text-sm', getPinnedMutedTextClass())}
-                    >
-                      •
-                    </span>
-                    <div
-                      className={cn(
-                        'flex items-center gap-1',
-                        post.is_pinned ? getPinnedTextClass() : 'text-orange-500'
-                      )}
-                    >
-                      <Lock className="w-3 h-3" />
-                      <span className="text-xs font-medium">Bloqueado</span>
-                    </div>
-                  </>
-                )}
-              </div>
+                  <Lock className="w-3 h-3" />
+                  <span className="text-xs font-medium">Bloqueado</span>
+                </div>
+              )}
             </div>
           </div>
 

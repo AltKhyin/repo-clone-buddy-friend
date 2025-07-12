@@ -5,7 +5,7 @@ import { useCommunitySidebarDataQuery } from '../../../packages/hooks/useCommuni
 import { AboutSection } from './reddit-sidebar/AboutSection';
 import { UsefulLinksSection } from './reddit-sidebar/UsefulLinksSection';
 import { RulesSection } from './reddit-sidebar/RulesSection';
-import { ModeratorsSection } from './reddit-sidebar/ModeratorsSection';
+import { AdminsSection } from './reddit-sidebar/AdminsSection'; // Renamed from ModeratorsSection
 import { CategoriesSection } from './reddit-sidebar/CategoriesSection';
 import { AnnouncementsSection } from './reddit-sidebar/AnnouncementsSection';
 import { CustomSection } from './reddit-sidebar/CustomSection';
@@ -78,7 +78,7 @@ export const RedditStyleSidebar = () => {
           case 'rules':
             return <RulesSection key={section.id} {...props} />;
           case 'moderators':
-            return <ModeratorsSection key={section.id} {...props} />;
+            return <AdminsSection key={section.id} {...props} />; // Renamed from ModeratorsSection
           case 'categories':
             return <CategoriesSection key={section.id} {...props} />;
           case 'announcements':

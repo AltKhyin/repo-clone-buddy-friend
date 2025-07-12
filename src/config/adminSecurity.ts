@@ -25,10 +25,6 @@ export const ADMIN_SECURITY_CONFIG = {
       ],
       description: 'Full administrative access',
     },
-    moderator: {
-      permissions: ['manage_categories', 'manage_announcements', 'view_analytics'],
-      description: 'Content moderation access',
-    },
     super_admin: {
       permissions: [
         'manage_categories',
@@ -166,7 +162,7 @@ export const COMPONENT_SECURITY_POLICIES = {
       },
       role: {
         required: true,
-        enum: ['admin', 'moderator', 'practitioner'],
+        enum: ['admin', 'practitioner'], // Simplified 2-tier role system
       },
     },
   },

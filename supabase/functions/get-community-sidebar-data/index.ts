@@ -87,12 +87,12 @@ serve(async (req: Request) => {
         supabase.rpc('get_online_users_count'),
       ]),
 
-      // Fetch real moderators from Practitioners table (admins and editors act as moderators)
+      // Fetch admins from Practitioners table (simplified from moderators/editors system)
       supabase
         .from('Practitioners')
         .select('id, full_name, avatar_url, role, profession')
-        .in('role', ['admin', 'editor'])
-        .order('role', { ascending: true }), // admin first, then editor
+        .eq('role', 'admin') // Simplified to admin-only role system
+        .order('full_name', { ascending: true }), // Order by name
     ]);
 
     // STEP 5: Check for errors in any of the queries

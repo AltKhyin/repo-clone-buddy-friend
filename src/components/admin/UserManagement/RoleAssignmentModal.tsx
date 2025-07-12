@@ -124,26 +124,22 @@ export const RoleAssignmentModal = ({ userId, open, onOpenChange }: RoleAssignme
     }
   };
 
-  // Format role name for display
+  // Format role name for display - simplified to 2-tier system
   const formatRoleName = (role: string) => {
     const roleMap: { [key: string]: string } = {
       admin: 'Administrador',
-      editor: 'Editor',
-      moderator: 'Moderador',
-      practitioner: 'Praticante',
+      practitioner: 'Praticante', // Simplified from 4-tier to 2-tier role system
     };
     return roleMap[role] || role;
   };
 
-  // Get role variant for badge
+  // Get role variant for badge - simplified to 2-tier system
   const getRoleVariant = (role: string) => {
     switch (role) {
       case 'admin':
         return 'destructive';
-      case 'editor':
-        return 'default';
-      case 'moderator':
-        return 'secondary';
+      case 'practitioner':
+        return 'outline';
       default:
         return 'outline';
     }

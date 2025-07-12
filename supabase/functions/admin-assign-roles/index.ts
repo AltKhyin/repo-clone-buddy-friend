@@ -1,4 +1,3 @@
-
 // ABOUTME: Admin Edge Function for role assignment and management operations following the simplified pattern that works
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.0';
@@ -8,7 +7,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-Deno.serve(async (req) => {
+Deno.serve(async req => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -28,18 +27,19 @@ Deno.serve(async (req) => {
     }
 
     // Set the auth header for this request
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    );
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
 
     if (authError || !user) {
       throw new Error('Invalid authentication');
     }
 
-    // Check if user has admin role
+    // Check if user has admin or editor role (transitional - during role consolidation)
     const userRole = user.app_metadata?.role;
-    if (!userRole || userRole !== 'admin') {
-      throw new Error('Insufficient permissions: Admin role required');
+    if (!userRole || !['admin', 'editor'].includes(userRole)) {
+      throw new Error('Insufficient permissions: Admin or editor role required');
     }
 
     // Parse request body
@@ -52,26 +52,32 @@ Deno.serve(async (req) => {
       case 'list_available_roles':
         result = await handleListAvailableRoles();
         break;
-      
+
       case 'list_user_roles':
         if (!payload.userId) throw new Error('User ID is required for listing user roles');
         result = await handleListUserRoles(supabase, payload.userId);
         break;
-      
+
       case 'assign_role':
         if (!payload.userId || !payload.roleName) {
           throw new Error('User ID and role name are required for role assignment');
         }
-        result = await handleAssignRole(supabase, payload.userId, payload.roleName, payload.expiresAt, user.id);
+        result = await handleAssignRole(
+          supabase,
+          payload.userId,
+          payload.roleName,
+          payload.expiresAt,
+          user.id
+        );
         break;
-      
+
       case 'revoke_role':
         if (!payload.userId || !payload.roleName) {
           throw new Error('User ID and role name are required for role revocation');
         }
         result = await handleRevokeRole(supabase, payload.userId, payload.roleName, user.id);
         break;
-      
+
       default:
         throw new Error(`Invalid action: ${payload.action}`);
     }
@@ -81,34 +87,38 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
-
   } catch (error) {
     console.error('Role management error:', error);
-    
-    const errorMessage = error.message || 'Unknown error occurred';
-    const statusCode = errorMessage.includes('authentication') ? 401 :
-                      errorMessage.includes('permissions') ? 403 : 500;
 
-    return new Response(JSON.stringify({ 
-      error: errorMessage,
-      details: 'Role management operation failed'
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: statusCode,
-    });
+    const errorMessage = error.message || 'Unknown error occurred';
+    const statusCode = errorMessage.includes('authentication')
+      ? 401
+      : errorMessage.includes('permissions')
+        ? 403
+        : 500;
+
+    return new Response(
+      JSON.stringify({
+        error: errorMessage,
+        details: 'Role management operation failed',
+      }),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: statusCode,
+      }
+    );
   }
 });
 
-// Helper function to list available roles
+// Helper function to list available roles - simplified to admin-only system
 async function handleListAvailableRoles() {
   return {
-    availableRoles: ['editor', 'moderator']
+    availableRoles: ['admin'], // Simplified from 4-tier to 2-tier role system
   };
 }
 
 async function handleListUserRoles(supabase: any, userId: string) {
-  const { data: userRoles, error } = await supabase
-    .rpc('get_user_roles', { p_user_id: userId });
+  const { data: userRoles, error } = await supabase.rpc('get_user_roles', { p_user_id: userId });
 
   if (error) {
     console.error('Error fetching user roles:', error);
@@ -116,17 +126,23 @@ async function handleListUserRoles(supabase: any, userId: string) {
   }
 
   return {
-    roles: userRoles || []
+    roles: userRoles || [],
   };
 }
 
-async function handleAssignRole(supabase: any, userId: string, roleName: string, expiresAt: string | undefined, performedBy: string) {
+async function handleAssignRole(
+  supabase: any,
+  userId: string,
+  roleName: string,
+  expiresAt: string | undefined,
+  performedBy: string
+) {
   const roleData: any = {
     practitioner_id: userId,
     role_name: roleName,
     granted_by: performedBy,
     granted_at: new Date().toISOString(),
-    is_active: true
+    is_active: true,
   };
 
   if (expiresAt) {
@@ -144,7 +160,7 @@ async function handleAssignRole(supabase: any, userId: string, roleName: string,
     throw new Error(`Failed to assign role: ${roleError.message}`);
   }
 
-  const roleHierarchy = { 'admin': 4, 'editor': 3, 'moderator': 2, 'practitioner': 1 };
+  const roleHierarchy = { admin: 2, practitioner: 1 }; // Simplified 2-tier role system
   const newRoleLevel = roleHierarchy[roleName as keyof typeof roleHierarchy] || 1;
 
   const { data: currentUser, error: userError } = await supabase
@@ -155,12 +171,9 @@ async function handleAssignRole(supabase: any, userId: string, roleName: string,
 
   if (!userError && currentUser) {
     const currentRoleLevel = roleHierarchy[currentUser.role as keyof typeof roleHierarchy] || 1;
-    
+
     if (newRoleLevel > currentRoleLevel) {
-      await supabase
-        .from('Practitioners')
-        .update({ role: roleName })
-        .eq('id', userId);
+      await supabase.from('Practitioners').update({ role: roleName }).eq('id', userId);
     }
   }
 
@@ -170,13 +183,18 @@ async function handleAssignRole(supabase: any, userId: string, roleName: string,
     p_resource_type: 'UserRoles',
     p_resource_id: userId,
     p_new_values: { role_name: roleName, expires_at: expiresAt },
-    p_metadata: { source: 'admin_panel' }
+    p_metadata: { source: 'admin_panel' },
   });
 
   return { success: true, role: newRole };
 }
 
-async function handleRevokeRole(supabase: any, userId: string, roleName: string, performedBy: string) {
+async function handleRevokeRole(
+  supabase: any,
+  userId: string,
+  roleName: string,
+  performedBy: string
+) {
   const { error: deleteError } = await supabase
     .from('UserRoles')
     .delete()
@@ -196,7 +214,7 @@ async function handleRevokeRole(supabase: any, userId: string, roleName: string,
     .or('expires_at.is.null,expires_at.gt.now()');
 
   if (!rolesError) {
-    const roleHierarchy = { 'admin': 4, 'editor': 3, 'moderator': 2, 'practitioner': 1 };
+    const roleHierarchy = { admin: 2, practitioner: 1 }; // Simplified 2-tier role system
     let highestRole = 'practitioner';
     let highestLevel = 1;
 
@@ -208,10 +226,7 @@ async function handleRevokeRole(supabase: any, userId: string, roleName: string,
       }
     });
 
-    await supabase
-      .from('Practitioners')
-      .update({ role: highestRole })
-      .eq('id', userId);
+    await supabase.from('Practitioners').update({ role: highestRole }).eq('id', userId);
   }
 
   await supabase.rpc('log_audit_event', {
@@ -220,7 +235,7 @@ async function handleRevokeRole(supabase: any, userId: string, roleName: string,
     p_resource_type: 'UserRoles',
     p_resource_id: userId,
     p_old_values: { role_name: roleName },
-    p_metadata: { source: 'admin_panel' }
+    p_metadata: { source: 'admin_panel' },
   });
 
   return { success: true, message: `Role ${roleName} revoked successfully` };
