@@ -56,7 +56,7 @@ export const ADMIN_SECURITY_CONFIG = {
   validation: {
     maxInputLength: 2000,
     allowedFileTypes: ['.jpg', '.jpeg', '.png', '.gif', '.webp'],
-    maxFileSize: 5 * 1024 * 1024, // 5MB
+    maxFileSize: 10 * 1024 * 1024, // 10MB
     sanitizeHtml: true,
     validateUrls: true,
   },
@@ -215,7 +215,7 @@ export const SECURITY_VALIDATION_RULES = {
   // File upload security
   fileUpload: {
     allowedTypes: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
-    maxSize: 5 * 1024 * 1024, // 5MB
+    maxSize: 10 * 1024 * 1024, // 10MB
     scanForMalware: true,
     quarantineUntilScanned: true,
   },

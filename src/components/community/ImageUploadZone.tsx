@@ -1,4 +1,3 @@
-
 // ABOUTME: Drag-and-drop image upload component for community posts with preview and validation.
 
 import React, { useCallback, useState } from 'react';
@@ -16,48 +15,51 @@ interface ImageUploadZoneProps {
   isUploading?: boolean;
 }
 
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 
-export const ImageUploadZone = ({ 
-  onImageSelect, 
-  selectedImage, 
-  onImageRemove, 
-  isUploading = false 
+export const ImageUploadZone = ({
+  onImageSelect,
+  selectedImage,
+  onImageRemove,
+  isUploading = false,
 }: ImageUploadZoneProps) => {
   const [preview, setPreview] = useState<string | null>(null);
 
-  const onDrop = useCallback((acceptedFiles: File[]) => {
-    const file = acceptedFiles[0];
-    
-    if (!file) return;
+  const onDrop = useCallback(
+    (acceptedFiles: File[]) => {
+      const file = acceptedFiles[0];
 
-    // Validate file size
-    if (file.size > MAX_FILE_SIZE) {
-      toast.error('Imagem muito grande. Máximo 5MB permitido.');
-      return;
-    }
+      if (!file) return;
 
-    // Validate file type
-    if (!ACCEPTED_TYPES.includes(file.type)) {
-      toast.error('Tipo de arquivo não suportado. Use JPEG, PNG, GIF ou WebP.');
-      return;
-    }
+      // Validate file size
+      if (file.size > MAX_FILE_SIZE) {
+        toast.error('Imagem muito grande. Máximo 10MB permitido.');
+        return;
+      }
 
-    // Create preview
-    const previewUrl = URL.createObjectURL(file);
-    setPreview(previewUrl);
-    
-    onImageSelect(file);
-  }, [onImageSelect]);
+      // Validate file type
+      if (!ACCEPTED_TYPES.includes(file.type)) {
+        toast.error('Tipo de arquivo não suportado. Use JPEG, PNG, GIF ou WebP.');
+        return;
+      }
+
+      // Create preview
+      const previewUrl = URL.createObjectURL(file);
+      setPreview(previewUrl);
+
+      onImageSelect(file);
+    },
+    [onImageSelect]
+  );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
-      'image/*': ['.jpeg', '.jpg', '.png', '.gif', '.webp']
+      'image/*': ['.jpeg', '.jpg', '.png', '.gif', '.webp'],
     },
     maxFiles: 1,
-    disabled: isUploading
+    disabled: isUploading,
   });
 
   const handleRemove = () => {
@@ -108,9 +110,9 @@ export const ImageUploadZone = ({
         <div
           {...getRootProps()}
           className={cn(
-            "border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer transition-colors",
-            isDragActive && "border-primary bg-primary/5",
-            isUploading && "opacity-50 cursor-not-allowed"
+            'border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer transition-colors',
+            isDragActive && 'border-primary bg-primary/5',
+            isUploading && 'opacity-50 cursor-not-allowed'
           )}
         >
           <input {...getInputProps()} />
@@ -126,9 +128,7 @@ export const ImageUploadZone = ({
                 <Upload className="w-4 h-4 mr-2" />
                 Escolher Imagem
               </Button>
-              <p className="text-xs text-gray-500 mt-2">
-                JPEG, PNG, GIF ou WebP. Máximo 5MB.
-              </p>
+              <p className="text-xs text-gray-500 mt-2">JPEG, PNG, GIF ou WebP. Máximo 10MB.</p>
             </>
           )}
         </div>

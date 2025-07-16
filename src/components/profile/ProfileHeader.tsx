@@ -8,23 +8,23 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { 
-  Edit3, 
-  Save, 
-  X, 
-  Camera, 
-  Linkedin, 
-  Youtube, 
-  Instagram, 
-  Facebook, 
-  Twitter, 
+import {
+  Edit3,
+  Save,
+  X,
+  Camera,
+  Linkedin,
+  Youtube,
+  Instagram,
+  Facebook,
+  Twitter,
   Globe,
   ExternalLink,
   CheckCircle,
   AlertCircle,
   Calendar,
   Award,
-  Settings
+  Settings,
 } from 'lucide-react';
 import { useUpdateProfileMutation } from '../../../packages/hooks/useUpdateProfileMutation';
 import { useToast } from '@/hooks/use-toast';
@@ -48,10 +48,7 @@ interface CompleteProfileData {
   website_url: string;
 }
 
-export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ 
-  userProfile, 
-  isLoading = false 
-}) => {
+export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ userProfile, isLoading = false }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState<CompleteProfileData>({
     full_name: userProfile?.full_name || '',
@@ -67,7 +64,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
 
   const { toast } = useToast();
   const updateProfileMutation = useUpdateProfileMutation();
-  const session = useAuthStore((state) => state.session);
+  const session = useAuthStore(state => state.session);
 
   // Update form data when userProfile changes
   useEffect(() => {
@@ -90,14 +87,14 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
       await updateProfileMutation.mutateAsync(formData);
       setIsEditing(false);
       toast({
-        title: "Perfil atualizado",
-        description: "Seu nome foi salvo com sucesso.",
+        title: 'Perfil atualizado',
+        description: 'Seu nome foi salvo com sucesso.',
       });
     } catch (error) {
       toast({
-        title: "Erro ao salvar perfil",
-        description: "Não foi possível salvar suas informações. Tente novamente.",
-        variant: "destructive",
+        title: 'Erro ao salvar perfil',
+        description: 'Não foi possível salvar suas informações. Tente novamente.',
+        variant: 'destructive',
       });
     }
   };
@@ -133,67 +130,61 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     // Validate file type
     if (!file.type.startsWith('image/')) {
       toast({
-        title: "Arquivo inválido",
-        description: "Por favor, selecione uma imagem válida.",
-        variant: "destructive",
+        title: 'Arquivo inválido',
+        description: 'Por favor, selecione uma imagem válida.',
+        variant: 'destructive',
       });
       return;
     }
 
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
+    // Validate file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
       toast({
-        title: "Arquivo muito grande",
-        description: "Por favor, selecione uma imagem menor que 5MB.",
-        variant: "destructive",
+        title: 'Arquivo muito grande',
+        description: 'Por favor, selecione uma imagem menor que 10MB.',
+        variant: 'destructive',
       });
       return;
     }
 
     try {
-      
       // Generate unique filename
       const fileExt = file.name.split('.').pop();
       const fileName = `${session.user.id}-${Date.now()}.${fileExt}`;
-      
+
       toast({
-        title: "Uploading avatar...",
-        description: "Sua foto está sendo enviada.",
+        title: 'Uploading avatar...',
+        description: 'Sua foto está sendo enviada.',
       });
 
       // Upload to Supabase Storage
-      const { data, error } = await supabase.storage
-        .from('avatars')
-        .upload(fileName, file, {
-          cacheControl: '3600',
-          upsert: false
-        });
+      const { data, error } = await supabase.storage.from('avatars').upload(fileName, file, {
+        cacheControl: '3600',
+        upsert: false,
+      });
 
       if (error) {
         throw error;
       }
 
       // Get public URL
-      const { data: urlData } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(data.path);
+      const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(data.path);
 
       // Update user profile with new avatar URL
       await updateProfileMutation.mutateAsync({
-        avatar_url: urlData.publicUrl
+        avatar_url: urlData.publicUrl,
       });
 
       toast({
-        title: "Avatar atualizado!",
-        description: "Sua foto de perfil foi atualizada com sucesso.",
+        title: 'Avatar atualizado!',
+        description: 'Sua foto de perfil foi atualizada com sucesso.',
       });
-
     } catch (error) {
       console.error('Error uploading avatar:', error);
       toast({
-        title: "Erro no upload",
-        description: "Não foi possível atualizar sua foto de perfil. Tente novamente.",
-        variant: "destructive",
+        title: 'Erro no upload',
+        description: 'Não foi possível atualizar sua foto de perfil. Tente novamente.',
+        variant: 'destructive',
       });
     }
 
@@ -206,32 +197,45 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   const formatSocialUrl = (url: string, platform: string): string => {
     if (!url) return '';
     if (url.startsWith('http://') || url.startsWith('https://')) return url;
-    
+
     switch (platform) {
-      case 'linkedin': return `https://linkedin.com/in/${url}`;
-      case 'youtube': return `https://youtube.com/@${url}`;
-      case 'instagram': return `https://instagram.com/${url}`;
-      case 'facebook': return `https://facebook.com/${url}`;
-      case 'twitter': return `https://twitter.com/${url}`;
-      default: return url.startsWith('www.') ? `https://${url}` : `https://www.${url}`;
+      case 'linkedin':
+        return `https://linkedin.com/in/${url}`;
+      case 'youtube':
+        return `https://youtube.com/@${url}`;
+      case 'instagram':
+        return `https://instagram.com/${url}`;
+      case 'facebook':
+        return `https://facebook.com/${url}`;
+      case 'twitter':
+        return `https://twitter.com/${url}`;
+      default:
+        return url.startsWith('www.') ? `https://${url}` : `https://www.${url}`;
     }
   };
 
   const getSocialIcon = (platform: string) => {
     switch (platform) {
-      case 'linkedin': return <Linkedin className="h-4 w-4" />;
-      case 'youtube': return <Youtube className="h-4 w-4" />;
-      case 'instagram': return <Instagram className="h-4 w-4" />;
-      case 'facebook': return <Facebook className="h-4 w-4" />;
-      case 'twitter': return <Twitter className="h-4 w-4" />;
-      case 'website': return <Globe className="h-4 w-4" />;
-      default: return <ExternalLink className="h-4 w-4" />;
+      case 'linkedin':
+        return <Linkedin className="h-4 w-4" />;
+      case 'youtube':
+        return <Youtube className="h-4 w-4" />;
+      case 'instagram':
+        return <Instagram className="h-4 w-4" />;
+      case 'facebook':
+        return <Facebook className="h-4 w-4" />;
+      case 'twitter':
+        return <Twitter className="h-4 w-4" />;
+      case 'website':
+        return <Globe className="h-4 w-4" />;
+      default:
+        return <ExternalLink className="h-4 w-4" />;
     }
   };
 
   const calculateProfileCompletion = () => {
     if (!userProfile) return 0;
-    
+
     const fields = [
       userProfile.full_name,
       userProfile.profession,
@@ -241,9 +245,9 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
       userProfile.instagram_url,
       userProfile.facebook_url,
       userProfile.twitter_url,
-      userProfile.website_url
+      userProfile.website_url,
     ];
-    
+
     const filledFields = fields.filter(field => field && field.trim() !== '').length;
     return Math.round((filledFields / fields.length) * 100);
   };
@@ -300,7 +304,8 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
               <div className="flex-1">
                 <h3 className="font-medium text-sm">Complete seu perfil</h3>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Seu perfil está {completionPercentage}% completo. Adicione mais informações para melhorar sua presença.
+                  Seu perfil está {completionPercentage}% completo. Adicione mais informações para
+                  melhorar sua presença.
                 </p>
               </div>
               <div className="text-right">
@@ -319,14 +324,17 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           <div className="flex items-start gap-8">
             {/* Avatar Section */}
             <div className="relative group flex-shrink-0">
-              <div 
+              <div
                 className="relative h-32 w-32 rounded-full overflow-hidden ring-4 ring-background shadow-lg cursor-pointer"
                 onClick={handleAvatarUpload}
               >
                 <Avatar className="h-full w-full">
                   <AvatarImage src={userProfile?.avatar_url ?? undefined} />
                   <AvatarFallback className="text-2xl font-semibold">
-                    {userProfile?.full_name?.split(' ').map(n => n[0]).join('') ?? 'U'}
+                    {userProfile?.full_name
+                      ?.split(' ')
+                      .map(n => n[0])
+                      .join('') ?? 'U'}
                   </AvatarFallback>
                 </Avatar>
                 <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-center justify-center backdrop-blur-sm">
@@ -336,7 +344,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                   </div>
                 </div>
               </div>
-              
+
               {/* Profile Completion Ring */}
               <div className="absolute -inset-1 rounded-full pointer-events-none">
                 <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
@@ -361,7 +369,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                   />
                 </svg>
               </div>
-              
+
               <input
                 ref={fileInputRef}
                 type="file"
@@ -388,7 +396,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                           </p>
                         )}
                       </div>
-                      
+
                       <div className="flex items-center gap-3">
                         <Badge variant="secondary" className="capitalize font-medium">
                           {userProfile?.role ?? 'practitioner'}
@@ -407,13 +415,15 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                       <div className="flex items-center gap-4 text-sm text-muted-foreground">
                         <div className="flex items-center gap-2">
                           <Calendar className="h-4 w-4" />
-                          <span>Membro desde {userProfile?.created_at 
-                            ? new Date(userProfile.created_at).toLocaleDateString('pt-BR', {
-                                month: 'long',
-                                year: 'numeric'
-                              })
-                            : 'N/A'
-                          }</span>
+                          <span>
+                            Membro desde{' '}
+                            {userProfile?.created_at
+                              ? new Date(userProfile.created_at).toLocaleDateString('pt-BR', {
+                                  month: 'long',
+                                  year: 'numeric',
+                                })
+                              : 'N/A'}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -424,29 +434,25 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                 <div className="flex gap-2 ml-6">
                   {!isEditing ? (
                     <>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
+                      <Button
+                        variant="outline"
+                        size="sm"
                         onClick={() => setIsEditing(true)}
                         className="gap-2"
                       >
                         <Edit3 className="h-4 w-4" />
                         Editar Perfil
                       </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        className="gap-2"
-                      >
+                      <Button variant="ghost" size="sm" className="gap-2">
                         <Settings className="h-4 w-4" />
                         Configurações
                       </Button>
                     </>
                   ) : (
                     <>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
+                      <Button
+                        variant="outline"
+                        size="sm"
                         onClick={handleCancel}
                         disabled={updateProfileMutation.isPending}
                         className="gap-2"
@@ -454,8 +460,8 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                         <X className="h-4 w-4" />
                         Cancelar
                       </Button>
-                      <Button 
-                        size="sm" 
+                      <Button
+                        size="sm"
                         onClick={handleSave}
                         disabled={updateProfileMutation.isPending}
                         className="gap-2"
@@ -470,90 +476,102 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
 
               {/* Editing Form */}
               {isEditing ? (
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Nome</Label>
-                    <Input
-                      id="name"
-                      value={formData.full_name}
-                      onChange={(e) => handleInputChange('full_name', e.target.value)}
-                      placeholder="Seu nome completo"
-                    />
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="name">Nome</Label>
+                      <Input
+                        id="name"
+                        value={formData.full_name}
+                        onChange={e => handleInputChange('full_name', e.target.value)}
+                        placeholder="Seu nome completo"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="profession">Profissão</Label>
+                      <Input
+                        id="profession"
+                        value={formData.profession}
+                        onChange={e => handleInputChange('profession', e.target.value)}
+                        placeholder="Sua profissão"
+                      />
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="profession">Profissão</Label>
-                    <Input
-                      id="profession"
-                      value={formData.profession}
-                      onChange={(e) => handleInputChange('profession', e.target.value)}
-                      placeholder="Sua profissão"
-                    />
+
+                  <Separator />
+
+                  <div className="space-y-3">
+                    <Label className="text-sm font-medium">Links de Redes Sociais</Label>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div className="space-y-2">
+                        <Label htmlFor="linkedin" className="text-xs text-muted-foreground">
+                          LinkedIn
+                        </Label>
+                        <Input
+                          id="linkedin"
+                          value={formData.linkedin_url}
+                          onChange={e => handleInputChange('linkedin_url', e.target.value)}
+                          placeholder="linkedin.com/in/seuusuario"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="youtube" className="text-xs text-muted-foreground">
+                          YouTube
+                        </Label>
+                        <Input
+                          id="youtube"
+                          value={formData.youtube_url}
+                          onChange={e => handleInputChange('youtube_url', e.target.value)}
+                          placeholder="youtube.com/@seucanal"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="instagram" className="text-xs text-muted-foreground">
+                          Instagram
+                        </Label>
+                        <Input
+                          id="instagram"
+                          value={formData.instagram_url}
+                          onChange={e => handleInputChange('instagram_url', e.target.value)}
+                          placeholder="instagram.com/seuusuario"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="facebook" className="text-xs text-muted-foreground">
+                          Facebook
+                        </Label>
+                        <Input
+                          id="facebook"
+                          value={formData.facebook_url}
+                          onChange={e => handleInputChange('facebook_url', e.target.value)}
+                          placeholder="facebook.com/seuusuario"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="twitter" className="text-xs text-muted-foreground">
+                          Twitter
+                        </Label>
+                        <Input
+                          id="twitter"
+                          value={formData.twitter_url}
+                          onChange={e => handleInputChange('twitter_url', e.target.value)}
+                          placeholder="twitter.com/seuusuario"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="website" className="text-xs text-muted-foreground">
+                          Website
+                        </Label>
+                        <Input
+                          id="website"
+                          value={formData.website_url}
+                          onChange={e => handleInputChange('website_url', e.target.value)}
+                          placeholder="www.seusite.com"
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
-                
-                <Separator />
-                
-                <div className="space-y-3">
-                  <Label className="text-sm font-medium">Links de Redes Sociais</Label>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div className="space-y-2">
-                      <Label htmlFor="linkedin" className="text-xs text-muted-foreground">LinkedIn</Label>
-                      <Input
-                        id="linkedin"
-                        value={formData.linkedin_url}
-                        onChange={(e) => handleInputChange('linkedin_url', e.target.value)}
-                        placeholder="linkedin.com/in/seuusuario"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="youtube" className="text-xs text-muted-foreground">YouTube</Label>
-                      <Input
-                        id="youtube"
-                        value={formData.youtube_url}
-                        onChange={(e) => handleInputChange('youtube_url', e.target.value)}
-                        placeholder="youtube.com/@seucanal"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="instagram" className="text-xs text-muted-foreground">Instagram</Label>
-                      <Input
-                        id="instagram"
-                        value={formData.instagram_url}
-                        onChange={(e) => handleInputChange('instagram_url', e.target.value)}
-                        placeholder="instagram.com/seuusuario"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="facebook" className="text-xs text-muted-foreground">Facebook</Label>
-                      <Input
-                        id="facebook"
-                        value={formData.facebook_url}
-                        onChange={(e) => handleInputChange('facebook_url', e.target.value)}
-                        placeholder="facebook.com/seuusuario"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="twitter" className="text-xs text-muted-foreground">Twitter</Label>
-                      <Input
-                        id="twitter"
-                        value={formData.twitter_url}
-                        onChange={(e) => handleInputChange('twitter_url', e.target.value)}
-                        placeholder="twitter.com/seuusuario"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="website" className="text-xs text-muted-foreground">Website</Label>
-                      <Input
-                        id="website"
-                        value={formData.website_url}
-                        onChange={(e) => handleInputChange('website_url', e.target.value)}
-                        placeholder="www.seusite.com"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
               ) : null}
             </div>
           </div>
@@ -561,8 +579,12 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
       </Card>
 
       {/* Social Media Links Card */}
-      {(userProfile?.linkedin_url || userProfile?.youtube_url || userProfile?.instagram_url || 
-        userProfile?.facebook_url || userProfile?.twitter_url || userProfile?.website_url) && (
+      {(userProfile?.linkedin_url ||
+        userProfile?.youtube_url ||
+        userProfile?.instagram_url ||
+        userProfile?.facebook_url ||
+        userProfile?.twitter_url ||
+        userProfile?.website_url) && (
         <Card>
           <CardHeader>
             <div className="flex items-center gap-2">
@@ -712,14 +734,13 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             <div className="space-y-1">
               <span className="text-sm text-muted-foreground">Última atualização</span>
               <div className="font-medium">
-                {userProfile?.updated_at 
+                {userProfile?.updated_at
                   ? new Date(userProfile.updated_at).toLocaleDateString('pt-BR', {
                       day: 'numeric',
                       month: 'long',
-                      year: 'numeric'
+                      year: 'numeric',
                     })
-                  : 'N/A'
-                }
+                  : 'N/A'}
               </div>
             </div>
             <div className="space-y-1">
