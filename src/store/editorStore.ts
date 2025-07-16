@@ -208,7 +208,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
       set(state => {
         // Ensure we have master/derived layouts
         const layouts = ensureMasterDerivedLayouts(state.layouts);
-        
+
         const updatedNodes = state.nodes.filter(n => n.id !== nodeId);
         const updatedDesktopItems = layouts.desktop.data.items.filter(i => i.nodeId !== nodeId);
         const updatedMobileItems = layouts.mobile.data.items.filter(i => i.nodeId !== nodeId);
@@ -218,7 +218,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
           ...layouts.desktop.data,
           items: updatedDesktopItems,
         });
-        
+
         const updatedLayouts = updateMobileLayout(updatedDesktopLayout, {
           ...layouts.mobile.data,
           items: updatedMobileItems,
@@ -259,7 +259,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
       set(state => {
         // Ensure we have master/derived layouts
         const layouts = ensureMasterDerivedLayouts(state.layouts);
-        
+
         // Get the current layout config for the viewport
         const currentLayoutConfig = getLayoutForViewport(layouts, viewport);
         const currentItems = currentLayoutConfig.items;
@@ -282,9 +282,10 @@ export const useEditorStore = create<EditorState>((set, get) => {
         };
 
         // Update the appropriate layout using utility functions
-        const updatedLayouts = viewport === 'desktop'
-          ? updateDesktopLayout(layouts, updatedLayoutConfig)
-          : updateMobileLayout(layouts, updatedLayoutConfig);
+        const updatedLayouts =
+          viewport === 'desktop'
+            ? updateDesktopLayout(layouts, updatedLayoutConfig)
+            : updateMobileLayout(layouts, updatedLayoutConfig);
 
         const updatedState = {
           ...state,
@@ -308,7 +309,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
     // ===== VIEWPORT ACTIONS =====
 
     // ===== MASTER/DERIVED LAYOUT SYSTEM =====
-    
+
     switchViewport: viewport => {
       const state = get();
       if (state.currentViewport === viewport) return; // No change needed
@@ -333,7 +334,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
     generateMobileFromDesktop: () => {
       set(state => {
         const layouts = ensureMasterDerivedLayouts(state.layouts);
-        
+
         try {
           const { mobileLayout, nodeUpdates } = generateMobileFromDesktop(
             layouts.desktop.data,
@@ -563,7 +564,10 @@ export const useEditorStore = create<EditorState>((set, get) => {
 
     // Utility function to sanitize layout items before saving
     sanitizeLayouts: (layouts: Layouts): Layouts => {
-      const sanitizeItems = (items: LayoutItem[]): LayoutItem[] => {
+      const sanitizeItems = (items: LayoutItem[] | undefined): LayoutItem[] => {
+        if (!items || !Array.isArray(items)) {
+          return [];
+        }
         return items.map(item => ({
           ...item,
           x: Math.max(0, item.x),
@@ -576,11 +580,11 @@ export const useEditorStore = create<EditorState>((set, get) => {
       return {
         desktop: {
           ...layouts.desktop,
-          items: sanitizeItems(layouts.desktop.items),
+          items: sanitizeItems(layouts.desktop?.items),
         },
         mobile: {
           ...layouts.mobile,
-          items: sanitizeItems(layouts.mobile.items),
+          items: sanitizeItems(layouts.mobile?.items),
         },
       };
     },
@@ -653,7 +657,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
           if (data?.structured_content) {
             // Sanitize layouts when loading to handle any legacy invalid data
             const sanitizedLayouts = get().sanitizeLayouts(data.structured_content.layouts);
-            
+
             // Migrate to master/derived format (auto-migrates legacy layouts)
             const masterDerivedLayouts = ensureMasterDerivedLayouts(sanitizedLayouts);
 
@@ -711,7 +715,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
 
         // Sanitize layouts when loading from JSON
         const sanitizedLayouts = get().sanitizeLayouts(validatedContent.layouts);
-        
+
         // Migrate to master/derived format
         const masterDerivedLayouts = ensureMasterDerivedLayouts(sanitizedLayouts);
 
@@ -732,11 +736,11 @@ export const useEditorStore = create<EditorState>((set, get) => {
 
     exportToJSON: () => {
       const state = get();
-      
+
       // Convert to legacy format for backward compatibility
       const layouts = ensureMasterDerivedLayouts(state.layouts);
       const legacyLayouts = convertToLegacyFormat(layouts);
-      
+
       return {
         version: '2.0.0' as const,
         nodes: state.nodes,
@@ -836,10 +840,11 @@ export const usePersistenceState = () =>
   }));
 
 // Layout selectors
-export const useCurrentLayout = () => useEditorStore(state => {
-  const layouts = ensureMasterDerivedLayouts(state.layouts);
-  return getLayoutForViewport(layouts, state.currentViewport);
-});
+export const useCurrentLayout = () =>
+  useEditorStore(state => {
+    const layouts = ensureMasterDerivedLayouts(state.layouts);
+    return getLayoutForViewport(layouts, state.currentViewport);
+  });
 
 // Stable action selectors (prevents function recreation)
 export const useEditorActions = () =>

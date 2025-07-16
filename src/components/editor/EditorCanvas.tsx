@@ -378,12 +378,12 @@ export function EditorCanvas() {
     try {
       const masterDerivedLayouts = ensureMasterDerivedLayouts(layouts);
       const currentLayout = getLayoutForViewport(masterDerivedLayouts, currentViewport);
-      
+
       if (!currentLayout) {
         console.warn('[EditorCanvas] No layout found for viewport:', currentViewport);
         return [];
       }
-      
+
       const gridColumns = currentLayout.gridSettings.columns;
       const gridWidth = 800; // Base grid width
       const columnWidth = gridWidth / gridColumns;
@@ -393,112 +393,112 @@ export function EditorCanvas() {
         // Find layout position for this node
         const layoutItem = currentLayout.items.find(item => item.nodeId === editorNode.id);
 
-      // Default positioning if no layout exists yet
-      const defaultX = 50 + (index % 2) * 420; // Alternate columns
-      const defaultY = 50 + Math.floor(index / 2) * 150; // Stack rows
-      const defaultWidth = Math.min(400, columnWidth * 6); // 6 columns default
-      const defaultHeight = 100;
+        // Default positioning if no layout exists yet
+        const defaultX = 50 + (index % 2) * 420; // Alternate columns
+        const defaultY = 50 + Math.floor(index / 2) * 150; // Stack rows
+        const defaultWidth = Math.min(400, columnWidth * 6); // 6 columns default
+        const defaultHeight = 100;
 
-      if (layoutItem) {
-        // Convert grid coordinates to pixel coordinates
-        const x = layoutItem.x * (columnWidth / 2); // Half-column precision
-        const y = layoutItem.y * 20; // 20px grid
-        const width = layoutItem.w * (columnWidth / 2);
-        const height = layoutItem.h * 20;
+        if (layoutItem) {
+          // Convert grid coordinates to pixel coordinates
+          const x = layoutItem.x * (columnWidth / 2); // Half-column precision
+          const y = layoutItem.y * 20; // 20px grid
+          const width = layoutItem.w * (columnWidth / 2);
+          const height = layoutItem.h * 20;
 
-        return {
-          id: editorNode.id,
-          type: [
-            'textBlock',
-            'headingBlock',
-            'imageBlock',
-            'videoEmbedBlock',
-            'tableBlock',
-            'pollBlock',
-            'referenceBlock',
-            'keyTakeawayBlock',
-            'separatorBlock',
-            'quoteBlock',
-          ].includes(editorNode.type)
-            ? editorNode.type
-            : 'customBlock',
-          position: { x, y },
-          data: { nodeObject: editorNode },
-          width: width,
-          height: height,
-          style: {
-            width: `${width}px`,
-            height: `${height}px`,
-          },
-        };
-      } else {
-        // Queue layout update for after render
-        nodesToInit.push({
-          nodeId: editorNode.id,
-          layoutItem: {
+          return {
+            id: editorNode.id,
+            type: [
+              'textBlock',
+              'headingBlock',
+              'imageBlock',
+              'videoEmbedBlock',
+              'tableBlock',
+              'pollBlock',
+              'referenceBlock',
+              'keyTakeawayBlock',
+              'separatorBlock',
+              'quoteBlock',
+            ].includes(editorNode.type)
+              ? editorNode.type
+              : 'customBlock',
+            position: { x, y },
+            data: { nodeObject: editorNode },
+            width: width,
+            height: height,
+            style: {
+              width: `${width}px`,
+              height: `${height}px`,
+            },
+          };
+        } else {
+          // Queue layout update for after render
+          nodesToInit.push({
             nodeId: editorNode.id,
-            x: Math.floor(defaultX / (columnWidth / 2)),
-            y: Math.floor(defaultY / 20),
-            w: Math.min(12, Math.max(1, Math.floor(defaultWidth / (columnWidth / 2)))), // Ensure w is between 1-12
-            h: Math.max(1, Math.floor(defaultHeight / 20)), // Ensure h is at least 1
-          },
-        });
+            layoutItem: {
+              nodeId: editorNode.id,
+              x: Math.floor(defaultX / (columnWidth / 2)),
+              y: Math.floor(defaultY / 20),
+              w: Math.min(12, Math.max(1, Math.floor(defaultWidth / (columnWidth / 2)))), // Ensure w is between 1-12
+              h: Math.max(1, Math.floor(defaultHeight / 20)), // Ensure h is at least 1
+            },
+          });
 
-        return {
-          id: editorNode.id,
-          type: [
-            'textBlock',
-            'headingBlock',
-            'imageBlock',
-            'videoEmbedBlock',
-            'tableBlock',
-            'pollBlock',
-            'referenceBlock',
-            'keyTakeawayBlock',
-            'separatorBlock',
-            'quoteBlock',
-          ].includes(editorNode.type)
-            ? editorNode.type
-            : 'customBlock',
-          position: { x: defaultX, y: defaultY },
-          data: { nodeObject: editorNode },
-          width: defaultWidth,
-          height: defaultHeight,
-          style: {
-            width: `${defaultWidth}px`,
-            height: `${defaultHeight}px`,
-          },
-        };
+          return {
+            id: editorNode.id,
+            type: [
+              'textBlock',
+              'headingBlock',
+              'imageBlock',
+              'videoEmbedBlock',
+              'tableBlock',
+              'pollBlock',
+              'referenceBlock',
+              'keyTakeawayBlock',
+              'separatorBlock',
+              'quoteBlock',
+            ].includes(editorNode.type)
+              ? editorNode.type
+              : 'customBlock',
+            position: { x: defaultX, y: defaultY },
+            data: { nodeObject: editorNode },
+            width: defaultWidth,
+            height: defaultHeight,
+            style: {
+              width: `${defaultWidth}px`,
+              height: `${defaultHeight}px`,
+            },
+          };
+        }
+      });
+
+      // Update layouts after render to avoid setState during render
+      if (nodesToInit.length > 0) {
+        setTimeout(() => {
+          nodesToInit.forEach(({ nodeId, layoutItem }) => {
+            updateLayout(nodeId, layoutItem, currentViewport);
+          });
+        }, 0);
       }
-    });
 
-    // Update layouts after render to avoid setState during render
-    if (nodesToInit.length > 0) {
-      setTimeout(() => {
-        nodesToInit.forEach(({ nodeId, layoutItem }) => {
-          updateLayout(nodeId, layoutItem, currentViewport);
-        });
-      }, 0);
-    }
-
-    // Add preview boundary node as a special canvas-anchored node
-    const previewBoundaryNode = {
-      id: 'preview-boundary-node',
-      type: 'previewBoundary',
-      position: { x: 50, y: 50 }, // Fixed canvas position
-      data: {
-        showControls: true,
-        showMeasurements: false,
-      },
-      draggable: false,
-      selectable: false,
-      deletable: false,
-      style: {
-        background: 'transparent',
-        border: 'none',
-        zIndex: -1,
-      },
-    };
+      // Add preview boundary node as a special canvas-anchored node
+      const previewBoundaryNode = {
+        id: 'preview-boundary-node',
+        type: 'previewBoundary',
+        position: { x: 50, y: 50 }, // Fixed canvas position
+        data: {
+          showControls: true,
+          showMeasurements: false,
+        },
+        draggable: false,
+        selectable: false,
+        deletable: false,
+        style: {
+          background: 'transparent',
+          border: 'none',
+          zIndex: -1,
+        },
+      };
 
       return [previewBoundaryNode, ...nodes];
     } catch (error) {
@@ -546,7 +546,7 @@ export function EditorCanvas() {
           try {
             const masterDerivedLayouts = ensureMasterDerivedLayouts(layouts);
             const currentLayout = getLayoutForViewport(masterDerivedLayouts, currentViewport);
-              const gridColumns = currentLayout.gridSettings.columns;
+            const gridColumns = currentLayout.gridSettings.columns;
             const columnWidth = 800 / gridColumns;
 
             // Find node dimensions from the current React Flow state
@@ -629,7 +629,7 @@ export function EditorCanvas() {
   return (
     <div
       className={`flex-1 relative ${canvasTheme === 'dark' ? 'bg-zinc-900' : 'bg-gray-50'}`}
-      style={{ height: '100%' }}
+      style={{ height: '100vh', width: '100%', minHeight: '600px' }}
     >
       {/* Enhanced viewport indicator with grid info */}
       <div className="absolute top-4 right-4 z-10">
@@ -679,23 +679,25 @@ export function EditorCanvas() {
       <BlockPositionGuides isDragging={isDragging} draggedNodeId={draggedNodeId} nodes={nodes} />
 
       {/* React Flow Canvas */}
-      <div ref={setNodeRef} className="w-full h-full" style={{ position: 'absolute', inset: 0 }}>
-        <ReactFlowProvider>
-          <ReactFlowWithHelpers
-            nodes={nodes}
-            edges={edges}
-            onNodesChange={handleNodesChange}
-            onEdgesChange={onEdgesChange}
-            onConnect={onConnect}
-            nodeTypes={nodeTypes}
-            gridConfig={gridConfig}
-            editorNodes={editorNodes}
-            canvasTheme={canvasTheme}
-            showGrid={showGrid}
-            showRulers={showRulers}
-            showGuidelines={showGuidelines}
-          />
-        </ReactFlowProvider>
+      <div
+        ref={setNodeRef}
+        className="w-full h-full"
+        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
+      >
+        <ReactFlowWithHelpers
+          nodes={nodes}
+          edges={edges}
+          onNodesChange={handleNodesChange}
+          onEdgesChange={onEdgesChange}
+          onConnect={onConnect}
+          nodeTypes={nodeTypes}
+          gridConfig={gridConfig}
+          editorNodes={editorNodes}
+          canvasTheme={canvasTheme}
+          showGrid={showGrid}
+          showRulers={showRulers}
+          showGuidelines={showGuidelines}
+        />
       </div>
     </div>
   );
