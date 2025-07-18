@@ -4,7 +4,6 @@
 export { SpacingControls } from './SpacingControls';
 export { BorderControls } from './BorderControls';
 export { BackgroundControls } from './BackgroundControls';
-export { TypographyControls } from './TypographyControls';
 export { ColorControl } from './ColorControl';
 
 // Specialized controls

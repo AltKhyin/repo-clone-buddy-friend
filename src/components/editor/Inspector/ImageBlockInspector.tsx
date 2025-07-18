@@ -34,6 +34,14 @@ import {
   Trash2,
 } from 'lucide-react';
 
+// Utility function to sanitize color values for HTML color inputs
+const sanitizeColorForInput = (color: string | undefined, fallback: string): string => {
+  if (!color || color === 'transparent') {
+    return fallback;
+  }
+  return color;
+};
+
 interface ImageBlockInspectorProps {
   nodeId: string;
 }
@@ -687,7 +695,7 @@ export const ImageBlockInspector: React.FC<ImageBlockInspectorProps> = ({ nodeId
             <Input
               id="image-bg-color"
               type="color"
-              value={data.backgroundColor || '#ffffff'}
+              value={sanitizeColorForInput(data.backgroundColor, '#ffffff')}
               onChange={e => updateNodeData({ backgroundColor: e.target.value })}
               className="w-12 h-8 p-1 border rounded"
             />

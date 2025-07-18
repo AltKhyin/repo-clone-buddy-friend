@@ -41,8 +41,9 @@ export const useEditorSaveMutation = () => {
           hasVersion: 'version' in (structuredContent || {}),
           hasNodes: 'nodes' in (structuredContent || {}),
           hasLayouts: 'layouts' in (structuredContent || {}),
+          hasPositions: 'positions' in (structuredContent || {}),
           nodeCount: structuredContent?.nodes?.length || 0,
-          layoutKeys: Object.keys(structuredContent?.layouts || {}),
+          version: structuredContent?.version || 'unknown',
           structuredContentSample: JSON.stringify(structuredContent).substring(0, 300) + '...',
         });
 
@@ -51,7 +52,10 @@ export const useEditorSaveMutation = () => {
         console.log('Content validation successful:', {
           reviewId,
           validatedNodeCount: validatedContent.nodes.length,
-          validatedLayoutKeys: Object.keys(validatedContent.layouts),
+          validatedVersion: validatedContent.version,
+          isV3: validatedContent.version === '3.0.0',
+          hasPositions: 'positions' in validatedContent,
+          hasLayouts: 'layouts' in validatedContent,
         });
       } catch (validationError) {
         console.error('Content validation failed:', {
@@ -61,7 +65,9 @@ export const useEditorSaveMutation = () => {
           fullError: validationError,
           contentKeys: Object.keys(structuredContent || {}),
           nodeCount: structuredContent?.nodes?.length || 0,
-          layoutKeys: Object.keys(structuredContent?.layouts || {}),
+          version: structuredContent?.version || 'unknown',
+          hasPositions: 'positions' in (structuredContent || {}),
+          hasLayouts: 'layouts' in (structuredContent || {}),
         });
         throw new Error(
           `Content validation failed: ${validationError instanceof Error ? validationError.message : String(validationError)}`
@@ -96,52 +102,68 @@ export const useEditorSaveMutation = () => {
           .single();
 
         // Additional integrity check: verify the update actually happened
-        const intendedStr = JSON.stringify(validatedContent);
-        const actualStr = JSON.stringify(data.structured_content);
+        // Use stable JSON stringify to avoid key ordering issues
+        const intendedStr = JSON.stringify(validatedContent, Object.keys(validatedContent).sort());
+        const actualStr = JSON.stringify(
+          data.structured_content,
+          Object.keys(data.structured_content || {}).sort()
+        );
 
         if (data && actualStr !== intendedStr) {
           const intendedKeys = Object.keys(validatedContent);
           const actualKeys = Object.keys(data.structured_content || {});
 
-          // Safely cast database Json to StructuredContentV2 for property access
-          const actualContent = data.structured_content as StructuredContentV2 | null;
+          // Safely cast database Json to StructuredContent for property access
+          const actualContent = data.structured_content as any;
 
-          // Detailed comparison to identify the mismatch source
-          const detailedAnalysis = {
-            reviewId: numericReviewId,
-            intendedNodeCount: validatedContent.nodes?.length || 0,
-            actualNodeCount: actualContent?.nodes?.length || 0,
-            intendedLayoutCount: Object.keys(validatedContent.layouts || {}).length,
-            actualLayoutCount: Object.keys(actualContent?.layouts || {}).length,
-            intendedKeys,
-            actualKeys,
-            keysMismatch: intendedKeys.length !== actualKeys.length,
-            stringLengthMismatch: intendedStr.length !== actualStr.length,
-            timestamp: new Date().toISOString(),
-            // Character-by-character comparison for small diffs
-            ...(Math.abs(intendedStr.length - actualStr.length) < 100 && {
-              charDiff: intendedStr.split('').findIndex((char, i) => char !== actualStr[i]),
-              intendedSample: intendedStr.substring(0, 500),
-              actualSample: actualStr.substring(0, 500),
-            }),
-            // Only log previews for larger diffs
-            ...(Math.abs(intendedStr.length - actualStr.length) >= 100 && {
-              intendedPreview: intendedStr.substring(0, 200) + '...',
-              actualPreview: actualStr.substring(0, 200) + '...',
-            }),
-          };
+          // Check if this is just a key ordering issue
+          const sameKeys =
+            intendedKeys.length === actualKeys.length &&
+            intendedKeys.every(key => actualKeys.includes(key));
+          const sameNodeCount = validatedContent.nodes?.length === actualContent?.nodes?.length;
+          const sameVersion = validatedContent.version === actualContent?.version;
 
-          console.warn(
-            'Database integrity warning: Saved content differs from intended content',
-            detailedAnalysis
-          );
+          // Only show warning if there are actual structural differences
+          if (!sameKeys || !sameNodeCount || !sameVersion) {
+            // Detailed comparison to identify the mismatch source
+            const detailedAnalysis = {
+              reviewId: numericReviewId,
+              intendedNodeCount: validatedContent.nodes?.length || 0,
+              actualNodeCount: actualContent?.nodes?.length || 0,
+              intendedVersion: validatedContent.version,
+              actualVersion: actualContent?.version,
+              intendedKeys,
+              actualKeys,
+              keysMismatch: !sameKeys,
+              nodeCountMismatch: !sameNodeCount,
+              versionMismatch: !sameVersion,
+              stringLengthMismatch: intendedStr.length !== actualStr.length,
+              timestamp: new Date().toISOString(),
+              // Character-by-character comparison for small diffs
+              ...(Math.abs(intendedStr.length - actualStr.length) < 100 && {
+                charDiff: intendedStr.split('').findIndex((char, i) => char !== actualStr[i]),
+                intendedSample: intendedStr.substring(0, 500),
+                actualSample: actualStr.substring(0, 500),
+              }),
+              // Only log previews for larger diffs
+              ...(Math.abs(intendedStr.length - actualStr.length) >= 100 && {
+                intendedPreview: intendedStr.substring(0, 200) + '...',
+                actualPreview: actualStr.substring(0, 200) + '...',
+              }),
+            };
 
-          // If the difference is significant, this might indicate a real persistence issue
-          if (Math.abs(intendedStr.length - actualStr.length) > 1000) {
-            console.error(
-              'CRITICAL: Major content mismatch detected during save operation',
+            console.warn(
+              'Database integrity warning: Saved content differs from intended content',
               detailedAnalysis
             );
+
+            // If the difference is significant, this might indicate a real persistence issue
+            if (Math.abs(intendedStr.length - actualStr.length) > 1000) {
+              console.error(
+                'CRITICAL: Major content mismatch detected during save operation',
+                detailedAnalysis
+              );
+            }
           }
         }
 

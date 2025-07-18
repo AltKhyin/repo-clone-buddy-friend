@@ -5,7 +5,8 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Palette, Image, RotateCcw } from 'lucide-react';
+import { Palette, Image, RotateCcw, Sparkles } from 'lucide-react';
+import { useTheme } from '@/components/theme/CustomThemeProvider';
 
 interface BackgroundControlsProps {
   data: Record<string, any>;
@@ -77,6 +78,42 @@ const DEFAULT_COLOR_PRESETS = [
   '#d32f2f',
 ];
 
+// Theme-aware color options that adapt to current theme
+const getThemeColors = (theme: 'light' | 'dark' | 'black') => {
+  return [
+    {
+      name: 'Primary',
+      value: 'hsl(var(--primary))',
+      description: 'Theme primary color',
+    },
+    {
+      name: 'Surface',
+      value: 'hsl(var(--surface))',
+      description: 'Theme surface color',
+    },
+    {
+      name: 'Accent',
+      value: 'hsl(var(--accent))',
+      description: 'Theme accent color',
+    },
+    {
+      name: 'Muted',
+      value: 'hsl(var(--muted))',
+      description: 'Theme muted color',
+    },
+    {
+      name: 'Border',
+      value: 'hsl(var(--border))',
+      description: 'Theme border color',
+    },
+    {
+      name: 'Card',
+      value: 'hsl(var(--card))',
+      description: 'Theme card background',
+    },
+  ];
+};
+
 export function BackgroundControls({
   data,
   onChange,
@@ -88,8 +125,12 @@ export function BackgroundControls({
   defaultColor = 'transparent',
   colorPresets = DEFAULT_COLOR_PRESETS,
 }: BackgroundControlsProps) {
+  const { theme } = useTheme();
   const backgroundColor = data[colorKey] || defaultColor;
   const backgroundImage = data[imageKey] || '';
+
+  // Get theme-aware colors for current theme
+  const themeColors = getThemeColors(theme);
 
   const handleColorChange = (color: string) => {
     onChange({ [colorKey]: color });
@@ -164,31 +205,71 @@ export function BackgroundControls({
           </Button>
         </div>
 
-        {/* Color Presets */}
-        <div className="grid grid-cols-8 gap-1">
-          {colorPresets.slice(0, compact ? 16 : 24).map((color, index) => (
-            <button
-              key={index}
-              onClick={() => handleColorChange(color)}
-              className={cn(
-                'border border-gray-200 rounded cursor-pointer hover:scale-110 transition-transform',
-                compact ? 'w-6 h-6' : 'w-8 h-8',
-                backgroundColor === color && 'ring-2 ring-blue-500 ring-offset-1'
-              )}
-              style={{
-                backgroundColor: color === 'transparent' ? '#ffffff' : color,
-                backgroundImage:
-                  color === 'transparent'
-                    ? 'linear-gradient(45deg, #ccc 25%, transparent 25%), linear-gradient(-45deg, #ccc 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #ccc 75%), linear-gradient(-45deg, transparent 75%, #ccc 75%)'
-                    : undefined,
-                backgroundSize: color === 'transparent' ? '8px 8px' : undefined,
-                backgroundPosition:
-                  color === 'transparent' ? '0 0, 0 4px, 4px -4px, -4px 0px' : undefined,
-              }}
-              title={color}
-              aria-label={`Set background color to ${color}`}
-            />
-          ))}
+        {/* Theme Colors Section */}
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <Sparkles size={compact ? 10 : 12} className="text-muted-foreground" />
+            <Label className={cn('font-medium', compact ? 'text-xs' : 'text-sm')}>
+              Theme Colors
+            </Label>
+          </div>
+          <div className="grid grid-cols-6 gap-1">
+            {themeColors.map((themeColor, index) => (
+              <button
+                key={index}
+                onClick={() => handleColorChange(themeColor.value)}
+                className={cn(
+                  'border border-gray-200 rounded cursor-pointer hover:scale-110 transition-transform relative group',
+                  compact ? 'w-6 h-6' : 'w-8 h-8',
+                  backgroundColor === themeColor.value && 'ring-2 ring-blue-500 ring-offset-1'
+                )}
+                style={{
+                  backgroundColor: themeColor.value,
+                  // Fallback for CSS custom properties that might not render in style attribute
+                  background: themeColor.value.includes('var(') ? undefined : themeColor.value,
+                }}
+                title={`${themeColor.name} - ${themeColor.description}`}
+                aria-label={`Set background to ${themeColor.name}`}
+              >
+                {/* Theme icon overlay for better identification */}
+                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Sparkles size={compact ? 8 : 10} className="text-white drop-shadow-sm" />
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Standard Color Presets */}
+        <div className="space-y-2">
+          <Label className={cn('font-medium', compact ? 'text-xs' : 'text-sm')}>
+            Standard Colors
+          </Label>
+          <div className="grid grid-cols-8 gap-1">
+            {colorPresets.slice(0, compact ? 16 : 24).map((color, index) => (
+              <button
+                key={index}
+                onClick={() => handleColorChange(color)}
+                className={cn(
+                  'border border-gray-200 rounded cursor-pointer hover:scale-110 transition-transform',
+                  compact ? 'w-6 h-6' : 'w-8 h-8',
+                  backgroundColor === color && 'ring-2 ring-blue-500 ring-offset-1'
+                )}
+                style={{
+                  backgroundColor: color === 'transparent' ? '#ffffff' : color,
+                  backgroundImage:
+                    color === 'transparent'
+                      ? 'linear-gradient(45deg, #ccc 25%, transparent 25%), linear-gradient(-45deg, #ccc 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #ccc 75%), linear-gradient(-45deg, transparent 75%, #ccc 75%)'
+                      : undefined,
+                  backgroundSize: color === 'transparent' ? '8px 8px' : undefined,
+                  backgroundPosition:
+                    color === 'transparent' ? '0 0, 0 4px, 4px -4px, -4px 0px' : undefined,
+                }}
+                title={color}
+                aria-label={`Set background color to ${color}`}
+              />
+            ))}
+          </div>
         </div>
       </div>
 

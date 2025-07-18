@@ -1,18 +1,10 @@
-// ABOUTME: React Flow node component for VideoEmbedBlock with YouTube/Vimeo responsive embed support
+// ABOUTME: WYSIWYG node component
 
 import React from 'react';
-import { Handle, Position, NodeProps } from '@xyflow/react';
 import { VideoEmbedBlockData } from '@/types/editor';
 import { useEditorStore } from '@/store/editorStore';
+import { useEditorTheme } from '@/hooks/useEditorTheme';
 import { PlayCircle, ExternalLink, Video } from 'lucide-react';
-import { UnifiedNodeResizer } from '../components/UnifiedNodeResizer';
-import { useUnifiedBlockStyling, getSelectionIndicatorProps } from '../utils/blockStyling';
-import {
-  ThemedBlockWrapper,
-  useThemedStyles,
-  useThemedColors,
-} from '@/components/editor/theme/ThemeIntegration';
-
 interface VideoEmbedBlockNodeData extends VideoEmbedBlockData {
   // Additional display properties
   paddingX?: number;
@@ -23,22 +15,24 @@ interface VideoEmbedBlockNodeData extends VideoEmbedBlockData {
   borderRadius?: number;
 }
 
-export const VideoEmbedBlockNode: React.FC<NodeProps<VideoEmbedBlockNodeData>> = ({
-  id,
-  data,
-  selected,
-}) => {
-  const { updateNode, canvasTheme } = useEditorStore();
+interface VideoEmbedBlockNodeProps {
+  id: string;
+  data: VideoEmbedBlockNodeData;
+  selected: boolean;
+}
+
+export const VideoEmbedBlockNode: React.FC<VideoEmbedBlockNodeProps> = ({ id, data, selected }) => {
+  const { updateNode } = useEditorStore();
+  const { colors } = useEditorTheme();
 
   // Get theme-aware styles and colors
-  const themedStyles = useThemedStyles('videoEmbedBlock');
-  const themedColors = useThemedColors();
 
   // Get unified styling
-  const { selectionClasses, borderStyles } = useUnifiedBlockStyling('videoEmbedBlock', selected, {
-    borderWidth: data.borderWidth,
-    borderColor: data.borderColor,
-  });
+  const selectionClasses = selected ? 'ring-2 ring-blue-500' : '';
+  const borderStyles = {
+    borderWidth: data.borderWidth || 0,
+    borderColor: data.borderColor || '#e5e7eb',
+  };
 
   // Apply styling with theme awareness
   const paddingX = data.paddingX ?? 16;
@@ -103,29 +97,27 @@ export const VideoEmbedBlockNode: React.FC<NodeProps<VideoEmbedBlockNodeData>> =
     transition: 'all 0.2s ease-in-out',
   } as React.CSSProperties;
 
-  const selectionIndicatorProps = getSelectionIndicatorProps('videoEmbedBlock');
+  const selectionIndicatorProps = {
+    className:
+      'absolute -top-6 left-0 text-xs bg-primary text-primary-foreground px-2 py-1 rounded z-10',
+    children: 'Video Block Selected',
+  };
 
   return (
     <>
-      {/* Unified Node Resizer */}
-      <UnifiedNodeResizer isVisible={selected} nodeType="videoEmbedBlock" />
-
-      <ThemedBlockWrapper
-        blockType="videoEmbedBlock"
+      <div
+        data-block-type="videoEmbedBlock"
         className={`relative cursor-pointer ${selectionClasses}`}
         style={{
           ...dynamicStyles,
-          borderRadius: themedStyles.borderRadius || `${borderRadius}px`,
-          backgroundColor: themedStyles.backgroundColor || dynamicStyles.backgroundColor,
-          padding: themedStyles.padding || `${paddingY}px ${paddingX}px`,
+          borderRadius: `${borderRadius}px`,
+          backgroundColor: dynamicStyles.backgroundColor,
+          padding: `${paddingY}px ${paddingX}px`,
         }}
         onClick={handleVideoClick}
       >
-        {/* Unified Selection indicator */}
+        {/* Selection indicator */}
         {selected && <div {...selectionIndicatorProps} />}
-        {/* Connection handles */}
-        <Handle type="target" position={Position.Top} className="opacity-0" />
-        <Handle type="source" position={Position.Bottom} className="opacity-0" />
 
         <div className="relative">
           {data.url && embedData ? (
@@ -167,15 +159,7 @@ export const VideoEmbedBlockNode: React.FC<NodeProps<VideoEmbedBlockNodeData>> =
                   e.stopPropagation();
                   window.open(data.url, '_blank');
                 }}
-                className={`
-                absolute top-2 left-2 p-1.5 rounded-full transition-all
-                ${
-                  canvasTheme === 'dark'
-                    ? 'bg-gray-700 hover:bg-gray-600 text-gray-200'
-                    : 'bg-white hover:bg-gray-50 text-gray-600'
-                }
-                shadow-md hover:shadow-lg
-              `}
+                className="absolute top-2 left-2 p-1.5 rounded-full transition-all bg-white hover:bg-gray-50 text-gray-600 shadow-md hover:shadow-lg"
                 title="Open in new tab"
               >
                 <ExternalLink size={14} />
@@ -184,10 +168,8 @@ export const VideoEmbedBlockNode: React.FC<NodeProps<VideoEmbedBlockNodeData>> =
               {/* Caption */}
               {data.caption && (
                 <p
-                  className={`
-                  mt-3 text-sm text-center
-                  ${canvasTheme === 'dark' ? 'text-gray-300' : 'text-gray-600'}
-                `}
+                  className="mt-3 text-sm text-center"
+                  style={{ color: colors.block.textSecondary }}
                 >
                   {data.caption}
                 </p>
@@ -196,15 +178,11 @@ export const VideoEmbedBlockNode: React.FC<NodeProps<VideoEmbedBlockNodeData>> =
           ) : (
             /* Empty State */
             <div
-              className={`
-              flex flex-col items-center justify-center p-8 border-2 border-dashed rounded-lg
-              ${
-                canvasTheme === 'dark'
-                  ? 'bg-gray-700 border-gray-600 text-gray-400'
-                  : 'bg-gray-50 border-gray-300 text-gray-500'
-              }
-            `}
+              className="flex flex-col items-center justify-center p-8 border-2 border-dashed rounded-lg"
               style={{
+                backgroundColor: colors.block.backgroundSecondary,
+                borderColor: colors.block.border,
+                color: colors.block.textSecondary,
                 minHeight: '200px',
                 borderRadius: `${borderRadius}px`,
               }}
@@ -228,15 +206,10 @@ export const VideoEmbedBlockNode: React.FC<NodeProps<VideoEmbedBlockNodeData>> =
           {/* Invalid URL State */}
           {data.url && !embedData && (
             <div
-              className={`
-              flex flex-col items-center justify-center p-8 border-2 border-dashed border-red-300 rounded-lg
-              ${
-                canvasTheme === 'dark'
-                  ? 'bg-red-900 bg-opacity-20 text-red-400'
-                  : 'bg-red-50 text-red-600'
-              }
-            `}
+              className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-red-300 rounded-lg"
               style={{
+                backgroundColor: colors.interactive.error + '10',
+                color: colors.interactive.error,
                 minHeight: '200px',
                 borderRadius: `${borderRadius}px`,
               }}
@@ -254,7 +227,7 @@ export const VideoEmbedBlockNode: React.FC<NodeProps<VideoEmbedBlockNodeData>> =
         <span className="sr-only">
           Video embed: {data.platform} video{data.caption ? ` - ${data.caption}` : ''}
         </span>
-      </ThemedBlockWrapper>
+      </div>
     </>
   );
 };

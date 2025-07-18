@@ -1,15 +1,10 @@
-// ABOUTME: EVIDENS specialized reference block with automatic APA formatting and citation management
+// ABOUTME: WYSIWYG node component
 
 import React from 'react';
 import { useEditorStore } from '@/store/editorStore';
+import { useEditorTheme } from '@/hooks/useEditorTheme';
 import { ReferenceBlockData } from '@/types/editor';
 import { cn } from '@/lib/utils';
-import { UnifiedNodeResizer } from '../components/UnifiedNodeResizer';
-import {
-  ThemedBlockWrapper,
-  useThemedStyles,
-  useThemedColors,
-} from '@/components/editor/theme/ThemeIntegration';
 
 interface ReferenceBlockNodeProps {
   id: string;
@@ -38,11 +33,8 @@ const formatAPA = (data: ReferenceBlockData): string => {
 };
 
 export function ReferenceBlockNode({ id, data, selected }: ReferenceBlockNodeProps) {
-  const { updateNode, canvasTheme } = useEditorStore();
-
-  // Get theme-aware styles and colors
-  const themedStyles = useThemedStyles('referenceBlock');
-  const themedColors = useThemedColors();
+  const { updateNode } = useEditorStore();
+  const { colors } = useEditorTheme();
 
   // Generate APA formatted citation
   const formattedCitation = React.useMemo(() => {
@@ -59,32 +51,27 @@ export function ReferenceBlockNode({ id, data, selected }: ReferenceBlockNodePro
 
   return (
     <>
-      <UnifiedNodeResizer isVisible={selected || false} nodeType="referenceBlock" />
-
-      <ThemedBlockWrapper
-        blockType="referenceBlock"
+      <div
+        data-block-type="referenceBlock"
         data-node-id={id}
         onClick={handleClick}
         className={cn(
           'relative cursor-pointer transition-all duration-200 rounded-lg border-l-4',
-          'min-h-[80px] bg-gradient-to-r',
-          // Theme-based styling
-          canvasTheme === 'dark'
-            ? 'from-slate-800 to-slate-700 border-slate-400 text-slate-100'
-            : 'from-slate-50 to-white border-slate-400 text-slate-900',
+          'min-h-[80px]',
           // Selection state
           selected && 'ring-2 ring-primary ring-offset-2 shadow-lg',
           // Hover state
           'hover:shadow-md',
           // Completion state indicator
-          !isComplete && 'border-yellow-400 bg-yellow-50 dark:bg-yellow-900/20'
+          !isComplete && 'border-yellow-400'
         )}
         style={{
-          fontSize: themedStyles.fontSize || '14px',
-          fontStyle: themedStyles.fontStyle || 'normal',
-          backgroundColor: themedStyles.backgroundColor || undefined,
-          padding: themedStyles.padding || '16px',
-          borderLeft: themedStyles.borderLeft !== false ? undefined : 'none',
+          fontSize: '14px',
+          fontStyle: 'normal',
+          backgroundColor: isComplete ? colors.block.background : colors.interactive.warning + '10',
+          borderLeftColor: isComplete ? colors.block.border : colors.interactive.warning,
+          color: colors.block.text,
+          padding: '16px',
         }}
       >
         {/* Citation Type Indicator */}
@@ -99,18 +86,13 @@ export function ReferenceBlockNode({ id, data, selected }: ReferenceBlockNodePro
 
         {/* Formatted Citation Display */}
         <div className="space-y-2">
-          <p
-            className={cn(
-              'text-sm leading-relaxed font-serif',
-              canvasTheme === 'dark' ? 'text-slate-200' : 'text-slate-700'
-            )}
-          >
+          <p className="text-sm leading-relaxed font-serif" style={{ color: colors.block.text }}>
             {formattedCitation}
           </p>
 
           {/* Metadata Display */}
           {isComplete && (
-            <div className="pt-2 border-t border-slate-200 dark:border-slate-600">
+            <div className="pt-2 border-t" style={{ borderColor: colors.block.border }}>
               <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
                 <div>
                   <span className="font-medium">Year:</span> {data.year}
@@ -131,7 +113,7 @@ export function ReferenceBlockNode({ id, data, selected }: ReferenceBlockNodePro
             Reference Selected
           </div>
         )}
-      </ThemedBlockWrapper>
+      </div>
     </>
   );
 }

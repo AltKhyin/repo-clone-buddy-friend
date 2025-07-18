@@ -1,22 +1,26 @@
-// ABOUTME: Main Visual Composition Engine editor page with React Flow 2D canvas and three-panel workspace
+// ABOUTME: Main Visual Composition Engine editor page with WYSIWYG constrained 2D canvas and three-panel workspace
 
 import React from 'react';
 import { useParams } from 'react-router-dom';
-import { DndContext, DragEndEvent, DragOverEvent } from '@dnd-kit/core';
-import { ReactFlowProvider } from '@xyflow/react';
+import {
+  DndContext,
+  DragEndEvent,
+  DragOverEvent,
+  closestCorners,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
 import { useQueryClient } from '@tanstack/react-query';
 import { useEditorStore } from '@/store/editorStore';
-import { BlockPalette } from '@/components/editor/BlockPalette';
-import { EditorCanvas } from '@/components/editor/EditorCanvas';
-import { TopToolbar } from '@/components/editor/TopToolbar';
-import { InlineCustomizationToolbar } from '@/components/editor/InlineCustomizationToolbar';
-import { InspectorPanel } from '@/components/editor/Inspector/InspectorPanel';
+import { EditorSidebar } from '@/components/editor/EditorSidebar';
+import { WYSIWYGCanvas } from '@/components/editor/WYSIWYGCanvas';
+import { UnifiedToolbar } from '@/components/editor/UnifiedToolbar';
 import { PersistenceIndicator } from '@/components/editor/PersistenceIndicator';
+import { HistoryIndicator } from '@/components/editor/HistoryIndicator';
 import { BackupRecoveryDialog } from '@/components/editor/BackupRecoveryDialog';
-import { KeyboardShortcutsPanel } from '@/components/editor/KeyboardShortcutsPanel';
 import { useEnhancedPersistence } from '@/hooks/useEnhancedPersistence';
 import { useCrashRecovery } from '@/hooks/useCrashRecovery';
-import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { Button } from '@/components/ui/button';
 import { getDefaultDataForBlockType } from '@/types/editor';
 import { ArrowLeft } from 'lucide-react';
@@ -28,19 +32,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { validateStructuredContent } from '@/types/editor';
 import { Link } from 'react-router-dom';
 import {
-  ThemeProvider,
-  ThemeStyleInjector,
-  ThemeFontLoader,
-} from '@/components/editor/theme/ThemeIntegration';
-import { useThemeStore } from '@/store/themeStore';
-import { getThemePresets } from '@/components/editor/theme/themePresets';
-import {
   EditorPageErrorBoundary,
   BlockPaletteErrorBoundary,
   EditorCanvasErrorBoundary,
-  InspectorErrorBoundary,
 } from '@/components/editor/error-boundaries';
-import { ensureMasterDerivedLayouts, getLayoutForViewport } from '@/store/layoutUtils';
 
 export default function EditorPage() {
   const { reviewId } = useParams<{ reviewId: string }>();
@@ -52,11 +47,9 @@ export default function EditorPage() {
     isDirty,
     lastSaved,
     isFullscreen,
-    isInspectorVisible,
     setPersistenceCallbacks,
-    handleFullscreenChange,
     nodes,
-    layouts,
+    positions,
     exportToJSON,
     loadFromJSON,
   } = useEditorStore();
@@ -70,20 +63,17 @@ export default function EditorPage() {
   const currentContent = React.useMemo(() => {
     if (!nodes.length) return null;
 
-    // Safely check if there are layout items in either desktop or mobile
+    // Check if there are any positioned nodes
     try {
-      const safeLayouts = ensureMasterDerivedLayouts(layouts);
-      const hasDesktopItems = safeLayouts.desktop?.data?.items?.length > 0;
-      const hasMobileItems = safeLayouts.mobile?.data?.items?.length > 0;
-
-      if (!hasDesktopItems && !hasMobileItems) return null;
+      const hasPositionedNodes = Object.keys(positions).length > 0;
+      if (!hasPositionedNodes) return null;
 
       return exportToJSON();
     } catch (error) {
-      console.error('[EditorPage] Error checking layouts:', error);
+      console.error('[EditorPage] Error checking positions:', error);
       return null;
     }
-  }, [nodes, layouts, exportToJSON]);
+  }, [nodes, positions, exportToJSON]);
 
   const { state: persistenceState, actions: persistenceActions } = useEnhancedPersistence(
     reviewId,
@@ -95,11 +85,14 @@ export default function EditorPage() {
   const { state: recoveryState, actions: recoveryActions } = useCrashRecovery(reviewId);
   const [showRecoveryDialog, setShowRecoveryDialog] = React.useState(false);
 
-  // Initialize keyboard shortcuts
-  const { showShortcutsPanel, setShowShortcutsPanel } = useKeyboardShortcuts();
-
-  // Initialize theme system
-  const { currentTheme, applyTheme } = useThemeStore();
+  // Configure DndKit sensors for better drag detection
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8, // Minimum distance before drag starts
+      },
+    })
+  );
 
   // Configure persistence callbacks with stable references to prevent infinite loops
   const saveCallback = React.useCallback(
@@ -184,49 +177,12 @@ export default function EditorPage() {
     }
   }, [reviewId, persistenceCallbacks.load, loadFromDatabase]);
 
-  // Set up fullscreen event listeners
-  React.useEffect(() => {
-    const handleFullscreenChangeEvent = () => {
-      handleFullscreenChange();
-    };
-
-    // Add event listeners for all browsers
-    document.addEventListener('fullscreenchange', handleFullscreenChangeEvent);
-    document.addEventListener('webkitfullscreenchange', handleFullscreenChangeEvent);
-    document.addEventListener('mozfullscreenchange', handleFullscreenChangeEvent);
-    document.addEventListener('MSFullscreenChange', handleFullscreenChangeEvent);
-
-    return () => {
-      // Clean up event listeners
-      document.removeEventListener('fullscreenchange', handleFullscreenChangeEvent);
-      document.removeEventListener('webkitfullscreenchange', handleFullscreenChangeEvent);
-      document.removeEventListener('mozfullscreenchange', handleFullscreenChangeEvent);
-      document.removeEventListener('MSFullscreenChange', handleFullscreenChangeEvent);
-    };
-  }, [handleFullscreenChange]);
-
   // Show recovery dialog when backup is detected
   React.useEffect(() => {
     if (recoveryState.hasBackup && !showRecoveryDialog) {
       setShowRecoveryDialog(true);
     }
   }, [recoveryState.hasBackup, showRecoveryDialog]);
-
-  // Initialize theme system with safeguards to prevent conflicts
-  React.useEffect(() => {
-    if (!currentTheme) {
-      try {
-        const defaultThemes = getThemePresets();
-        const academicTheme = defaultThemes.find(theme => theme.id === 'academic-theme');
-        if (academicTheme) {
-          // Apply theme with editor-specific mode to avoid app-wide conflicts
-          applyTheme(academicTheme, 'scoped');
-        }
-      } catch (error) {
-        console.warn('Failed to initialize editor theme:', error);
-      }
-    }
-  }, [currentTheme, applyTheme]);
 
   // Handle backup recovery
   const handleRecovery = (recoveredContent: any) => {
@@ -238,30 +194,22 @@ export default function EditorPage() {
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over, delta } = event;
+    const { active, over } = event;
 
-    if (over && over.id === 'editor-canvas') {
+    if (over && over.id === 'wysiwyg-canvas') {
       const dragData = active.data.current;
 
       if (dragData?.type === 'block') {
         const blockType = dragData.blockType;
 
-        // Calculate drop position - use delta to determine where the block should be placed
-        // Default positioning with offset based on existing blocks to avoid overlap
-        const currentBlockCount = useEditorStore.getState().nodes.length;
-        const defaultX = 100 + currentBlockCount * 50; // Offset each new block
-        const defaultY = 100 + currentBlockCount * 80;
-
-        // Create the node first
+        // Create the node - positioning will be handled automatically by the store
         const newNode = {
           type: blockType,
           data: getDefaultDataForBlockType(blockType),
         };
 
         addNode(newNode);
-
-        // The positioning will be handled by the React Flow canvas automatically
-        // through the layout system we implemented
+        console.log('✅ Block added successfully:', blockType);
       }
     }
   };
@@ -287,88 +235,123 @@ export default function EditorPage() {
 
   return (
     <EditorPageErrorBoundary>
-      <ThemeProvider>
-        <ThemeStyleInjector />
-        <ThemeFontLoader />
-        <DndContext onDragEnd={handleDragEnd}>
-          <div
-            className={`flex flex-col bg-background ${isFullscreen ? 'h-screen w-screen fixed inset-0 z-50' : 'h-screen'}`}
-          >
-            {/* Editor Header - Hide in fullscreen mode */}
-            {!isFullscreen && (
-              <div className="h-14 border-b flex items-center justify-between px-4">
-                <div className="flex items-center space-x-4">
-                  {/* Back to Management Navigation */}
-                  <Link to={`/admin/review/${reviewId}`}>
-                    <Button variant="ghost" size="sm">
-                      <ArrowLeft className="h-4 w-4 mr-2" />
-                      Back to Management
-                    </Button>
-                  </Link>
-                  <div className="h-4 w-px bg-gray-300" />
-                  <h1 className="text-lg font-semibold">Content Editor</h1>
-                  <span className="text-sm text-muted-foreground">Review ID: {reviewId}</span>
-                  {isDirty && (
-                    <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">
-                      Unsaved changes
-                    </span>
-                  )}
-                </div>
+      {/* Global CSS for editor fullscreen */}
+      <style>{`
+        .editor-fullscreen {
+          overflow: hidden !important;
+        }
+        .editor-fullscreen .fixed {
+          display: none !important;
+        }
+      `}</style>
+      <DndContext sensors={sensors} collisionDetection={closestCorners} onDragEnd={handleDragEnd}>
+        <div
+          className={`flex flex-col bg-background overflow-hidden ${isFullscreen ? 'h-screen w-screen fixed inset-0 z-50' : 'h-screen'}`}
+        >
+          {/* Editor Header - Hide in fullscreen mode */}
+          {!isFullscreen && (
+            <div className="h-14 border-b flex items-center justify-between px-4">
+              <div className="flex items-center space-x-4">
+                {/* Back to Management Navigation */}
+                <Link to={`/admin/review/${reviewId}`}>
+                  <Button variant="ghost" size="sm">
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    Back to Management
+                  </Button>
+                </Link>
+                <div className="h-4 w-px bg-gray-300" />
+                <h1 className="text-lg font-semibold">Content Editor</h1>
+                <span className="text-sm text-muted-foreground">Review ID: {reviewId}</span>
+                {isDirty && (
+                  <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">
+                    Unsaved changes
+                  </span>
+                )}
+              </div>
 
-                <div className="flex items-center space-x-4">
-                  {/* Enhanced Persistence Indicator */}
-                  <PersistenceIndicator state={persistenceState} actions={persistenceActions} />
+              <div className="flex items-center space-x-4">
+                {/* Enhanced Persistence Indicator with Save functionality */}
+                <PersistenceIndicator state={persistenceState} actions={persistenceActions} />
 
-                  <Button size="sm" variant="outline">
+                {/* File Operations - Consolidated from UnifiedToolbar */}
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      try {
+                        const data = exportToJSON();
+                        const blob = new Blob([JSON.stringify(data, null, 2)], {
+                          type: 'application/json',
+                        });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `review-${reviewId}-content.json`;
+                        a.click();
+                        URL.revokeObjectURL(url);
+                      } catch (error) {
+                        console.error('Export failed:', error);
+                      }
+                    }}
+                    className="flex items-center gap-2"
+                    title="Export as JSON"
+                  >
                     Export
                   </Button>
+
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      if (reviewId) {
+                        window.open(`/reviews/${reviewId}`, '_blank');
+                      }
+                    }}
+                    disabled={!reviewId}
+                    className="flex items-center gap-2"
+                    title="View live preview"
+                  >
+                    View Live
+                  </Button>
                 </div>
-              </div>
-            )}
 
-            {/* Top Toolbar */}
-            <TopToolbar />
-
-            {/* Three-Panel Workspace (Palette + Canvas + Inspector) */}
-            <div className="flex-1 flex overflow-hidden">
-              <BlockPaletteErrorBoundary>
-                <BlockPalette />
-              </BlockPaletteErrorBoundary>
-              <div className="flex-1 relative">
-                <ReactFlowProvider>
-                  <EditorCanvasErrorBoundary>
-                    <EditorCanvas />
-                  </EditorCanvasErrorBoundary>
-                </ReactFlowProvider>
+                {/* History Indicator - Add to header for centralized controls */}
+                <HistoryIndicator compact={true} />
               </div>
-              {isInspectorVisible && (
-                <InspectorErrorBoundary>
-                  <InspectorPanel />
-                </InspectorErrorBoundary>
-              )}
             </div>
+          )}
 
-            {/* Inline Customization Toolbar */}
-            <InlineCustomizationToolbar />
-
-            {/* Backup Recovery Dialog */}
-            <BackupRecoveryDialog
-              open={showRecoveryDialog}
-              onOpenChange={setShowRecoveryDialog}
-              state={recoveryState}
-              actions={recoveryActions}
-              onRecover={handleRecovery}
-              reviewId={reviewId || ''}
-            />
-
-            {/* Keyboard Shortcuts Help Panel */}
-            <KeyboardShortcutsPanel
-              open={showShortcutsPanel}
-              onOpenChange={setShowShortcutsPanel}
-            />
+          {/* Unified Toolbar - All editing functionality consolidated */}
+          <div className="flex-shrink-0 sticky top-0 z-50">
+            <UnifiedToolbar />
           </div>
-        </DndContext>
-      </ThemeProvider>
+
+          {/* Two-Panel Workspace (Sidebar + Canvas) - Canvas scrolls independently */}
+          <div className="flex-1 flex overflow-hidden">
+            <div className="w-64 overflow-y-auto border-r">
+              <BlockPaletteErrorBoundary>
+                <EditorSidebar />
+              </BlockPaletteErrorBoundary>
+            </div>
+            <div className="flex-1 overflow-y-auto">
+              <EditorCanvasErrorBoundary>
+                <WYSIWYGCanvas />
+              </EditorCanvasErrorBoundary>
+            </div>
+          </div>
+
+          {/* Backup Recovery Dialog */}
+          <BackupRecoveryDialog
+            open={showRecoveryDialog}
+            onOpenChange={setShowRecoveryDialog}
+            state={recoveryState}
+            actions={recoveryActions}
+            onRecover={handleRecovery}
+            reviewId={reviewId || ''}
+          />
+        </div>
+      </DndContext>
     </EditorPageErrorBoundary>
   );
 }

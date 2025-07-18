@@ -1,15 +1,10 @@
-// ABOUTME: EVIDENS specialized separator block with advanced styling options and responsive design
+// ABOUTME: WYSIWYG node component
 
 import React from 'react';
 import { useEditorStore } from '@/store/editorStore';
+import { useEditorTheme } from '@/hooks/useEditorTheme';
 import { SeparatorBlockData } from '@/types/editor';
 import { cn } from '@/lib/utils';
-import { UnifiedNodeResizer } from '../components/UnifiedNodeResizer';
-import {
-  ThemedBlockWrapper,
-  useThemedStyles,
-  useThemedColors,
-} from '@/components/editor/theme/ThemeIntegration';
 
 interface SeparatorBlockNodeProps {
   id: string;
@@ -32,11 +27,8 @@ const STYLE_CONFIGS = {
 } as const;
 
 export function SeparatorBlockNode({ id, data, selected }: SeparatorBlockNodeProps) {
-  const { updateNode, canvasTheme } = useEditorStore();
-
-  // Get theme-aware styles and colors
-  const themedStyles = useThemedStyles('separatorBlock');
-  const themedColors = useThemedColors();
+  const { updateNode } = useEditorStore();
+  const { colors } = useEditorTheme();
 
   const handleClick = () => {
     const editorStore = useEditorStore.getState();
@@ -46,29 +38,17 @@ export function SeparatorBlockNode({ id, data, selected }: SeparatorBlockNodePro
   // Generate dynamic border thickness class
   const thicknessClass = `border-t-${data.thickness || 1}`;
 
-  // Color handling with theme integration
-  const borderColor =
-    data.color ||
-    (themedColors ? themedColors.neutral['300'] : canvasTheme === 'dark' ? '#374151' : '#d1d5db');
+  // Use CSS custom properties for theming
+  const separatorColors = colors.semantic.separator;
+  const borderColor = data.color || separatorColors.border;
 
   // Get theme-aware spacing
-  const themePadding = themedStyles.padding || themedStyles.margin;
+  const themePadding = '1rem 0.5rem';
 
   return (
     <>
-      <UnifiedNodeResizer
-        isVisible={selected || false}
-        nodeType="separatorBlock"
-        customConstraints={{
-          minHeight: 40,
-          maxHeight: 100,
-          minWidth: 100,
-          maxWidth: 800,
-        }}
-      />
-
-      <ThemedBlockWrapper
-        blockType="separatorBlock"
+      <div
+        data-block-type="separatorBlock"
         className={cn(
           'relative cursor-pointer transition-all duration-200',
           'min-h-[40px] flex items-center justify-center',
@@ -79,6 +59,7 @@ export function SeparatorBlockNode({ id, data, selected }: SeparatorBlockNodePro
         )}
         style={{
           padding: themePadding || '1rem 0.5rem',
+          backgroundColor: separatorColors.background,
         }}
       >
         <div
@@ -97,7 +78,7 @@ export function SeparatorBlockNode({ id, data, selected }: SeparatorBlockNodePro
             style={{
               borderTopColor: borderColor,
               borderTopWidth: `${data.thickness || 1}px`,
-              opacity: themedStyles.opacity || 1,
+              opacity: 1,
             }}
           />
 
@@ -140,7 +121,7 @@ export function SeparatorBlockNode({ id, data, selected }: SeparatorBlockNodePro
             </div>
           )}
         </div>
-      </ThemedBlockWrapper>
+      </div>
     </>
   );
 }

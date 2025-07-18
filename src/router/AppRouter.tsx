@@ -186,17 +186,20 @@ const router = createBrowserRouter([
           </AdminProtectedRoute>
         ),
       },
-
-      // Editor Routes - Protected for admin and editor roles
-      {
-        path: '/editor/:reviewId',
-        element: <EditorPage />,
-      },
     ],
   },
   {
     path: '/salvar-post',
     element: <SavePost />,
+  },
+  // Editor Routes - Isolated from AppShell for full-width editing
+  {
+    path: '/editor/:reviewId',
+    element: (
+      <UniversalRouteProtection showDebugInfo={false}>
+        <EditorPage />
+      </UniversalRouteProtection>
+    ),
   },
 ]);
 

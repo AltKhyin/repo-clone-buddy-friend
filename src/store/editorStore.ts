@@ -5,37 +5,65 @@ import { debounce } from 'lodash-es';
 import {
   EditorState,
   NodeObject,
-  LayoutItem,
-  Layouts,
-  MasterDerivedLayouts,
-  Viewport,
-  CanvasTransform,
+  BlockPosition,
+  BlockPositions,
+  WYSIWYGCanvas,
+  StructuredContentV3,
   StructuredContentV2,
+  StructuredContent,
   generateNodeId,
   getDefaultDataForBlockType,
   validateStructuredContent,
 } from '@/types/editor';
-import {
-  ensureMasterDerivedLayouts,
-  createInitialLayouts,
-  generateMobileFromDesktop,
-  shouldRegenerateMobile,
-  markMobileAsGenerated,
-  updateDesktopLayout,
-  updateMobileLayout,
-  getLayoutForViewport,
-  convertToLegacyFormat,
-} from './layoutUtils';
-
+import { migrateAllHeadingBlocks } from '@/utils/headingBlockMigration';
 const AUTOSAVE_DELAY = 30000; // 30 seconds as per user requirements
 
+// WYSIWYG Canvas Configuration
+const initialWYSIWYGCanvas: WYSIWYGCanvas = {
+  canvasWidth: 800,
+  canvasHeight: 600,
+  gridColumns: 12,
+  snapTolerance: 10,
+};
+
+// Initial positions (empty for new documents)
+const initialPositions: BlockPositions = {};
+
+// Utility: Find available position for new blocks to avoid overlaps
+const findAvailablePosition = (existingPositions: BlockPositions): BlockPosition => {
+  const defaultWidth = 800; // Full canvas width for better content display
+  const defaultHeight = 120;
+  let y = 50; // Start 50px from top
+
+  // Find first available Y position
+  while (true) {
+    const hasOverlap = Object.values(existingPositions).some(
+      pos =>
+        y < pos.y + pos.height &&
+        y + defaultHeight > pos.y &&
+        0 < pos.x + pos.width &&
+        0 + defaultWidth > pos.x
+    );
+
+    if (!hasOverlap) break;
+    y += defaultHeight + 20; // Move down with spacing
+  }
+
+  return {
+    id: '', // Will be set by caller
+    x: 0, // Start at canvas edge for full-width blocks
+    y,
+    width: defaultWidth,
+    height: defaultHeight,
+  };
+};
+
+// Legacy support
 const initialCanvasTransform: CanvasTransform = {
   x: 0,
   y: 0,
   zoom: 1,
 };
-
-const initialLayouts = createInitialLayouts();
 
 /**
  * Editor store following the same simple pattern as auth.ts.
@@ -55,14 +83,15 @@ export const useEditorStore = create<EditorState>((set, get) => {
       saveMutex = true; // Lock to prevent concurrent saves
       set({ isSaving: true });
 
-      const structuredContent: StructuredContentV2 = {
-        version: '2.0.0',
+      const structuredContent: StructuredContentV3 = {
+        version: '3.0.0',
         nodes: state.nodes,
-        layouts: state.layouts,
+        positions: state.positions,
+        canvas: state.canvas,
         metadata: {
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
-          editorVersion: '1.0.0',
+          editorVersion: '2.0.0',
         },
       };
 
@@ -72,10 +101,9 @@ export const useEditorStore = create<EditorState>((set, get) => {
         nodesType: typeof structuredContent.nodes,
         nodesArray: Array.isArray(structuredContent.nodes),
         nodeCount: structuredContent.nodes?.length || 0,
-        layoutsType: typeof structuredContent.layouts,
-        layoutsKeys: Object.keys(structuredContent.layouts || {}),
-        hasDesktop: !!structuredContent.layouts?.desktop,
-        hasMobile: !!structuredContent.layouts?.mobile,
+        positionsType: typeof structuredContent.positions,
+        positionsKeys: Object.keys(structuredContent.positions || {}),
+        positionCount: Object.keys(structuredContent.positions || {}).length,
         hasMetadata: !!structuredContent.metadata,
         sample: JSON.stringify(structuredContent).substring(0, 200) + '...',
       });
@@ -120,29 +148,22 @@ export const useEditorStore = create<EditorState>((set, get) => {
     title: '',
     description: '',
 
-    // Content State
+    // Content State (V3 - WYSIWYG positioning)
     nodes: [],
-    layouts: initialLayouts,
+    positions: initialPositions,
+    canvas: initialWYSIWYGCanvas,
 
     // Editor State
     selectedNodeId: null,
-    currentViewport: 'desktop',
+    canvasZoom: 1.0,
     isDirty: false,
     isSaving: false,
     lastSaved: null,
     isFullscreen: false,
-    isInspectorVisible: true,
 
-    // Canvas State
-    canvasTransform: initialCanvasTransform,
-    canvasTheme: 'light' as const,
+    // WYSIWYG Canvas Display Options
     showGrid: true,
-    showRulers: false,
-    showGuidelines: false,
-    guidelines: {
-      horizontal: [],
-      vertical: [],
-    },
+    showSnapGuides: true,
 
     // Clipboard State
     clipboardData: null,
@@ -165,9 +186,18 @@ export const useEditorStore = create<EditorState>((set, get) => {
       } as NodeObject;
 
       set(state => {
+        // Create position for new node to avoid overlaps
+        const existingPositions = Object.values(state.positions);
+        const newPosition = findAvailablePosition(existingPositions);
+        newPosition.id = newNode.id;
+
         const updatedState = {
           ...state,
           nodes: [...state.nodes, newNode],
+          positions: {
+            ...state.positions,
+            [newNode.id]: newPosition,
+          },
           selectedNodeId: newNode.id,
           isDirty: true,
         };
@@ -204,30 +234,75 @@ export const useEditorStore = create<EditorState>((set, get) => {
       });
     },
 
+    // ===== WYSIWYG POSITION ACTIONS =====
+
+    updateNodePosition: (nodeId, positionUpdate) => {
+      set(state => {
+        const currentPosition = state.positions[nodeId];
+        if (!currentPosition) return state;
+
+        const updatedState = {
+          ...state,
+          positions: {
+            ...state.positions,
+            [nodeId]: {
+              ...currentPosition,
+              ...positionUpdate,
+            },
+          },
+          isDirty: true,
+        };
+
+        // Auto-save after position update
+        debouncedSave();
+
+        return updatedState;
+      });
+    },
+
+    initializeNodePosition: nodeId => {
+      set(state => {
+        if (state.positions[nodeId]) return state; // Already has position
+
+        const existingPositions = Object.values(state.positions);
+        const newPosition = findAvailablePosition(existingPositions);
+        newPosition.id = nodeId;
+
+        return {
+          ...state,
+          positions: {
+            ...state.positions,
+            [nodeId]: newPosition,
+          },
+          isDirty: true,
+        };
+      });
+    },
+
+    updateCanvasZoom: zoom => {
+      set(state => ({
+        ...state,
+        canvasZoom: Math.max(0.5, Math.min(2.0, zoom)),
+      }));
+    },
+
+    toggleSnapGuides: () => {
+      set(state => ({ ...state, showSnapGuides: !state.showSnapGuides }));
+    },
+
     deleteNode: nodeId => {
       set(state => {
-        // Ensure we have master/derived layouts
-        const layouts = ensureMasterDerivedLayouts(state.layouts);
-
+        // Remove node from nodes array
         const updatedNodes = state.nodes.filter(n => n.id !== nodeId);
-        const updatedDesktopItems = layouts.desktop.data.items.filter(i => i.nodeId !== nodeId);
-        const updatedMobileItems = layouts.mobile.data.items.filter(i => i.nodeId !== nodeId);
 
-        // Update both desktop and mobile layouts
-        const updatedDesktopLayout = updateDesktopLayout(layouts, {
-          ...layouts.desktop.data,
-          items: updatedDesktopItems,
-        });
-
-        const updatedLayouts = updateMobileLayout(updatedDesktopLayout, {
-          ...layouts.mobile.data,
-          items: updatedMobileItems,
-        });
+        // Remove position data for deleted node
+        const updatedPositions = { ...state.positions };
+        delete updatedPositions[nodeId];
 
         const updatedState = {
           ...state,
           nodes: updatedNodes,
-          layouts: updatedLayouts,
+          positions: updatedPositions,
           selectedNodeId: state.selectedNodeId === nodeId ? null : state.selectedNodeId,
           isDirty: true,
         };
@@ -242,7 +317,8 @@ export const useEditorStore = create<EditorState>((set, get) => {
     duplicateNode: nodeId => {
       const state = get();
       const originalNode = state.nodes.find(n => n.id === nodeId);
-      if (!originalNode) return;
+      const originalPosition = state.positions[nodeId];
+      if (!originalNode || !originalPosition) return;
 
       // Create duplicate with new ID
       const duplicateNode: NodeObject = {
@@ -250,7 +326,31 @@ export const useEditorStore = create<EditorState>((set, get) => {
         id: generateNodeId(),
       };
 
-      get().addNode(duplicateNode);
+      // Create position for duplicate (offset to avoid overlap)
+      const duplicatePosition = {
+        ...originalPosition,
+        id: duplicateNode.id,
+        x: originalPosition.x + 20, // Small offset
+        y: originalPosition.y + 20,
+      };
+
+      set(state => {
+        const updatedState = {
+          ...state,
+          nodes: [...state.nodes, duplicateNode],
+          positions: {
+            ...state.positions,
+            [duplicateNode.id]: duplicatePosition,
+          },
+          selectedNodeId: duplicateNode.id,
+          isDirty: true,
+        };
+
+        // Auto-save after duplicating node
+        debouncedSave();
+
+        return updatedState;
+      });
     },
 
     // ===== LAYOUT ACTIONS =====
@@ -404,64 +504,23 @@ export const useEditorStore = create<EditorState>((set, get) => {
       set(state => ({ showGuidelines: !state.showGuidelines }));
     },
 
-    toggleFullscreen: async () => {
+    toggleFullscreen: () => {
       const state = get();
       const newFullscreenState = !state.isFullscreen;
 
-      try {
-        if (newFullscreenState) {
-          // Enter browser fullscreen mode
-          if (document.documentElement.requestFullscreen) {
-            await document.documentElement.requestFullscreen();
-          } else if ((document.documentElement as any).webkitRequestFullscreen) {
-            // Safari support
-            await (document.documentElement as any).webkitRequestFullscreen();
-          } else if ((document.documentElement as any).msRequestFullscreen) {
-            // IE/Edge support
-            await (document.documentElement as any).msRequestFullscreen();
-          } else if ((document.documentElement as any).mozRequestFullScreen) {
-            // Firefox support
-            await (document.documentElement as any).mozRequestFullScreen();
-          }
-        } else {
-          // Exit browser fullscreen mode
-          if (document.exitFullscreen) {
-            await document.exitFullscreen();
-          } else if ((document as any).webkitExitFullscreen) {
-            // Safari support
-            await (document as any).webkitExitFullscreen();
-          } else if ((document as any).msExitFullscreen) {
-            // IE/Edge support
-            await (document as any).msExitFullscreen();
-          } else if ((document as any).mozCancelFullScreen) {
-            // Firefox support
-            await (document as any).mozCancelFullScreen();
-          }
-        }
-
-        // Update internal state
-        set({ isFullscreen: newFullscreenState });
-      } catch (error) {
-        console.error('Fullscreen toggle failed:', error);
-        // Don't update state if fullscreen failed
+      // Application-level fullscreen - simpler and more reliable
+      if (newFullscreenState) {
+        // Add fullscreen CSS class to body for styling
+        document.body.classList.add('editor-fullscreen');
+        document.documentElement.classList.add('editor-fullscreen');
+      } else {
+        // Remove fullscreen CSS class
+        document.body.classList.remove('editor-fullscreen');
+        document.documentElement.classList.remove('editor-fullscreen');
       }
-    },
 
-    toggleInspector: () => {
-      set(state => ({ isInspectorVisible: !state.isInspectorVisible }));
-    },
-
-    // Handle browser fullscreen changes (ESC key, F11, etc.)
-    handleFullscreenChange: () => {
-      const isActuallyFullscreen = !!(
-        document.fullscreenElement ||
-        (document as any).webkitFullscreenElement ||
-        (document as any).msFullscreenElement ||
-        (document as any).mozFullScreenElement
-      );
-
-      // Sync internal state with actual browser fullscreen state
-      set({ isFullscreen: isActuallyFullscreen });
+      // Update internal state
+      set({ isFullscreen: newFullscreenState });
     },
 
     addGuideline: (type, position) => {
@@ -518,12 +577,52 @@ export const useEditorStore = create<EditorState>((set, get) => {
       const state = get();
       if (state.historyIndex > 0) {
         const previousState = state.history[state.historyIndex - 1];
-        set({
-          nodes: previousState.nodes,
-          layouts: previousState.layouts,
-          historyIndex: state.historyIndex - 1,
-          isDirty: true,
-        });
+
+        // Handle V3 format
+        if (previousState.version === '3.0.0') {
+          set({
+            nodes: previousState.nodes,
+            positions: previousState.positions,
+            canvas: previousState.canvas,
+            historyIndex: state.historyIndex - 1,
+            isDirty: true,
+          });
+        }
+        // Handle V2 format (legacy) - migrate to V3
+        else {
+          // For legacy V2 format, we need to migrate to V3 positions
+          const positions: any = {};
+          const columnWidth = 800 / 12;
+
+          previousState.nodes.forEach((node, index) => {
+            const layoutItem = previousState.layouts?.desktop?.items?.find(
+              item => item.nodeId === node.id
+            );
+
+            if (layoutItem) {
+              positions[node.id] = {
+                id: node.id,
+                x: layoutItem.x * (columnWidth / 2),
+                y: layoutItem.y * 20,
+                width: layoutItem.w * (columnWidth / 2),
+                height: layoutItem.h * 20,
+              };
+            } else {
+              const existingPositions = Object.values(positions);
+              const newPosition = findAvailablePosition(existingPositions);
+              newPosition.id = node.id;
+              positions[node.id] = newPosition;
+            }
+          });
+
+          set({
+            nodes: previousState.nodes,
+            positions,
+            canvas: initialWYSIWYGCanvas,
+            historyIndex: state.historyIndex - 1,
+            isDirty: true,
+          });
+        }
       }
     },
 
@@ -531,21 +630,67 @@ export const useEditorStore = create<EditorState>((set, get) => {
       const state = get();
       if (state.historyIndex < state.history.length - 1) {
         const nextState = state.history[state.historyIndex + 1];
-        set({
-          nodes: nextState.nodes,
-          layouts: nextState.layouts,
-          historyIndex: state.historyIndex + 1,
-          isDirty: true,
-        });
+
+        // Handle V3 format
+        if (nextState.version === '3.0.0') {
+          set({
+            nodes: nextState.nodes,
+            positions: nextState.positions,
+            canvas: nextState.canvas,
+            historyIndex: state.historyIndex + 1,
+            isDirty: true,
+          });
+        }
+        // Handle V2 format (legacy) - migrate to V3
+        else {
+          // For legacy V2 format, we need to migrate to V3 positions
+          const positions: any = {};
+          const columnWidth = 800 / 12;
+
+          nextState.nodes.forEach((node, index) => {
+            const layoutItem = nextState.layouts?.desktop?.items?.find(
+              item => item.nodeId === node.id
+            );
+
+            if (layoutItem) {
+              positions[node.id] = {
+                id: node.id,
+                x: layoutItem.x * (columnWidth / 2),
+                y: layoutItem.y * 20,
+                width: layoutItem.w * (columnWidth / 2),
+                height: layoutItem.h * 20,
+              };
+            } else {
+              const existingPositions = Object.values(positions);
+              const newPosition = findAvailablePosition(existingPositions);
+              newPosition.id = node.id;
+              positions[node.id] = newPosition;
+            }
+          });
+
+          set({
+            nodes: nextState.nodes,
+            positions,
+            canvas: initialWYSIWYGCanvas,
+            historyIndex: state.historyIndex + 1,
+            isDirty: true,
+          });
+        }
       }
     },
 
     pushToHistory: () => {
       const state = get();
-      const currentState: StructuredContentV2 = {
-        version: '2.0.0',
+      const currentState: StructuredContentV3 = {
+        version: '3.0.0',
         nodes: state.nodes,
-        layouts: state.layouts,
+        positions: state.positions,
+        canvas: state.canvas,
+        metadata: {
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          editorVersion: '2.0.0',
+        },
       };
 
       // Limit history to 50 entries
@@ -562,33 +707,6 @@ export const useEditorStore = create<EditorState>((set, get) => {
 
     // ===== DATA PERSISTENCE =====
 
-    // Utility function to sanitize layout items before saving
-    sanitizeLayouts: (layouts: Layouts): Layouts => {
-      const sanitizeItems = (items: LayoutItem[] | undefined): LayoutItem[] => {
-        if (!items || !Array.isArray(items)) {
-          return [];
-        }
-        return items.map(item => ({
-          ...item,
-          x: Math.max(0, item.x),
-          y: Math.max(0, item.y),
-          w: Math.min(12, Math.max(1, item.w)), // Ensure w is between 1-12
-          h: Math.max(1, item.h), // Ensure h is at least 1
-        }));
-      };
-
-      return {
-        desktop: {
-          ...layouts.desktop,
-          items: sanitizeItems(layouts.desktop?.items),
-        },
-        mobile: {
-          ...layouts.mobile,
-          items: sanitizeItems(layouts.mobile?.items),
-        },
-      };
-    },
-
     saveToDatabase: async () => {
       // Force immediate save (bypass debounce)
       const state = get();
@@ -598,19 +716,15 @@ export const useEditorStore = create<EditorState>((set, get) => {
         saveMutex = true; // Lock to prevent concurrent saves
         set({ isSaving: true });
 
-        // Convert to legacy format for backward compatibility and sanitize
-        const layouts = ensureMasterDerivedLayouts(state.layouts);
-        const legacyLayouts = convertToLegacyFormat(layouts);
-        const sanitizedLayouts = get().sanitizeLayouts(legacyLayouts);
-
-        const structuredContent: StructuredContentV2 = {
-          version: '2.0.0',
+        const structuredContent: StructuredContentV3 = {
+          version: '3.0.0',
           nodes: state.nodes,
-          layouts: sanitizedLayouts,
+          positions: state.positions,
+          canvas: state.canvas,
           metadata: {
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
-            editorVersion: '1.0.0',
+            editorVersion: '2.0.0',
           },
         };
 
@@ -655,35 +769,101 @@ export const useEditorStore = create<EditorState>((set, get) => {
           });
 
           if (data?.structured_content) {
-            // Sanitize layouts when loading to handle any legacy invalid data
-            const sanitizedLayouts = get().sanitizeLayouts(data.structured_content.layouts);
+            const content = data.structured_content;
 
-            // Migrate to master/derived format (auto-migrates legacy layouts)
-            const masterDerivedLayouts = ensureMasterDerivedLayouts(sanitizedLayouts);
+            // Handle V3 format (WYSIWYG positioning)
+            if (content.version === '3.0.0') {
+              console.log('[EditorStore] Loading V3 content (WYSIWYG positioning):', {
+                nodeCount: content.nodes.length,
+                positionCount: Object.keys(content.positions || {}).length,
+                canvasConfig: content.canvas,
+              });
 
-            console.log('[EditorStore] Loading content into store:', {
-              originalNodes: data.structured_content.nodes.length,
-              sanitizedLayouts: Object.keys(sanitizedLayouts).length,
-              isMasterDerived: masterDerivedLayouts.desktop.type === 'master',
-            });
+              // Migrate any legacy heading blocks to unified text blocks
+              const migratedNodes = migrateAllHeadingBlocks(content.nodes);
 
-            // Load the content into the store
-            set({
-              nodes: data.structured_content.nodes,
-              layouts: masterDerivedLayouts,
-              selectedNodeId: null,
-              isDirty: false,
-              isSaving: false,
-              lastSaved: new Date(data.updated_at),
-            });
+              // Initialize positions for nodes that don't have them
+              const positions = content.positions || {};
+              const missingPositions: any = {};
 
-            console.log('[EditorStore] Content loaded successfully with master/derived layouts');
+              migratedNodes.forEach(node => {
+                if (!positions[node.id]) {
+                  const existingPositions = Object.values(positions);
+                  const newPosition = findAvailablePosition(existingPositions);
+                  newPosition.id = node.id;
+                  missingPositions[node.id] = newPosition;
+                }
+              });
+
+              set({
+                nodes: migratedNodes,
+                positions: { ...positions, ...missingPositions },
+                canvas: content.canvas || initialWYSIWYGCanvas,
+                selectedNodeId: null,
+                isDirty: false,
+                isSaving: false,
+                lastSaved: new Date(data.updated_at),
+              });
+
+              console.log('[EditorStore] V3 content loaded successfully');
+            }
+            // Handle V2 format (legacy layouts) - migrate to V3
+            else if (content.version === '2.0.0') {
+              console.log('[EditorStore] Loading V2 content and migrating to V3:', {
+                nodeCount: content.nodes.length,
+                hasLayouts: !!content.layouts,
+              });
+
+              // Migrate any legacy heading blocks to unified text blocks
+              const migratedNodes = migrateAllHeadingBlocks(content.nodes);
+
+              // Migrate V2 layout to V3 positions
+              const positions: any = {};
+              const columnWidth = 800 / 12; // Standard 12-column grid
+
+              migratedNodes.forEach((node, index) => {
+                // Try to find layout item in desktop layout
+                const layoutItem = content.layouts?.desktop?.items?.find(
+                  item => item.nodeId === node.id
+                );
+
+                if (layoutItem) {
+                  // Convert grid coordinates to pixel coordinates
+                  positions[node.id] = {
+                    id: node.id,
+                    x: layoutItem.x * (columnWidth / 2),
+                    y: layoutItem.y * 20,
+                    width: layoutItem.w * (columnWidth / 2),
+                    height: layoutItem.h * 20,
+                  };
+                } else {
+                  // Create default position
+                  const existingPositions = Object.values(positions);
+                  const newPosition = findAvailablePosition(existingPositions);
+                  newPosition.id = node.id;
+                  positions[node.id] = newPosition;
+                }
+              });
+
+              set({
+                nodes: migratedNodes,
+                positions,
+                canvas: initialWYSIWYGCanvas,
+                selectedNodeId: null,
+                isDirty: false,
+                isSaving: false,
+                lastSaved: new Date(data.updated_at),
+              });
+
+              console.log('[EditorStore] V2 content migrated to V3 successfully');
+            }
           } else {
             console.log('[EditorStore] No existing content found, using empty state');
             // No existing content - start with empty state
             set({
               nodes: [],
-              layouts: initialLayouts,
+              positions: initialPositions,
+              canvas: initialWYSIWYGCanvas,
               selectedNodeId: null,
               isDirty: false,
               isSaving: false,
@@ -695,7 +875,8 @@ export const useEditorStore = create<EditorState>((set, get) => {
           // Fallback to empty state
           set({
             nodes: [],
-            layouts: initialLayouts,
+            positions: initialPositions,
+            canvas: initialWYSIWYGCanvas,
             selectedNodeId: null,
             isDirty: false,
             isSaving: false,
@@ -711,20 +892,69 @@ export const useEditorStore = create<EditorState>((set, get) => {
 
     loadFromJSON: json => {
       try {
-        const validatedContent = validateStructuredContent(json);
+        // Handle V3 format (WYSIWYG positioning)
+        if (json.version === '3.0.0') {
+          // Initialize positions for nodes that don't have them
+          const positions = json.positions || {};
+          const missingPositions: any = {};
 
-        // Sanitize layouts when loading from JSON
-        const sanitizedLayouts = get().sanitizeLayouts(validatedContent.layouts);
+          json.nodes.forEach(node => {
+            if (!positions[node.id]) {
+              const existingPositions = Object.values(positions);
+              const newPosition = findAvailablePosition(existingPositions);
+              newPosition.id = node.id;
+              missingPositions[node.id] = newPosition;
+            }
+          });
 
-        // Migrate to master/derived format
-        const masterDerivedLayouts = ensureMasterDerivedLayouts(sanitizedLayouts);
+          set({
+            nodes: json.nodes,
+            positions: { ...positions, ...missingPositions },
+            canvas: json.canvas || initialWYSIWYGCanvas,
+            isDirty: false,
+            selectedNodeId: null,
+          });
+        }
+        // Handle V2 format (legacy layouts) - migrate to V3
+        else {
+          const validatedContent = validateStructuredContent(json);
 
-        set({
-          nodes: validatedContent.nodes,
-          layouts: masterDerivedLayouts,
-          isDirty: false,
-          selectedNodeId: null,
-        });
+          // Migrate V2 layout to V3 positions
+          const positions: any = {};
+          const columnWidth = 800 / 12; // Standard 12-column grid
+
+          validatedContent.nodes.forEach((node, index) => {
+            // Try to find layout item in desktop layout
+            const layoutItem = validatedContent.layouts?.desktop?.items?.find(
+              item => item.nodeId === node.id
+            );
+
+            if (layoutItem) {
+              // Convert grid coordinates to pixel coordinates
+              positions[node.id] = {
+                id: node.id,
+                x: layoutItem.x * (columnWidth / 2),
+                y: layoutItem.y * 20,
+                width: layoutItem.w * (columnWidth / 2),
+                height: layoutItem.h * 20,
+              };
+            } else {
+              // Create default position
+              const existingPositions = Object.values(positions);
+              const newPosition = findAvailablePosition(existingPositions);
+              newPosition.id = node.id;
+              positions[node.id] = newPosition;
+            }
+          });
+
+          set({
+            nodes: validatedContent.nodes,
+            positions,
+            canvas: initialWYSIWYGCanvas,
+            isDirty: false,
+            selectedNodeId: null,
+          });
+        }
 
         // Push to history after loading
         get().pushToHistory();
@@ -737,20 +967,20 @@ export const useEditorStore = create<EditorState>((set, get) => {
     exportToJSON: () => {
       const state = get();
 
-      // Convert to legacy format for backward compatibility
-      const layouts = ensureMasterDerivedLayouts(state.layouts);
-      const legacyLayouts = convertToLegacyFormat(layouts);
-
-      return {
-        version: '2.0.0' as const,
+      // Export in V3 format (WYSIWYG positioning)
+      const exportData: StructuredContentV3 = {
+        version: '3.0.0',
         nodes: state.nodes,
-        layouts: legacyLayouts,
+        positions: state.positions,
+        canvas: state.canvas,
         metadata: {
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
-          editorVersion: '1.0.0',
+          editorVersion: '2.0.0',
         },
       };
+
+      return exportData;
     },
 
     exportToPDF: async () => {
@@ -772,12 +1002,17 @@ export const useEditorStore = create<EditorState>((set, get) => {
         title: '',
         description: '',
         nodes: [],
-        layouts: initialLayouts,
+        positions: initialPositions,
+        canvas: initialWYSIWYGCanvas,
         selectedNodeId: null,
-        currentViewport: 'desktop',
+        canvasZoom: 1.0,
         isDirty: false,
         isSaving: false,
         lastSaved: null,
+        showGrid: true,
+        showSnapGuides: true,
+        // Legacy support
+        currentViewport: 'desktop',
         canvasTransform: initialCanvasTransform,
         clipboardData: null,
         history: [],
@@ -828,7 +1063,6 @@ export const useUIState = () =>
   useEditorStore(state => ({
     currentViewport: state.currentViewport,
     isFullscreen: state.isFullscreen,
-    isInspectorVisible: state.isInspectorVisible,
   }));
 
 // Persistence state selectors
@@ -862,7 +1096,6 @@ export const useCanvasActions = () =>
     toggleRulers: state.toggleRulers,
     toggleGuidelines: state.toggleGuidelines,
     toggleFullscreen: state.toggleFullscreen,
-    toggleInspector: state.toggleInspector,
     setCanvasTheme: state.setCanvasTheme,
     clearGuidelines: state.clearGuidelines,
   }));

@@ -1,11 +1,10 @@
-// ABOUTME: EVIDENS specialized key takeaway block with customizable themes and icon support
+// ABOUTME: WYSIWYG node component
 
 import React from 'react';
 import { useEditorStore } from '@/store/editorStore';
+import { useEditorTheme } from '@/hooks/useEditorTheme';
 import { KeyTakeawayBlockData } from '@/types/editor';
 import { cn } from '@/lib/utils';
-import { UnifiedNodeResizer } from '../components/UnifiedNodeResizer';
-import { ThemedBlockWrapper, useThemedColors } from '@/components/editor/theme/ThemeIntegration';
 import {
   Lightbulb,
   CheckCircle,
@@ -69,65 +68,16 @@ const THEME_CONFIGS = {
 } as const;
 
 export function KeyTakeawayBlockNode({ id, data, selected }: KeyTakeawayBlockNodeProps) {
-  const { updateNode, canvasTheme } = useEditorStore();
-
-  // Get theme-aware colors
-  const themedColors = useThemedColors();
+  const { updateNode } = useEditorStore();
+  const { getTakeawayColors } = useEditorTheme();
 
   const handleClick = () => {
     const editorStore = useEditorStore.getState();
     editorStore.selectNode(id);
   };
 
-  // Get theme-aware configuration with fallback to hardcoded themes
-  const getThemeColors = (theme: string) => {
-    if (!themedColors) {
-      return THEME_CONFIGS[theme as keyof typeof THEME_CONFIGS] || THEME_CONFIGS.info;
-    }
-
-    // Use theme colors based on takeaway type
-    switch (theme) {
-      case 'success':
-        return {
-          border: '',
-          background: '',
-          icon: themedColors.success['600'],
-          text: themedColors.success['900'],
-          bgColor: themedColors.success['50'],
-          borderColor: themedColors.success['400'],
-        };
-      case 'warning':
-        return {
-          border: '',
-          background: '',
-          icon: themedColors.warning['600'],
-          text: themedColors.warning['900'],
-          bgColor: themedColors.warning['50'],
-          borderColor: themedColors.warning['400'],
-        };
-      case 'error':
-        return {
-          border: '',
-          background: '',
-          icon: themedColors.error['600'],
-          text: themedColors.error['900'],
-          bgColor: themedColors.error['50'],
-          borderColor: themedColors.error['400'],
-        };
-      case 'info':
-      default:
-        return {
-          border: '',
-          background: '',
-          icon: themedColors.info['600'],
-          text: themedColors.info['900'],
-          bgColor: themedColors.info['50'],
-          borderColor: themedColors.info['400'],
-        };
-    }
-  };
-
-  const themeColors = getThemeColors(data.theme || 'info');
+  // Get theme colors using CSS custom properties
+  const themeColors = getTakeawayColors(data.theme || 'info');
   const fallbackConfig = THEME_CONFIGS[data.theme || 'info'];
 
   // Get icon component
@@ -142,26 +92,20 @@ export function KeyTakeawayBlockNode({ id, data, selected }: KeyTakeawayBlockNod
         backgroundColor: data.backgroundColor,
         backgroundImage: 'none',
       }
-    : themedColors
-      ? {
-          backgroundColor: themeColors.bgColor,
-          borderLeftColor: themeColors.borderColor,
-          backgroundImage: 'none',
-        }
-      : {};
+    : {
+        backgroundColor: themeColors.background,
+        borderLeftColor: themeColors.border,
+        backgroundImage: 'none',
+      };
 
   return (
     <>
-      <UnifiedNodeResizer isVisible={selected || false} nodeType="keyTakeawayBlock" />
-
-      <ThemedBlockWrapper
-        blockType="keyTakeawayBlock"
+      <div
+        data-block-type="keyTakeawayBlock"
         className={cn(
           'relative cursor-pointer transition-all duration-200 p-4 rounded-lg border-l-4',
           'min-h-[80px]',
           // Base styling - use fallback config if no theme colors
-          !themedColors && fallbackConfig.border,
-          !data.backgroundColor && !themedColors && cn('bg-gradient-to-r', fallbackConfig.gradient),
           // Selection state
           selected && 'ring-2 ring-primary ring-offset-2 shadow-lg',
           // Hover state
@@ -174,33 +118,17 @@ export function KeyTakeawayBlockNode({ id, data, selected }: KeyTakeawayBlockNod
           <div className="flex items-start gap-3 mb-3">
             <div
               className="flex-shrink-0 p-2 rounded-lg"
-              style={
-                themedColors
-                  ? {
-                      backgroundColor: themeColors.bgColor,
-                      opacity: 0.8,
-                    }
-                  : {}
-              }
+              style={{
+                backgroundColor: themeColors.background,
+                opacity: 0.8,
+              }}
             >
-              <IconComponent
-                size={18}
-                style={themedColors ? { color: themeColors.icon } : {}}
-                className={!themedColors ? fallbackConfig.icon : ''}
-              />
+              <IconComponent size={18} style={{ color: themeColors.text }} />
             </div>
 
             <div className="flex-1">
-              <h3
-                className="font-semibold text-sm uppercase tracking-wide"
-                style={themedColors ? { color: themeColors.text } : {}}
-              >
-                Key Takeaway
-              </h3>
-              <div
-                className="text-xs opacity-70 mt-1"
-                style={themedColors ? { color: themeColors.text } : {}}
-              >
+              <h3 className="font-semibold text-sm uppercase tracking-wide">Key Takeaway</h3>
+              <div className="text-xs opacity-70 mt-1">
                 {(data.theme || 'info').charAt(0).toUpperCase() + (data.theme || 'info').slice(1)}{' '}
                 Message
               </div>
@@ -208,10 +136,7 @@ export function KeyTakeawayBlockNode({ id, data, selected }: KeyTakeawayBlockNod
           </div>
 
           {/* Content */}
-          <div
-            className="text-sm leading-relaxed font-medium"
-            style={themedColors ? { color: themeColors.text } : {}}
-          >
+          <div className="text-sm leading-relaxed font-medium" style={{ color: themeColors.text }}>
             {data.content || 'Enter your key takeaway message here...'}
           </div>
 
@@ -225,19 +150,15 @@ export function KeyTakeawayBlockNode({ id, data, selected }: KeyTakeawayBlockNod
           {/* Theme Indicator Badge */}
           <div
             className="absolute top-2 right-2 px-2 py-1 rounded-full text-xs font-medium"
-            style={
-              themedColors
-                ? {
-                    backgroundColor: themeColors.bgColor,
-                    color: themeColors.text,
-                  }
-                : {}
-            }
+            style={{
+              backgroundColor: themeColors.background,
+              color: themeColors.text,
+            }}
           >
             {data.theme || 'info'}
           </div>
         </div>
-      </ThemedBlockWrapper>
+      </div>
     </>
   );
 }

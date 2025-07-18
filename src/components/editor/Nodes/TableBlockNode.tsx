@@ -1,9 +1,9 @@
-// ABOUTME: React Flow node component for TableBlock with spreadsheet-like editing capabilities
+// ABOUTME: WYSIWYG node component
 
 import React, { useState } from 'react';
-import { Handle, Position, NodeProps } from '@xyflow/react';
 import { TableBlockData } from '@/types/editor';
 import { useEditorStore } from '@/store/editorStore';
+import { useEditorTheme } from '@/hooks/useEditorTheme';
 import {
   Table,
   Plus,
@@ -15,17 +15,6 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { UnifiedNodeResizer } from '../components/UnifiedNodeResizer';
-import {
-  useUnifiedBlockStyling,
-  getSelectionIndicatorProps,
-  getThemeAwarePlaceholderClasses,
-} from '../utils/blockStyling';
-import {
-  ThemedBlockWrapper,
-  useThemedStyles,
-  useThemedColors,
-} from '@/components/editor/theme/ThemeIntegration';
 
 interface TableBlockNodeData extends TableBlockData {
   // Additional display properties
@@ -37,23 +26,30 @@ interface TableBlockNodeData extends TableBlockData {
   borderRadius?: number;
 }
 
-export const TableBlockNode: React.FC<NodeProps<TableBlockNodeData>> = ({ id, data, selected }) => {
-  const { updateNode, canvasTheme } = useEditorStore();
+interface TableBlockNodeProps {
+  id: string;
+  data: TableBlockNodeData;
+  selected?: boolean;
+}
+
+export const TableBlockNode: React.FC<TableBlockNodeProps> = ({ id, data, selected }) => {
+  const { updateNode } = useEditorStore();
+  const { colors } = useEditorTheme();
   const [editingCell, setEditingCell] = useState<{ row: number; col: number } | null>(null);
   const [sortConfig, setSortConfig] = useState<{
     column: number;
     direction: 'asc' | 'desc';
   } | null>(null);
 
-  // Get theme-aware styles and colors
-  const themedStyles = useThemedStyles('tableBlock');
-  const themedColors = useThemedColors();
+  // Get table colors from CSS custom properties
+  const tableColors = colors.semantic.table;
 
   // Get unified styling
-  const { selectionClasses, borderStyles } = useUnifiedBlockStyling('tableBlock', selected, {
-    borderWidth: data.borderWidth,
-    borderColor: data.borderColor,
-  });
+  const selectionClasses = selected ? 'ring-2 ring-blue-500' : '';
+  const borderStyles = {
+    borderWidth: data.borderWidth || 1,
+    borderColor: data.borderColor || '#e5e7eb',
+  };
 
   // Apply styling with theme awareness
   const paddingX = data.paddingX ?? 16;
@@ -212,17 +208,17 @@ export const TableBlockNode: React.FC<NodeProps<TableBlockNodeData>> = ({ id, da
 
   const getCellBackgroundColor = (rowIndex: number) => {
     if (data.alternatingRowColors && rowIndex % 2 === 1) {
-      return canvasTheme === 'dark' ? 'bg-gray-800' : 'bg-gray-50';
+      return { backgroundColor: tableColors.rowAlternate };
     }
-    return '';
+    return { backgroundColor: tableColors.cellBackground };
   };
 
   const getHeaderBackgroundColor = () => {
     const headerStyle = data.headerStyle;
     if (headerStyle?.backgroundColor) {
-      return headerStyle.backgroundColor;
+      return { backgroundColor: headerStyle.backgroundColor };
     }
-    return canvasTheme === 'dark' ? 'bg-gray-700' : 'bg-gray-100';
+    return { backgroundColor: tableColors.headerBackground };
   };
 
   const getHeaderTextColor = () => {
@@ -230,7 +226,7 @@ export const TableBlockNode: React.FC<NodeProps<TableBlockNodeData>> = ({ id, da
     if (headerStyle?.textColor) {
       return { color: headerStyle.textColor };
     }
-    return {};
+    return { color: tableColors.headerText };
   };
 
   // Dynamic styles with unified border styling
@@ -244,36 +240,25 @@ export const TableBlockNode: React.FC<NodeProps<TableBlockNodeData>> = ({ id, da
     transition: 'all 0.2s ease-in-out',
   } as React.CSSProperties;
 
-  const selectionIndicatorProps = getSelectionIndicatorProps('tableBlock');
-
   return (
     <>
-      {/* Unified Node Resizer */}
-      <UnifiedNodeResizer isVisible={selected} nodeType="tableBlock" />
-
-      <ThemedBlockWrapper
-        blockType="tableBlock"
+      <div
+        data-block-type="tableBlock"
         className={`relative cursor-pointer ${selectionClasses}`}
         style={{
           ...dynamicStyles,
-          borderRadius: themedStyles.borderRadius || `${borderRadius}px`,
-          backgroundColor: themedStyles.backgroundColor || dynamicStyles.backgroundColor,
-          padding: themedStyles.padding || `${paddingY}px ${paddingX}px`,
+          borderRadius: `${borderRadius}px`,
+          backgroundColor: dynamicStyles.backgroundColor,
+          padding: `${paddingY}px ${paddingX}px`,
         }}
         onClick={handleTableClick}
       >
-        {/* Unified Selection indicator */}
-        {selected && <div {...selectionIndicatorProps} />}
-        {/* Connection handles */}
-        <Handle type="target" position={Position.Top} className="opacity-0" />
-        <Handle type="source" position={Position.Bottom} className="opacity-0" />
-
         <div className="relative">
           {data.headers.length > 0 ? (
             <>
               {/* Table Actions (show on hover/selection) */}
               {selected && (
-                <div className="absolute -top-12 left-0 flex items-center gap-2 bg-white dark:bg-gray-800 border rounded-lg p-2 shadow-lg z-10">
+                <div className="absolute -top-12 left-0 flex items-center gap-2 bg-white dark:bg-gray-800 border rounded-lg p-2 shadow-lg z-50">
                   <Button
                     size="sm"
                     variant="outline"
@@ -307,17 +292,20 @@ export const TableBlockNode: React.FC<NodeProps<TableBlockNodeData>> = ({ id, da
                         <th
                           key={colIndex}
                           className={`
-                          relative border border-gray-300 dark:border-gray-600 p-3 text-left font-medium text-sm group
-                          ${getHeaderBackgroundColor()}
+                          relative border p-3 text-left font-medium text-sm group
                           ${data.sortable ? 'cursor-pointer hover:bg-opacity-80' : ''}
                         `}
-                          style={getHeaderTextColor()}
+                          style={{
+                            ...getHeaderBackgroundColor(),
+                            ...getHeaderTextColor(),
+                            borderColor: tableColors.border,
+                          }}
                           onClick={() => data.sortable && sortTable(colIndex)}
                         >
                           {/* Column Controls (show on hover) */}
                           {selected && (
                             <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <div className="flex items-center gap-1 bg-white dark:bg-gray-800 border rounded p-1 shadow-lg">
+                              <div className="flex items-center gap-1 bg-white dark:bg-gray-800 border rounded p-1 shadow-lg z-40">
                                 <Button
                                   size="sm"
                                   variant="ghost"
@@ -398,19 +386,20 @@ export const TableBlockNode: React.FC<NodeProps<TableBlockNodeData>> = ({ id, da
                   {/* Table Body */}
                   <tbody>
                     {data.rows.map((row, rowIndex) => (
-                      <tr key={rowIndex} className={`group ${getCellBackgroundColor(rowIndex)}`}>
+                      <tr key={rowIndex} className="group" style={getCellBackgroundColor(rowIndex)}>
                         {row.map((cell, colIndex) => (
                           <td
                             key={colIndex}
-                            className={`
-                            relative border border-gray-300 dark:border-gray-600 p-3 text-sm
-                            ${canvasTheme === 'dark' ? 'text-gray-200' : 'text-gray-800'}
-                          `}
+                            className="relative border p-3 text-sm"
+                            style={{
+                              borderColor: tableColors.border,
+                              color: tableColors.cellText,
+                            }}
                           >
                             {/* Row Controls (show on first column hover) */}
                             {selected && colIndex === 0 && (
                               <div className="absolute -left-8 top-1/2 transform -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <div className="flex flex-col gap-1 bg-white dark:bg-gray-800 border rounded p-1 shadow-lg">
+                                <div className="flex flex-col gap-1 bg-white dark:bg-gray-800 border rounded p-1 shadow-lg z-40">
                                   <Button
                                     size="sm"
                                     variant="ghost"
@@ -467,7 +456,7 @@ export const TableBlockNode: React.FC<NodeProps<TableBlockNodeData>> = ({ id, da
                                 }}
                               >
                                 {cell || (
-                                  <span className={getThemeAwarePlaceholderClasses(canvasTheme)}>
+                                  <span style={{ color: colors.block.textSecondary }}>
                                     Click to edit
                                   </span>
                                 )}
@@ -484,17 +473,13 @@ export const TableBlockNode: React.FC<NodeProps<TableBlockNodeData>> = ({ id, da
           ) : (
             /* Enhanced Empty State with Quick Start */
             <div
-              className={`
-              flex flex-col items-center justify-center p-8 border-2 border-dashed rounded-lg transition-all hover:border-blue-300
-              ${
-                canvasTheme === 'dark'
-                  ? 'bg-gray-700 border-gray-600 text-gray-400 hover:bg-gray-600'
-                  : 'bg-gray-50 border-gray-300 text-gray-500 hover:bg-gray-100'
-              }
-            `}
+              className="flex flex-col items-center justify-center p-8 border-2 border-dashed rounded-lg transition-all hover:border-blue-300"
               style={{
                 minHeight: '200px',
                 borderRadius: `${borderRadius}px`,
+                backgroundColor: colors.block.backgroundSecondary,
+                borderColor: tableColors.border,
+                color: colors.block.textSecondary,
               }}
             >
               <Table size={48} className="mb-4 text-blue-500" />
@@ -553,7 +538,7 @@ export const TableBlockNode: React.FC<NodeProps<TableBlockNodeData>> = ({ id, da
         <span className="sr-only">
           Table with {data.headers.length} columns and {data.rows.length} rows
         </span>
-      </ThemedBlockWrapper>
+      </div>
     </>
   );
 };

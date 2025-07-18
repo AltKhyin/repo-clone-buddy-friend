@@ -69,6 +69,79 @@
     --rem10: 0.625rem; /* 10px */
     --rem12: 0.75rem; /* 12px */
     --radius-2: calc(var(--radius) - 4px); /* Reddit's rounded-2 */
+
+    /* Editor-specific semantic tokens */
+    --editor-canvas-background: 48 33.3% 97.1%; /* Match main background */
+    --editor-canvas-rulers: 50 20.7% 88.6%; /* Ruler lines */
+    --editor-canvas-text: 51 3.1% 43.7%; /* Ruler text */
+    --editor-canvas-guidelines: 15 63.1% 59.6%; /* Guideline color */
+    --editor-canvas-fill: 60 2.6% 7.6%; /* Canvas fill areas */
+
+    /* Block-specific semantic tokens */
+    --block-border-default: 50 20.7% 88.6%; /* Default block borders */
+    --block-border-focus: 15 63.1% 59.6%; /* Focused block borders */
+    --block-background-hover: 50 20.7% 88.6%; /* Block hover states */
+
+    /* Quote block tokens */
+    --quote-border: 15 63.1% 59.6%; /* Quote left border */
+    --quote-background: 48 25% 92.2%; /* Quote background */
+    --quote-text: 60 2.6% 7.6%; /* Quote text */
+    --quote-citation: 51 3.1% 43.7%; /* Citation text */
+    --quote-accent: 15 63.1% 59.6%; /* Quote accent elements */
+
+    /* Separator tokens */
+    --separator-default: 51 3.1% 43.7%; /* Default separator color */
+    --separator-subtle: 50 20.7% 88.6%; /* Subtle separator */
+    --separator-emphasis: 60 2.6% 7.6%; /* Emphasized separator */
+
+    /* Table tokens */
+    --table-border: 50 20.7% 88.6%; /* Table borders */
+    --table-header-background: 48 25% 92.2%; /* Header background */
+    --table-header-text: 60 2.6% 7.6%; /* Header text */
+    --table-cell-background: 48 33.3% 97.1%; /* Cell background */
+    --table-cell-text: 60 2.6% 7.6%; /* Cell text */
+    --table-row-alternate: 53 28.6% 94.5%; /* Alternate row background */
+
+    /* Key takeaway tokens */
+    --takeaway-info-background: 196 73% 95%; /* Info background */
+    --takeaway-info-border: 196 73% 52%; /* Info border */
+    --takeaway-info-text: 196 73% 20%; /* Info text */
+    --takeaway-success-background: 140 60% 95%; /* Success background */
+    --takeaway-success-border: 140 60% 40%; /* Success border */
+    --takeaway-success-text: 140 60% 20%; /* Success text */
+    --takeaway-warning-background: 38 92% 95%; /* Warning background */
+    --takeaway-warning-border: 38 92% 50%; /* Warning border */
+    --takeaway-warning-text: 38 92% 20%; /* Warning text */
+    --takeaway-error-background: 0 84% 95%; /* Error background */
+    --takeaway-error-border: 0 84% 60%; /* Error border */
+    --takeaway-error-text: 0 84% 20%; /* Error text */
+
+    /* Inspector tokens */
+    --inspector-background: 48 33.3% 97.1%; /* Inspector panel background */
+    --inspector-border: 50 20.7% 88.6%; /* Inspector borders */
+    --inspector-text: 60 2.6% 7.6%; /* Inspector text */
+    --inspector-text-secondary: 51 3.1% 43.7%; /* Secondary text */
+    --inspector-control-background: 48 25% 92.2%; /* Control backgrounds */
+    --inspector-control-border: 50 20.7% 88.6%; /* Control borders */
+    --inspector-control-focus: 15 63.1% 59.6%; /* Control focus state */
+
+    /* Editor canvas tokens */
+    --editor-canvas-background: 48 33.3% 97.1%; /* Editor canvas background */
+    --block-border-default: 50 20.7% 88.6%; /* Default block borders */
+    --block-border-active: 60 2.6% 7.6%; /* Active/selected block borders */
+
+    /* Quote block tokens */
+    --quote-background: 53 28.6% 94.5%; /* Quote background */
+    --quote-accent: 60 2.6% 7.6%; /* Quote accent line */
+    --quote-citation-text: 51 3.1% 43.7%; /* Citation text */
+
+    /* Poll block tokens */
+    --poll-option-background: 53 28.6% 94.5%; /* Poll option background */
+    --poll-result-bar: 60 2.6% 7.6%; /* Poll result bar */
+    --poll-result-bar-selected: 15 63.1% 59.6%; /* Selected poll result bar */
+
+    /* Separator tokens */
+    --separator-line: 50 20.7% 88.6%; /* Separator line color */
   }
 
   .dark {
@@ -137,6 +210,66 @@
     --rem10: 0.625rem; /* 10px */
     --rem12: 0.75rem; /* 12px */
     --radius-2: calc(var(--radius) - 4px); /* Reddit's rounded-2 */
+
+    /* Editor-specific semantic tokens - Dark Theme */
+    --editor-canvas-background: 0 0% 7%; /* Match main background */
+    --editor-canvas-rulers: 0 0% 16%; /* Ruler lines */
+    --editor-canvas-text: 0 0% 65%; /* Ruler text */
+    --editor-canvas-guidelines: 210 40% 98%; /* Guideline color */
+    --editor-canvas-fill: 210 40% 95%; /* Canvas fill areas */
+
+    /* Block-specific semantic tokens - Dark Theme */
+    --block-border-default: 0 0% 16%; /* Default block borders */
+    --block-border-focus: 210 40% 98%; /* Focused block borders */
+    --block-background-hover: 0 0% 12%; /* Block hover states */
+
+    /* Quote block tokens - Dark Theme */
+    --quote-border: 210 40% 98%; /* Quote left border */
+    --quote-background: 0 0% 13%; /* Quote background */
+    --quote-text: 210 40% 95%; /* Quote text */
+    --quote-citation: 0 0% 65%; /* Citation text */
+    --quote-accent: 210 40% 98%; /* Quote accent elements */
+
+    /* Separator tokens - Dark Theme */
+    --separator-default: 0 0% 65%; /* Default separator color */
+    --separator-subtle: 0 0% 16%; /* Subtle separator */
+    --separator-emphasis: 210 40% 95%; /* Emphasized separator */
+
+    /* Table tokens - Dark Theme */
+    --table-border: 0 0% 16%; /* Table borders */
+    --table-header-background: 0 0% 13%; /* Header background */
+    --table-header-text: 210 40% 95%; /* Header text */
+    --table-cell-background: 0 0% 10%; /* Cell background */
+    --table-cell-text: 210 40% 95%; /* Cell text */
+    --table-row-alternate: 0 0% 8%; /* Alternate row background */
+
+    /* Key takeaway tokens - Dark Theme */
+    --takeaway-info-background: 196 40% 15%; /* Info background */
+    --takeaway-info-border: 196 73% 52%; /* Info border */
+    --takeaway-info-text: 196 73% 80%; /* Info text */
+    --takeaway-success-background: 140 40% 15%; /* Success background */
+    --takeaway-success-border: 140 60% 45%; /* Success border */
+    --takeaway-success-text: 140 60% 80%; /* Success text */
+    --takeaway-warning-background: 38 60% 15%; /* Warning background */
+    --takeaway-warning-border: 38 92% 50%; /* Warning border */
+    --takeaway-warning-text: 38 92% 80%; /* Warning text */
+    --takeaway-error-background: 0 40% 15%; /* Error background */
+    --takeaway-error-border: 0 62% 50%; /* Error border */
+    --takeaway-error-text: 0 62% 80%; /* Error text */
+
+    /* Poll block tokens - Dark Theme */
+    --poll-option-background: 0 0% 13%; /* Poll option background */
+    --poll-result-bar: 210 40% 98%; /* Poll result bar */
+    --poll-result-bar-selected: 196 73% 52%; /* Selected poll result bar */
+
+    /* Inspector tokens - Dark Theme */
+    --inspector-background: 0 0% 7%; /* Inspector panel background */
+    --inspector-border: 0 0% 16%; /* Inspector borders */
+    --inspector-text: 210 40% 95%; /* Inspector text */
+    --inspector-text-secondary: 0 0% 65%; /* Secondary text */
+    --inspector-control-background: 0 0% 13%; /* Control backgrounds */
+    --inspector-control-border: 0 0% 16%; /* Control borders */
+    --inspector-control-focus: 210 40% 98%; /* Control focus state */
   }
 
   .black {
@@ -194,6 +327,66 @@
     --rem10: 0.625rem; /* 10px */
     --rem12: 0.75rem; /* 12px */
     --radius-2: calc(var(--radius) - 4px); /* Reddit's rounded-2 */
+
+    /* Editor-specific semantic tokens - Black Theme */
+    --editor-canvas-background: 0 0% 0%; /* Match main background */
+    --editor-canvas-rulers: 210 6% 20%; /* Ruler lines */
+    --editor-canvas-text: 0 0% 70%; /* Ruler text */
+    --editor-canvas-guidelines: 196 73% 52%; /* Guideline color */
+    --editor-canvas-fill: 0 0% 90%; /* Canvas fill areas */
+
+    /* Block-specific semantic tokens - Black Theme */
+    --block-border-default: 210 6% 20%; /* Default block borders */
+    --block-border-focus: 196 73% 52%; /* Focused block borders */
+    --block-background-hover: 210 6% 30%; /* Block hover states */
+
+    /* Quote block tokens - Black Theme */
+    --quote-border: 196 73% 52%; /* Quote left border */
+    --quote-background: 210 6% 25%; /* Quote background */
+    --quote-text: 0 0% 90%; /* Quote text */
+    --quote-citation: 0 0% 70%; /* Citation text */
+    --quote-accent: 196 73% 52%; /* Quote accent elements */
+
+    /* Separator tokens - Black Theme */
+    --separator-default: 0 0% 70%; /* Default separator color */
+    --separator-subtle: 210 6% 20%; /* Subtle separator */
+    --separator-emphasis: 0 0% 90%; /* Emphasized separator */
+
+    /* Table tokens - Black Theme */
+    --table-border: 210 6% 20%; /* Table borders */
+    --table-header-background: 210 6% 25%; /* Header background */
+    --table-header-text: 0 0% 90%; /* Header text */
+    --table-cell-background: 210 6% 28%; /* Cell background */
+    --table-cell-text: 0 0% 90%; /* Cell text */
+    --table-row-alternate: 210 6% 22%; /* Alternate row background */
+
+    /* Key takeaway tokens - Black Theme */
+    --takeaway-info-background: 196 40% 15%; /* Info background */
+    --takeaway-info-border: 196 73% 52%; /* Info border */
+    --takeaway-info-text: 196 73% 80%; /* Info text */
+    --takeaway-success-background: 140 40% 15%; /* Success background */
+    --takeaway-success-border: 140 60% 45%; /* Success border */
+    --takeaway-success-text: 140 60% 80%; /* Success text */
+    --takeaway-warning-background: 38 60% 15%; /* Warning background */
+    --takeaway-warning-border: 38 92% 50%; /* Warning border */
+    --takeaway-warning-text: 38 92% 80%; /* Warning text */
+    --takeaway-error-background: 0 40% 15%; /* Error background */
+    --takeaway-error-border: 6 93% 71%; /* Error border */
+    --takeaway-error-text: 6 93% 80%; /* Error text */
+
+    /* Poll block tokens - Black Theme */
+    --poll-option-background: 210 6% 25%; /* Poll option background */
+    --poll-result-bar: 0 0% 90%; /* Poll result bar */
+    --poll-result-bar-selected: 196 73% 52%; /* Selected poll result bar */
+
+    /* Inspector tokens - Black Theme */
+    --inspector-background: 0 0% 0%; /* Inspector panel background */
+    --inspector-border: 210 6% 20%; /* Inspector borders */
+    --inspector-text: 0 0% 90%; /* Inspector text */
+    --inspector-text-secondary: 0 0% 70%; /* Secondary text */
+    --inspector-control-background: 210 6% 25%; /* Control backgrounds */
+    --inspector-control-border: 210 6% 20%; /* Control borders */
+    --inspector-control-focus: 196 73% 52%; /* Control focus state */
   }
 
   /* Universal Semantic & Utility Tokens */

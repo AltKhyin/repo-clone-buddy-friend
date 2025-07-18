@@ -49,15 +49,39 @@ export const LegacyLayoutsSchema = z.object({
 });
 
 // Union schema that supports both old and new formats
-export const LayoutsSchema = z.union([
-  MasterDerivedLayoutsSchema,
-  LegacyLayoutsSchema,
-]);
+export const LayoutsSchema = z.union([MasterDerivedLayoutsSchema, LegacyLayoutsSchema]);
+
+// ===== WYSIWYG POSITIONING SYSTEM =====
+
+// Direct pixel positioning for WYSIWYG canvas
+export const BlockPositionSchema = z.object({
+  id: z.string(),
+  x: z.number().min(0), // Direct pixel X coordinate (0-800)
+  y: z.number().min(0), // Direct pixel Y coordinate
+  width: z.number().min(50), // Block width in pixels (minimum 50px)
+  height: z.number().min(30), // Block height in pixels (minimum 30px)
+  zIndex: z.number().optional(), // Stacking order for overlapping blocks
+});
+
+// WYSIWYG canvas metadata
+export const WYSIWYGCanvasSchema = z.object({
+  canvasWidth: z.number().min(600).default(800), // Canvas width (fixed at 800px)
+  canvasHeight: z.number().min(400), // Dynamic canvas height based on content
+  gridColumns: z.number().min(1).default(12), // Grid columns for snapping (12-column system)
+  snapTolerance: z.number().min(0).default(10), // Snap tolerance in pixels
+});
+
+// Positions lookup object for all blocks
+export const BlockPositionsSchema = z.record(z.string(), BlockPositionSchema);
 
 // ===== BLOCK DATA SCHEMAS =====
 
 export const TextBlockDataSchema = z.object({
   htmlContent: z.string(),
+  // Unified text/heading functionality
+  headingLevel: z
+    .union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.null()])
+    .optional(),
   // Typography
   fontSize: z.number().optional(),
   textAlign: z.enum(['left', 'center', 'right', 'justify']).optional(),
@@ -65,27 +89,6 @@ export const TextBlockDataSchema = z.object({
   lineHeight: z.number().optional(),
   fontFamily: z.string().optional(),
   fontWeight: z.number().optional(),
-  // Background and borders
-  backgroundColor: z.string().optional(),
-  paddingX: z.number().optional(),
-  paddingY: z.number().optional(),
-  marginX: z.number().optional(),
-  marginY: z.number().optional(),
-  borderRadius: z.number().optional(),
-  borderWidth: z.number().default(0),
-  borderColor: z.string().optional(),
-});
-
-export const HeadingBlockDataSchema = z.object({
-  htmlContent: z.string(),
-  level: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4)]),
-  // Typography
-  textAlign: z.enum(['left', 'center', 'right']).optional(),
-  color: z.string().optional(),
-  fontFamily: z.string().optional(),
-  fontWeight: z.number().optional(),
-  fontSize: z.number().optional(), // Added missing typography
-  lineHeight: z.number().optional(), // Added missing typography
   letterSpacing: z.number().optional(),
   textTransform: z.enum(['none', 'uppercase', 'lowercase', 'capitalize']).optional(),
   textDecoration: z.enum(['none', 'underline', 'line-through']).optional(),
@@ -287,11 +290,6 @@ export const SeparatorBlockDataSchema = z.object({
 
 export const NodeSchema = z.discriminatedUnion('type', [
   z.object({ id: z.string().uuid(), type: z.literal('textBlock'), data: TextBlockDataSchema }),
-  z.object({
-    id: z.string().uuid(),
-    type: z.literal('headingBlock'),
-    data: HeadingBlockDataSchema,
-  }),
   z.object({ id: z.string().uuid(), type: z.literal('imageBlock'), data: ImageBlockDataSchema }),
   z.object({ id: z.string().uuid(), type: z.literal('tableBlock'), data: TableBlockDataSchema }),
   z.object({ id: z.string().uuid(), type: z.literal('pollBlock'), data: PollBlockDataSchema }),
@@ -334,13 +332,36 @@ export const StructuredContentV2Schema = z.object({
     .optional(),
 });
 
+// WYSIWYG Structured Content (V3) - uses direct pixel positioning
+export const StructuredContentV3Schema = z.object({
+  version: z.literal('3.0.0'),
+  nodes: z.array(NodeSchema),
+  positions: BlockPositionsSchema, // Direct pixel positions instead of complex layouts
+  canvas: WYSIWYGCanvasSchema, // Canvas configuration and metadata
+  globalStyles: z.record(z.any()).optional(),
+  metadata: z
+    .object({
+      createdAt: z.string().datetime(),
+      updatedAt: z.string().datetime(),
+      editorVersion: z.string(),
+      migratedFrom: z.string().optional(), // Track migration from previous versions
+    })
+    .optional(),
+});
+
+// Union schema supporting both V2 and V3 for backward compatibility
+export const StructuredContentSchema = z.union([
+  StructuredContentV3Schema,
+  StructuredContentV2Schema,
+]);
+
 // ===== EXPORTED TYPES =====
 
 export type NodeObject = z.infer<typeof NodeSchema>;
 export type LayoutItem = z.infer<typeof LayoutItemSchema>;
 export type LayoutConfig = z.infer<typeof LayoutConfigSchema>;
 
-// Master/Derived layout types
+// Master/Derived layout types (legacy)
 export type MasterLayout = z.infer<typeof MasterLayoutSchema>;
 export type DerivedLayout = z.infer<typeof DerivedLayoutSchema>;
 export type MasterDerivedLayouts = z.infer<typeof MasterDerivedLayoutsSchema>;
@@ -350,9 +371,15 @@ export type LegacyLayouts = z.infer<typeof LegacyLayoutsSchema>;
 export type Layouts = z.infer<typeof LayoutsSchema>;
 export type StructuredContentV2 = z.infer<typeof StructuredContentV2Schema>;
 
+// WYSIWYG positioning types
+export type BlockPosition = z.infer<typeof BlockPositionSchema>;
+export type BlockPositions = z.infer<typeof BlockPositionsSchema>;
+export type WYSIWYGCanvas = z.infer<typeof WYSIWYGCanvasSchema>;
+export type StructuredContentV3 = z.infer<typeof StructuredContentV3Schema>;
+export type StructuredContent = z.infer<typeof StructuredContentSchema>;
+
 // Block-specific types
 export type TextBlockData = z.infer<typeof TextBlockDataSchema>;
-export type HeadingBlockData = z.infer<typeof HeadingBlockDataSchema>;
 export type ImageBlockData = z.infer<typeof ImageBlockDataSchema>;
 export type TableBlockData = z.infer<typeof TableBlockDataSchema>;
 export type PollBlockData = z.infer<typeof PollBlockDataSchema>;
@@ -378,26 +405,32 @@ export interface EditorState {
   title: string;
   description: string;
 
-  // Content State (structured_content v2.0)
+  // Content State (structured_content v3.0 - WYSIWYG positioning)
   nodes: NodeObject[];
-  layouts: MasterDerivedLayouts;
+  positions: BlockPositions; // Direct pixel positioning
+  canvas: WYSIWYGCanvas; // Canvas configuration
 
   // Editor State
   selectedNodeId: string | null;
-  currentViewport: Viewport;
+  canvasZoom: number; // Zoom level for precision editing
   isDirty: boolean;
   isSaving: boolean;
   lastSaved: Date | null;
   isFullscreen: boolean;
-  isInspectorVisible: boolean;
 
-  // Canvas State
-  canvasTransform: CanvasTransform;
-  canvasTheme: 'light' | 'dark';
-  showGrid: boolean;
-  showRulers: boolean;
-  showGuidelines: boolean;
-  guidelines: {
+  // WYSIWYG Canvas Display Options
+  showGrid: boolean; // Show grid overlay for alignment
+  showSnapGuides: boolean; // Show snapping guides during drag
+
+  // Legacy support for migration
+  layouts?: MasterDerivedLayouts; // Optional for backward compatibility
+  currentViewport?: Viewport; // Optional for backward compatibility
+  canvasTransform?: CanvasTransform; // Optional for backward compatibility
+  canvasTheme?: 'light' | 'dark'; // Optional for backward compatibility
+  showRulers?: boolean; // Optional for backward compatibility
+  showGuidelines?: boolean; // Optional for backward compatibility
+  guidelines?: {
+    // Optional for backward compatibility
     horizontal: number[];
     vertical: number[];
   };
@@ -406,12 +439,12 @@ export interface EditorState {
   clipboardData: NodeObject[] | null;
 
   // History State (for undo/redo)
-  history: StructuredContentV2[];
+  history: (StructuredContentV2 | StructuredContentV3)[];
   historyIndex: number;
 
   // Persistence Callbacks
   persistenceCallbacks: {
-    save: (reviewId: string, content: StructuredContentV2) => Promise<any>;
+    save: (reviewId: string, content: StructuredContentV2 | StructuredContentV3) => Promise<any>;
     load: (reviewId: string) => Promise<any>;
   } | null;
 
@@ -420,9 +453,17 @@ export interface EditorState {
   updateNode: (nodeId: string, updates: Partial<NodeObject>) => void;
   deleteNode: (nodeId: string) => void;
   duplicateNode: (nodeId: string) => void;
-  updateLayout: (nodeId: string, layout: LayoutItem, viewport: Viewport) => void;
   selectNode: (nodeId: string | null) => void;
-  
+
+  // WYSIWYG Position Management Actions
+  updateNodePosition: (nodeId: string, positionUpdate: Partial<BlockPosition>) => void;
+  initializeNodePosition: (nodeId: string) => void;
+  updateCanvasZoom: (zoom: number) => void;
+  toggleSnapGuides: () => void;
+
+  // Legacy Layout Actions (for backward compatibility)
+  updateLayout: (nodeId: string, layout: LayoutItem, viewport: Viewport) => void;
+
   // Master/Derived Layout System
   switchViewport: (viewport: Viewport) => void;
   generateMobileFromDesktop: () => void;
@@ -434,7 +475,6 @@ export interface EditorState {
   toggleRulers: () => void;
   toggleGuidelines: () => void;
   toggleFullscreen: () => void;
-  toggleInspector: () => void;
   addGuideline: (type: 'horizontal' | 'vertical', position: number) => void;
   removeGuideline: (type: 'horizontal' | 'vertical', position: number) => void;
   clearGuidelines: () => void;
@@ -451,13 +491,13 @@ export interface EditorState {
   // Data persistence
   saveToDatabase: () => Promise<void>;
   loadFromDatabase: (reviewId: string) => Promise<void>;
-  loadFromJSON: (json: StructuredContentV2) => void;
-  exportToJSON: () => StructuredContentV2;
+  loadFromJSON: (json: StructuredContentV2 | StructuredContentV3) => void;
+  exportToJSON: () => StructuredContentV2 | StructuredContentV3;
   exportToPDF: () => Promise<void>;
 
   // Persistence
   setPersistenceCallbacks: (callbacks: {
-    save: (reviewId: string, content: StructuredContentV2) => Promise<any>;
+    save: (reviewId: string, content: StructuredContentV2 | StructuredContentV3) => Promise<any>;
     load: (reviewId: string) => Promise<any>;
   }) => void;
 
@@ -480,9 +520,9 @@ export interface BlockType {
 
 // ===== VALIDATION UTILITIES =====
 
-export const validateStructuredContent = (content: unknown): StructuredContentV2 => {
+export const validateStructuredContent = (content: unknown): StructuredContent => {
   try {
-    return StructuredContentV2Schema.parse(content);
+    return StructuredContentSchema.parse(content);
   } catch (error) {
     if (error instanceof z.ZodError) {
       throw new Error(`Invalid structured content: ${error.errors.map(e => e.message).join(', ')}`);
@@ -523,19 +563,18 @@ export const getDefaultDataForBlockType = (blockType: string): any => {
     case 'textBlock':
       return {
         htmlContent: '<p>Enter your text here...</p>',
-        paddingX: 0,
-        paddingY: 0,
-        marginX: 0,
-        marginY: 0,
-        backgroundColor: 'transparent',
-        borderRadius: 0,
-        borderWidth: 0,
-        borderColor: 'transparent',
-      };
-    case 'headingBlock':
-      return {
-        htmlContent: 'Heading',
-        level: 1 as const,
+        headingLevel: null, // Default to text mode
+        // Typography defaults
+        fontSize: undefined, // Use component defaults
+        textAlign: 'left',
+        color: undefined, // Use theme defaults
+        lineHeight: undefined, // Use component defaults
+        fontFamily: 'inherit',
+        fontWeight: undefined, // Use component defaults
+        letterSpacing: undefined,
+        textTransform: 'none',
+        textDecoration: 'none',
+        // Background and borders
         paddingX: 0,
         paddingY: 0,
         marginX: 0,

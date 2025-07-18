@@ -1,22 +1,21 @@
-// ABOUTME: TextBlock component with Tiptap rich text editing and deep customization options
+// ABOUTME: WYSIWYG node component
 
-import React, { memo, useCallback } from 'react';
+import React, { memo, useCallback, useEffect, useRef } from 'react';
 import { EditorContent } from '@tiptap/react';
 import { useEditorStore } from '@/store/editorStore';
+import { useEditorTheme } from '@/hooks/useEditorTheme';
 import { useTiptapEditor } from '@/hooks/useTiptapEditor';
-import { TiptapBubbleMenu } from '@/components/editor/TiptapBubbleMenu';
-import { UnifiedNodeResizer } from '../components/UnifiedNodeResizer';
 import {
-  useUnifiedBlockStyling,
-  getSelectionIndicatorProps,
-  getThemeAwareTextColor,
-} from '../utils/blockStyling';
-import { ThemedBlockWrapper, useThemedStyles } from '@/components/editor/theme/ThemeIntegration';
+  transformContent,
+  needsTransformation,
+  validateContentStructure,
+} from '@/utils/contentTransformers';
 
 interface TextBlockNodeProps {
   id: string;
   data: {
     htmlContent: string;
+    headingLevel?: 1 | 2 | 3 | 4 | null;
     fontSize?: number;
     textAlign?: 'left' | 'center' | 'right' | 'justify';
     color?: string;
@@ -29,16 +28,32 @@ interface TextBlockNodeProps {
     lineHeight?: number;
     fontFamily?: string;
     fontWeight?: number;
+    letterSpacing?: number;
+    textTransform?: 'none' | 'uppercase' | 'lowercase' | 'capitalize';
+    textDecoration?: 'none' | 'underline' | 'line-through';
   };
   selected: boolean;
 }
 
 export const TextBlockNode = memo<TextBlockNodeProps>(({ id, data, selected }) => {
-  const { updateNode, canvasTheme } = useEditorStore();
+  const { updateNode } = useEditorStore();
+  const { colors, theme } = useEditorTheme();
+  const previousHeadingLevel = useRef<number | null>(data.headingLevel);
 
-  // Handle content updates from Tiptap
+  // Handle content updates from Tiptap with heading-aware validation
   const handleContentUpdate = useCallback(
     (nodeId: string, htmlContent: string) => {
+      // Validate content structure matches expected heading level
+      if (!validateContentStructure(htmlContent, data.headingLevel)) {
+        // Transform content to match expected structure
+        const transformedContent = transformContent(
+          htmlContent,
+          null, // We don't know the source level, let the transformer figure it out
+          data.headingLevel
+        );
+        htmlContent = transformedContent;
+      }
+
       updateNode(nodeId, {
         data: {
           ...data,
@@ -49,80 +64,138 @@ export const TextBlockNode = memo<TextBlockNodeProps>(({ id, data, selected }) =
     [updateNode, data]
   );
 
+  // Get heading-specific font size
+  const getHeadingFontSize = (level: number) => {
+    const sizes = { 1: '2.25rem', 2: '1.875rem', 3: '1.5rem', 4: '1.25rem' };
+    return sizes[level as keyof typeof sizes] || '1rem';
+  };
+
+  // Get heading-specific font weight
+  const getHeadingFontWeight = (level: number) => {
+    return level <= 2 ? 700 : 600;
+  };
+
+  // Get initial content based on mode
+  const getInitialContent = () => {
+    if (data.headingLevel) {
+      return data.htmlContent || `<h${data.headingLevel}>Your heading here</h${data.headingLevel}>`;
+    }
+    return data.htmlContent || '<p>Type something...</p>';
+  };
+
+  // Get placeholder based on mode
+  const getPlaceholder = () => {
+    if (data.headingLevel) {
+      return `Type your H${data.headingLevel} heading...`;
+    }
+    return 'Start typing your text...';
+  };
+
   // Initialize Tiptap editor for this specific node
   const editorInstance = useTiptapEditor({
     nodeId: id,
-    initialContent: data.htmlContent || '<p>Type something...</p>',
-    placeholder: 'Start typing your text...',
+    initialContent: getInitialContent(),
+    placeholder: getPlaceholder(),
     onUpdate: handleContentUpdate,
     editable: true,
   });
 
+  // Synchronize editor content when heading level changes
+  useEffect(() => {
+    if (!editorInstance.editor) return;
+
+    const currentLevel = data.headingLevel;
+    const previousLevel = previousHeadingLevel.current;
+
+    // Only synchronize if heading level actually changed
+    if (currentLevel !== previousLevel) {
+      const currentContent = editorInstance.editor.getHTML();
+
+      // Check if content needs transformation
+      if (needsTransformation(currentContent, currentLevel)) {
+        const transformedContent = transformContent(currentContent, previousLevel, currentLevel);
+
+        // Update editor content without triggering the onUpdate callback
+        editorInstance.editor.commands.setContent(transformedContent, false);
+      }
+
+      // Update the ref to track the current level
+      previousHeadingLevel.current = currentLevel;
+    }
+  }, [data.headingLevel, editorInstance.editor]);
+
   // Get unified styling
-  const { selectionClasses, borderStyles } = useUnifiedBlockStyling('textBlock', selected, {
-    borderWidth: data.borderWidth,
-    borderColor: data.borderColor,
-  });
+  const selectionClasses = selected ? 'ring-2 ring-blue-500' : '';
+  const borderStyles = {
+    borderWidth: data.borderWidth || 0,
+    borderColor: data.borderColor || '#e5e7eb',
+  };
 
   // Get theme-aware styles
-  const themedStyles = useThemedStyles('textBlock');
 
   // Calculate dynamic styles based on customization data and theme
   const paddingX = data.paddingX ?? 0;
   const paddingY = data.paddingY ?? 0;
 
+  // Determine if this is a heading or text block
+  const isHeading = data.headingLevel && data.headingLevel >= 1 && data.headingLevel <= 4;
+
   const dynamicStyles = {
-    fontSize: data.fontSize ? `${data.fontSize}px` : themedStyles.fontSize || '16px',
+    fontSize: data.fontSize
+      ? `${data.fontSize}px`
+      : isHeading
+        ? getHeadingFontSize(data.headingLevel!)
+        : '16px',
     textAlign: data.textAlign || 'left',
-    color: data.color || getThemeAwareTextColor(canvasTheme, data.color) || themedStyles.color,
-    backgroundColor: data.backgroundColor || themedStyles.backgroundColor || 'transparent',
+    color: data.color || colors.block.text,
+    backgroundColor: data.backgroundColor || 'transparent',
     paddingLeft: `${paddingX}px`,
     paddingRight: `${paddingX}px`,
     paddingTop: `${paddingY}px`,
     paddingBottom: `${paddingY}px`,
-    borderRadius: data.borderRadius ? `${data.borderRadius}px` : themedStyles.borderRadius || '8px',
-    lineHeight: data.lineHeight || themedStyles.lineHeight || 1.6,
-    fontFamily: data.fontFamily || themedStyles.fontFamily || 'inherit',
-    fontWeight: data.fontWeight || themedStyles.fontWeight || 400,
+    borderRadius: data.borderRadius ? `${data.borderRadius}px` : '8px',
+    lineHeight: data.lineHeight || (isHeading ? 1.2 : 1.6),
+    fontFamily: data.fontFamily || 'inherit',
+    fontWeight: data.fontWeight || (isHeading ? getHeadingFontWeight(data.headingLevel!) : 400),
+    letterSpacing: data.letterSpacing ? `${data.letterSpacing}px` : '0px',
+    textTransform: data.textTransform || 'none',
+    textDecoration: data.textDecoration || 'none',
     ...(paddingY > 0 && { minHeight: '80px' }), // Only apply minHeight when there's padding
     minWidth: '200px',
     ...borderStyles,
   } as React.CSSProperties;
 
-  const selectionIndicatorProps = getSelectionIndicatorProps('textBlock');
+  const selectionIndicatorProps = {
+    className:
+      'absolute -top-6 left-0 text-xs bg-primary text-primary-foreground px-2 py-1 rounded z-10',
+    children: isHeading ? 'Heading Block Selected' : 'Text Block Selected',
+  };
 
   return (
     <>
-      {/* Unified Node Resizer */}
-      <UnifiedNodeResizer isVisible={selected} nodeType="textBlock" />
-
-      <ThemedBlockWrapper
-        blockType="textBlock"
+      <div
+        data-block-type="textBlock"
         className={`relative cursor-text ${selectionClasses}`}
         style={dynamicStyles}
       >
         <div data-node-id={id} onClick={editorInstance.focusEditor} className="w-full h-full">
-          {/* Unified Selection indicator */}
+          {/* Selection indicator */}
           {selected && <div {...selectionIndicatorProps} />}
 
           {/* Tiptap Editor Content */}
           <EditorContent
             editor={editorInstance.editor}
-            className="prose prose-sm max-w-none focus:outline-none [&>*]:my-0 [&_p]:my-0 [&_h1]:my-0 [&_h2]:my-0 [&_h3]:my-0 [&_h4]:my-0 [&_h5]:my-0 [&_h6]:my-0"
+            className="max-w-none focus:outline-none [&>*]:my-0 [&_p]:my-0 [&_h1]:my-0 [&_h2]:my-0 [&_h3]:my-0 [&_h4]:my-0 [&_h5]:my-0 [&_h6]:my-0 [&>*]:leading-none [&_p]:leading-none [&_h1]:leading-none [&_h2]:leading-none [&_h3]:leading-none [&_h4]:leading-none [&_h5]:leading-none [&_h6]:leading-none"
             style={{
               fontFamily: dynamicStyles.fontFamily,
               fontSize: dynamicStyles.fontSize,
               color: dynamicStyles.color,
               lineHeight: dynamicStyles.lineHeight,
               fontWeight: dynamicStyles.fontWeight,
+              letterSpacing: dynamicStyles.letterSpacing,
+              textTransform: dynamicStyles.textTransform,
+              textDecoration: dynamicStyles.textDecoration,
             }}
-          />
-
-          {/* Bubble Menu for Text Formatting */}
-          <TiptapBubbleMenu
-            editorInstance={editorInstance}
-            showHeadingControls={false}
-            theme={canvasTheme}
           />
 
           {/* Focus indicator */}
@@ -130,7 +203,7 @@ export const TextBlockNode = memo<TextBlockNodeProps>(({ id, data, selected }) =
             <div className="absolute inset-0 pointer-events-none ring-2 ring-blue-400 ring-opacity-50 rounded-lg" />
           )}
         </div>
-      </ThemedBlockWrapper>
+      </div>
     </>
   );
 });

@@ -1,75 +1,83 @@
 // ABOUTME: Inspector panel for TableBlock with comprehensive table structure and styling controls
 
-import React from 'react'
-import { Label } from '@/components/ui/label'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
-import { Slider } from '@/components/ui/slider'
-import { Separator } from '@/components/ui/separator'
-import { useEditorStore } from '@/store/editorStore'
-import { SafeSwitch } from '../SafeSwitch'
-import { 
-  Table, 
-  Plus, 
-  Minus, 
-  Palette, 
-  Settings, 
+import React from 'react';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Slider } from '@/components/ui/slider';
+import { Separator } from '@/components/ui/separator';
+import { useEditorStore } from '@/store/editorStore';
+import { SafeSwitch } from '../SafeSwitch';
+import {
+  Table,
+  Plus,
+  Minus,
+  Palette,
+  Settings,
   Rows,
   Columns,
   ArrowUpDown,
-  RotateCcw
-} from 'lucide-react'
+  RotateCcw,
+} from 'lucide-react';
+
+// Utility function to sanitize color values for HTML color inputs
+const sanitizeColorForInput = (color: string | undefined, fallback: string): string => {
+  if (!color || color === 'transparent') {
+    return fallback;
+  }
+  return color;
+};
 
 interface TableBlockInspectorProps {
-  nodeId: string
+  nodeId: string;
 }
 
 export const TableBlockInspector: React.FC<TableBlockInspectorProps> = ({ nodeId }) => {
-  const { nodes, updateNode } = useEditorStore()
-  
-  const node = nodes.find(n => n.id === nodeId)
-  if (!node || node.type !== 'tableBlock') return null
+  const { nodes, updateNode } = useEditorStore();
 
-  const data = node.data
+  const node = nodes.find(n => n.id === nodeId);
+  if (!node || node.type !== 'tableBlock') return null;
+
+  const data = node.data;
 
   const updateNodeData = (updates: Partial<typeof data>) => {
     updateNode(nodeId, {
-      data: { ...data, ...updates }
-    })
-  }
+      data: { ...data, ...updates },
+    });
+  };
 
   const addRow = () => {
-    const newRow = new Array(data.headers.length).fill('')
-    updateNodeData({ rows: [...data.rows, newRow] })
-  }
+    const newRow = new Array(data.headers.length).fill('');
+    updateNodeData({ rows: [...data.rows, newRow] });
+  };
 
   const removeRow = () => {
     if (data.rows.length > 1) {
-      updateNodeData({ rows: data.rows.slice(0, -1) })
+      updateNodeData({ rows: data.rows.slice(0, -1) });
     }
-  }
+  };
 
   const addColumn = () => {
-    const newHeaders = [...data.headers, `Column ${data.headers.length + 1}`]
-    const newRows = data.rows.map(row => [...row, ''])
-    updateNodeData({ headers: newHeaders, rows: newRows })
-  }
+    const newHeaders = [...data.headers, `Column ${data.headers.length + 1}`];
+    const newRows = data.rows.map(row => [...row, '']);
+    updateNodeData({ headers: newHeaders, rows: newRows });
+  };
 
   const removeColumn = () => {
     if (data.headers.length > 1) {
-      const newHeaders = data.headers.slice(0, -1)
-      const newRows = data.rows.map(row => row.slice(0, -1))
-      updateNodeData({ headers: newHeaders, rows: newRows })
+      const newHeaders = data.headers.slice(0, -1);
+      const newRows = data.rows.map(row => row.slice(0, -1));
+      updateNodeData({ headers: newHeaders, rows: newRows });
     }
-  }
+  };
 
   const clearAllData = () => {
-    const emptyRows = data.rows.map(row => new Array(row.length).fill(''))
-    updateNodeData({ 
+    const emptyRows = data.rows.map(row => new Array(row.length).fill(''));
+    updateNodeData({
       headers: data.headers.map((_, index) => `Column ${index + 1}`),
-      rows: emptyRows 
-    })
-  }
+      rows: emptyRows,
+    });
+  };
 
   return (
     <div className="space-y-4">
@@ -90,7 +98,9 @@ export const TableBlockInspector: React.FC<TableBlockInspectorProps> = ({ nodeId
         {/* Current Size Display */}
         <div className="bg-muted/50 rounded p-2 text-xs">
           <div className="flex justify-between items-center">
-            <span>Size: {data.headers.length} columns × {data.rows.length} rows</span>
+            <span>
+              Size: {data.headers.length} columns × {data.rows.length} rows
+            </span>
             <span>Total cells: {data.headers.length * data.rows.length}</span>
           </div>
         </div>
@@ -102,12 +112,7 @@ export const TableBlockInspector: React.FC<TableBlockInspectorProps> = ({ nodeId
             Row Management
           </div>
           <div className="flex gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={addRow}
-              className="flex-1 h-8 text-xs"
-            >
+            <Button size="sm" variant="outline" onClick={addRow} className="flex-1 h-8 text-xs">
               <Plus size={12} className="mr-1" />
               Add Row
             </Button>
@@ -131,12 +136,7 @@ export const TableBlockInspector: React.FC<TableBlockInspectorProps> = ({ nodeId
             Column Management
           </div>
           <div className="flex gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={addColumn}
-              className="flex-1 h-8 text-xs"
-            >
+            <Button size="sm" variant="outline" onClick={addColumn} className="flex-1 h-8 text-xs">
               <Plus size={12} className="mr-1" />
               Add Column
             </Button>
@@ -180,11 +180,13 @@ export const TableBlockInspector: React.FC<TableBlockInspectorProps> = ({ nodeId
         {/* Sortable Toggle */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <Label htmlFor="table-sortable" className="text-xs">Enable Column Sorting</Label>
+            <Label htmlFor="table-sortable" className="text-xs">
+              Enable Column Sorting
+            </Label>
             <SafeSwitch
               id="table-sortable"
               checked={data.sortable || false}
-              onCheckedChange={(checked) => updateNodeData({ sortable: checked })}
+              onCheckedChange={checked => updateNodeData({ sortable: checked })}
             />
           </div>
           <p className="text-xs text-muted-foreground">
@@ -195,11 +197,13 @@ export const TableBlockInspector: React.FC<TableBlockInspectorProps> = ({ nodeId
         {/* Alternating Row Colors */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <Label htmlFor="table-alternating" className="text-xs">Alternating Row Colors</Label>
+            <Label htmlFor="table-alternating" className="text-xs">
+              Alternating Row Colors
+            </Label>
             <SafeSwitch
               id="table-alternating"
               checked={data.alternatingRowColors || false}
-              onCheckedChange={(checked) => updateNodeData({ alternatingRowColors: checked })}
+              onCheckedChange={checked => updateNodeData({ alternatingRowColors: checked })}
             />
           </div>
           <p className="text-xs text-muted-foreground">
@@ -219,41 +223,49 @@ export const TableBlockInspector: React.FC<TableBlockInspectorProps> = ({ nodeId
 
         {/* Header Background Color */}
         <div className="space-y-2">
-          <Label htmlFor="header-bg-color" className="text-xs">Header Background</Label>
+          <Label htmlFor="header-bg-color" className="text-xs">
+            Header Background
+          </Label>
           <div className="flex items-center gap-2">
             <Input
               id="header-bg-color"
               type="color"
               value={data.headerStyle?.backgroundColor || '#f3f4f6'}
-              onChange={(e) => updateNodeData({ 
-                headerStyle: { 
-                  ...data.headerStyle, 
-                  backgroundColor: e.target.value 
-                }
-              })}
+              onChange={e =>
+                updateNodeData({
+                  headerStyle: {
+                    ...data.headerStyle,
+                    backgroundColor: e.target.value,
+                  },
+                })
+              }
               className="w-12 h-8 p-1 border rounded"
             />
             <Input
               type="text"
               value={data.headerStyle?.backgroundColor || '#f3f4f6'}
-              onChange={(e) => updateNodeData({ 
-                headerStyle: { 
-                  ...data.headerStyle, 
-                  backgroundColor: e.target.value 
-                }
-              })}
+              onChange={e =>
+                updateNodeData({
+                  headerStyle: {
+                    ...data.headerStyle,
+                    backgroundColor: e.target.value,
+                  },
+                })
+              }
               placeholder="#f3f4f6"
               className="flex-1 h-8 text-xs"
             />
             <Button
               size="sm"
               variant="outline"
-              onClick={() => updateNodeData({ 
-                headerStyle: { 
-                  ...data.headerStyle, 
-                  backgroundColor: undefined 
-                }
-              })}
+              onClick={() =>
+                updateNodeData({
+                  headerStyle: {
+                    ...data.headerStyle,
+                    backgroundColor: undefined,
+                  },
+                })
+              }
               className="h-8 px-2 text-xs"
             >
               Reset
@@ -263,41 +275,49 @@ export const TableBlockInspector: React.FC<TableBlockInspectorProps> = ({ nodeId
 
         {/* Header Text Color */}
         <div className="space-y-2">
-          <Label htmlFor="header-text-color" className="text-xs">Header Text Color</Label>
+          <Label htmlFor="header-text-color" className="text-xs">
+            Header Text Color
+          </Label>
           <div className="flex items-center gap-2">
             <Input
               id="header-text-color"
               type="color"
               value={data.headerStyle?.textColor || '#374151'}
-              onChange={(e) => updateNodeData({ 
-                headerStyle: { 
-                  ...data.headerStyle, 
-                  textColor: e.target.value 
-                }
-              })}
+              onChange={e =>
+                updateNodeData({
+                  headerStyle: {
+                    ...data.headerStyle,
+                    textColor: e.target.value,
+                  },
+                })
+              }
               className="w-12 h-8 p-1 border rounded"
             />
             <Input
               type="text"
               value={data.headerStyle?.textColor || '#374151'}
-              onChange={(e) => updateNodeData({ 
-                headerStyle: { 
-                  ...data.headerStyle, 
-                  textColor: e.target.value 
-                }
-              })}
+              onChange={e =>
+                updateNodeData({
+                  headerStyle: {
+                    ...data.headerStyle,
+                    textColor: e.target.value,
+                  },
+                })
+              }
               placeholder="#374151"
               className="flex-1 h-8 text-xs"
             />
             <Button
               size="sm"
               variant="outline"
-              onClick={() => updateNodeData({ 
-                headerStyle: { 
-                  ...data.headerStyle, 
-                  textColor: undefined 
-                }
-              })}
+              onClick={() =>
+                updateNodeData({
+                  headerStyle: {
+                    ...data.headerStyle,
+                    textColor: undefined,
+                  },
+                })
+              }
               className="h-8 px-2 text-xs"
             >
               Reset
@@ -328,7 +348,7 @@ export const TableBlockInspector: React.FC<TableBlockInspectorProps> = ({ nodeId
             <Input
               type="number"
               value={data.paddingX || 16}
-              onChange={(e) => updateNodeData({ paddingX: parseInt(e.target.value) || 16 })}
+              onChange={e => updateNodeData({ paddingX: parseInt(e.target.value) || 16 })}
               className="w-16 h-8 text-xs"
               min={0}
               max={48}
@@ -353,7 +373,7 @@ export const TableBlockInspector: React.FC<TableBlockInspectorProps> = ({ nodeId
             <Input
               type="number"
               value={data.paddingY || 16}
-              onChange={(e) => updateNodeData({ paddingY: parseInt(e.target.value) || 16 })}
+              onChange={e => updateNodeData({ paddingY: parseInt(e.target.value) || 16 })}
               className="w-16 h-8 text-xs"
               min={0}
               max={48}
@@ -364,19 +384,21 @@ export const TableBlockInspector: React.FC<TableBlockInspectorProps> = ({ nodeId
 
         {/* Background Color */}
         <div className="space-y-2">
-          <Label htmlFor="table-bg-color" className="text-xs">Background Color</Label>
+          <Label htmlFor="table-bg-color" className="text-xs">
+            Background Color
+          </Label>
           <div className="flex items-center gap-2">
             <Input
               id="table-bg-color"
               type="color"
-              value={data.backgroundColor || '#ffffff'}
-              onChange={(e) => updateNodeData({ backgroundColor: e.target.value })}
+              value={sanitizeColorForInput(data.backgroundColor, '#ffffff')}
+              onChange={e => updateNodeData({ backgroundColor: e.target.value })}
               className="w-12 h-8 p-1 border rounded"
             />
             <Input
               type="text"
               value={data.backgroundColor || 'transparent'}
-              onChange={(e) => updateNodeData({ backgroundColor: e.target.value })}
+              onChange={e => updateNodeData({ backgroundColor: e.target.value })}
               placeholder="transparent"
               className="flex-1 h-8 text-xs"
             />
@@ -407,7 +429,7 @@ export const TableBlockInspector: React.FC<TableBlockInspectorProps> = ({ nodeId
             <Input
               type="number"
               value={data.borderRadius || 8}
-              onChange={(e) => updateNodeData({ borderRadius: parseInt(e.target.value) || 8 })}
+              onChange={e => updateNodeData({ borderRadius: parseInt(e.target.value) || 8 })}
               className="w-16 h-8 text-xs"
               min={0}
               max={24}
@@ -419,11 +441,13 @@ export const TableBlockInspector: React.FC<TableBlockInspectorProps> = ({ nodeId
         {/* Border Toggle */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <Label htmlFor="table-border-toggle" className="text-xs">Enable Border</Label>
+            <Label htmlFor="table-border-toggle" className="text-xs">
+              Enable Border
+            </Label>
             <SafeSwitch
               id="table-border-toggle"
               checked={(data.borderWidth || 0) > 0}
-              onCheckedChange={(checked) => updateNodeData({ borderWidth: checked ? 1 : 0 })}
+              onCheckedChange={checked => updateNodeData({ borderWidth: checked ? 1 : 0 })}
             />
           </div>
         </div>
@@ -447,7 +471,7 @@ export const TableBlockInspector: React.FC<TableBlockInspectorProps> = ({ nodeId
                 <Input
                   type="number"
                   value={data.borderWidth || 1}
-                  onChange={(e) => updateNodeData({ borderWidth: parseInt(e.target.value) || 1 })}
+                  onChange={e => updateNodeData({ borderWidth: parseInt(e.target.value) || 1 })}
                   className="w-16 h-8 text-xs"
                   min={1}
                   max={8}
@@ -458,19 +482,21 @@ export const TableBlockInspector: React.FC<TableBlockInspectorProps> = ({ nodeId
 
             {/* Border Color */}
             <div className="space-y-2">
-              <Label htmlFor="table-border-color" className="text-xs">Border Color</Label>
+              <Label htmlFor="table-border-color" className="text-xs">
+                Border Color
+              </Label>
               <div className="flex items-center gap-2">
                 <Input
                   id="table-border-color"
                   type="color"
                   value={data.borderColor || '#e5e7eb'}
-                  onChange={(e) => updateNodeData({ borderColor: e.target.value })}
+                  onChange={e => updateNodeData({ borderColor: e.target.value })}
                   className="w-12 h-8 p-1 border rounded"
                 />
                 <Input
                   type="text"
                   value={data.borderColor || '#e5e7eb'}
-                  onChange={(e) => updateNodeData({ borderColor: e.target.value })}
+                  onChange={e => updateNodeData({ borderColor: e.target.value })}
                   placeholder="#e5e7eb"
                   className="flex-1 h-8 text-xs"
                 />
@@ -480,5 +506,5 @@ export const TableBlockInspector: React.FC<TableBlockInspectorProps> = ({ nodeId
         )}
       </div>
     </div>
-  )
-}
+  );
+};

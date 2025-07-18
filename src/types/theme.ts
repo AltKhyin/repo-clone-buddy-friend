@@ -1,4 +1,4 @@
-// ABOUTME: Advanced theme system types and schemas for comprehensive visual customization
+// ABOUTME: Advanced theme system types and schemas for comprehensive visual customization with token-based theming support
 
 import { z } from 'zod';
 

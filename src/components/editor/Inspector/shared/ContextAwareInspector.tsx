@@ -6,7 +6,7 @@ import { NodeObject } from '@/types/editor';
 import { InspectorSection } from './InspectorSection';
 import { ColorControl } from './ColorControl';
 import { SpacingControls } from './SpacingControls';
-import { TypographyControls } from './TypographyControls';
+// Typography controls now handled by UnifiedToolbar - removed TypographyControls import
 import {
   Palette,
   Move,
@@ -146,12 +146,9 @@ export const ContextAwareInspector = React.memo(function ContextAwareInspector({
 
     return (
       <InspectorSection title="Typography" icon={Type} compact={compact}>
-        <TypographyControls
-          blockType={blockConfig.typographyType}
-          data={node.data}
-          onChange={handleDataUpdate}
-          compact={compact}
-        />
+        <div className="text-sm text-muted-foreground p-3 text-center">
+          Typography controls are now available in the toolbar
+        </div>
       </InspectorSection>
     );
   };
@@ -246,15 +243,15 @@ export const ContextAwareInspector = React.memo(function ContextAwareInspector({
     if (context.contentAnalysis?.complexity === 'complex') {
       sections.push(
         <InspectorSection
-          key="advanced"
-          title="Advanced Settings"
+          key="detailed-settings"
+          title="Detailed Block Settings"
           icon={Settings}
           compact={compact}
           collapsible
           defaultCollapsed
         >
           <div className="text-sm text-muted-foreground">
-            Advanced block-specific settings will be available here.
+            Detailed block-specific settings will be available here.
           </div>
         </InspectorSection>
       );

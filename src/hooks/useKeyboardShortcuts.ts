@@ -29,10 +29,12 @@ export function useKeyboardShortcuts() {
     redo,
     selectedNodeId,
     nodes,
+    positions,
     deleteNode,
     duplicateNode,
     copyNodes,
     pasteNodes,
+    updateNodePosition,
     history,
     historyIndex,
     saveToDatabase,
@@ -233,6 +235,184 @@ export function useKeyboardShortcuts() {
         },
       },
 
+      // Block manipulation shortcuts
+      {
+        id: 'resize-width-increase',
+        name: 'Increase Width',
+        description: 'Increase selected block width',
+        keys: ['ctrl', 'arrowright'],
+        category: 'editing',
+        action: () => {
+          if (selectedNodeId) {
+            const currentPosition = positions[selectedNodeId];
+            if (currentPosition) {
+              const newWidth = Math.min(currentPosition.width + 20, 800); // Max canvas width
+              updateNodePosition(selectedNodeId, { width: newWidth });
+              toast({
+                title: 'Width Increased',
+                description: `Width: ${newWidth}px`,
+                duration: 1000,
+              });
+            }
+          }
+        },
+        disabled: !selectedNodeId,
+      },
+      {
+        id: 'resize-width-decrease',
+        name: 'Decrease Width',
+        description: 'Decrease selected block width',
+        keys: ['ctrl', 'arrowleft'],
+        category: 'editing',
+        action: () => {
+          if (selectedNodeId) {
+            const currentPosition = positions[selectedNodeId];
+            if (currentPosition) {
+              const newWidth = Math.max(currentPosition.width - 20, 100); // Min width
+              updateNodePosition(selectedNodeId, { width: newWidth });
+              toast({
+                title: 'Width Decreased',
+                description: `Width: ${newWidth}px`,
+                duration: 1000,
+              });
+            }
+          }
+        },
+        disabled: !selectedNodeId,
+      },
+      {
+        id: 'resize-height-increase',
+        name: 'Increase Height',
+        description: 'Increase selected block height',
+        keys: ['ctrl', 'arrowdown'],
+        category: 'editing',
+        action: () => {
+          if (selectedNodeId) {
+            const currentPosition = positions[selectedNodeId];
+            if (currentPosition) {
+              const newHeight = currentPosition.height + 20;
+              updateNodePosition(selectedNodeId, { height: newHeight });
+              toast({
+                title: 'Height Increased',
+                description: `Height: ${newHeight}px`,
+                duration: 1000,
+              });
+            }
+          }
+        },
+        disabled: !selectedNodeId,
+      },
+      {
+        id: 'resize-height-decrease',
+        name: 'Decrease Height',
+        description: 'Decrease selected block height',
+        keys: ['ctrl', 'arrowup'],
+        category: 'editing',
+        action: () => {
+          if (selectedNodeId) {
+            const currentPosition = positions[selectedNodeId];
+            if (currentPosition) {
+              const newHeight = Math.max(currentPosition.height - 20, 50); // Min height
+              updateNodePosition(selectedNodeId, { height: newHeight });
+              toast({
+                title: 'Height Decreased',
+                description: `Height: ${newHeight}px`,
+                duration: 1000,
+              });
+            }
+          }
+        },
+        disabled: !selectedNodeId,
+      },
+      {
+        id: 'move-right',
+        name: 'Move Right',
+        description: 'Move selected block right',
+        keys: ['shift', 'arrowright'],
+        category: 'editing',
+        action: () => {
+          if (selectedNodeId) {
+            const currentPosition = positions[selectedNodeId];
+            if (currentPosition) {
+              const newX = Math.min(currentPosition.x + 10, 800 - currentPosition.width); // Stay within canvas
+              updateNodePosition(selectedNodeId, { x: newX });
+              toast({
+                title: 'Moved Right',
+                description: `X: ${newX}px`,
+                duration: 1000,
+              });
+            }
+          }
+        },
+        disabled: !selectedNodeId,
+      },
+      {
+        id: 'move-left',
+        name: 'Move Left',
+        description: 'Move selected block left',
+        keys: ['shift', 'arrowleft'],
+        category: 'editing',
+        action: () => {
+          if (selectedNodeId) {
+            const currentPosition = positions[selectedNodeId];
+            if (currentPosition) {
+              const newX = Math.max(currentPosition.x - 10, 0); // Stay within canvas
+              updateNodePosition(selectedNodeId, { x: newX });
+              toast({
+                title: 'Moved Left',
+                description: `X: ${newX}px`,
+                duration: 1000,
+              });
+            }
+          }
+        },
+        disabled: !selectedNodeId,
+      },
+      {
+        id: 'move-down',
+        name: 'Move Down',
+        description: 'Move selected block down',
+        keys: ['shift', 'arrowdown'],
+        category: 'editing',
+        action: () => {
+          if (selectedNodeId) {
+            const currentPosition = positions[selectedNodeId];
+            if (currentPosition) {
+              const newY = currentPosition.y + 10;
+              updateNodePosition(selectedNodeId, { y: newY });
+              toast({
+                title: 'Moved Down',
+                description: `Y: ${newY}px`,
+                duration: 1000,
+              });
+            }
+          }
+        },
+        disabled: !selectedNodeId,
+      },
+      {
+        id: 'move-up',
+        name: 'Move Up',
+        description: 'Move selected block up',
+        keys: ['shift', 'arrowup'],
+        category: 'editing',
+        action: () => {
+          if (selectedNodeId) {
+            const currentPosition = positions[selectedNodeId];
+            if (currentPosition) {
+              const newY = Math.max(currentPosition.y - 10, 0); // Stay within canvas
+              updateNodePosition(selectedNodeId, { y: newY });
+              toast({
+                title: 'Moved Up',
+                description: `Y: ${newY}px`,
+                duration: 1000,
+              });
+            }
+          }
+        },
+        disabled: !selectedNodeId,
+      },
+
       // Quick block creation
       {
         id: 'add-text',
@@ -252,14 +432,14 @@ export function useKeyboardShortcuts() {
       {
         id: 'add-heading',
         name: 'Add Heading Block',
-        description: 'Add a new heading block',
+        description: 'Add a new heading block (H1)',
         keys: ['ctrl', 'shift', 'h'],
         category: 'blocks',
         action: () => {
-          addNode({ type: 'headingBlock' });
+          addNode({ type: 'textBlock', data: { headingLevel: 1 } });
           toast({
             title: 'Heading Block Added',
-            description: 'Added new heading block',
+            description: 'Added new H1 heading block',
             duration: 1000,
           });
         },
@@ -331,10 +511,12 @@ export function useKeyboardShortcuts() {
       redo,
       selectedNodeId,
       nodes,
+      positions,
       deleteNode,
       duplicateNode,
       copyNodes,
       pasteNodes,
+      updateNodePosition,
       history,
       historyIndex,
       saveToDatabase,

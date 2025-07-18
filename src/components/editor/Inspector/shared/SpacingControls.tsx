@@ -36,7 +36,7 @@ interface SpacingControlsProps {
   fields?: SpacingField[];
   compact?: boolean;
   className?: string;
-  showAdvanced?: boolean;
+  showDetailedControls?: boolean;
   enablePresets?: boolean;
   enableMargins?: boolean;
   enableBorders?: boolean;
@@ -45,7 +45,7 @@ interface SpacingControlsProps {
 // Import constants from separate file to avoid Fast Refresh warnings
 import {
   PADDING_FIELDS,
-  MARGIN_FIELDS,  
+  MARGIN_FIELDS,
   BORDER_FIELDS,
   DEFAULT_SPACING_FIELDS,
   SPACING_PRESETS,
@@ -57,12 +57,12 @@ export function SpacingControls({
   fields = DEFAULT_SPACING_FIELDS,
   compact = false,
   className,
-  showAdvanced = true,
+  showDetailedControls = true,
   enablePresets = true,
   enableMargins = false,
   enableBorders = true,
 }: SpacingControlsProps) {
-  const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
+  const [isDetailedControlsOpen, setIsDetailedControlsOpen] = useState(false);
   const [linkedPadding, setLinkedPadding] = useState(false);
   const [linkedMargin, setLinkedMargin] = useState(false);
 
@@ -276,13 +276,13 @@ export function SpacingControls({
         </div>
       )}
 
-      {/* Advanced Controls */}
-      {showAdvanced && (
-        <Collapsible open={isAdvancedOpen} onOpenChange={setIsAdvancedOpen}>
+      {/* Detailed Controls */}
+      {showDetailedControls && (
+        <Collapsible open={isDetailedControlsOpen} onOpenChange={setIsDetailedControlsOpen}>
           <CollapsibleTrigger asChild>
             <Button variant="ghost" size="sm" className="w-full justify-between h-8 text-xs">
-              Advanced Options
-              {isAdvancedOpen ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+              Detailed Spacing Options
+              {isDetailedControlsOpen ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
             </Button>
           </CollapsibleTrigger>
           <CollapsibleContent className="space-y-3 pt-2">

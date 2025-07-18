@@ -1,21 +1,10 @@
-// ABOUTME: Quote block component for the Visual Composition Engine with citation support and visual styling options
+// ABOUTME: WYSIWYG node component
 
 import React from 'react';
-import { Handle, Position } from '@xyflow/react';
 import { QuoteBlockData } from '@/types/editor';
 import { useEditorStore } from '@/store/editorStore';
+import { useEditorTheme } from '@/hooks/useEditorTheme';
 import { Quote, User } from 'lucide-react';
-import { UnifiedNodeResizer } from '../components/UnifiedNodeResizer';
-import {
-  useUnifiedBlockStyling,
-  getSelectionIndicatorProps,
-  getThemeAwarePlaceholderClasses,
-} from '../utils/blockStyling';
-import {
-  ThemedBlockWrapper,
-  useThemedStyles,
-  useThemedColors,
-} from '@/components/editor/theme/ThemeIntegration';
 
 interface QuoteBlockNodeProps {
   id: string;
@@ -28,26 +17,23 @@ export const QuoteBlockNode = React.memo(function QuoteBlockNode({
   data,
   selected,
 }: QuoteBlockNodeProps) {
-  const { updateNode, canvasTheme } = useEditorStore();
-
-  // Get theme-aware styles and colors
-  const themedStyles = useThemedStyles('quoteBlock');
-  const themedColors = useThemedColors();
+  const { updateNode } = useEditorStore();
+  const { colors } = useEditorTheme();
 
   // Get unified styling (with null safety)
-  const { selectionClasses, borderStyles } = useUnifiedBlockStyling('quoteBlock', selected, {
+  const selectionClasses = selected ? 'ring-2 ring-blue-500' : '';
+  const borderStyles = {
     borderWidth: 0,
-    borderColor: data?.borderColor || '#e5e7eb',
-  });
+    borderColor: data?.borderColor || colors.block.border,
+  };
 
-  const isDarkMode = canvasTheme === 'dark';
   const quoteData = data || {};
 
   // Provide defaults for missing properties
   const safeContent = quoteData.content || 'Enter your quote here...';
   const safeCitation = quoteData.citation || '';
   const safeStyle = quoteData.style || 'default';
-  const safeBorderColor = quoteData.borderColor || (isDarkMode ? '#374151' : '#e5e7eb');
+  const safeBorderColor = quoteData.borderColor || colors.block.border;
 
   const handleClick = () => {
     // Focus the node when quote is clicked
@@ -59,28 +45,8 @@ export const QuoteBlockNode = React.memo(function QuoteBlockNode({
     // Allow text selection within the quote
   };
 
-  // Get theme-aware colors with fallbacks
-  const getThemeColors = () => {
-    if (!themedColors) {
-      return {
-        background: isDarkMode ? '#1f2937' : '#f9fafb',
-        border: safeBorderColor,
-        text: isDarkMode ? '#f3f4f6' : '#111827',
-        citation: isDarkMode ? '#9ca3af' : '#6b7280',
-        accent: isDarkMode ? '#3b82f6' : '#2563eb',
-      };
-    }
-
-    return {
-      background: themedStyles.backgroundColor || themedColors.neutral['50'],
-      border: safeBorderColor,
-      text: themedColors.neutral['900'],
-      citation: themedColors.neutral['600'],
-      accent: themedColors.primary['600'],
-    };
-  };
-
-  const colors = getThemeColors();
+  // Use theme colors from CSS custom properties
+  const quoteColors = colors.semantic.quote;
 
   // Dynamic styles with unified border styling
   const dynamicStyles = {
@@ -90,14 +56,12 @@ export const QuoteBlockNode = React.memo(function QuoteBlockNode({
     transition: 'all 0.2s ease-in-out',
   } as React.CSSProperties;
 
-  const selectionIndicatorProps = getSelectionIndicatorProps('quoteBlock');
-
   // Style configurations for different quote styles
   const getQuoteStyles = () => {
     const baseStyles = {
-      backgroundColor: colors.background,
-      color: colors.text,
-      borderLeftColor: colors.accent,
+      backgroundColor: quoteColors.background,
+      color: quoteColors.text,
+      borderLeftColor: quoteColors.accent,
     };
 
     if (safeStyle === 'large-quote') {
@@ -124,38 +88,17 @@ export const QuoteBlockNode = React.memo(function QuoteBlockNode({
 
   return (
     <>
-      <UnifiedNodeResizer
-        isVisible={selected}
-        nodeType="quoteBlock"
-        customConstraints={{
-          minWidth: 300,
-          minHeight: 120,
-          maxWidth: 700,
-          maxHeight: 400,
-        }}
-      />
-
-      <ThemedBlockWrapper
-        blockType="quoteBlock"
+      <div
+        data-block-type="quoteBlock"
         className={`relative cursor-pointer ${selectionClasses}`}
         style={{
           ...dynamicStyles,
-          borderRadius: themedStyles.borderRadius || '8px',
-          backgroundColor: themedStyles.backgroundColor || 'transparent',
+          borderRadius: '8px',
+          backgroundColor: 'transparent',
         }}
         onClick={handleClick}
       >
         <div data-node-id={id} className="w-full h-full">
-          {/* Unified Selection indicator */}
-          {selected && <div {...selectionIndicatorProps} />}
-
-          {/* Connection handles */}
-          <Handle
-            type="target"
-            position={Position.Top}
-            className="!bg-blue-500 !border-blue-600 !w-3 !h-3"
-          />
-
           {/* Quote Content */}
           <div
             className="relative border-l-4 pl-6 pr-4 py-4 rounded-r-lg"
@@ -166,7 +109,7 @@ export const QuoteBlockNode = React.memo(function QuoteBlockNode({
             <div className="absolute -left-2 top-4">
               <div
                 className="w-6 h-6 rounded-full flex items-center justify-center"
-                style={{ backgroundColor: colors.accent }}
+                style={{ backgroundColor: quoteColors.accent }}
               >
                 <Quote className="w-3 h-3 text-white" />
               </div>
@@ -178,13 +121,13 @@ export const QuoteBlockNode = React.memo(function QuoteBlockNode({
                 {safeStyle === 'large-quote' && (
                   <Quote
                     className="absolute -top-2 -left-4 w-8 h-8 opacity-20"
-                    style={{ color: colors.accent }}
+                    style={{ color: quoteColors.accent }}
                   />
                 )}
                 <p
                   className={`leading-relaxed ${safeStyle === 'large-quote' ? 'text-xl font-medium' : 'text-base'}`}
                   style={{
-                    color: colors.text,
+                    color: quoteColors.text,
                     fontStyle: safeStyle === 'large-quote' ? 'italic' : 'normal',
                   }}
                 >
@@ -196,12 +139,12 @@ export const QuoteBlockNode = React.memo(function QuoteBlockNode({
               {safeCitation && (
                 <footer
                   className="flex items-center gap-2 pt-2 border-t border-opacity-20"
-                  style={{ borderColor: colors.border }}
+                  style={{ borderColor: colors.block.border }}
                 >
-                  <User className="w-4 h-4" style={{ color: colors.citation }} />
+                  <User className="w-4 h-4" style={{ color: quoteColors.citation }} />
                   <cite
                     className="text-sm not-italic font-medium"
-                    style={{ color: colors.citation }}
+                    style={{ color: quoteColors.citation }}
                   >
                     {safeCitation}
                   </cite>
@@ -212,11 +155,12 @@ export const QuoteBlockNode = React.memo(function QuoteBlockNode({
               {!safeCitation && selected && (
                 <footer
                   className="flex items-center gap-2 pt-2 border-t border-opacity-20"
-                  style={{ borderColor: colors.border }}
+                  style={{ borderColor: colors.block.border }}
                 >
-                  <User className="w-4 h-4" style={{ color: colors.citation }} />
+                  <User className="w-4 h-4" style={{ color: quoteColors.citation }} />
                   <cite
-                    className={`text-sm not-italic ${getThemeAwarePlaceholderClasses(canvasTheme)}`}
+                    className="text-sm not-italic"
+                    style={{ color: colors.block.textSecondary }}
                   >
                     Add citation (optional)
                   </cite>
@@ -224,14 +168,8 @@ export const QuoteBlockNode = React.memo(function QuoteBlockNode({
               )}
             </div>
           </div>
-
-          <Handle
-            type="source"
-            position={Position.Bottom}
-            className="!bg-blue-500 !border-blue-600 !w-3 !h-3"
-          />
         </div>
-      </ThemedBlockWrapper>
+      </div>
     </>
   );
 });

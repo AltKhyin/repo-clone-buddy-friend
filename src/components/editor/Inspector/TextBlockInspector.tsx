@@ -1,7 +1,6 @@
 // ABOUTME: Inspector panel for TextBlock with comprehensive customization controls
 
 import React from 'react';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import {
@@ -12,13 +11,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useEditorStore } from '@/store/editorStore';
-import { AlignLeft, AlignCenter, AlignRight, AlignJustify, Palette, Type } from 'lucide-react';
-import {
-  SpacingControls,
-  BorderControls,
-  BackgroundControls,
-  TypographyControls,
-} from './shared/UnifiedControls';
+import { Type, Hash } from 'lucide-react';
+import { SpacingControls, BorderControls, BackgroundControls } from './shared/UnifiedControls';
 
 interface TextBlockInspectorProps {
   nodeId: string;
@@ -42,55 +36,28 @@ export const TextBlockInspector: React.FC<TextBlockInspectorProps> = ({
     });
   };
 
-  // Compact mode for toolbar
+  // Compact mode for toolbar - removed duplicate controls (now handled by UnifiedToolbar)
   if (compact) {
     return (
       <div className="flex items-center gap-3">
-        {/* Font Size */}
-        <div className="flex items-center gap-1">
-          <Input
-            type="number"
-            value={data.fontSize || 16}
-            onChange={e => updateNodeData({ fontSize: parseInt(e.target.value) || 16 })}
-            className="w-16 h-7 text-xs"
-            min={12}
-            max={72}
-          />
-          <span className="text-xs text-muted-foreground">px</span>
-        </div>
-
-        {/* Text Alignment */}
-        <div className="flex gap-1">
-          {[
-            { value: 'left', icon: AlignLeft },
-            { value: 'center', icon: AlignCenter },
-            { value: 'right', icon: AlignRight },
-          ].map(({ value, icon: Icon }) => (
-            <Button
-              key={value}
-              size="sm"
-              variant={data.textAlign === value ? 'default' : 'outline'}
-              onClick={() => updateNodeData({ textAlign: value as any })}
-              className="h-7 w-7 p-0"
-            >
-              <Icon size={12} />
-            </Button>
-          ))}
-        </div>
-
-        {/* Font Family */}
+        {/* Only keep heading level selector - unique to block properties */}
         <Select
-          value={data.fontFamily || 'inherit'}
-          onValueChange={value => updateNodeData({ fontFamily: value })}
+          value={data.headingLevel ? data.headingLevel.toString() : 'text'}
+          onValueChange={value =>
+            updateNodeData({
+              headingLevel: value === 'text' ? null : (parseInt(value) as 1 | 2 | 3 | 4),
+            })
+          }
         >
-          <SelectTrigger className="w-24 h-7">
+          <SelectTrigger className="w-20 h-7">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="inherit">Default</SelectItem>
-            <SelectItem value="serif">Serif</SelectItem>
-            <SelectItem value="sans-serif">Sans</SelectItem>
-            <SelectItem value="monospace">Mono</SelectItem>
+            <SelectItem value="text">Text</SelectItem>
+            <SelectItem value="1">H1</SelectItem>
+            <SelectItem value="2">H2</SelectItem>
+            <SelectItem value="3">H3</SelectItem>
+            <SelectItem value="4">H4</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -99,34 +66,68 @@ export const TextBlockInspector: React.FC<TextBlockInspectorProps> = ({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2">
-        <Type size={16} />
-        <h3 className="font-medium">Text Block</h3>
+      {/* Heading Level Selector - unique to block properties */}
+      <div className="space-y-2">
+        <div className="flex items-center gap-2">
+          <Hash size={14} />
+          <span className="text-sm font-medium">Block Type</span>
+        </div>
+        <Select
+          value={data.headingLevel ? data.headingLevel.toString() : 'text'}
+          onValueChange={value =>
+            updateNodeData({
+              headingLevel: value === 'text' ? null : (parseInt(value) as 1 | 2 | 3 | 4),
+            })
+          }
+        >
+          <SelectTrigger className="w-full">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="text">
+              <div className="flex items-center gap-2">
+                <Type size={14} />
+                <span>Normal Text</span>
+              </div>
+            </SelectItem>
+            <SelectItem value="1">
+              <div className="flex items-center gap-2">
+                <Hash size={14} />
+                <span style={{ fontSize: '18px', fontWeight: 700 }}>Heading 1</span>
+              </div>
+            </SelectItem>
+            <SelectItem value="2">
+              <div className="flex items-center gap-2">
+                <Hash size={14} />
+                <span style={{ fontSize: '16px', fontWeight: 700 }}>Heading 2</span>
+              </div>
+            </SelectItem>
+            <SelectItem value="3">
+              <div className="flex items-center gap-2">
+                <Hash size={14} />
+                <span style={{ fontSize: '14px', fontWeight: 600 }}>Heading 3</span>
+              </div>
+            </SelectItem>
+            <SelectItem value="4">
+              <div className="flex items-center gap-2">
+                <Hash size={14} />
+                <span style={{ fontSize: '12px', fontWeight: 600 }}>Heading 4</span>
+              </div>
+            </SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       <Separator />
 
-      {/* Typography Controls */}
-      <TypographyControls
-        data={data}
-        onChange={updateNodeData}
-        showFontFamily={true}
-        showFontSize={true}
-        showFontWeight={true}
-        showLineHeight={true}
-        showAlignment={true}
-        showColor={true}
-        compact={true}
-      />
-
-      <Separator />
-
-      {/* Background Controls */}
+      {/* Background Controls - Text color now handled by UnifiedToolbar typography dropdown */}
       <BackgroundControls
         data={data}
         onChange={updateNodeData}
         enableImage={false}
         compact={true}
+        colorKey="backgroundColor"
+        defaultColor="transparent"
       />
 
       <Separator />
@@ -136,9 +137,10 @@ export const TextBlockInspector: React.FC<TextBlockInspectorProps> = ({
         data={data}
         onChange={updateNodeData}
         compact={true}
-        enableMargins={true}
+        enableMargins={false}
         enableBorders={false}
         enablePresets={true}
+        showDetailedControls={false}
       />
 
       <Separator />

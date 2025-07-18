@@ -29,7 +29,6 @@ import {
 } from 'lucide-react';
 import { SafeSwitch } from './SafeSwitch';
 import { TextBlockInspector } from './Inspector/TextBlockInspector';
-import { HeadingBlockInspector } from './Inspector/HeadingBlockInspector';
 import { ImageBlockInspector } from './Inspector/ImageBlockInspector';
 import { VideoEmbedBlockInspector } from './Inspector/VideoEmbedBlockInspector';
 import { TableBlockInspector } from './Inspector/TableBlockInspector';
@@ -93,9 +92,6 @@ export const InspectorPanel = React.memo(function InspectorPanel() {
     switch (selectedNode.type) {
       case 'textBlock':
         return <TextBlockInspector nodeId={selectedNode.id} />;
-
-      case 'headingBlock':
-        return <HeadingBlockInspector nodeId={selectedNode.id} />;
 
       case 'imageBlock':
         return <ImageBlockInspector nodeId={selectedNode.id} />;

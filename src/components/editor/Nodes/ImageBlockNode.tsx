@@ -1,14 +1,11 @@
-// ABOUTME: React Flow node component for ImageBlock with WebP optimization and responsive sizing
+// ABOUTME: WYSIWYG node component
 
 import React from 'react';
-import { Handle, Position, NodeProps } from '@xyflow/react';
 import { ImageBlockData } from '@/types/editor';
 import { useEditorStore } from '@/store/editorStore';
+import { useEditorTheme } from '@/hooks/useEditorTheme';
 import { ImageIcon, ImageOff } from 'lucide-react';
-import { UnifiedNodeResizer } from '../components/UnifiedNodeResizer';
-import { useUnifiedBlockStyling, getSelectionIndicatorProps } from '../utils/blockStyling';
 import { useIntersectionObserver } from '@/hooks/useIntersectionObserver';
-import { ThemedBlockWrapper, useThemedStyles } from '@/components/editor/theme/ThemeIntegration';
 
 interface ImageBlockNodeData extends ImageBlockData {
   // Additional display properties
@@ -19,131 +16,156 @@ interface ImageBlockNodeData extends ImageBlockData {
   backgroundColor?: string;
 }
 
-export const ImageBlockNode = React.memo<NodeProps<ImageBlockNodeData>>(
-  ({ id, data, selected }) => {
-    const { updateNode, canvasTheme } = useEditorStore();
-    const [imageError, setImageError] = React.useState(false);
-    const [imageLoaded, setImageLoaded] = React.useState(false);
+interface ImageBlockNodeProps {
+  id: string;
+  data: ImageBlockNodeData;
+  selected: boolean;
+}
 
-    // Intersection observer for lazy loading
-    const [containerRef, isInView] = useIntersectionObserver({
-      threshold: 0.1,
-      rootMargin: '100px',
-      triggerOnce: true,
-    });
+export const ImageBlockNode = React.memo<ImageBlockNodeProps>(({ id, data, selected }) => {
+  const { updateNode } = useEditorStore();
+  const { colors, getImagePlaceholderColors } = useEditorTheme();
+  const [imageError, setImageError] = React.useState(false);
+  const [imageLoaded, setImageLoaded] = React.useState(false);
 
-    // Get unified styling
-    const { selectionClasses, borderStyles } = useUnifiedBlockStyling('imageBlock', selected, {
-      borderWidth: data.borderWidth,
-      borderColor: data.borderColor,
-    });
+  // Intersection observer for lazy loading
+  const [containerRef, isInView] = useIntersectionObserver({
+    threshold: 0.1,
+    rootMargin: '100px',
+    triggerOnce: true,
+  });
 
-    // Get theme-aware styles
-    const themedStyles = useThemedStyles('imageBlock');
+  // Get unified styling
+  const selectionClasses = selected ? 'ring-2 ring-blue-500' : '';
+  const borderStyles = {
+    borderWidth: data.borderWidth || 0,
+    borderColor: data.borderColor || '#e5e7eb',
+  };
 
-    // Apply styling with theme awareness
-    const paddingX = data.paddingX ?? themedStyles.padding ?? 16;
-    const paddingY = data.paddingY ?? themedStyles.padding ?? 16;
-    const backgroundColor = data.backgroundColor ?? themedStyles.backgroundColor ?? 'transparent';
+  // Get image placeholder colors from CSS custom properties
+  const placeholderColors = getImagePlaceholderColors();
 
-    // Convert image URL to WebP if supported and provide fallback
-    const getOptimizedImageUrl = (originalUrl: string): string => {
-      if (!originalUrl) return '';
+  // Apply styling with theme awareness
+  const paddingX = data.paddingX ?? 16;
+  const paddingY = data.paddingY ?? 16;
+  const backgroundColor = data.backgroundColor ?? 'transparent';
 
-      // For demonstration purposes, this is a simple WebP optimization
-      // In a real implementation, this would interface with an image service
-      try {
-        const url = new URL(originalUrl);
+  // Convert image URL to WebP if supported and provide fallback
+  const getOptimizedImageUrl = (originalUrl: string): string => {
+    if (!originalUrl) return '';
 
-        // Check if it's already WebP
-        if (url.pathname.endsWith('.webp')) {
-          return originalUrl;
-        }
+    // For demonstration purposes, this is a simple WebP optimization
+    // In a real implementation, this would interface with an image service
+    try {
+      const url = new URL(originalUrl);
 
-        // For common image hosts, add WebP parameters
-        if (url.hostname.includes('imgur.com')) {
-          return originalUrl.replace(/\.(jpg|jpeg|png)$/i, '.webp');
-        }
-
-        // For unsplash, add format parameter
-        if (url.hostname.includes('unsplash.com')) {
-          url.searchParams.set('fm', 'webp');
-          url.searchParams.set('q', '80');
-          return url.toString();
-        }
-
-        return originalUrl;
-      } catch {
+      // Check if it's already WebP
+      if (url.pathname.endsWith('.webp')) {
         return originalUrl;
       }
-    };
 
-    const optimizedUrl = getOptimizedImageUrl(data.src);
+      // For common image hosts, add WebP parameters
+      if (url.hostname.includes('imgur.com')) {
+        return originalUrl.replace(/\.(jpg|jpeg|png)$/i, '.webp');
+      }
 
-    const handleImageLoad = () => {
-      setImageLoaded(true);
-      setImageError(false);
-    };
+      // For unsplash, add format parameter
+      if (url.hostname.includes('unsplash.com')) {
+        url.searchParams.set('fm', 'webp');
+        url.searchParams.set('q', '80');
+        return url.toString();
+      }
 
-    const handleImageError = () => {
-      setImageError(true);
-      setImageLoaded(false);
-    };
+      return originalUrl;
+    } catch {
+      return originalUrl;
+    }
+  };
 
-    const handleImageClick = () => {
-      // Focus the node when image is clicked
-      updateNode(id, {});
-    };
+  const optimizedUrl = getOptimizedImageUrl(data.src);
 
-    // Calculate responsive sizing
-    const imageWidth = data.width ? `${data.width}px` : '100%';
-    const imageHeight = data.height ? `${data.height}px` : 'auto';
-    const maxWidth = data.width ? Math.min(data.width, 600) : 600;
+  const handleImageLoad = () => {
+    setImageLoaded(true);
+    setImageError(false);
+  };
 
-    // Dynamic styles with unified border styling and theme integration
-    const dynamicStyles = {
-      padding: `${paddingY}px ${paddingX}px`,
-      backgroundColor: backgroundColor !== 'transparent' ? backgroundColor : undefined,
-      ...borderStyles,
-      borderRadius: data.borderRadius
-        ? `${data.borderRadius}px`
-        : themedStyles.borderRadius || '8px',
-      minWidth: '200px',
-      maxWidth: `${maxWidth}px`,
-      transition: 'all 0.2s ease-in-out',
-    } as React.CSSProperties;
+  const handleImageError = () => {
+    setImageError(true);
+    setImageLoaded(false);
+  };
 
-    const selectionIndicatorProps = getSelectionIndicatorProps('imageBlock');
+  const handleImageClick = () => {
+    // Focus the node when image is clicked
+    updateNode(id, {});
+  };
 
-    return (
-      <>
-        {/* Unified Node Resizer */}
-        <UnifiedNodeResizer isVisible={selected} nodeType="imageBlock" />
+  // Calculate responsive sizing
+  const imageWidth = data.width ? `${data.width}px` : '100%';
+  const imageHeight = data.height ? `${data.height}px` : 'auto';
+  const maxWidth = data.width ? Math.min(data.width, 600) : 600;
 
-        <ThemedBlockWrapper
-          blockType="imageBlock"
-          className={`relative cursor-pointer ${selectionClasses}`}
-          style={dynamicStyles}
+  // Dynamic styles with unified border styling and theme integration
+  const dynamicStyles = {
+    padding: `${paddingY}px ${paddingX}px`,
+    backgroundColor: backgroundColor !== 'transparent' ? backgroundColor : undefined,
+    ...borderStyles,
+    borderRadius: data.borderRadius ? `${data.borderRadius}px` : '8px',
+    minWidth: '200px',
+    maxWidth: `${maxWidth}px`,
+    transition: 'all 0.2s ease-in-out',
+  } as React.CSSProperties;
+
+  const selectionIndicatorProps = {
+    className:
+      'absolute -top-6 left-0 text-xs bg-primary text-primary-foreground px-2 py-1 rounded z-10',
+    children: 'Image Block Selected',
+  };
+
+  return (
+    <>
+      <div
+        data-block-type="imageBlock"
+        className={`relative cursor-pointer ${selectionClasses}`}
+        style={dynamicStyles}
+      >
+        <div
+          ref={containerRef as React.RefObject<HTMLDivElement>}
+          data-node-id={id}
+          data-testid="image-block-container"
+          onClick={handleImageClick}
+          className="w-full h-full"
         >
-          <div
-            ref={containerRef as React.RefObject<HTMLDivElement>}
-            data-node-id={id}
-            data-testid="image-block-container"
-            onClick={handleImageClick}
-            className="w-full h-full"
-          >
-            {/* Unified Selection indicator */}
-            {selected && <div {...selectionIndicatorProps} />}
-            {/* Connection handles */}
-            <Handle type="target" position={Position.Top} className="opacity-0" />
-            <Handle type="source" position={Position.Bottom} className="opacity-0" />
+          {/* Selection indicator */}
+          {selected && <div {...selectionIndicatorProps} />}
 
-            <div className="relative">
-              {data.src && isInView ? (
-                <>
-                  {/* Main Image */}
+          <div className="relative">
+            {data.src && isInView ? (
+              <>
+                {/* Main Image */}
+                <img
+                  src={optimizedUrl}
+                  alt={data.alt || ''}
+                  style={{
+                    width: imageWidth,
+                    height: imageHeight,
+                    borderRadius: data.borderRadius ? `${data.borderRadius}px` : '6px',
+                    maxWidth: '100%',
+                    objectFit: 'cover',
+                    display: imageError ? 'none' : 'block',
+                  }}
+                  onLoad={handleImageLoad}
+                  onError={handleImageError}
+                  loading="lazy"
+                  className={`
+                transition-all duration-300
+                ${!imageLoaded && !imageError ? 'opacity-0' : 'opacity-100'}
+              `}
+                />
+
+                {/* Fallback Image */}
+                {optimizedUrl !== data.src && (
                   <img
-                    src={optimizedUrl}
+                    src={data.src}
                     alt={data.alt || ''}
                     style={{
                       width: imageWidth,
@@ -151,142 +173,99 @@ export const ImageBlockNode = React.memo<NodeProps<ImageBlockNodeData>>(
                       borderRadius: data.borderRadius ? `${data.borderRadius}px` : '6px',
                       maxWidth: '100%',
                       objectFit: 'cover',
-                      display: imageError ? 'none' : 'block',
+                      display: imageError && !imageLoaded ? 'block' : 'none',
                     }}
                     onLoad={handleImageLoad}
-                    onError={handleImageError}
+                    onError={() => setImageError(true)}
                     loading="lazy"
-                    className={`
-                transition-all duration-300
-                ${!imageLoaded && !imageError ? 'opacity-0' : 'opacity-100'}
-              `}
                   />
+                )}
 
-                  {/* Fallback Image */}
-                  {optimizedUrl !== data.src && (
-                    <img
-                      src={data.src}
-                      alt={data.alt || ''}
-                      style={{
-                        width: imageWidth,
-                        height: imageHeight,
-                        borderRadius: data.borderRadius ? `${data.borderRadius}px` : '6px',
-                        maxWidth: '100%',
-                        objectFit: 'cover',
-                        display: imageError && !imageLoaded ? 'block' : 'none',
-                      }}
-                      onLoad={handleImageLoad}
-                      onError={() => setImageError(true)}
-                      loading="lazy"
-                    />
-                  )}
+                {/* Loading State */}
+                {!imageLoaded && !imageError && (
+                  <div
+                    className="flex items-center justify-center animate-pulse"
+                    style={{
+                      width: imageWidth,
+                      height: imageHeight || '200px',
+                      borderRadius: data.borderRadius ? `${data.borderRadius}px` : '6px',
+                      minHeight: '120px',
+                      backgroundColor: placeholderColors.background,
+                    }}
+                  >
+                    <ImageIcon size={48} style={{ color: placeholderColors.text }} />
+                  </div>
+                )}
 
-                  {/* Loading State */}
-                  {!imageLoaded && !imageError && (
-                    <div
-                      className={`
-                  flex items-center justify-center bg-gray-100 animate-pulse
-                  ${canvasTheme === 'dark' ? 'bg-gray-700' : 'bg-gray-100'}
-                `}
-                      style={{
-                        width: imageWidth,
-                        height: imageHeight || '200px',
-                        borderRadius: data.borderRadius ? `${data.borderRadius}px` : '6px',
-                        minHeight: '120px',
-                      }}
-                    >
-                      <ImageIcon
-                        size={48}
-                        className={canvasTheme === 'dark' ? 'text-gray-500' : 'text-gray-400'}
-                      />
-                    </div>
-                  )}
+                {/* Error State */}
+                {imageError && (
+                  <div
+                    className="flex flex-col items-center justify-center border-2 border-dashed"
+                    style={{
+                      width: imageWidth,
+                      height: imageHeight || '200px',
+                      borderRadius: data.borderRadius ? `${data.borderRadius}px` : '6px',
+                      minHeight: '120px',
+                      backgroundColor: placeholderColors.background,
+                      borderColor: placeholderColors.border,
+                      color: placeholderColors.text,
+                    }}
+                  >
+                    <ImageOff size={48} className="mb-2" />
+                    <p className="text-sm font-medium">Failed to load image</p>
+                    <p className="text-xs opacity-75">Check the URL and try again</p>
+                  </div>
+                )}
 
-                  {/* Error State */}
-                  {imageError && (
-                    <div
-                      className={`
-                  flex flex-col items-center justify-center border-2 border-dashed
-                  ${
-                    canvasTheme === 'dark'
-                      ? 'bg-gray-700 border-gray-600 text-gray-400'
-                      : 'bg-gray-50 border-gray-300 text-gray-500'
-                  }
-                `}
-                      style={{
-                        width: imageWidth,
-                        height: imageHeight || '200px',
-                        borderRadius: data.borderRadius ? `${data.borderRadius}px` : '6px',
-                        minHeight: '120px',
-                      }}
-                    >
-                      <ImageOff size={48} className="mb-2" />
-                      <p className="text-sm font-medium">Failed to load image</p>
-                      <p className="text-xs opacity-75">Check the URL and try again</p>
-                    </div>
-                  )}
-
-                  {/* Caption */}
-                  {data.caption && (
-                    <p
-                      className={`
-                  mt-3 text-sm italic text-center
-                  ${canvasTheme === 'dark' ? 'text-gray-300' : 'text-gray-600'}
-                `}
-                    >
-                      {data.caption}
-                    </p>
-                  )}
-                </>
-              ) : data.src && !isInView ? (
-                /* Placeholder while not in view */
-                <div
-                  className={`
-              flex items-center justify-center bg-gray-100 
-              ${canvasTheme === 'dark' ? 'bg-gray-700' : 'bg-gray-100'}
-            `}
-                  style={{
-                    width: imageWidth,
-                    height: imageHeight || '200px',
-                    borderRadius: data.borderRadius ? `${data.borderRadius}px` : '6px',
-                    minHeight: '120px',
-                  }}
-                >
-                  <ImageIcon
-                    size={48}
-                    className={canvasTheme === 'dark' ? 'text-gray-500' : 'text-gray-400'}
-                  />
-                </div>
-              ) : (
-                /* Empty State */
-                <div
-                  className={`
-              flex flex-col items-center justify-center p-8 border-2 border-dashed rounded-lg
-              ${
-                canvasTheme === 'dark'
-                  ? 'bg-gray-700 border-gray-600 text-gray-400'
-                  : 'bg-gray-50 border-gray-300 text-gray-500'
-              }
-            `}
-                  style={{
-                    minHeight: '200px',
-                    borderRadius: data.borderRadius ? `${data.borderRadius}px` : '6px',
-                  }}
-                >
-                  <ImageIcon size={48} className="mb-4" />
-                  <p className="text-sm font-medium mb-1">No image selected</p>
-                  <p className="text-xs opacity-75 text-center">
-                    Select this block and add an image URL in the inspector
+                {/* Caption */}
+                {data.caption && (
+                  <p
+                    className="mt-3 text-sm italic text-center"
+                    style={{ color: colors.block.textSecondary }}
+                  >
+                    {data.caption}
                   </p>
-                </div>
-              )}
-            </div>
-
-            {/* Accessibility Label for Screen Readers */}
-            {data.alt && <span className="sr-only">Image: {data.alt}</span>}
+                )}
+              </>
+            ) : data.src && !isInView ? (
+              /* Placeholder while not in view */
+              <div
+                className="flex items-center justify-center"
+                style={{
+                  width: imageWidth,
+                  height: imageHeight || '200px',
+                  borderRadius: data.borderRadius ? `${data.borderRadius}px` : '6px',
+                  minHeight: '120px',
+                  backgroundColor: placeholderColors.background,
+                }}
+              >
+                <ImageIcon size={48} style={{ color: placeholderColors.text }} />
+              </div>
+            ) : (
+              /* Empty State */
+              <div
+                className="flex flex-col items-center justify-center p-8 border-2 border-dashed rounded-lg"
+                style={{
+                  minHeight: '200px',
+                  borderRadius: data.borderRadius ? `${data.borderRadius}px` : '6px',
+                  backgroundColor: placeholderColors.background,
+                  borderColor: placeholderColors.border,
+                  color: placeholderColors.text,
+                }}
+              >
+                <ImageIcon size={48} className="mb-4" />
+                <p className="text-sm font-medium mb-1">No image selected</p>
+                <p className="text-xs opacity-75 text-center">
+                  Select this block and add an image URL in the inspector
+                </p>
+              </div>
+            )}
           </div>
-        </ThemedBlockWrapper>
-      </>
-    );
-  }
-);
+
+          {/* Accessibility Label for Screen Readers */}
+          {data.alt && <span className="sr-only">Image: {data.alt}</span>}
+        </div>
+      </div>
+    </>
+  );
+});

@@ -1,64 +1,73 @@
-// ABOUTME: Interactive poll block component for the Visual Composition Engine with voting functionality and results display
+// ABOUTME: WYSIWYG node component
 
 import React, { useState } from 'react';
-import { Handle, Position, NodeProps } from '@xyflow/react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle2, Circle, BarChart3, Users } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import {
+  CheckCircle2,
+  Circle,
+  BarChart3,
+  Users,
+  Plus,
+  Minus,
+  ChevronUp,
+  ChevronDown,
+  Edit2,
+  Settings,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useEditorStore } from '@/store/editorStore';
+import { useEditorTheme } from '@/hooks/useEditorTheme';
 import { PollBlockData } from '@/types/editor';
-import { UnifiedNodeResizer } from '../components/UnifiedNodeResizer';
-import { useUnifiedBlockStyling, getSelectionIndicatorProps } from '../utils/blockStyling';
-import {
-  ThemedBlockWrapper,
-  useThemedStyles,
-  useThemedColors,
-} from '@/components/editor/theme/ThemeIntegration';
+import { generateNodeId } from '@/types/editor';
 
-interface PollBlockNodeData {
+interface PollBlockNodeProps {
   id: string;
-  type: 'pollBlock';
   data: PollBlockData;
+  selected?: boolean;
 }
 
 export const PollBlockNode = React.memo(function PollBlockNode({
   id,
   data,
   selected,
-}: NodeProps<PollBlockNodeData>) {
-  const { updateNode, canvasTheme } = useEditorStore();
+}: PollBlockNodeProps) {
+  const { updateNode } = useEditorStore();
+  const { colors } = useEditorTheme();
   const [userVotes, setUserVotes] = useState<Set<string>>(new Set());
   const [isVoting, setIsVoting] = useState(false);
   const [hasInitialized, setHasInitialized] = useState(false);
-
-  // Get theme-aware styles and colors
-  const themedStyles = useThemedStyles('pollBlock');
-  const themedColors = useThemedColors();
+  const [editingQuestion, setEditingQuestion] = useState(false);
+  const [editingOption, setEditingOption] = useState<string | null>(null);
+  const [isEditMode, setIsEditMode] = useState(false);
 
   // Get unified styling
-  const { selectionClasses, borderStyles } = useUnifiedBlockStyling(
-    'pollBlock',
-    selected,
-    { borderWidth: 0, borderColor: '#e5e7eb' } // Poll uses Card styling, no custom borders
-  );
+  const selectionClasses = selected ? 'ring-2 ring-blue-500' : '';
+  const borderStyles = {
+    borderWidth: 0,
+    borderColor: colors.block.border,
+  };
 
-  const isDarkMode = canvasTheme === 'dark';
   const pollData = data;
+  const pollColors = colors.semantic.poll;
 
   // Enhanced data validation and initialization with useEffect to prevent infinite loops
-  const defaultPollData = React.useMemo(() => ({
-    question: 'What is your opinion?',
-    options: [
-      { id: 'opt-1-' + Date.now(), text: 'Option 1', votes: 0 },
-      { id: 'opt-2-' + Date.now(), text: 'Option 2', votes: 0 },
-    ],
-    allowMultiple: false,
-    showResults: true,
-    totalVotes: 0,
-  }), []);
+  const defaultPollData = React.useMemo(
+    () => ({
+      question: 'What is your opinion?',
+      options: [
+        { id: 'opt-1-' + Date.now(), text: 'Option 1', votes: 0 },
+        { id: 'opt-2-' + Date.now(), text: 'Option 2', votes: 0 },
+      ],
+      allowMultiple: false,
+      showResults: true,
+      totalVotes: 0,
+    }),
+    []
+  );
 
   // Initialize poll data if missing or invalid (using useEffect to prevent infinite loops)
   React.useEffect(() => {
@@ -80,7 +89,7 @@ export const PollBlockNode = React.memo(function PollBlockNode({
   const safeTotalVotes = Number(pollData?.totalVotes) || 0;
 
   const handleVote = async (optionId: string) => {
-    if (isVoting) return;
+    if (isVoting || isEditMode) return;
 
     setIsVoting(true);
 
@@ -141,13 +150,68 @@ export const PollBlockNode = React.memo(function PollBlockNode({
     }
   };
 
+  // Poll editing functions
+  const updatePollData = (updates: Partial<PollBlockData>) => {
+    updateNode(id, {
+      data: { ...pollData, ...updates },
+    });
+  };
+
+  const handleQuestionEdit = (newQuestion: string) => {
+    updatePollData({ question: newQuestion });
+  };
+
+  const handleOptionEdit = (optionId: string, newText: string) => {
+    const updatedOptions = safeOptions.map(option =>
+      option.id === optionId ? { ...option, text: newText } : option
+    );
+    updatePollData({ options: updatedOptions });
+  };
+
+  const addOption = () => {
+    const newOption = {
+      id: generateNodeId(),
+      text: `Option ${safeOptions.length + 1}`,
+      votes: 0,
+    };
+    updatePollData({ options: [...safeOptions, newOption] });
+  };
+
+  const removeOption = (optionId: string) => {
+    if (safeOptions.length > 1) {
+      const filteredOptions = safeOptions.filter(option => option.id !== optionId);
+      // Recalculate total votes
+      const newTotalVotes = filteredOptions.reduce((sum, option) => sum + option.votes, 0);
+      updatePollData({ options: filteredOptions, totalVotes: newTotalVotes });
+    }
+  };
+
+  const moveOption = (optionId: string, direction: 'up' | 'down') => {
+    const currentIndex = safeOptions.findIndex(option => option.id === optionId);
+    const newIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+
+    if (newIndex >= 0 && newIndex < safeOptions.length) {
+      const newOptions = [...safeOptions];
+      [newOptions[currentIndex], newOptions[newIndex]] = [
+        newOptions[newIndex],
+        newOptions[currentIndex],
+      ];
+      updatePollData({ options: newOptions });
+    }
+  };
+
+  const toggleEditMode = () => {
+    setIsEditMode(!isEditMode);
+    setEditingQuestion(false);
+    setEditingOption(null);
+  };
+
   const getOptionPercentage = (votes: number) => {
     if (safeTotalVotes === 0) return 0;
     return Math.round((votes / safeTotalVotes) * 100);
   };
 
   const hasVoted = userVotes.size > 0;
-  const selectionIndicatorProps = getSelectionIndicatorProps('pollBlock');
 
   // Dynamic styles with unified border styling
   const dynamicStyles = {
@@ -157,86 +221,82 @@ export const PollBlockNode = React.memo(function PollBlockNode({
     transition: 'all 0.2s ease-in-out',
   } as React.CSSProperties;
 
-  // Get theme-aware colors with fallbacks
-  const getThemeColors = () => {
-    if (!themedColors) {
-      return {
-        background: isDarkMode ? '#1f2937' : '#ffffff',
-        border: isDarkMode ? '#374151' : '#e5e7eb',
-        text: isDarkMode ? '#f3f4f6' : '#111827',
-        optionBackground: themedStyles.optionBackground || (isDarkMode ? '#374151' : '#f9fafb'),
-        resultBarColor: themedStyles.resultBarColor || (isDarkMode ? '#3b82f6' : '#60a5fa'),
-      };
-    }
-
-    return {
-      background: themedStyles.backgroundColor || themedColors.neutral['50'],
-      border: themedColors.neutral['200'],
-      text: themedColors.neutral['900'],
-      optionBackground: themedStyles.optionBackground || themedColors.neutral['100'],
-      resultBarColor: themedStyles.resultBarColor || themedColors.primary['500'],
-    };
-  };
-
-  const colors = getThemeColors();
+  // Poll colors from CSS custom properties
 
   return (
     <>
-      <UnifiedNodeResizer
-        isVisible={selected}
-        nodeType="pollBlock"
-        customConstraints={{
-          minWidth: 320,
-          minHeight: 200,
-          maxWidth: 600,
-          maxHeight: 800,
-        }}
-      />
-
-      <ThemedBlockWrapper
-        blockType="pollBlock"
+      <div
+        data-block-type="pollBlock"
         className={`relative ${selectionClasses}`}
         style={{
           ...dynamicStyles,
-          borderRadius: themedStyles.borderRadius || '8px',
-          padding: themedStyles.padding || '0',
+          borderRadius: '8px',
+          padding: '0',
         }}
       >
         <div data-node-id={id} className="w-full h-full">
-          {/* Unified Selection indicator */}
-          {selected && <div {...selectionIndicatorProps} />}
-
-          <Handle
-            type="target"
-            position={Position.Top}
-            className="!bg-blue-500 !border-blue-600 !w-3 !h-3"
-          />
-
           <Card
             className={cn('w-full h-full transition-all duration-200', selected && 'shadow-lg')}
             style={{
-              backgroundColor: colors.background,
-              borderColor: colors.border,
-              color: colors.text,
+              backgroundColor: pollColors.background,
+              borderColor: pollColors.border,
+              color: pollColors.text,
             }}
           >
             <CardHeader className="pb-4">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-lg font-semibold" style={{ color: colors.text }}>
-                  {safeQuestion}
-                </CardTitle>
-                <Badge variant="outline" className="flex items-center gap-1">
-                  <BarChart3 className="w-3 h-3" />
-                  Poll
-                </Badge>
+                <div className="flex-1 mr-4">
+                  {editingQuestion ? (
+                    <Input
+                      value={safeQuestion}
+                      onChange={e => handleQuestionEdit(e.target.value)}
+                      onBlur={() => setEditingQuestion(false)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter' || e.key === 'Escape') {
+                          setEditingQuestion(false);
+                        }
+                      }}
+                      className="text-lg font-semibold border-0 p-0 bg-transparent"
+                      style={{ color: pollColors.text }}
+                      autoFocus
+                    />
+                  ) : (
+                    <CardTitle
+                      className="text-lg font-semibold cursor-text"
+                      style={{ color: pollColors.text }}
+                      onClick={() => isEditMode && setEditingQuestion(true)}
+                    >
+                      {safeQuestion}
+                    </CardTitle>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="flex items-center gap-1">
+                    <BarChart3 className="w-3 h-3" />
+                    Poll
+                  </Badge>
+                  {selected && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={toggleEditMode}
+                      className="h-7 px-2"
+                      title={isEditMode ? 'Exit edit mode' : 'Edit poll'}
+                    >
+                      {isEditMode ? (
+                        <Settings className="w-3 h-3" />
+                      ) : (
+                        <Edit2 className="w-3 h-3" />
+                      )}
+                    </Button>
+                  )}
+                </div>
               </div>
 
               {safeTotalVotes > 0 && (
                 <div
-                  className={cn(
-                    'flex items-center gap-2 text-sm',
-                    isDarkMode ? 'text-gray-400' : 'text-gray-600'
-                  )}
+                  className="flex items-center gap-2 text-sm"
+                  style={{ color: colors.block.textSecondary }}
                 >
                   <Users className="w-4 h-4" />
                   <span>
@@ -252,30 +312,96 @@ export const PollBlockNode = React.memo(function PollBlockNode({
             </CardHeader>
 
             <CardContent className="space-y-3">
-              {safeOptions.map(option => {
+              {/* Add Option Button (in edit mode) */}
+              {isEditMode && selected && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={addOption}
+                  className="w-full h-10 border-dashed"
+                  title="Add new option"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Option
+                </Button>
+              )}
+
+              {safeOptions.map((option, index) => {
                 const percentage = getOptionPercentage(option.votes);
                 const isSelected = userVotes.has(option.id);
                 const showResults = safeShowResults && hasVoted;
+                const isEditingThisOption = editingOption === option.id;
 
                 return (
                   <div
                     key={option.id}
                     className={cn(
-                      'relative p-3 rounded-lg border transition-all duration-200 cursor-pointer',
-                      showResults ? 'cursor-default' : 'hover:border-blue-300 active:scale-[0.98]',
+                      'relative p-3 rounded-lg border transition-all duration-200 group',
+                      showResults || isEditMode
+                        ? 'cursor-default'
+                        : 'cursor-pointer hover:border-blue-300 active:scale-[0.98]',
                       isVoting && 'pointer-events-none opacity-50'
                     )}
                     style={{
                       backgroundColor:
-                        isSelected && !showResults
-                          ? colors.resultBarColor + '20' // 20% opacity for selected
-                          : colors.optionBackground,
+                        isSelected && !showResults && !isEditMode
+                          ? pollColors.resultBarSelected + '20' // 20% opacity for selected
+                          : pollColors.optionBackground,
                       borderColor:
-                        isSelected && !showResults ? colors.resultBarColor : colors.border,
-                      borderRadius: themedStyles.borderRadius || '8px',
+                        isSelected && !showResults && !isEditMode
+                          ? pollColors.resultBarSelected
+                          : pollColors.border,
+                      borderRadius: '8px',
                     }}
-                    onClick={() => !showResults && handleVote(option.id)}
+                    onClick={() => !showResults && !isEditMode && handleVote(option.id)}
                   >
+                    {/* Option Controls (edit mode) */}
+                    {isEditMode && selected && (
+                      <div className="absolute -right-10 top-1/2 transform -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="flex flex-col gap-1 bg-white dark:bg-gray-800 border rounded p-1 shadow-lg">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={e => {
+                              e.stopPropagation();
+                              moveOption(option.id, 'up');
+                            }}
+                            disabled={index === 0}
+                            className="h-6 w-6 p-0"
+                            title="Move up"
+                          >
+                            <ChevronUp size={12} />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={e => {
+                              e.stopPropagation();
+                              removeOption(option.id);
+                            }}
+                            disabled={safeOptions.length <= 1}
+                            className="h-6 w-6 p-0 text-red-500"
+                            title="Remove option"
+                          >
+                            <Minus size={12} />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={e => {
+                              e.stopPropagation();
+                              moveOption(option.id, 'down');
+                            }}
+                            disabled={index === safeOptions.length - 1}
+                            className="h-6 w-6 p-0"
+                            title="Move down"
+                          >
+                            <ChevronDown size={12} />
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Results background bar */}
                     {showResults && percentage > 0 && (
                       <div
@@ -283,9 +409,9 @@ export const PollBlockNode = React.memo(function PollBlockNode({
                         style={{
                           width: `${percentage}%`,
                           backgroundColor: isSelected
-                            ? colors.resultBarColor + '30' // 30% opacity for selected
-                            : colors.resultBarColor + '20', // 20% opacity for unselected
-                          borderRadius: themedStyles.borderRadius || '8px',
+                            ? pollColors.resultBar + '30' // 30% opacity for selected
+                            : pollColors.resultBar + '20', // 20% opacity for unselected
+                          borderRadius: '8px',
                         }}
                       />
                     )}
@@ -296,44 +422,57 @@ export const PollBlockNode = React.memo(function PollBlockNode({
                         <div className={cn('flex-shrink-0', showResults ? 'opacity-60' : '')}>
                           {isSelected ? (
                             <CheckCircle2
-                              className={cn(
-                                'w-5 h-5',
-                                isDarkMode ? 'text-blue-400' : 'text-blue-600'
-                              )}
+                              className="w-5 h-5"
+                              style={{ color: pollColors.resultBarSelected }}
                             />
                           ) : (
                             <Circle
-                              className={cn(
-                                'w-5 h-5',
-                                isDarkMode ? 'text-gray-500' : 'text-gray-400'
-                              )}
+                              className="w-5 h-5"
+                              style={{ color: colors.block.textSecondary }}
                             />
                           )}
                         </div>
 
                         {/* Option text */}
-                        <span className="font-medium" style={{ color: colors.text }}>
-                          {option.text}
-                        </span>
+                        <div className="flex-1">
+                          {isEditingThisOption ? (
+                            <Input
+                              value={option.text}
+                              onChange={e => handleOptionEdit(option.id, e.target.value)}
+                              onBlur={() => setEditingOption(null)}
+                              onKeyDown={e => {
+                                if (e.key === 'Enter' || e.key === 'Escape') {
+                                  setEditingOption(null);
+                                }
+                              }}
+                              className="font-medium border-0 p-0 bg-transparent"
+                              style={{ color: pollColors.text }}
+                              autoFocus
+                            />
+                          ) : (
+                            <span
+                              className={cn('font-medium', isEditMode && 'cursor-text')}
+                              style={{ color: pollColors.text }}
+                              onClick={e => {
+                                if (isEditMode) {
+                                  e.stopPropagation();
+                                  setEditingOption(option.id);
+                                }
+                              }}
+                            >
+                              {option.text}
+                            </span>
+                          )}
+                        </div>
                       </div>
 
                       {/* Results display */}
                       {showResults && (
                         <div className="flex items-center gap-2 text-sm">
-                          <span
-                            className={cn(
-                              'font-semibold',
-                              isDarkMode ? 'text-gray-300' : 'text-gray-600'
-                            )}
-                          >
+                          <span className="font-semibold" style={{ color: pollColors.text }}>
                             {option.votes}
                           </span>
-                          <span
-                            className={cn(
-                              'text-xs',
-                              isDarkMode ? 'text-gray-400' : 'text-gray-500'
-                            )}
-                          >
+                          <span className="text-xs" style={{ color: colors.block.textSecondary }}>
                             ({percentage}%)
                           </span>
                         </div>
@@ -355,24 +494,38 @@ export const PollBlockNode = React.memo(function PollBlockNode({
               {/* Empty state */}
               {safeOptions.length === 0 && (
                 <div
-                  className={cn(
-                    'text-center py-8 text-sm',
-                    isDarkMode ? 'text-gray-400' : 'text-gray-500'
-                  )}
+                  className="text-center py-8 text-sm"
+                  style={{ color: colors.block.textSecondary }}
                 >
-                  No poll options yet. Use the inspector to add options.
+                  {isEditMode && selected ? (
+                    <div className="space-y-4">
+                      <div className="text-center">
+                        <BarChart3 className="mx-auto mb-2 w-8 h-8 text-blue-500" />
+                        <p className="font-medium text-blue-600 dark:text-blue-400">
+                          Add Poll Options
+                        </p>
+                        <p className="text-xs">
+                          Click "Add Option" to create choices for your poll
+                        </p>
+                      </div>
+                      <Button
+                        size="sm"
+                        onClick={addOption}
+                        className="bg-blue-600 hover:bg-blue-700 text-white"
+                      >
+                        <Plus className="w-4 h-4 mr-2" />
+                        Add First Option
+                      </Button>
+                    </div>
+                  ) : (
+                    'No poll options yet. Use the edit button to add options.'
+                  )}
                 </div>
               )}
             </CardContent>
           </Card>
-
-          <Handle
-            type="source"
-            position={Position.Bottom}
-            className="!bg-blue-500 !border-blue-600 !w-3 !h-3"
-          />
         </div>
-      </ThemedBlockWrapper>
+      </div>
     </>
   );
 });

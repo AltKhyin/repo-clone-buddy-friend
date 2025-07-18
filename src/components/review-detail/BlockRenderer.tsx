@@ -1,9 +1,7 @@
-
 // ABOUTME: Enhanced controller component that selects the correct block component based on node type with improved performance and accessibility per Blueprint 05.
 
 import React from 'react';
 import TextBlock from './blocks/TextBlock';
-import HeadingBlock from './blocks/HeadingBlock';
 import ImageBlock from './blocks/ImageBlock';
 
 interface LayoutObject {
@@ -26,18 +24,18 @@ interface BlockRendererProps {
   index?: number;
 }
 
-const BlockRenderer: React.FC<BlockRendererProps> = ({ 
-  node, 
-  layout, 
+const BlockRenderer: React.FC<BlockRendererProps> = ({
+  node,
+  layout,
   isVerticalFlow = false,
-  index = 0 
+  index = 0,
 }) => {
-  console.log('BlockRenderer:', { 
-    nodeType: node.type, 
-    nodeId: node.id, 
+  console.log('BlockRenderer:', {
+    nodeType: node.type,
+    nodeId: node.id,
     hasLayout: !!layout,
     isVerticalFlow,
-    index 
+    index,
   });
 
   // Performance optimization: Memoize block component selection
@@ -50,17 +48,21 @@ const BlockRenderer: React.FC<BlockRendererProps> = ({
       case 'h4':
       case 'h5':
       case 'h6':
-        return <HeadingBlock data={node.data} />;
-      
+        // Convert heading nodes to unified text block with headingLevel
+        const headingLevel =
+          node.type === 'heading' ? node.data.level : parseInt(node.type.replace('h', ''));
+        return <TextBlock data={{ ...node.data, headingLevel }} />;
+
       case 'text':
       case 'paragraph':
       case 'p':
+      case 'textBlock':
         return <TextBlock data={node.data} />;
-      
+
       case 'image':
       case 'img':
         return <ImageBlock data={node.data} />;
-      
+
       default:
         console.warn(`Unknown block type: ${node.type}`);
         return (
@@ -72,9 +74,7 @@ const BlockRenderer: React.FC<BlockRendererProps> = ({
               </p>
             </div>
             <p className="text-xs text-muted-foreground mb-2">
-              <code className="bg-muted px-1.5 py-0.5 rounded text-xs font-mono">
-                {node.type}
-              </code>
+              <code className="bg-muted px-1.5 py-0.5 rounded text-xs font-mono">{node.type}</code>
             </p>
             {process.env.NODE_ENV === 'development' && node.data && (
               <details className="mt-2">
@@ -98,15 +98,11 @@ const BlockRenderer: React.FC<BlockRendererProps> = ({
     'data-block-index': index,
     className: `block-wrapper ${isVerticalFlow ? 'vertical-flow' : 'grid-flow'}`,
     ...(isVerticalFlow && {
-      'aria-label': `Content block ${index + 1}: ${node.type}`
-    })
+      'aria-label': `Content block ${index + 1}: ${node.type}`,
+    }),
   };
 
-  return (
-    <div {...wrapperProps}>
-      {renderBlockContent}
-    </div>
-  );
+  return <div {...wrapperProps}>{renderBlockContent}</div>;
 };
 
 export default BlockRenderer;
