@@ -33,6 +33,14 @@ import { BackgroundControls } from './Inspector/shared/BackgroundControls';
 import { SpacingControls } from './Inspector/shared/SpacingControls';
 import { BorderControls } from './Inspector/shared/BorderControls';
 import { TextBlockInspector } from './Inspector/TextBlockInspector';
+import { TableBlockInspector } from './Inspector/TableBlockInspector';
+import { QuoteBlockInspector } from './Inspector/QuoteBlockInspector';
+import { VideoEmbedBlockInspector } from './Inspector/VideoEmbedBlockInspector';
+import { SeparatorBlockInspector } from './Inspector/SeparatorBlockInspector';
+import { ImageBlockInspector } from './Inspector/ImageBlockInspector';
+import { PollBlockInspector } from './Inspector/PollBlockInspector';
+import { KeyTakeawayBlockInspector } from './Inspector/KeyTakeawayBlockInspector';
+import { ReferenceBlockInspector } from './Inspector/ReferenceBlockInspector';
 
 // Tab value constants for type safety and consistency
 const TAB_VALUES = {
@@ -238,7 +246,10 @@ export function EditorSidebar({ className }: EditorSidebarProps) {
   );
 
   return (
-    <div className={cn('bg-muted/30 flex flex-col h-full', className)}>
+    <div
+      className={cn('bg-muted/30 flex flex-col h-full editor-sidebar', className)}
+      data-inspector="true"
+    >
       <Tabs value={activeTab} onValueChange={handleTabChange} className="flex flex-col h-full">
         {/* Tab Navigation */}
         <div className="border-b px-4 py-3">
@@ -303,13 +314,55 @@ export function EditorSidebar({ className }: EditorSidebarProps) {
                 <>
                   {/* Properties Content */}
                   <div className="flex-1 overflow-y-auto p-4">
-                    {/* TextBlock Specific - Use dedicated TextBlockInspector */}
+                    {/* Block-Specific Inspectors */}
                     {selectedNode.type === 'textBlock' && (
                       <TextBlockInspector nodeId={selectedNode.id} />
                     )}
 
-                    {/* Placeholder for other block types */}
-                    {selectedNode.type !== 'textBlock' && (
+                    {selectedNode.type === 'tableBlock' && (
+                      <TableBlockInspector nodeId={selectedNode.id} />
+                    )}
+
+                    {selectedNode.type === 'quoteBlock' && (
+                      <QuoteBlockInspector nodeId={selectedNode.id} />
+                    )}
+
+                    {selectedNode.type === 'videoEmbedBlock' && (
+                      <VideoEmbedBlockInspector nodeId={selectedNode.id} />
+                    )}
+
+                    {selectedNode.type === 'separatorBlock' && (
+                      <SeparatorBlockInspector nodeId={selectedNode.id} />
+                    )}
+
+                    {selectedNode.type === 'imageBlock' && (
+                      <ImageBlockInspector nodeId={selectedNode.id} />
+                    )}
+
+                    {selectedNode.type === 'pollBlock' && (
+                      <PollBlockInspector nodeId={selectedNode.id} />
+                    )}
+
+                    {selectedNode.type === 'keyTakeawayBlock' && (
+                      <KeyTakeawayBlockInspector nodeId={selectedNode.id} />
+                    )}
+
+                    {selectedNode.type === 'referenceBlock' && (
+                      <ReferenceBlockInspector nodeId={selectedNode.id} />
+                    )}
+
+                    {/* Fallback for block types without dedicated inspectors */}
+                    {![
+                      'textBlock',
+                      'tableBlock',
+                      'quoteBlock',
+                      'videoEmbedBlock',
+                      'separatorBlock',
+                      'imageBlock',
+                      'pollBlock',
+                      'keyTakeawayBlock',
+                      'referenceBlock',
+                    ].includes(selectedNode.type) && (
                       <div className="space-y-6">
                         {/* Colors Section */}
                         <div className="space-y-3">
@@ -341,13 +394,12 @@ export function EditorSidebar({ className }: EditorSidebarProps) {
                             compact={true}
                             className="space-y-3"
                             enablePresets={true}
-                            enableMargins={false}
                             enableBorders={false}
                             showDetailedControls={false}
                           />
                         </div>
 
-                        {/* Block-Specific Settings */}
+                        {/* Block-Specific Settings Placeholder */}
                         <div className="space-y-3">
                           <div className="flex items-center gap-2">
                             <Settings2 size={14} className="text-muted-foreground" />
@@ -359,7 +411,7 @@ export function EditorSidebar({ className }: EditorSidebarProps) {
                               {selectedNode.type
                                 .replace(/([A-Z])/g, ' $1')
                                 .replace(/^./, str => str.toUpperCase())}{' '}
-                              settings will be added here
+                              inspector coming soon
                             </div>
                           </div>
                         </div>

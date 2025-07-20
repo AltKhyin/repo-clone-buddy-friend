@@ -53,6 +53,7 @@ export function ReferenceBlockNode({ id, data, selected }: ReferenceBlockNodePro
     <>
       <div
         data-block-type="referenceBlock"
+        data-block-id={id}
         data-node-id={id}
         onClick={handleClick}
         className={cn(

@@ -107,6 +107,9 @@ vi.mock('lucide-react', () => ({
   AlignCenter: () => <div data-testid="align-center-icon" />,
   AlignRight: () => <div data-testid="align-right-icon" />,
   AlignJustify: () => <div data-testid="align-justify-icon" />,
+  ArrowLeftRight: () => <div data-testid="arrow-left-right-icon" />,
+  ArrowUpDown: () => <div data-testid="arrow-up-down-icon" />,
+  Square: () => <div data-testid="square-icon" />,
 }));
 
 const mockEditorStore = {

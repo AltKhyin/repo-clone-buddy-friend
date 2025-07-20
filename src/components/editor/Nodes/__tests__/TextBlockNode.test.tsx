@@ -366,7 +366,7 @@ describe('TextBlockNode - Unified Text/Heading Component', () => {
       expect(editorContent).toHaveClass('focus:outline-none');
       expect(editorContent).not.toHaveClass('prose'); // prose classes removed to fix heading spacing
 
-      // Should have margin reset classes
+      // Should have spacing reset classes
       expect(editorContent).toHaveClass('[&>*]:my-0');
       expect(editorContent).toHaveClass('[&_p]:my-0');
       expect(editorContent).toHaveClass('[&_h1]:my-0');

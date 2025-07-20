@@ -4,7 +4,6 @@ import React from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
   SelectContent,
@@ -16,7 +15,7 @@ import { Separator } from '@/components/ui/separator';
 import { useEditorStore } from '@/store/editorStore';
 import { SafeSwitch } from '../SafeSwitch';
 import { SpacingControls, BorderControls, BackgroundControls } from './shared/UnifiedControls';
-import { Video, Palette, ExternalLink, Play, Youtube, Share } from 'lucide-react';
+import { Video, ExternalLink, Play, Youtube, Share } from 'lucide-react';
 
 interface VideoEmbedBlockInspectorProps {
   nodeId: string;
@@ -147,10 +146,18 @@ export const VideoEmbedBlockInspector: React.FC<VideoEmbedBlockInspectorProps> =
               type="url"
               value={data.url || ''}
               onChange={e => handleUrlChange(e.target.value)}
+              onPaste={e => {
+                // Ensure paste events are properly handled
+                const pastedData = e.clipboardData.getData('text');
+                if (pastedData) {
+                  e.preventDefault();
+                  handleUrlChange(pastedData);
+                }
+              }}
               placeholder={
                 data.platform === 'youtube'
-                  ? 'https://www.youtube.com/watch?v=...'
-                  : 'https://vimeo.com/...'
+                  ? 'https://www.youtube.com/watch?v=... (paste supported)'
+                  : 'https://vimeo.com/... (paste supported)'
               }
               className={`flex-1 h-8 text-xs ${!isValidUrl ? 'border-red-400' : ''}`}
             />
@@ -193,20 +200,6 @@ export const VideoEmbedBlockInspector: React.FC<VideoEmbedBlockInspectorProps> =
             <p>Video ID: {videoId}</p>
           </div>
         )}
-
-        {/* Caption */}
-        <div className="space-y-2">
-          <Label htmlFor="video-caption" className="text-xs">
-            Caption (Optional)
-          </Label>
-          <Textarea
-            id="video-caption"
-            value={data.caption || ''}
-            onChange={e => updateNodeData({ caption: e.target.value })}
-            placeholder="Optional caption displayed below the video..."
-            className="text-xs min-h-[60px]"
-          />
-        </div>
       </div>
 
       <Separator />

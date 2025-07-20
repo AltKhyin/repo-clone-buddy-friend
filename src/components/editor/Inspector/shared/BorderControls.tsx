@@ -21,22 +21,18 @@ interface BorderControlsProps {
   onChange: (updates: Record<string, any>) => void;
   enableToggle?: boolean;
   enableStyle?: boolean;
-  enableRadius?: boolean;
   compact?: boolean;
   className?: string;
   // Control individual border properties
   widthKey?: string;
   colorKey?: string;
-  radiusKey?: string;
   styleKey?: string;
   // Default values
   defaultWidth?: number;
   defaultColor?: string;
-  defaultRadius?: number;
   defaultStyle?: string;
   // Constraints
   maxWidth?: number;
-  maxRadius?: number;
 }
 
 const BORDER_STYLES = [
@@ -51,23 +47,18 @@ export function BorderControls({
   onChange,
   enableToggle = true,
   enableStyle = false,
-  enableRadius = true,
   compact = false,
   className,
   widthKey = 'borderWidth',
   colorKey = 'borderColor',
-  radiusKey = 'borderRadius',
   styleKey = 'borderStyle',
   defaultWidth = 1,
   defaultColor = '#e5e7eb',
-  defaultRadius = 0,
   defaultStyle = 'solid',
   maxWidth = 8,
-  maxRadius = 32,
 }: BorderControlsProps) {
   const borderWidth = data[widthKey] || 0;
   const borderColor = data[colorKey] || defaultColor;
-  const borderRadius = data[radiusKey] || defaultRadius;
   const borderStyle = data[styleKey] || defaultStyle;
   const hasBorder = borderWidth > 0;
 
@@ -84,10 +75,6 @@ export function BorderControls({
 
   const handleColorChange = (color: string) => {
     onChange({ [colorKey]: color });
-  };
-
-  const handleRadiusChange = (radius: number) => {
-    onChange({ [radiusKey]: radius });
   };
 
   const handleStyleChange = (style: string) => {
@@ -235,60 +222,6 @@ export function BorderControls({
               </Select>
             </div>
           )}
-
-          {/* Border Radius */}
-          {enableRadius && (
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label className={cn('font-medium', compact ? 'text-xs' : 'text-sm')}>
-                  Corner Radius
-                </Label>
-                <div className="flex items-center gap-1">
-                  <Input
-                    type="number"
-                    value={borderRadius}
-                    onChange={e => handleRadiusChange(Number(e.target.value))}
-                    min={0}
-                    max={maxRadius}
-                    className={cn(
-                      'w-16 text-right font-mono',
-                      compact ? 'h-6 text-xs' : 'h-8 text-sm'
-                    )}
-                  />
-                  <span className="text-xs text-muted-foreground w-6">px</span>
-                </div>
-              </div>
-
-              {/* Radius Slider */}
-              <div className="px-2">
-                <Slider
-                  value={[borderRadius]}
-                  onValueChange={([value]) => handleRadiusChange(value)}
-                  min={0}
-                  max={maxRadius}
-                  step={1}
-                  className="w-full"
-                />
-              </div>
-
-              {/* Quick radius buttons */}
-              <div className="flex gap-1">
-                {[0, 4, 8, 12, 16, 24]
-                  .filter(val => val <= maxRadius)
-                  .map(radius => (
-                    <Button
-                      key={radius}
-                      variant={borderRadius === radius ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => handleRadiusChange(radius)}
-                      className={cn('flex-1 text-xs', compact ? 'h-6 px-1' : 'h-7 px-2')}
-                    >
-                      {radius}px
-                    </Button>
-                  ))}
-              </div>
-            </div>
-          )}
         </div>
       )}
 
@@ -304,7 +237,6 @@ export function BorderControls({
               borderWidth: `${borderWidth}px`,
               borderColor: borderColor,
               borderStyle: borderStyle,
-              borderRadius: `${borderRadius}px`,
             }}
           >
             <div className="text-xs text-muted-foreground font-medium">

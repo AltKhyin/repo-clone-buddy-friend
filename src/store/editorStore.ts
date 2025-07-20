@@ -11,6 +11,7 @@ import {
   StructuredContentV3,
   StructuredContentV2,
   StructuredContent,
+  TextSelectionInfo,
   generateNodeId,
   getDefaultDataForBlockType,
   validateStructuredContent,
@@ -29,20 +30,48 @@ const initialWYSIWYGCanvas: WYSIWYGCanvas = {
 // Initial positions (empty for new documents)
 const initialPositions: BlockPositions = {};
 
-// Utility: Find available position for new blocks to avoid overlaps
-const findAvailablePosition = (existingPositions: BlockPositions): BlockPosition => {
-  const defaultWidth = 800; // Full canvas width for better content display
-  const defaultHeight = 120;
+// Enhanced utility: Find available position with content-aware sizing for different block types
+const findAvailablePosition = (
+  existingPositions: BlockPositions,
+  blockType?: string
+): BlockPosition => {
+  // Content-aware default dimensions based on block type
+  const getDefaultDimensions = (type?: string) => {
+    switch (type) {
+      case 'textBlock':
+        return { width: 400, height: 120 };
+      case 'imageBlock':
+        return { width: 400, height: 300 };
+      case 'quoteBlock':
+        return { width: 400, height: 150 };
+      case 'keyTakeawayBlock':
+        return { width: 400, height: 150 };
+      case 'videoEmbedBlock':
+        return { width: 560, height: 315 }; // 16:9 aspect ratio
+      case 'tableBlock':
+        return { width: 600, height: 200 };
+      case 'pollBlock':
+        return { width: 400, height: 250 };
+      case 'referenceBlock':
+        return { width: 400, height: 180 };
+      case 'separatorBlock':
+        return { width: 400, height: 40 };
+      default:
+        return { width: 400, height: 120 }; // Default fallback
+    }
+  };
+
+  const { width: defaultWidth, height: defaultHeight } = getDefaultDimensions(blockType);
   let y = 50; // Start 50px from top
 
-  // Find first available Y position
+  // Find first available Y position with content-aware spacing
   while (true) {
     const hasOverlap = Object.values(existingPositions).some(
       pos =>
         y < pos.y + pos.height &&
         y + defaultHeight > pos.y &&
-        0 < pos.x + pos.width &&
-        0 + defaultWidth > pos.x
+        50 < pos.x + pos.width && // Start at x=50 for better visual hierarchy
+        50 + defaultWidth > pos.x
     );
 
     if (!hasOverlap) break;
@@ -51,7 +80,7 @@ const findAvailablePosition = (existingPositions: BlockPositions): BlockPosition
 
   return {
     id: '', // Will be set by caller
-    x: 0, // Start at canvas edge for full-width blocks
+    x: 50, // Content-aware left margin
     y,
     width: defaultWidth,
     height: defaultHeight,
@@ -155,6 +184,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
 
     // Editor State
     selectedNodeId: null,
+    textSelection: null, // Text selection for unified typography editing
     canvasZoom: 1.0,
     isDirty: false,
     isSaving: false,
@@ -260,12 +290,16 @@ export const useEditorStore = create<EditorState>((set, get) => {
       });
     },
 
-    initializeNodePosition: nodeId => {
+    initializeNodePosition: (nodeId, blockType) => {
       set(state => {
         if (state.positions[nodeId]) return state; // Already has position
 
+        // Find the node to get its type if not provided
+        const node = state.nodes.find(n => n.id === nodeId);
+        const typeToUse = blockType || node?.type;
+
         const existingPositions = Object.values(state.positions);
-        const newPosition = findAvailablePosition(existingPositions);
+        const newPosition = findAvailablePosition(existingPositions, typeToUse);
         newPosition.id = nodeId;
 
         return {
@@ -404,6 +438,10 @@ export const useEditorStore = create<EditorState>((set, get) => {
 
     selectNode: nodeId => {
       set({ selectedNodeId: nodeId });
+    },
+
+    setTextSelection: textSelection => {
+      set({ textSelection });
     },
 
     // ===== VIEWPORT ACTIONS =====

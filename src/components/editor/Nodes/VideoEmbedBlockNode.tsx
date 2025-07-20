@@ -107,6 +107,7 @@ export const VideoEmbedBlockNode: React.FC<VideoEmbedBlockNodeProps> = ({ id, da
     <>
       <div
         data-block-type="videoEmbedBlock"
+        data-block-id={id}
         className={`relative cursor-pointer ${selectionClasses}`}
         style={{
           ...dynamicStyles,
@@ -164,16 +165,6 @@ export const VideoEmbedBlockNode: React.FC<VideoEmbedBlockNodeProps> = ({ id, da
               >
                 <ExternalLink size={14} />
               </button>
-
-              {/* Caption */}
-              {data.caption && (
-                <p
-                  className="mt-3 text-sm text-center"
-                  style={{ color: colors.block.textSecondary }}
-                >
-                  {data.caption}
-                </p>
-              )}
             </>
           ) : (
             /* Empty State */
@@ -224,9 +215,7 @@ export const VideoEmbedBlockNode: React.FC<VideoEmbedBlockNodeProps> = ({ id, da
         </div>
 
         {/* Accessibility Label for Screen Readers */}
-        <span className="sr-only">
-          Video embed: {data.platform} video{data.caption ? ` - ${data.caption}` : ''}
-        </span>
+        <span className="sr-only">Video embed: {data.platform} video</span>
       </div>
     </>
   );

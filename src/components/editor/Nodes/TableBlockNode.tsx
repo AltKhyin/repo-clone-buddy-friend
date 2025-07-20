@@ -244,6 +244,7 @@ export const TableBlockNode: React.FC<TableBlockNodeProps> = ({ id, data, select
     <>
       <div
         data-block-type="tableBlock"
+        data-block-id={id}
         className={`relative cursor-pointer ${selectionClasses}`}
         style={{
           ...dynamicStyles,
@@ -302,9 +303,9 @@ export const TableBlockNode: React.FC<TableBlockNodeProps> = ({ id, data, select
                           }}
                           onClick={() => data.sortable && sortTable(colIndex)}
                         >
-                          {/* Column Controls (show on hover) */}
+                          {/* Column Controls (always visible when selected) */}
                           {selected && (
-                            <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 transition-all">
                               <div className="flex items-center gap-1 bg-white dark:bg-gray-800 border rounded p-1 shadow-lg z-40">
                                 <Button
                                   size="sm"
@@ -327,8 +328,8 @@ export const TableBlockNode: React.FC<TableBlockNodeProps> = ({ id, data, select
                                     removeColumn(colIndex);
                                   }}
                                   disabled={data.headers.length <= 1}
-                                  className="h-6 w-6 p-0 text-red-500"
-                                  title="Remove column"
+                                  className="h-6 w-6 p-0 text-red-500 hover:bg-red-50 hover:text-red-600"
+                                  title="Delete column"
                                 >
                                   <Minus size={12} />
                                 </Button>
@@ -396,9 +397,9 @@ export const TableBlockNode: React.FC<TableBlockNodeProps> = ({ id, data, select
                               color: tableColors.cellText,
                             }}
                           >
-                            {/* Row Controls (show on first column hover) */}
+                            {/* Row Controls (always visible when selected) */}
                             {selected && colIndex === 0 && (
-                              <div className="absolute -left-8 top-1/2 transform -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <div className="absolute -left-8 top-1/2 transform -translate-y-1/2 transition-all">
                                 <div className="flex flex-col gap-1 bg-white dark:bg-gray-800 border rounded p-1 shadow-lg z-40">
                                   <Button
                                     size="sm"
@@ -415,8 +416,8 @@ export const TableBlockNode: React.FC<TableBlockNodeProps> = ({ id, data, select
                                     variant="ghost"
                                     onClick={() => removeRow(rowIndex)}
                                     disabled={data.rows.length <= 1}
-                                    className="h-6 w-6 p-0 text-red-500"
-                                    title="Remove row"
+                                    className="h-6 w-6 p-0 text-red-500 hover:bg-red-50 hover:text-red-600"
+                                    title="Delete row"
                                   >
                                     <Minus size={12} />
                                   </Button>

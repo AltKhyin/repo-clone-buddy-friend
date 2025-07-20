@@ -4,17 +4,11 @@ import React from 'react';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Card, CardContent } from '@/components/ui/card';
 import { useEditorStore } from '@/store/editorStore';
-import { Quote, User, Palette, Type, Move, Sparkles } from 'lucide-react';
+import { Quote, User, Palette, Sparkles, Type } from 'lucide-react';
 import { QuoteBlockData } from '@/types/editor';
 import { SpacingControls } from '@/components/editor/Inspector/shared/SpacingControls';
 
@@ -35,12 +29,6 @@ export const QuoteBlockInspector: React.FC<QuoteBlockInspectorProps> = ({ nodeId
       data: { ...data, ...updates },
     });
   };
-
-  // Quote style options
-  const quoteStyles = [
-    { value: 'default', label: 'Default Quote', description: 'Standard quote style' },
-    { value: 'large-quote', label: 'Large Quote', description: 'Emphasized large text style' },
-  ];
 
   // Predefined border colors
   const borderColors = [
@@ -102,6 +90,23 @@ export const QuoteBlockInspector: React.FC<QuoteBlockInspectorProps> = ({ nodeId
             Attribution for the quote (e.g., "— Steve Jobs, Stanford Commencement 2005")
           </p>
         </div>
+
+        {/* Author Image */}
+        <div className="space-y-2">
+          <Label htmlFor="quote-author-image" className="text-xs">
+            Author Image (Optional)
+          </Label>
+          <Input
+            id="quote-author-image"
+            value={data.authorImage || ''}
+            onChange={e => updateQuoteData({ authorImage: e.target.value })}
+            placeholder="Enter image URL or leave empty for default"
+            className="h-8 text-xs"
+          />
+          <p className="text-xs text-muted-foreground">
+            URL to author's image. If empty, uses block creator's profile image.
+          </p>
+        </div>
       </div>
 
       <Separator />
@@ -113,27 +118,42 @@ export const QuoteBlockInspector: React.FC<QuoteBlockInspectorProps> = ({ nodeId
           Quote Style
         </h4>
 
-        {/* Quote Style Selection */}
+        {/* Quote Style Info */}
         <div className="space-y-2">
-          <Label className="text-xs">Quote Style</Label>
-          <Select
-            value={data.style || 'default'}
-            onValueChange={(value: 'default' | 'large-quote') => updateQuoteData({ style: value })}
-          >
-            <SelectTrigger className="h-8">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {quoteStyles.map(style => (
-                <SelectItem key={style.value} value={style.value}>
-                  <div className="flex flex-col">
-                    <span className="font-medium">{style.label}</span>
-                    <span className="text-xs text-muted-foreground">{style.description}</span>
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="p-3 bg-muted/50 rounded-lg">
+            <p className="text-xs text-muted-foreground">
+              Quote blocks now use a unified design optimized for readability and visual
+              consistency.
+            </p>
+          </div>
+        </div>
+
+        {/* Background Color */}
+        <div className="space-y-2">
+          <Label className="text-xs">Background Color</Label>
+          <div className="flex items-center gap-2 mt-2">
+            <Input
+              type="color"
+              value={data.backgroundColor || '#ffffff'}
+              onChange={e => updateQuoteData({ backgroundColor: e.target.value })}
+              className="w-12 h-8 p-1 border rounded"
+            />
+            <Input
+              type="text"
+              value={data.backgroundColor || 'transparent'}
+              onChange={e => updateQuoteData({ backgroundColor: e.target.value })}
+              placeholder="transparent"
+              className="flex-1 h-8 text-xs"
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => updateQuoteData({ backgroundColor: 'transparent' })}
+              className="px-2 h-8 text-xs"
+            >
+              Clear
+            </Button>
+          </div>
         </div>
 
         {/* Border Color */}
@@ -189,14 +209,10 @@ export const QuoteBlockInspector: React.FC<QuoteBlockInspectorProps> = ({ nodeId
               className="border-l-4 pl-4"
               style={{
                 borderLeftColor: data.borderColor || '#3b82f6',
-                borderLeftWidth: data.style === 'large-quote' ? '6px' : '4px',
+                borderLeftWidth: '4px',
               }}
             >
-              <blockquote
-                className={`${
-                  data.style === 'large-quote' ? 'text-lg font-medium italic' : 'text-sm'
-                } mb-2`}
-              >
+              <blockquote className="text-sm mb-2">
                 {data.content || 'Enter your quote text to see preview...'}
               </blockquote>
               {data.citation && (
@@ -216,25 +232,9 @@ export const QuoteBlockInspector: React.FC<QuoteBlockInspectorProps> = ({ nodeId
         data={data}
         onChange={updateQuoteData}
         compact={true}
-        enableMargins={true}
         enableBorders={true}
         enablePresets={true}
       />
-
-      {/* Usage Tips */}
-      <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-        <div className="flex items-start gap-2">
-          <Quote size={14} className="text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
-          <div>
-            <p className="text-xs font-medium text-blue-800 dark:text-blue-200">Quote Block Tips</p>
-            <ul className="text-xs text-blue-600 dark:text-blue-300 mt-1 space-y-1">
-              <li>• Use quotes to highlight important insights or testimonials</li>
-              <li>• Add citations to provide proper attribution</li>
-              <li>• Choose accent colors that match your content theme</li>
-            </ul>
-          </div>
-        </div>
-      </div>
     </div>
   );
 };

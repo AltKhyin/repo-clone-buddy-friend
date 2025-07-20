@@ -13,6 +13,7 @@ import {
 import { useEditorStore } from '@/store/editorStore';
 import { Type, Hash } from 'lucide-react';
 import { SpacingControls, BorderControls, BackgroundControls } from './shared/UnifiedControls';
+import { CornerRadiusControls } from './shared/CornerRadiusControls';
 
 interface TextBlockInspectorProps {
   nodeId: string;
@@ -137,7 +138,6 @@ export const TextBlockInspector: React.FC<TextBlockInspectorProps> = ({
         data={data}
         onChange={updateNodeData}
         compact={true}
-        enableMargins={false}
         enableBorders={false}
         enablePresets={true}
         showDetailedControls={false}
@@ -151,7 +151,18 @@ export const TextBlockInspector: React.FC<TextBlockInspectorProps> = ({
         onChange={updateNodeData}
         enableToggle={true}
         enableStyle={false}
-        enableRadius={true}
+        compact={true}
+      />
+
+      <Separator />
+
+      {/* Corner Radius Controls */}
+      <CornerRadiusControls
+        data={data}
+        onChange={updateNodeData}
+        radiusKey="borderRadius"
+        defaultRadius={8}
+        maxRadius={32}
         compact={true}
       />
     </div>

@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { RotateCcw, Palette, Minus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SliderControl, ColorControl } from './shared/UnifiedControls';
+import { SpacingControls } from '@/components/editor/Inspector/shared/SpacingControls';
 
 interface SeparatorBlockInspectorProps {
   nodeId: string;
@@ -230,6 +231,17 @@ export function SeparatorBlockInspector({ nodeId }: SeparatorBlockInspectorProps
         allowTransparent={false}
         allowCustom={true}
         compact={false}
+      />
+
+      <Separator />
+
+      {/* Container Spacing Controls */}
+      <SpacingControls
+        data={data}
+        onChange={updateData}
+        compact={true}
+        enableBorders={true}
+        enablePresets={true}
       />
 
       <Separator />

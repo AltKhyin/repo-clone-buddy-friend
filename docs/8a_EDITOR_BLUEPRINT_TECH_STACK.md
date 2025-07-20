@@ -710,7 +710,7 @@ const ReferenceBlockDataSchema = z.object({
 const QuoteBlockDataSchema = z.object({
   content: z.string(),
   citation: z.string().optional(),
-  style: z.enum(['default', 'large-quote']).default('default'),
+  style: z.enum(['default']).default('default'),
 });
 
 const VideoEmbedBlockDataSchema = z.object({

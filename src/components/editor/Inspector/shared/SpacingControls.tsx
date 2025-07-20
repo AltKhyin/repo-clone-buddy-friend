@@ -27,7 +27,7 @@ interface SpacingField {
   max?: number;
   step?: number;
   unit?: string;
-  category?: 'padding' | 'margin' | 'border' | 'other';
+  category?: 'padding' | 'border' | 'other';
 }
 
 interface SpacingControlsProps {
@@ -38,14 +38,12 @@ interface SpacingControlsProps {
   className?: string;
   showDetailedControls?: boolean;
   enablePresets?: boolean;
-  enableMargins?: boolean;
   enableBorders?: boolean;
 }
 
 // Import constants from separate file to avoid Fast Refresh warnings
 import {
   PADDING_FIELDS,
-  MARGIN_FIELDS,
   BORDER_FIELDS,
   DEFAULT_SPACING_FIELDS,
   SPACING_PRESETS,
@@ -59,12 +57,10 @@ export function SpacingControls({
   className,
   showDetailedControls = true,
   enablePresets = true,
-  enableMargins = false,
   enableBorders = true,
 }: SpacingControlsProps) {
   const [isDetailedControlsOpen, setIsDetailedControlsOpen] = useState(false);
   const [linkedPadding, setLinkedPadding] = useState(false);
-  const [linkedMargin, setLinkedMargin] = useState(false);
 
   const handleFieldChange = (fieldKey: string, value: number) => {
     const updates: Record<string, number> = { [fieldKey]: value };
@@ -75,18 +71,12 @@ export function SpacingControls({
       updates.paddingY = value;
     }
 
-    // Handle linked margin
-    if (linkedMargin && ['marginX', 'marginY'].includes(fieldKey)) {
-      updates.marginX = value;
-      updates.marginY = value;
-    }
-
     onChange(updates);
   };
 
   const handlePresetApply = (preset: (typeof SPACING_PRESETS)[0]) => {
-    // Build combined fields list based on options
-    const allFields = [...fields, ...(enableMargins ? MARGIN_FIELDS : [])];
+    // Use current fields only
+    const allFields = fields;
 
     // Only apply values that exist in current fields
     const updates: Record<string, number> = {};
@@ -99,10 +89,9 @@ export function SpacingControls({
   };
 
   // Build the final fields array based on options
-  const finalFields = [...fields, ...(enableMargins ? MARGIN_FIELDS : [])];
+  const finalFields = [...fields];
 
   const paddingFields = finalFields.filter(f => f.category === 'padding');
-  const marginFields = finalFields.filter(f => f.category === 'margin');
   const borderFields = finalFields.filter(f => f.category === 'border');
   const otherFields = finalFields.filter(f => !f.category || f.category === 'other');
 
@@ -230,30 +219,6 @@ export function SpacingControls({
       )}
 
       {/* Margin Controls */}
-      {marginFields.length > 0 && (
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-              Margin
-            </Label>
-            {marginFields.length > 1 && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setLinkedMargin(!linkedMargin)}
-                className={cn('h-6 w-6 p-0', linkedMargin && 'bg-blue-100 text-blue-600')}
-              >
-                {linkedMargin ? <Link size={12} /> : <Unlink size={12} />}
-              </Button>
-            )}
-          </div>
-          <div className={cn('space-y-3', compact && 'space-y-2')}>
-            {marginFields.map(field =>
-              renderFieldControl(field, linkedMargin && ['marginX', 'marginY'].includes(field.key))
-            )}
-          </div>
-        </div>
-      )}
 
       {/* Border & Other Controls */}
       {(borderFields.length > 0 || otherFields.length > 0) && (
@@ -287,7 +252,7 @@ export function SpacingControls({
           </CollapsibleTrigger>
           <CollapsibleContent className="space-y-3 pt-2">
             <div className="text-xs text-muted-foreground p-2 bg-muted/30 rounded">
-              Future: Individual padding/margin controls, unit selection (px, rem, %), responsive
+              Future: Individual padding controls, unit selection (px, rem, %), responsive
               breakpoints
             </div>
           </CollapsibleContent>
@@ -301,17 +266,8 @@ export function SpacingControls({
             Preview
           </Label>
           <div className="space-y-2">
-            {/* Container with margin */}
-            <div
-              className="bg-red-100 border border-red-200 rounded"
-              style={{
-                marginLeft: `${data.marginX || 0}px`,
-                marginRight: `${data.marginX || 0}px`,
-                marginTop: `${data.marginY || 0}px`,
-                marginBottom: `${data.marginY || 0}px`,
-                padding: '2px',
-              }}
-            >
+            {/* Container with padding only */}
+            <div className="bg-red-100 border border-red-200 rounded p-0.5">
               {/* Content with padding */}
               <div
                 className="bg-primary/10 border-2 border-dashed border-primary/30 rounded flex items-center justify-center"
@@ -333,10 +289,6 @@ export function SpacingControls({
             </div>
             {/* Legend */}
             <div className="flex gap-4 text-xs">
-              <div className="flex items-center gap-1">
-                <div className="w-3 h-3 bg-red-100 border border-red-200 rounded"></div>
-                <span>Margin</span>
-              </div>
               <div className="flex items-center gap-1">
                 <div className="w-3 h-3 bg-primary/10 border-2 border-dashed border-primary/30 rounded"></div>
                 <span>Padding</span>

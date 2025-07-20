@@ -1,4 +1,4 @@
-// ABOUTME: Inspector component for PollBlock with question editing, option management, and poll settings
+// ABOUTME: Inspector component for PollBlock with question editing, option management, typography controls, and poll settings
 
 import React, { useState } from 'react';
 import { Label } from '@/components/ui/label';
@@ -8,6 +8,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { SafeSwitch } from '@/components/editor/SafeSwitch';
 import { Badge } from '@/components/ui/badge';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   Plus,
   Trash2,
@@ -288,7 +295,6 @@ export function PollBlockInspector({ nodeId }: PollBlockInspectorProps) {
         data={data}
         onChange={updatePollData}
         compact={true}
-        enableMargins={true}
         enableBorders={true}
         enablePresets={true}
       />

@@ -139,11 +139,28 @@ export const DraggableBlock: React.FC<DraggableBlockProps> = ({
       selected: isSelected,
     };
 
+    // Enhanced props for blocks that use UnifiedBlockWrapper
+    const unifiedProps = {
+      ...commonProps,
+      width: position.width,
+      height: position.height,
+      x: position.x,
+      y: position.y,
+      onSelect: () => {
+        onSelect(); // Pass selection callback to unified blocks
+      },
+      onMove: (newPosition: { x: number; y: number }) => {
+        onPositionChange(newPosition); // Pass movement callback to unified blocks
+      },
+    };
+
     switch (node.type) {
       case 'textBlock':
-        return <TextBlockNode {...commonProps} />;
+        // TextBlock now uses UnifiedBlockWrapper - return without DraggableBlock container
+        return <TextBlockNode {...unifiedProps} />;
       case 'imageBlock':
-        return <ImageBlockNode {...commonProps} />;
+        // ImageBlock now uses UnifiedBlockWrapper - return without DraggableBlock container
+        return <ImageBlockNode {...unifiedProps} />;
       case 'videoEmbedBlock':
         return <VideoEmbedBlockNode {...commonProps} />;
       case 'tableBlock':
@@ -153,11 +170,13 @@ export const DraggableBlock: React.FC<DraggableBlockProps> = ({
       case 'referenceBlock':
         return <ReferenceBlockNode {...commonProps} />;
       case 'keyTakeawayBlock':
-        return <KeyTakeawayBlockNode {...commonProps} />;
+        // KeyTakeawayBlock now uses UnifiedBlockWrapper - return without DraggableBlock container
+        return <KeyTakeawayBlockNode {...unifiedProps} />;
       case 'separatorBlock':
         return <SeparatorBlockNode {...commonProps} />;
       case 'quoteBlock':
-        return <QuoteBlockNode {...commonProps} />;
+        // QuoteBlock now uses UnifiedBlockWrapper - return without DraggableBlock container
+        return <QuoteBlockNode {...unifiedProps} />;
       default:
         return (
           <div className="p-4 bg-muted/50 border-2 border-dashed border-muted-foreground/25 rounded">
@@ -178,6 +197,17 @@ export const DraggableBlock: React.FC<DraggableBlockProps> = ({
     return 'Selected - drag to move';
   };
 
+  // For blocks that use UnifiedBlockWrapper, return them directly
+  if (
+    node.type === 'textBlock' ||
+    node.type === 'imageBlock' ||
+    node.type === 'quoteBlock' ||
+    node.type === 'keyTakeawayBlock'
+  ) {
+    return renderBlockContent();
+  }
+
+  // For legacy blocks, use the original DraggableBlock container
   return (
     <div
       ref={blockRef}

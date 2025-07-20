@@ -15,7 +15,7 @@ This directory contains the unified control library for the Visual Composition E
 
 #### `SpacingControls`
 
-Comprehensive spacing controls with padding, margin, and preset support.
+Comprehensive spacing controls with padding and preset support.
 
 ```tsx
 import { SpacingControls } from './shared/SpacingControls';
@@ -24,7 +24,6 @@ import { SpacingControls } from './shared/SpacingControls';
   data={data}
   onChange={updateNodeData}
   compact={true}
-  enableMargins={true}
   enableBorders={true}
   enablePresets={true}
 />;
@@ -33,10 +32,9 @@ import { SpacingControls } from './shared/SpacingControls';
 **Features:**
 
 - Padding (X/Y) with link/unlink
-- Margin (X/Y) with link/unlink
 - Border radius and width
 - Quick preset buttons (None, Tight, Normal, Loose, Extra Loose)
-- Visual preview with margin/padding distinction
+- Visual preview with padding visualization
 - Collapsible advanced options
 
 #### `BorderControls`
@@ -182,7 +180,7 @@ import {
 
 ```tsx
 // 6 lines - clean and consistent
-<SpacingControls data={data} onChange={updateNodeData} compact={true} enableMargins={true} />
+<SpacingControls data={data} onChange={updateNodeData} compact={true} />
 ```
 
 ### **Replace Border Controls**
@@ -305,7 +303,7 @@ describe('SpacingControls', () => {
   it('should update padding values', () => {
     /* ... */
   });
-  it('should handle margin linking', () => {
+  it('should handle padding linking', () => {
     /* ... */
   });
   it('should apply presets correctly', () => {
@@ -318,7 +316,7 @@ describe('SpacingControls', () => {
 
 ### **Planned Features**
 
-- **Individual padding/margin controls** (top, right, bottom, left)
+- **Individual padding controls** (top, right, bottom, left)
 - **Unit selection** (px, rem, %, em, auto)
 - **Responsive breakpoint controls**
 - **Animation and transition controls**
@@ -336,7 +334,7 @@ describe('SpacingControls', () => {
 
 See individual inspector components for real-world usage examples:
 
-- `PollBlockInspector.tsx` - Using SpacingControls with margins
+- `PollBlockInspector.tsx` - Using SpacingControls for padding only
 - `QuoteBlockInspector.tsx` - Using SpacingControls in compact mode
 - Coming soon: Full migration of all inspector components
 

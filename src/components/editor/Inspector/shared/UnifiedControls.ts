@@ -10,7 +10,6 @@ export { ColorControl } from './ColorControl';
 export {
   SliderControl,
   PaddingSlider,
-  MarginSlider,
   BorderWidthSlider,
   BorderRadiusSlider,
   FontSizeSlider,
@@ -21,7 +20,6 @@ export {
 // Export constants for external use
 export {
   PADDING_FIELDS,
-  MARGIN_FIELDS,
   BORDER_FIELDS,
   DEFAULT_SPACING_FIELDS,
   SPACING_PRESETS,

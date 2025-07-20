@@ -1,37 +1,28 @@
 // ABOUTME: Inspector panel for ImageBlock with comprehensive customization controls
 
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Slider } from '@/components/ui/slider';
 import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useEditorStore } from '@/store/editorStore';
-import { SafeSwitch } from '../SafeSwitch';
 import { supabase } from '@/integrations/supabase/client';
+import { SpacingControls } from './shared/SpacingControls';
+import { BorderControls } from './shared/BorderControls';
 import {
   ImageIcon,
-  Palette,
-  Maximize2,
   ExternalLink,
   Upload,
-  RefreshCw,
-  Crop,
   FileImage,
   Loader2,
   CheckCircle,
   AlertCircle,
   Trash2,
+  Move,
+  Square,
 } from 'lucide-react';
 
 // Utility function to sanitize color values for HTML color inputs
@@ -71,18 +62,6 @@ export const ImageBlockInspector: React.FC<ImageBlockInspectorProps> = ({ nodeId
       data: { ...data, ...updates },
     });
   };
-
-  // Common image sizes for quick selection
-  const imageSizes = [
-    { label: 'Auto', width: undefined, height: undefined },
-    { label: 'Small (300px)', width: 300, height: undefined },
-    { label: 'Medium (500px)', width: 500, height: undefined },
-    { label: 'Large (700px)', width: 700, height: undefined },
-    { label: 'Square 300x300', width: 300, height: 300 },
-    { label: 'Square 400x400', width: 400, height: 400 },
-    { label: 'Landscape 16:9', width: 600, height: 338 },
-    { label: 'Portrait 3:4', width: 450, height: 600 },
-  ];
 
   const handleImageUrlChange = (url: string) => {
     updateNodeData({ src: url });
@@ -258,13 +237,6 @@ export const ImageBlockInspector: React.FC<ImageBlockInspectorProps> = ({ nodeId
     setUploadSuccess(false);
     setCroppedImageUrl(null);
     setOriginalImageFile(null);
-  };
-
-  const handleSizePreset = (preset: (typeof imageSizes)[0]) => {
-    updateNodeData({
-      width: preset.width,
-      height: preset.height,
-    });
   };
 
   const validateImageUrl = (url: string): boolean => {
@@ -492,208 +464,18 @@ export const ImageBlockInspector: React.FC<ImageBlockInspectorProps> = ({ nodeId
 
       <Separator />
 
-      {/* Size & Dimensions Section */}
+      {/* Styling Section */}
       <div className="space-y-3">
         <h4 className="text-sm font-medium flex items-center gap-2">
-          <Maximize2 size={14} />
-          Size & Dimensions
+          <ImageIcon size={14} />
+          Image Styling
         </h4>
-
-        {/* Size Presets */}
-        <div className="space-y-2">
-          <Label className="text-xs">Size Presets</Label>
-          <Select
-            value={
-              imageSizes.find(size => size.width === data.width && size.height === data.height)
-                ?.label || 'Custom'
-            }
-            onValueChange={value => {
-              const preset = imageSizes.find(size => size.label === value);
-              if (preset) {
-                handleSizePreset(preset);
-              }
-            }}
-          >
-            <SelectTrigger className="h-8">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {imageSizes.map(size => (
-                <SelectItem key={size.label} value={size.label}>
-                  {size.label}
-                </SelectItem>
-              ))}
-              <SelectItem value="Custom">Custom</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Custom Width */}
-        <div className="space-y-2">
-          <Label htmlFor="image-width" className="text-xs">
-            Width
-          </Label>
-          <div className="flex items-center gap-2">
-            <Input
-              id="image-width"
-              type="number"
-              value={data.width || ''}
-              onChange={e =>
-                updateNodeData({ width: e.target.value ? parseInt(e.target.value) : undefined })
-              }
-              placeholder="Auto"
-              className="flex-1 h-8 text-xs"
-              min={50}
-              max={1200}
-            />
-            <span className="text-xs text-muted-foreground">px</span>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => updateNodeData({ width: undefined })}
-              className="h-8 px-2 text-xs"
-            >
-              Auto
-            </Button>
-          </div>
-        </div>
-
-        {/* Custom Height */}
-        <div className="space-y-2">
-          <Label htmlFor="image-height" className="text-xs">
-            Height
-          </Label>
-          <div className="flex items-center gap-2">
-            <Input
-              id="image-height"
-              type="number"
-              value={data.height || ''}
-              onChange={e =>
-                updateNodeData({ height: e.target.value ? parseInt(e.target.value) : undefined })
-              }
-              placeholder="Auto"
-              className="flex-1 h-8 text-xs"
-              min={50}
-              max={800}
-            />
-            <span className="text-xs text-muted-foreground">px</span>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => updateNodeData({ height: undefined })}
-              className="h-8 px-2 text-xs"
-            >
-              Auto
-            </Button>
-          </div>
-        </div>
-
-        {/* Aspect Ratio Lock */}
-        <div className="flex items-center justify-between">
-          <Label className="text-xs">Lock Aspect Ratio</Label>
-          <SafeSwitch
-            checked={!data.height || !data.width}
-            onCheckedChange={checked => {
-              if (checked) {
-                updateNodeData({ height: undefined });
-              }
-            }}
-          />
-        </div>
-      </div>
-
-      <Separator />
-
-      {/* Spacing & Style Section */}
-      <div className="space-y-3">
-        <h4 className="text-sm font-medium flex items-center gap-2">
-          <Palette size={14} />
-          Spacing & Style
-        </h4>
-
-        {/* Horizontal Padding */}
-        <div className="space-y-2">
-          <div className="text-xs font-medium">Horizontal Padding</div>
-          <div className="flex items-center gap-2">
-            <Slider
-              id="image-padding-x"
-              min={0}
-              max={48}
-              step={4}
-              value={[data.paddingX || 16]}
-              onValueChange={([value]) => updateNodeData({ paddingX: value })}
-              className="flex-1"
-            />
-            <Input
-              type="number"
-              value={data.paddingX || 16}
-              onChange={e => updateNodeData({ paddingX: parseInt(e.target.value) || 16 })}
-              className="w-16 h-8 text-xs"
-              min={0}
-              max={48}
-            />
-            <span className="text-xs text-muted-foreground">px</span>
-          </div>
-        </div>
-
-        {/* Vertical Padding */}
-        <div className="space-y-2">
-          <div className="text-xs font-medium">Vertical Padding</div>
-          <div className="flex items-center gap-2">
-            <Slider
-              id="image-padding-y"
-              min={0}
-              max={48}
-              step={4}
-              value={[data.paddingY || 16]}
-              onValueChange={([value]) => updateNodeData({ paddingY: value })}
-              className="flex-1"
-            />
-            <Input
-              type="number"
-              value={data.paddingY || 16}
-              onChange={e => updateNodeData({ paddingY: parseInt(e.target.value) || 16 })}
-              className="w-16 h-8 text-xs"
-              min={0}
-              max={48}
-            />
-            <span className="text-xs text-muted-foreground">px</span>
-          </div>
-        </div>
-
-        {/* Border Radius */}
-        <div className="space-y-2">
-          <div className="text-xs font-medium">Border Radius</div>
-          <div className="flex items-center gap-2">
-            <Slider
-              id="image-border-radius"
-              min={0}
-              max={24}
-              step={2}
-              value={[data.borderRadius || 6]}
-              onValueChange={([value]) => updateNodeData({ borderRadius: value })}
-              className="flex-1"
-            />
-            <Input
-              type="number"
-              value={data.borderRadius || 6}
-              onChange={e => updateNodeData({ borderRadius: parseInt(e.target.value) || 6 })}
-              className="w-16 h-8 text-xs"
-              min={0}
-              max={24}
-            />
-            <span className="text-xs text-muted-foreground">px</span>
-          </div>
-        </div>
 
         {/* Background Color */}
         <div className="space-y-2">
-          <Label htmlFor="image-bg-color" className="text-xs">
-            Background Color
-          </Label>
+          <Label className="text-xs">Background Color</Label>
           <div className="flex items-center gap-2">
             <Input
-              id="image-bg-color"
               type="color"
               value={sanitizeColorForInput(data.backgroundColor, '#ffffff')}
               onChange={e => updateNodeData({ backgroundColor: e.target.value })}
@@ -717,90 +499,129 @@ export const ImageBlockInspector: React.FC<ImageBlockInspectorProps> = ({ nodeId
           </div>
         </div>
 
-        {/* Border Toggle */}
+        {/* Border Color */}
         <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="image-border-toggle" className="text-xs">
-              Enable Border
-            </Label>
-            <SafeSwitch
-              id="image-border-toggle"
-              checked={(data.borderWidth || 0) > 0}
-              onCheckedChange={checked => updateNodeData({ borderWidth: checked ? 1 : 0 })}
+          <Label className="text-xs">Border Color</Label>
+          <div className="flex items-center gap-2">
+            <Input
+              type="color"
+              value={sanitizeColorForInput(data.borderColor, '#e5e7eb')}
+              onChange={e => updateNodeData({ borderColor: e.target.value })}
+              className="w-12 h-8 p-1 border rounded"
             />
+            <Input
+              type="text"
+              value={data.borderColor || '#e5e7eb'}
+              onChange={e => updateNodeData({ borderColor: e.target.value })}
+              placeholder="#e5e7eb"
+              className="flex-1 h-8 text-xs"
+            />
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => updateNodeData({ borderColor: '#e5e7eb' })}
+              className="h-8 px-2 text-xs"
+            >
+              Reset
+            </Button>
           </div>
         </div>
 
-        {/* Border Controls - Only show when border is enabled */}
-        {(data.borderWidth || 0) > 0 && (
-          <>
-            {/* Border Width */}
-            <div className="space-y-2">
-              <div className="text-xs font-medium">Border Width</div>
-              <div className="flex items-center gap-2">
-                <Slider
-                  id="image-border-width"
-                  min={1}
-                  max={8}
-                  step={1}
-                  value={[data.borderWidth || 1]}
-                  onValueChange={([value]) => updateNodeData({ borderWidth: value })}
-                  className="flex-1"
-                />
-                <Input
-                  type="number"
-                  value={data.borderWidth || 1}
-                  onChange={e => updateNodeData({ borderWidth: parseInt(e.target.value) || 1 })}
-                  className="w-16 h-8 text-xs"
-                  min={1}
-                  max={8}
-                />
-                <span className="text-xs text-muted-foreground">px</span>
-              </div>
-            </div>
-
-            {/* Border Color */}
-            <div className="space-y-2">
-              <Label htmlFor="image-border-color" className="text-xs">
-                Border Color
-              </Label>
-              <div className="flex items-center gap-2">
-                <Input
-                  id="image-border-color"
-                  type="color"
-                  value={data.borderColor || '#e5e7eb'}
-                  onChange={e => updateNodeData({ borderColor: e.target.value })}
-                  className="w-12 h-8 p-1 border rounded"
-                />
-                <Input
-                  type="text"
-                  value={data.borderColor || '#e5e7eb'}
-                  onChange={e => updateNodeData({ borderColor: e.target.value })}
-                  placeholder="#e5e7eb"
-                  className="flex-1 h-8 text-xs"
-                />
-              </div>
-            </div>
-          </>
-        )}
+        {/* Caption Text Color */}
+        <div className="space-y-2">
+          <Label className="text-xs">Caption Text Color</Label>
+          <div className="flex items-center gap-2">
+            <Input
+              type="color"
+              value={sanitizeColorForInput(data.color, '#6b7280')}
+              onChange={e => updateNodeData({ color: e.target.value })}
+              className="w-12 h-8 p-1 border rounded"
+            />
+            <Input
+              type="text"
+              value={data.color || '#6b7280'}
+              onChange={e => updateNodeData({ color: e.target.value })}
+              placeholder="#6b7280"
+              className="flex-1 h-8 text-xs"
+            />
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => updateNodeData({ color: '#6b7280' })}
+              className="h-8 px-2 text-xs"
+            >
+              Reset
+            </Button>
+          </div>
+        </div>
       </div>
 
-      {/* Upload & Optimization Info */}
-      <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-        <div className="flex items-start gap-2">
-          <Upload size={14} className="text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
-          <div>
-            <p className="text-xs font-medium text-blue-800 dark:text-blue-200">
-              Smart Image Processing
-            </p>
-            <ul className="text-xs text-blue-600 dark:text-blue-300 mt-1 space-y-1">
-              <li>• Auto-compression and WebP conversion for faster loading</li>
-              <li>• Drag & drop or click to upload from your device</li>
-              <li>• Secure cloud storage with instant global CDN delivery</li>
-              <li>• Perfect quality maintained with up to 80% size reduction</li>
-            </ul>
-          </div>
-        </div>
+      <Separator />
+
+      {/* Spacing & Layout Section */}
+      <div className="space-y-3">
+        <h4 className="text-sm font-medium flex items-center gap-2">
+          <Move size={14} />
+          Spacing & Layout
+        </h4>
+
+        {/* Spacing Controls - Padding */}
+        <SpacingControls
+          data={data}
+          onChange={updateNodeData}
+          fields={[
+            {
+              key: 'paddingX',
+              label: 'Horizontal Padding',
+              min: 0,
+              max: 80,
+              step: 2,
+              unit: 'px',
+              category: 'padding',
+            },
+            {
+              key: 'paddingY',
+              label: 'Vertical Padding',
+              min: 0,
+              max: 80,
+              step: 2,
+              unit: 'px',
+              category: 'padding',
+            },
+          ]}
+          compact={true}
+          enablePresets={true}
+          enableBorders={false}
+          showDetailedControls={false}
+        />
+      </div>
+
+      <Separator />
+
+      {/* Border & Radius Section */}
+      <div className="space-y-3">
+        <h4 className="text-sm font-medium flex items-center gap-2">
+          <Square size={14} />
+          Border & Corners
+        </h4>
+
+        {/* Border Controls */}
+        <BorderControls
+          data={data}
+          onChange={updateNodeData}
+          enableToggle={true}
+          enableStyle={false}
+          enableRadius={true}
+          compact={true}
+          widthKey="borderWidth"
+          colorKey="borderColor"
+          radiusKey="borderRadius"
+          defaultWidth={1}
+          defaultColor="#e5e7eb"
+          defaultRadius={8}
+          maxWidth={8}
+          maxRadius={32}
+        />
       </div>
     </div>
   );

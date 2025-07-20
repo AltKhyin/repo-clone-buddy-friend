@@ -49,6 +49,7 @@ export function SeparatorBlockNode({ id, data, selected }: SeparatorBlockNodePro
     <>
       <div
         data-block-type="separatorBlock"
+        data-block-id={id}
         className={cn(
           'relative cursor-pointer transition-all duration-200',
           'min-h-[40px] flex items-center justify-center',

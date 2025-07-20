@@ -9,6 +9,16 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import {
+  isBlockTypographySupported,
+  getBlockTypographyProperties,
+  getBlockTypographyContext,
+  hasBlockCaptionSupport,
+  hasBlockCellSupport,
+  hasBlockMultipleTextElements,
+  validateBlockTypographyProperties,
+  mergeBlockTypographyProperties,
+} from '@/utils/blockTypographyUtils';
+import {
   Bold,
   Italic,
   AlignLeft,
@@ -29,6 +39,7 @@ import {
 import { KeyboardShortcutsPanel } from './KeyboardShortcutsPanel';
 import { ThemeSelector } from '@/components/header/ThemeSelector';
 import { TypographyDropdown } from './TypographyDropdown';
+import { useTextSelection } from '@/hooks/useTextSelection';
 
 interface UnifiedToolbarProps {
   className?: string;
@@ -40,6 +51,7 @@ export const UnifiedToolbar = React.memo(function UnifiedToolbar({
   const { reviewId } = useParams<{ reviewId: string }>();
   const {
     selectedNodeId,
+    textSelection,
     nodes,
     updateNode,
     deleteNode,
@@ -52,119 +64,308 @@ export const UnifiedToolbar = React.memo(function UnifiedToolbar({
     updateCanvasZoom,
   } = useEditorStore();
 
+  // Text Selection Hook for unified typography editing
+  const { applyTypographyToSelection, extractTextProperties } = useTextSelection();
+
   const selectedNode = selectedNodeId ? nodes.find(n => n.id === selectedNodeId) : null;
 
-  // Format Operations Handlers
+  // Block Typography Context
+  const blockTypographySupported = selectedNode
+    ? isBlockTypographySupported(selectedNode.type)
+    : false;
+  const blockTypographyProperties = selectedNode
+    ? getBlockTypographyProperties(selectedNode.type)
+    : [];
+  const blockTypographyContext = selectedNode ? getBlockTypographyContext(selectedNode.type) : null;
+
+  // Block Special Features
+  const hasCaption = selectedNode ? hasBlockCaptionSupport(selectedNode.type) : false;
+  const hasCells = selectedNode ? hasBlockCellSupport(selectedNode.type) : false;
+  const hasMultipleTextElements = selectedNode
+    ? hasBlockMultipleTextElements(selectedNode.type)
+    : false;
+
+  // Format Operations Handlers - Enhanced for text selection
   const handleTextAlign = React.useCallback(
-    (align: 'left' | 'center' | 'right') => {
-      if (selectedNodeId && selectedNode) {
-        updateNode(selectedNodeId, {
-          data: { ...selectedNode.data, textAlign: align },
-        });
+    (align: 'left' | 'center' | 'right' | 'justify') => {
+      // Priority 1: Apply to selected text if available
+      if (textSelection?.hasSelection) {
+        applyTypographyToSelection({ textAlign: align });
+        return;
+      }
+
+      // Priority 2: Fall back to block-level alignment
+      if (selectedNodeId && selectedNode && blockTypographySupported) {
+        if (blockTypographyProperties.includes('textAlign')) {
+          updateNode(selectedNodeId, {
+            data: { ...selectedNode.data, textAlign: align },
+          });
+        }
       }
     },
-    [selectedNodeId, selectedNode, updateNode]
+    [
+      textSelection,
+      applyTypographyToSelection,
+      selectedNodeId,
+      selectedNode,
+      updateNode,
+      blockTypographySupported,
+      blockTypographyProperties,
+    ]
   );
 
   const handleTextFormat = React.useCallback(
     (property: string, value: any) => {
-      if (selectedNodeId && selectedNode) {
-        updateNode(selectedNodeId, {
-          data: { ...selectedNode.data, [property]: value },
-        });
+      // Priority 1: Apply to selected text if available
+      if (textSelection?.hasSelection) {
+        applyTypographyToSelection({ [property]: value });
+        return;
+      }
+
+      // Priority 2: Fall back to block-level formatting
+      if (selectedNodeId && selectedNode && blockTypographySupported) {
+        // Validate the property is supported by the current block type
+        if (blockTypographyProperties.includes(property as any)) {
+          updateNode(selectedNodeId, {
+            data: { ...selectedNode.data, [property]: value },
+          });
+        }
       }
     },
-    [selectedNodeId, selectedNode, updateNode]
+    [
+      textSelection,
+      applyTypographyToSelection,
+      selectedNodeId,
+      selectedNode,
+      updateNode,
+      blockTypographySupported,
+      blockTypographyProperties,
+    ]
   );
 
-  // Text decoration handler (kept for inline formatting buttons)
+  // Typography handlers with text selection support
   const handleTextDecoration = React.useCallback(
     (textDecoration: string) => {
-      if (selectedNodeId && selectedNode) {
-        updateNode(selectedNodeId, {
-          data: { ...selectedNode.data, textDecoration },
-        });
+      // Priority 1: Apply to selected text if available
+      if (textSelection?.hasSelection) {
+        applyTypographyToSelection({ textDecoration });
+        return;
+      }
+
+      // Priority 2: Fall back to block-level formatting
+      if (selectedNodeId && selectedNode && blockTypographySupported) {
+        if (blockTypographyProperties.includes('textDecoration')) {
+          updateNode(selectedNodeId, {
+            data: { ...selectedNode.data, textDecoration },
+          });
+        }
       }
     },
-    [selectedNodeId, selectedNode, updateNode]
+    [
+      textSelection,
+      applyTypographyToSelection,
+      selectedNodeId,
+      selectedNode,
+      updateNode,
+      blockTypographySupported,
+      blockTypographyProperties,
+    ]
   );
 
-  // Typography handlers for dropdown
   const handleFontFamily = React.useCallback(
     (fontFamily: string) => {
-      if (selectedNodeId && selectedNode) {
-        updateNode(selectedNodeId, {
-          data: { ...selectedNode.data, fontFamily },
-        });
+      // Priority 1: Apply to selected text if available
+      if (textSelection?.hasSelection) {
+        applyTypographyToSelection({ fontFamily });
+        return;
+      }
+
+      // Priority 2: Fall back to block-level formatting
+      if (selectedNodeId && selectedNode && blockTypographySupported) {
+        if (blockTypographyProperties.includes('fontFamily')) {
+          updateNode(selectedNodeId, {
+            data: { ...selectedNode.data, fontFamily },
+          });
+        }
       }
     },
-    [selectedNodeId, selectedNode, updateNode]
+    [
+      textSelection,
+      applyTypographyToSelection,
+      selectedNodeId,
+      selectedNode,
+      updateNode,
+      blockTypographySupported,
+      blockTypographyProperties,
+    ]
   );
 
   const handleFontSize = React.useCallback(
     (fontSize: number) => {
-      if (selectedNodeId && selectedNode) {
-        updateNode(selectedNodeId, {
-          data: { ...selectedNode.data, fontSize },
-        });
+      // Priority 1: Apply to selected text if available
+      if (textSelection?.hasSelection) {
+        applyTypographyToSelection({ fontSize: `${fontSize}px` });
+        return;
+      }
+
+      // Priority 2: Fall back to block-level formatting
+      if (selectedNodeId && selectedNode && blockTypographySupported) {
+        if (blockTypographyProperties.includes('fontSize')) {
+          updateNode(selectedNodeId, {
+            data: { ...selectedNode.data, fontSize },
+          });
+        }
       }
     },
-    [selectedNodeId, selectedNode, updateNode]
+    [
+      textSelection,
+      applyTypographyToSelection,
+      selectedNodeId,
+      selectedNode,
+      updateNode,
+      blockTypographySupported,
+      blockTypographyProperties,
+    ]
   );
 
   const handleFontWeight = React.useCallback(
     (fontWeight: number) => {
-      if (selectedNodeId && selectedNode) {
-        updateNode(selectedNodeId, {
-          data: { ...selectedNode.data, fontWeight },
-        });
+      // Priority 1: Apply to selected text if available
+      if (textSelection?.hasSelection) {
+        applyTypographyToSelection({ fontWeight: String(fontWeight) });
+        return;
+      }
+
+      // Priority 2: Fall back to block-level formatting
+      if (selectedNodeId && selectedNode && blockTypographySupported) {
+        if (blockTypographyProperties.includes('fontWeight')) {
+          updateNode(selectedNodeId, {
+            data: { ...selectedNode.data, fontWeight },
+          });
+        }
       }
     },
-    [selectedNodeId, selectedNode, updateNode]
+    [
+      textSelection,
+      applyTypographyToSelection,
+      selectedNodeId,
+      selectedNode,
+      updateNode,
+      blockTypographySupported,
+      blockTypographyProperties,
+    ]
   );
 
   const handleLineHeight = React.useCallback(
     (lineHeight: number) => {
-      if (selectedNodeId && selectedNode) {
-        updateNode(selectedNodeId, {
-          data: { ...selectedNode.data, lineHeight },
-        });
+      // Priority 1: Apply to selected text if available
+      if (textSelection?.hasSelection) {
+        applyTypographyToSelection({ lineHeight: String(lineHeight) });
+        return;
+      }
+
+      // Priority 2: Fall back to block-level formatting
+      if (selectedNodeId && selectedNode && blockTypographySupported) {
+        if (blockTypographyProperties.includes('lineHeight')) {
+          updateNode(selectedNodeId, {
+            data: { ...selectedNode.data, lineHeight },
+          });
+        }
       }
     },
-    [selectedNodeId, selectedNode, updateNode]
+    [
+      textSelection,
+      applyTypographyToSelection,
+      selectedNodeId,
+      selectedNode,
+      updateNode,
+      blockTypographySupported,
+      blockTypographyProperties,
+    ]
   );
 
   const handleTextTransform = React.useCallback(
     (textTransform: string) => {
-      if (selectedNodeId && selectedNode) {
-        updateNode(selectedNodeId, {
-          data: { ...selectedNode.data, textTransform },
-        });
+      // Priority 1: Apply to selected text if available
+      if (textSelection?.hasSelection) {
+        applyTypographyToSelection({ textTransform });
+        return;
+      }
+
+      // Priority 2: Fall back to block-level formatting
+      if (selectedNodeId && selectedNode && blockTypographySupported) {
+        if (blockTypographyProperties.includes('textTransform')) {
+          updateNode(selectedNodeId, {
+            data: { ...selectedNode.data, textTransform },
+          });
+        }
       }
     },
-    [selectedNodeId, selectedNode, updateNode]
+    [
+      textSelection,
+      applyTypographyToSelection,
+      selectedNodeId,
+      selectedNode,
+      updateNode,
+      blockTypographySupported,
+      blockTypographyProperties,
+    ]
   );
 
   const handleTextColor = React.useCallback(
     (color: string) => {
-      if (selectedNodeId && selectedNode) {
-        updateNode(selectedNodeId, {
-          data: { ...selectedNode.data, color },
-        });
+      // Priority 1: Apply to selected text if available
+      if (textSelection?.hasSelection) {
+        applyTypographyToSelection({ color });
+        return;
+      }
+
+      // Priority 2: Fall back to block-level formatting
+      if (selectedNodeId && selectedNode && blockTypographySupported) {
+        if (blockTypographyProperties.includes('color')) {
+          updateNode(selectedNodeId, {
+            data: { ...selectedNode.data, color },
+          });
+        }
       }
     },
-    [selectedNodeId, selectedNode, updateNode]
+    [
+      textSelection,
+      applyTypographyToSelection,
+      selectedNodeId,
+      selectedNode,
+      updateNode,
+      blockTypographySupported,
+      blockTypographyProperties,
+    ]
   );
 
   const handleLetterSpacing = React.useCallback(
     (letterSpacing: number) => {
-      if (selectedNodeId && selectedNode) {
-        updateNode(selectedNodeId, {
-          data: { ...selectedNode.data, letterSpacing },
-        });
+      // Priority 1: Apply to selected text if available
+      if (textSelection?.hasSelection) {
+        applyTypographyToSelection({ letterSpacing: `${letterSpacing}px` });
+        return;
+      }
+
+      // Priority 2: Fall back to block-level formatting
+      if (selectedNodeId && selectedNode && blockTypographySupported) {
+        if (blockTypographyProperties.includes('letterSpacing')) {
+          updateNode(selectedNodeId, {
+            data: { ...selectedNode.data, letterSpacing },
+          });
+        }
       }
     },
-    [selectedNodeId, selectedNode, updateNode]
+    [
+      textSelection,
+      applyTypographyToSelection,
+      selectedNodeId,
+      selectedNode,
+      updateNode,
+      blockTypographySupported,
+      blockTypographyProperties,
+    ]
   );
 
   // Block Actions Handlers
@@ -212,145 +413,171 @@ export const UnifiedToolbar = React.memo(function UnifiedToolbar({
         role="group"
         aria-label="Main toolbar actions"
       >
-        {/* Format Controls - Ultra-Compact */}
-        <div role="group" aria-label="Format controls" className="flex items-center gap-1">
-          {/* Basic Text Formatting - Ultra-Compact Group */}
-          <div
-            className="flex items-center gap-0.5 bg-muted/30 rounded p-0.5"
-            role="group"
-            aria-label="Text formatting buttons"
-          >
-            <Button
-              variant={selectedNode?.data?.fontWeight === 700 ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() =>
-                handleTextFormat('fontWeight', selectedNode?.data?.fontWeight === 700 ? 400 : 700)
-              }
-              disabled={!selectedNode}
-              className="h-6 w-6 p-0"
-              title="Bold (Ctrl+B)"
-              aria-label={`Make text bold${selectedNode?.data?.fontWeight === 700 ? ' (currently active)' : ''}`}
-              aria-pressed={selectedNode?.data?.fontWeight === 700}
-              aria-keyshortcuts="Ctrl+B"
+        {/* Format Controls - Ultra-Compact (Typography-aware) */}
+        {blockTypographySupported && (
+          <div role="group" aria-label="Format controls" className="flex items-center gap-1">
+            {/* Basic Text Formatting - Ultra-Compact Group */}
+            <div
+              className="flex items-center gap-0.5 bg-muted/30 rounded p-0.5"
+              role="group"
+              aria-label="Text formatting buttons"
             >
-              <Bold size={10} />
-            </Button>
+              {blockTypographyProperties.includes('fontWeight') && (
+                <Button
+                  variant={selectedNode?.data?.fontWeight === 700 ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() =>
+                    handleTextFormat(
+                      'fontWeight',
+                      selectedNode?.data?.fontWeight === 700 ? 400 : 700
+                    )
+                  }
+                  disabled={!selectedNode}
+                  className="h-6 w-6 p-0"
+                  title="Bold (Ctrl+B)"
+                  aria-label={`Make text bold${selectedNode?.data?.fontWeight === 700 ? ' (currently active)' : ''}`}
+                  aria-pressed={selectedNode?.data?.fontWeight === 700}
+                  aria-keyshortcuts="Ctrl+B"
+                >
+                  <Bold size={10} />
+                </Button>
+              )}
 
-            <Button
-              variant={selectedNode?.data?.fontStyle === 'italic' ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() =>
-                handleTextFormat(
-                  'fontStyle',
-                  selectedNode?.data?.fontStyle === 'italic' ? 'normal' : 'italic'
-                )
-              }
-              disabled={!selectedNode}
-              className="h-6 w-6 p-0"
-              title="Italic (Ctrl+I)"
-            >
-              <Italic size={10} />
-            </Button>
+              {blockTypographyProperties.includes('fontStyle') && (
+                <Button
+                  variant={selectedNode?.data?.fontStyle === 'italic' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() =>
+                    handleTextFormat(
+                      'fontStyle',
+                      selectedNode?.data?.fontStyle === 'italic' ? 'normal' : 'italic'
+                    )
+                  }
+                  disabled={!selectedNode}
+                  className="h-6 w-6 p-0"
+                  title="Italic (Ctrl+I)"
+                >
+                  <Italic size={10} />
+                </Button>
+              )}
 
-            <Button
-              variant={selectedNode?.data?.textDecoration === 'underline' ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() =>
-                handleTextDecoration(
-                  selectedNode?.data?.textDecoration === 'underline' ? 'none' : 'underline'
-                )
-              }
-              disabled={!selectedNode}
-              className="h-6 w-6 p-0"
-              title="Underline (Ctrl+U)"
-            >
-              <Underline size={10} />
-            </Button>
+              {blockTypographyProperties.includes('textDecoration') && (
+                <>
+                  <Button
+                    variant={
+                      selectedNode?.data?.textDecoration === 'underline' ? 'default' : 'ghost'
+                    }
+                    size="sm"
+                    onClick={() =>
+                      handleTextDecoration(
+                        selectedNode?.data?.textDecoration === 'underline' ? 'none' : 'underline'
+                      )
+                    }
+                    disabled={!selectedNode}
+                    className="h-6 w-6 p-0"
+                    title="Underline (Ctrl+U)"
+                  >
+                    <Underline size={10} />
+                  </Button>
 
-            <Button
-              variant={selectedNode?.data?.textDecoration === 'line-through' ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() =>
-                handleTextDecoration(
-                  selectedNode?.data?.textDecoration === 'line-through' ? 'none' : 'line-through'
-                )
-              }
-              disabled={!selectedNode}
-              className="h-6 w-6 p-0"
-              title="Strikethrough"
-            >
-              <Strikethrough size={10} />
-            </Button>
+                  <Button
+                    variant={
+                      selectedNode?.data?.textDecoration === 'line-through' ? 'default' : 'ghost'
+                    }
+                    size="sm"
+                    onClick={() =>
+                      handleTextDecoration(
+                        selectedNode?.data?.textDecoration === 'line-through'
+                          ? 'none'
+                          : 'line-through'
+                      )
+                    }
+                    disabled={!selectedNode}
+                    className="h-6 w-6 p-0"
+                    title="Strikethrough"
+                  >
+                    <Strikethrough size={10} />
+                  </Button>
+                </>
+              )}
+            </div>
+
+            {/* Text Alignment - Ultra-Compact Group */}
+            {blockTypographyProperties.includes('textAlign') && (
+              <div
+                className="flex items-center gap-0.5 bg-muted/30 rounded p-0.5"
+                role="group"
+                aria-label="Text alignment buttons"
+              >
+                <Button
+                  variant={selectedNode?.data?.textAlign === 'left' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => handleTextAlign('left')}
+                  disabled={!selectedNode}
+                  className="h-6 w-6 p-0"
+                  title="Align left (Ctrl+Shift+L)"
+                  aria-label={`Align text left${selectedNode?.data?.textAlign === 'left' ? ' (currently active)' : ''}`}
+                  aria-pressed={selectedNode?.data?.textAlign === 'left'}
+                  aria-keyshortcuts="Ctrl+Shift+L"
+                >
+                  <AlignLeft size={10} />
+                </Button>
+
+                <Button
+                  variant={selectedNode?.data?.textAlign === 'center' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => handleTextAlign('center')}
+                  disabled={!selectedNode}
+                  className="h-6 w-6 p-0"
+                  title="Align center (Ctrl+Shift+E)"
+                >
+                  <AlignCenter size={10} />
+                </Button>
+
+                <Button
+                  variant={selectedNode?.data?.textAlign === 'right' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => handleTextAlign('right')}
+                  disabled={!selectedNode}
+                  className="h-6 w-6 p-0"
+                  title="Align right (Ctrl+Shift+R)"
+                >
+                  <AlignRight size={10} />
+                </Button>
+
+                <Button
+                  variant={selectedNode?.data?.textAlign === 'justify' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => handleTextAlign('justify')}
+                  disabled={!selectedNode}
+                  className="h-6 w-6 p-0"
+                  title="Justify"
+                >
+                  <AlignJustify size={10} />
+                </Button>
+              </div>
+            )}
+
+            {/* Typography Dropdown - Context-aware controls */}
+            {blockTypographyProperties.length > 0 && (
+              <TypographyDropdown
+                selectedNode={selectedNode}
+                onFontFamily={handleFontFamily}
+                onFontSize={handleFontSize}
+                onFontWeight={handleFontWeight}
+                onLineHeight={handleLineHeight}
+                onTextTransform={handleTextTransform}
+                onTextColor={handleTextColor}
+                onTextDecoration={handleTextDecoration}
+                onLetterSpacing={handleLetterSpacing}
+                disabled={!selectedNode}
+                // Pass block context to dropdown for enhanced filtering
+                blockType={selectedNode?.type}
+                availableProperties={blockTypographyProperties}
+              />
+            )}
           </div>
-
-          {/* Text Alignment - Ultra-Compact Group */}
-          <div
-            className="flex items-center gap-0.5 bg-muted/30 rounded p-0.5"
-            role="group"
-            aria-label="Text alignment buttons"
-          >
-            <Button
-              variant={selectedNode?.data?.textAlign === 'left' ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => handleTextAlign('left')}
-              disabled={!selectedNode}
-              className="h-6 w-6 p-0"
-              title="Align left (Ctrl+Shift+L)"
-              aria-label={`Align text left${selectedNode?.data?.textAlign === 'left' ? ' (currently active)' : ''}`}
-              aria-pressed={selectedNode?.data?.textAlign === 'left'}
-              aria-keyshortcuts="Ctrl+Shift+L"
-            >
-              <AlignLeft size={10} />
-            </Button>
-
-            <Button
-              variant={selectedNode?.data?.textAlign === 'center' ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => handleTextAlign('center')}
-              disabled={!selectedNode}
-              className="h-6 w-6 p-0"
-              title="Align center (Ctrl+Shift+E)"
-            >
-              <AlignCenter size={10} />
-            </Button>
-
-            <Button
-              variant={selectedNode?.data?.textAlign === 'right' ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => handleTextAlign('right')}
-              disabled={!selectedNode}
-              className="h-6 w-6 p-0"
-              title="Align right (Ctrl+Shift+R)"
-            >
-              <AlignRight size={10} />
-            </Button>
-
-            <Button
-              variant={selectedNode?.data?.textAlign === 'justify' ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => handleTextAlign('justify')}
-              disabled={!selectedNode}
-              className="h-6 w-6 p-0"
-              title="Justify"
-            >
-              <AlignJustify size={10} />
-            </Button>
-          </div>
-
-          {/* Typography Dropdown - Non-displacing controls */}
-          <TypographyDropdown
-            selectedNode={selectedNode}
-            onFontFamily={handleFontFamily}
-            onFontSize={handleFontSize}
-            onFontWeight={handleFontWeight}
-            onLineHeight={handleLineHeight}
-            onTextTransform={handleTextTransform}
-            onTextColor={handleTextColor}
-            onTextDecoration={handleTextDecoration}
-            onLetterSpacing={handleLetterSpacing}
-            disabled={!selectedNode}
-          />
-        </div>
+        )}
 
         <Separator orientation="vertical" className="h-4" />
 

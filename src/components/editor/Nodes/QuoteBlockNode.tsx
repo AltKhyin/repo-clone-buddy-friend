@@ -1,175 +1,160 @@
-// ABOUTME: WYSIWYG node component
+// ABOUTME: WYSIWYG node component - STANDARDIZED with unified text editing framework
 
 import React from 'react';
 import { QuoteBlockData } from '@/types/editor';
-import { useEditorStore } from '@/store/editorStore';
-import { useEditorTheme } from '@/hooks/useEditorTheme';
-import { Quote, User } from 'lucide-react';
+import {
+  UnifiedBlockWrapper,
+  EditableField,
+  useSemanticBlockStyling,
+  useStyledBlockDataUpdate,
+  useEditorStore,
+  User,
+  PLACEHOLDERS,
+} from '@/components/editor/shared';
 
 interface QuoteBlockNodeProps {
   id: string;
   data: QuoteBlockData;
   selected?: boolean;
+  // Position props for unified wrapper
+  width?: number;
+  height?: number;
+  x?: number;
+  y?: number;
+  // Interaction callbacks
+  onSelect?: () => void;
+  onMove?: (position: { x: number; y: number }) => void;
 }
 
 export const QuoteBlockNode = React.memo(function QuoteBlockNode({
   id,
   data,
   selected,
+  width = 400,
+  height = 150,
+  x = 0,
+  y = 0,
+  onSelect,
+  onMove,
 }: QuoteBlockNodeProps) {
   const { updateNode } = useEditorStore();
-  const { colors } = useEditorTheme();
 
-  // Get unified styling (with null safety)
-  const selectionClasses = selected ? 'ring-2 ring-blue-500' : '';
-  const borderStyles = {
-    borderWidth: 0,
-    borderColor: data?.borderColor || colors.block.border,
-  };
+  // Use unified data update hook
+  const { updateField } = useStyledBlockDataUpdate(id, data);
 
-  const quoteData = data || {};
-
-  // Provide defaults for missing properties
-  const safeContent = quoteData.content || 'Enter your quote here...';
-  const safeCitation = quoteData.citation || '';
-  const safeStyle = quoteData.style || 'default';
-  const safeBorderColor = quoteData.borderColor || colors.block.border;
+  // Use semantic styling hook for quote-specific theming
+  const { semanticStyles, contentStyles, semanticColors } = useSemanticBlockStyling(
+    data,
+    selected || false,
+    'quote',
+    {
+      defaultPaddingX: 16,
+      defaultPaddingY: 16,
+      minDimensions: { width: 300, height: 100 },
+    }
+  );
 
   const handleClick = () => {
     // Focus the node when quote is clicked
     updateNode(id, {});
   };
 
-  const handleContentClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    // Allow text selection within the quote
-  };
-
-  // Use theme colors from CSS custom properties
-  const quoteColors = colors.semantic.quote;
-
-  // Dynamic styles with unified border styling
-  const dynamicStyles = {
-    ...borderStyles,
-    minWidth: '300px',
-    maxWidth: '700px',
-    transition: 'all 0.2s ease-in-out',
-  } as React.CSSProperties;
-
-  // Style configurations for different quote styles
-  const getQuoteStyles = () => {
-    const baseStyles = {
-      backgroundColor: quoteColors.background,
-      color: quoteColors.text,
-      borderLeftColor: quoteColors.accent,
-    };
-
-    if (safeStyle === 'large-quote') {
-      return {
-        ...baseStyles,
-        fontSize: '1.25rem',
-        lineHeight: '1.75rem',
-        fontStyle: 'italic',
-        borderLeftWidth: '6px',
-        padding: '2rem',
-      };
-    }
-
-    return {
-      ...baseStyles,
-      fontSize: '1rem',
-      lineHeight: '1.5rem',
-      borderLeftWidth: '4px',
-      padding: '1.5rem',
-    };
-  };
-
-  const quoteStyles = getQuoteStyles();
-
   return (
-    <>
+    <UnifiedBlockWrapper
+      id={id}
+      width={width}
+      height={height}
+      x={x}
+      y={y}
+      selected={selected}
+      blockType="quoteBlock"
+      contentStyles={contentStyles}
+      minDimensions={{ width: 300, height: 100 }}
+      maxDimensions={{ width: 700, height: 400 }}
+      onSelect={onSelect}
+      onMove={onMove}
+    >
       <div
+        data-node-id={id}
+        data-block-id={id}
         data-block-type="quoteBlock"
-        className={`relative cursor-pointer ${selectionClasses}`}
-        style={{
-          ...dynamicStyles,
-          borderRadius: '8px',
-          backgroundColor: 'transparent',
-        }}
-        onClick={handleClick}
+        className="w-full h-full"
       >
-        <div data-node-id={id} className="w-full h-full">
-          {/* Quote Content */}
-          <div
-            className="relative border-l-4 pl-6 pr-4 py-4 rounded-r-lg"
-            style={quoteStyles}
-            onClick={handleContentClick}
-          >
-            {/* Quote Icon */}
-            <div className="absolute -left-2 top-4">
-              <div
-                className="w-6 h-6 rounded-full flex items-center justify-center"
-                style={{ backgroundColor: quoteColors.accent }}
-              >
-                <Quote className="w-3 h-3 text-white" />
-              </div>
-            </div>
+        {/* Conversational Quote Content */}
+        <div className="w-full h-full">
+          {/* Main Quote Content */}
+          <div className="flex gap-3 p-4">
+            {/* Subtle Left Accent */}
+            <div
+              className="w-1 rounded-full flex-shrink-0 mt-1"
+              style={{
+                backgroundColor: data.borderColor || semanticColors.border,
+                minHeight: '24px',
+              }}
+            />
 
-            {/* Quote Text */}
-            <div className="space-y-3">
-              <blockquote className="relative">
-                {safeStyle === 'large-quote' && (
-                  <Quote
-                    className="absolute -top-2 -left-4 w-8 h-8 opacity-20"
-                    style={{ color: quoteColors.accent }}
-                  />
-                )}
-                <p
-                  className={`leading-relaxed ${safeStyle === 'large-quote' ? 'text-xl font-medium' : 'text-base'}`}
+            {/* Quote Text & Attribution */}
+            <div className="flex-1 space-y-3">
+              {/* STANDARDIZED: Editable Message Content using unified EditableField */}
+              <div className="relative">
+                <EditableField
+                  value={data.content || ''}
+                  onUpdate={content => updateField('content', content)}
+                  placeholder={PLACEHOLDERS.QUOTE_TEXT}
+                  type="textarea"
+                  autoResize
+                  emptyText={`${PLACEHOLDERS.CLICK_TO_ADD} quote content`}
+                  blockId={id}
+                  blockSelected={selected}
+                  className="text-base leading-relaxed"
                   style={{
-                    color: quoteColors.text,
-                    fontStyle: safeStyle === 'large-quote' ? 'italic' : 'normal',
+                    color: semanticColors.text,
+                    fontWeight: 400, // Normal weight for conversational feel
+                    fontStyle: 'normal', // Remove italic for better readability
                   }}
-                >
-                  {safeContent}
-                </p>
-              </blockquote>
+                />
+              </div>
 
-              {/* Citation */}
-              {safeCitation && (
-                <footer
-                  className="flex items-center gap-2 pt-2 border-t border-opacity-20"
-                  style={{ borderColor: colors.block.border }}
-                >
-                  <User className="w-4 h-4" style={{ color: quoteColors.citation }} />
-                  <cite
-                    className="text-sm not-italic font-medium"
-                    style={{ color: quoteColors.citation }}
+              {/* STANDARDIZED: Editable Author Attribution using unified EditableField */}
+              <div className="flex items-center gap-2 mt-3">
+                {data.authorImage ? (
+                  <img
+                    src={data.authorImage}
+                    alt="Author"
+                    className="w-8 h-8 rounded-full object-cover"
+                    onError={e => {
+                      // Fallback to User icon if image fails to load
+                      e.currentTarget.style.display = 'none';
+                      e.currentTarget.nextElementSibling?.setAttribute('style', 'display: flex');
+                    }}
+                  />
+                ) : (
+                  <div
+                    className="w-8 h-8 rounded-full flex items-center justify-center"
+                    style={{ backgroundColor: `${data.borderColor || semanticColors.border}20` }}
                   >
-                    {safeCitation}
-                  </cite>
-                </footer>
-              )}
+                    <User
+                      className="w-4 h-4"
+                      style={{ color: data.borderColor || semanticColors.border }}
+                    />
+                  </div>
+                )}
 
-              {/* Empty citation placeholder */}
-              {!safeCitation && selected && (
-                <footer
-                  className="flex items-center gap-2 pt-2 border-t border-opacity-20"
-                  style={{ borderColor: colors.block.border }}
-                >
-                  <User className="w-4 h-4" style={{ color: quoteColors.citation }} />
-                  <cite
-                    className="text-sm not-italic"
-                    style={{ color: colors.block.textSecondary }}
-                  >
-                    Add citation (optional)
-                  </cite>
-                </footer>
-              )}
+                <EditableField
+                  value={data.citation || ''}
+                  onUpdate={citation => updateField('citation', citation)}
+                  placeholder={PLACEHOLDERS.QUOTE_ATTRIBUTION}
+                  emptyText={`${PLACEHOLDERS.QUOTE_ATTRIBUTION} ${PLACEHOLDERS.OPTIONAL}`}
+                  blockId={id}
+                  blockSelected={selected}
+                  className="text-sm not-italic flex-1"
+                  style={{ color: semanticColors.citation }}
+                />
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </>
+    </UnifiedBlockWrapper>
   );
 });

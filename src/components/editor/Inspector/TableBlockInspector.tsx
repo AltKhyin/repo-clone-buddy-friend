@@ -6,19 +6,16 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Separator } from '@/components/ui/separator';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useEditorStore } from '@/store/editorStore';
 import { SafeSwitch } from '../SafeSwitch';
-import {
-  Table,
-  Plus,
-  Minus,
-  Palette,
-  Settings,
-  Rows,
-  Columns,
-  ArrowUpDown,
-  RotateCcw,
-} from 'lucide-react';
+import { Table, Plus, Minus, Palette, ArrowUpDown, RotateCcw } from 'lucide-react';
 
 // Utility function to sanitize color values for HTML color inputs
 const sanitizeColorForInput = (color: string | undefined, fallback: string): string => {
@@ -89,83 +86,50 @@ export const TableBlockInspector: React.FC<TableBlockInspectorProps> = ({ nodeId
       <Separator />
 
       {/* Table Structure Section */}
-      <div className="space-y-3">
-        <h4 className="text-sm font-medium flex items-center gap-2">
-          <Settings size={14} />
-          Table Structure
-        </h4>
+      <div className="space-y-2">
+        <h4 className="text-sm font-medium">Table Structure</h4>
 
-        {/* Current Size Display */}
-        <div className="bg-muted/50 rounded p-2 text-xs">
-          <div className="flex justify-between items-center">
-            <span>
-              Size: {data.headers.length} columns × {data.rows.length} rows
-            </span>
-            <span>Total cells: {data.headers.length * data.rows.length}</span>
-          </div>
-        </div>
-
-        {/* Row Controls */}
-        <div className="space-y-2">
-          <div className="text-xs font-medium flex items-center gap-2">
-            <Rows size={12} />
-            Row Management
-          </div>
-          <div className="flex gap-2">
-            <Button size="sm" variant="outline" onClick={addRow} className="flex-1 h-8 text-xs">
-              <Plus size={12} className="mr-1" />
-              Add Row
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={removeRow}
-              disabled={data.rows.length <= 1}
-              className="flex-1 h-8 text-xs"
-            >
-              <Minus size={12} className="mr-1" />
-              Remove Row
-            </Button>
-          </div>
-        </div>
-
-        {/* Column Controls */}
-        <div className="space-y-2">
-          <div className="text-xs font-medium flex items-center gap-2">
-            <Columns size={12} />
-            Column Management
-          </div>
-          <div className="flex gap-2">
-            <Button size="sm" variant="outline" onClick={addColumn} className="flex-1 h-8 text-xs">
-              <Plus size={12} className="mr-1" />
-              Add Column
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={removeColumn}
-              disabled={data.headers.length <= 1}
-              className="flex-1 h-8 text-xs"
-            >
-              <Minus size={12} className="mr-1" />
-              Remove Column
-            </Button>
-          </div>
-        </div>
-
-        {/* Data Management */}
-        <div className="space-y-2">
-          <div className="text-xs font-medium">Data Management</div>
+        {/* Compact Controls */}
+        <div className="grid grid-cols-2 gap-2">
+          <Button size="sm" variant="outline" onClick={addRow} className="h-8 text-xs">
+            <Plus size={12} className="mr-1" />
+            Add Row
+          </Button>
+          <Button size="sm" variant="outline" onClick={addColumn} className="h-8 text-xs">
+            <Plus size={12} className="mr-1" />
+            Add Column
+          </Button>
           <Button
             size="sm"
             variant="outline"
-            onClick={clearAllData}
-            className="w-full h-8 text-xs text-orange-600 hover:text-orange-700"
+            onClick={removeRow}
+            disabled={data.rows.length <= 1}
+            className="h-8 text-xs"
           >
-            <RotateCcw size={12} className="mr-1" />
-            Clear All Data
+            <Minus size={12} className="mr-1" />
+            Remove Row
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={removeColumn}
+            disabled={data.headers.length <= 1}
+            className="h-8 text-xs"
+          >
+            <Minus size={12} className="mr-1" />
+            Remove Column
           </Button>
         </div>
+
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={clearAllData}
+          className="w-full h-8 text-xs text-orange-600 hover:text-orange-700"
+        >
+          <RotateCcw size={12} className="mr-1" />
+          Clear All Data
+        </Button>
       </div>
 
       <Separator />

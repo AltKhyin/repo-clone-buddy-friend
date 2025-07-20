@@ -96,8 +96,6 @@ export const TextBlockDataSchema = z.object({
   backgroundColor: z.string().optional(),
   paddingX: z.number().optional(),
   paddingY: z.number().optional(),
-  marginX: z.number().optional(),
-  marginY: z.number().optional(),
   borderRadius: z.number().optional(),
   borderWidth: z.number().default(0),
   borderColor: z.string().optional(),
@@ -113,8 +111,6 @@ export const ImageBlockDataSchema = z.object({
   // Spacing and styling
   paddingX: z.number().optional(),
   paddingY: z.number().optional(),
-  marginX: z.number().optional(),
-  marginY: z.number().optional(),
   backgroundColor: z.string().optional(),
   borderWidth: z.number().default(0),
   borderColor: z.string().optional(),
@@ -140,8 +136,6 @@ export const TableBlockDataSchema = z.object({
   // Spacing and styling properties
   paddingX: z.number().optional(),
   paddingY: z.number().optional(),
-  marginX: z.number().optional(),
-  marginY: z.number().optional(),
   backgroundColor: z.string().optional(),
   borderRadius: z.number().optional(),
   borderWidth: z.number().default(0),
@@ -169,8 +163,6 @@ export const PollBlockDataSchema = z.object({
   // Universal styling properties
   paddingX: z.number().optional(),
   paddingY: z.number().optional(),
-  marginX: z.number().optional(),
-  marginY: z.number().optional(),
   backgroundColor: z.string().optional(),
   borderRadius: z.number().optional(),
   borderWidth: z.number().default(0),
@@ -185,6 +177,8 @@ export const PollBlockDataSchema = z.object({
 
 export const KeyTakeawayBlockDataSchema = z.object({
   content: z.string(),
+  title: z.string().optional(),
+  subtitle: z.string().optional(),
   icon: z.string().optional(),
   theme: z.enum(['info', 'success', 'warning', 'error']).default('info'),
   backgroundColor: z.string().optional(),
@@ -213,8 +207,6 @@ export const ReferenceBlockDataSchema = z.object({
   // Universal styling properties
   paddingX: z.number().optional(),
   paddingY: z.number().optional(),
-  marginX: z.number().optional(),
-  marginY: z.number().optional(),
   backgroundColor: z.string().optional(),
   borderRadius: z.number().optional(),
   borderWidth: z.number().default(0),
@@ -230,13 +222,12 @@ export const ReferenceBlockDataSchema = z.object({
 export const QuoteBlockDataSchema = z.object({
   content: z.string(),
   citation: z.string().optional(),
-  style: z.enum(['default', 'large-quote']).default('default'),
+  authorImage: z.string().optional(),
+  style: z.enum(['default']).default('default'),
   borderColor: z.string().optional(),
   // Universal styling properties
   paddingX: z.number().optional(),
   paddingY: z.number().optional(),
-  marginX: z.number().optional(),
-  marginY: z.number().optional(),
   backgroundColor: z.string().optional(),
   borderRadius: z.number().optional(),
   borderWidth: z.number().default(0),
@@ -251,23 +242,14 @@ export const QuoteBlockDataSchema = z.object({
 export const VideoEmbedBlockDataSchema = z.object({
   url: z.string(),
   platform: z.enum(['youtube', 'vimeo']),
-  caption: z.string().optional(),
   autoplay: z.boolean().default(false),
   // Spacing and styling
   paddingX: z.number().optional(),
   paddingY: z.number().optional(),
-  marginX: z.number().optional(),
-  marginY: z.number().optional(),
   backgroundColor: z.string().optional(),
   borderWidth: z.number().default(0),
   borderColor: z.string().optional(),
   borderRadius: z.number().optional(),
-  // Caption styling properties
-  textAlign: z.enum(['left', 'center', 'right', 'justify']).optional(),
-  color: z.string().optional(),
-  fontSize: z.number().optional(),
-  fontFamily: z.string().optional(),
-  fontWeight: z.number().optional(),
 });
 
 export const SeparatorBlockDataSchema = z.object({
@@ -278,8 +260,6 @@ export const SeparatorBlockDataSchema = z.object({
   // Universal styling properties for separator container
   paddingX: z.number().optional(),
   paddingY: z.number().optional(),
-  marginX: z.number().optional(),
-  marginY: z.number().optional(),
   backgroundColor: z.string().optional(),
   borderRadius: z.number().optional(),
   borderWidth: z.number().default(0),
@@ -399,6 +379,68 @@ export interface CanvasTransform {
   zoom: number;
 }
 
+// Text Selection State for Unified Typography Editing
+export interface TextSelectionInfo {
+  /** ID of the block containing the selected text */
+  blockId: string | null;
+  /** The selected text content */
+  selectedText: string;
+  /** DOM element containing the selected text */
+  textElement: HTMLElement | null;
+  /** Selection range for precise text manipulation */
+  range: Range | null;
+  /** Whether text is currently selected */
+  hasSelection: boolean;
+}
+
+// Unified Content Boundary System for Resize
+export interface ContentBoundaryProps {
+  /** Block ID for identification */
+  id: string;
+  /** Content width in pixels */
+  width: number;
+  /** Content height in pixels */
+  height: number;
+  /** X position on canvas */
+  x: number;
+  /** Y position on canvas */
+  y: number;
+  /** Whether block is currently selected */
+  selected: boolean;
+  /** Block type for styling purposes */
+  blockType: string;
+  /** Content to be rendered inside the boundary */
+  children: React.ReactNode;
+  /** Additional styling for content */
+  contentStyles?: React.CSSProperties;
+  /** Callback when content boundaries are resized */
+  onResize?: (dimensions: { width: number; height: number }) => void;
+  /** Callback when content is moved */
+  onMove?: (position: { x: number; y: number }) => void;
+  /** Callback when block is selected (for unified selection system) */
+  onSelect?: () => void;
+  /** Whether resize handles should be visible */
+  showResizeHandles?: boolean;
+  /** Minimum content dimensions */
+  minDimensions?: { width: number; height: number };
+  /** Maximum content dimensions */
+  maxDimensions?: { width: number; height: number };
+}
+
+// Content-Aware Block Position (extends existing BlockPosition)
+export interface ContentAwareBlockPosition extends BlockPosition {
+  /** Actual content width (may differ from container width) */
+  contentWidth: number;
+  /** Actual content height (may differ from container height) */
+  contentHeight: number;
+  /** Content offset from container left edge */
+  contentOffsetX: number;
+  /** Content offset from container top edge */
+  contentOffsetY: number;
+  /** Whether content boundaries are locked to container */
+  contentLocked: boolean;
+}
+
 export interface EditorState {
   // Document State
   reviewId: string | null;
@@ -412,6 +454,7 @@ export interface EditorState {
 
   // Editor State
   selectedNodeId: string | null;
+  textSelection: TextSelectionInfo | null; // Text selection for unified typography editing
   canvasZoom: number; // Zoom level for precision editing
   isDirty: boolean;
   isSaving: boolean;
@@ -454,10 +497,11 @@ export interface EditorState {
   deleteNode: (nodeId: string) => void;
   duplicateNode: (nodeId: string) => void;
   selectNode: (nodeId: string | null) => void;
+  setTextSelection: (textSelection: TextSelectionInfo | null) => void;
 
   // WYSIWYG Position Management Actions
   updateNodePosition: (nodeId: string, positionUpdate: Partial<BlockPosition>) => void;
-  initializeNodePosition: (nodeId: string) => void;
+  initializeNodePosition: (nodeId: string, blockType?: string) => void;
   updateCanvasZoom: (zoom: number) => void;
   toggleSnapGuides: () => void;
 
@@ -577,8 +621,6 @@ export const getDefaultDataForBlockType = (blockType: string): any => {
         // Background and borders
         paddingX: 0,
         paddingY: 0,
-        marginX: 0,
-        marginY: 0,
         backgroundColor: 'transparent',
         borderRadius: 0,
         borderWidth: 0,
@@ -591,8 +633,6 @@ export const getDefaultDataForBlockType = (blockType: string): any => {
         caption: '',
         paddingX: 0,
         paddingY: 0,
-        marginX: 0,
-        marginY: 0,
         backgroundColor: 'transparent',
         borderRadius: 0,
         borderWidth: 0,
@@ -628,8 +668,6 @@ export const getDefaultDataForBlockType = (blockType: string): any => {
         // Default styling properties
         paddingX: 0,
         paddingY: 0,
-        marginX: 0,
-        marginY: 0,
         backgroundColor: 'transparent',
         borderRadius: 8,
         borderWidth: 0,
@@ -655,8 +693,6 @@ export const getDefaultDataForBlockType = (blockType: string): any => {
         // Default styling properties
         paddingX: 0,
         paddingY: 0,
-        marginX: 0,
-        marginY: 0,
         backgroundColor: 'transparent',
         borderRadius: 8,
         borderWidth: 0,
@@ -669,8 +705,6 @@ export const getDefaultDataForBlockType = (blockType: string): any => {
         // Default styling properties
         paddingX: 0,
         paddingY: 0,
-        marginX: 0,
-        marginY: 0,
         backgroundColor: 'transparent',
         borderRadius: 8,
         borderWidth: 0,
@@ -683,8 +717,6 @@ export const getDefaultDataForBlockType = (blockType: string): any => {
         // Default styling properties
         paddingX: 0,
         paddingY: 0,
-        marginX: 0,
-        marginY: 0,
         backgroundColor: 'transparent',
         borderRadius: 8,
         borderWidth: 0,
@@ -699,8 +731,6 @@ export const getDefaultDataForBlockType = (blockType: string): any => {
         // Default styling properties
         paddingX: 0,
         paddingY: 0,
-        marginX: 0,
-        marginY: 0,
         backgroundColor: 'transparent',
         borderRadius: 8,
         borderWidth: 0,

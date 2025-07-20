@@ -1,14 +1,17 @@
 // ABOUTME: WYSIWYG node component
 
 import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
 import {
-  CheckCircle2,
-  Circle,
+  EditableField,
+  useSemanticBlockStyling,
+  useStyledBlockDataUpdate,
+  Button,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  Badge,
   BarChart3,
   Users,
   Plus,
@@ -17,10 +20,12 @@ import {
   ChevronDown,
   Edit2,
   Settings,
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { useEditorStore } from '@/store/editorStore';
-import { useEditorTheme } from '@/hooks/useEditorTheme';
+  cn,
+  useEditorStore,
+  useEditorTheme,
+  PLACEHOLDERS,
+} from '@/components/editor/shared';
+import { CheckCircle2, Circle } from 'lucide-react';
 import { PollBlockData } from '@/types/editor';
 import { generateNodeId } from '@/types/editor';
 
@@ -36,13 +41,16 @@ export const PollBlockNode = React.memo(function PollBlockNode({
   selected,
 }: PollBlockNodeProps) {
   const { updateNode } = useEditorStore();
-  const { colors } = useEditorTheme();
   const [userVotes, setUserVotes] = useState<Set<string>>(new Set());
   const [isVoting, setIsVoting] = useState(false);
   const [hasInitialized, setHasInitialized] = useState(false);
-  const [editingQuestion, setEditingQuestion] = useState(false);
-  const [editingOption, setEditingOption] = useState<string | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
+
+  // Use unified data update hook
+  const { updateData } = useStyledBlockDataUpdate(id, data);
+
+  // Use semantic styling hook for poll-specific theming
+  const { semanticColors, colors } = useSemanticBlockStyling(data, selected || false, 'poll');
 
   // Get unified styling
   const selectionClasses = selected ? 'ring-2 ring-blue-500' : '';
@@ -52,15 +60,15 @@ export const PollBlockNode = React.memo(function PollBlockNode({
   };
 
   const pollData = data;
-  const pollColors = colors.semantic.poll;
+  const pollColors = semanticColors;
 
   // Enhanced data validation and initialization with useEffect to prevent infinite loops
   const defaultPollData = React.useMemo(
     () => ({
-      question: 'What is your opinion?',
+      question: PLACEHOLDERS.POLL_QUESTION,
       options: [
-        { id: 'opt-1-' + Date.now(), text: 'Option 1', votes: 0 },
-        { id: 'opt-2-' + Date.now(), text: 'Option 2', votes: 0 },
+        { id: 'opt-1-' + Date.now(), text: `${PLACEHOLDERS.POLL_OPTION} 1`, votes: 0 },
+        { id: 'opt-2-' + Date.now(), text: `${PLACEHOLDERS.POLL_OPTION} 2`, votes: 0 },
       ],
       allowMultiple: false,
       showResults: true,
@@ -69,9 +77,24 @@ export const PollBlockNode = React.memo(function PollBlockNode({
     []
   );
 
+  // Helper function to check if poll data is valid
+  const isValidPollData = (data: any): boolean => {
+    return data && typeof data === 'object';
+  };
+
+  // Helper function to calculate vote change
+  const calculateVoteChange = (
+    shouldAdd: boolean,
+    userVotes: Set<string>,
+    optionId: string
+  ): number => {
+    if (shouldAdd) return 1;
+    return userVotes.has(optionId) ? -1 : 0;
+  };
+
   // Initialize poll data if missing or invalid (using useEffect to prevent infinite loops)
   React.useEffect(() => {
-    if (!hasInitialized && (!pollData || typeof pollData !== 'object')) {
+    if (!hasInitialized && !isValidPollData(pollData)) {
       console.warn('PollBlockNode: Poll data is missing or invalid, initializing with defaults', {
         pollData,
         nodeId: id,
@@ -99,7 +122,7 @@ export const PollBlockNode = React.memo(function PollBlockNode({
         if (option.id === optionId) {
           // If multiple votes allowed, toggle; otherwise, only vote if not already voted
           const shouldAdd = safeAllowMultiple ? !userVotes.has(optionId) : userVotes.size === 0;
-          const voteChange = shouldAdd ? 1 : userVotes.has(optionId) ? -1 : 0;
+          const voteChange = calculateVoteChange(shouldAdd, userVotes, optionId);
 
           return {
             ...option,
@@ -150,31 +173,20 @@ export const PollBlockNode = React.memo(function PollBlockNode({
     }
   };
 
-  // Poll editing functions
-  const updatePollData = (updates: Partial<PollBlockData>) => {
-    updateNode(id, {
-      data: { ...pollData, ...updates },
-    });
-  };
-
-  const handleQuestionEdit = (newQuestion: string) => {
-    updatePollData({ question: newQuestion });
-  };
-
   const handleOptionEdit = (optionId: string, newText: string) => {
     const updatedOptions = safeOptions.map(option =>
       option.id === optionId ? { ...option, text: newText } : option
     );
-    updatePollData({ options: updatedOptions });
+    updateData({ options: updatedOptions });
   };
 
   const addOption = () => {
     const newOption = {
       id: generateNodeId(),
-      text: `Option ${safeOptions.length + 1}`,
+      text: `${PLACEHOLDERS.POLL_OPTION} ${safeOptions.length + 1}`,
       votes: 0,
     };
-    updatePollData({ options: [...safeOptions, newOption] });
+    updateData({ options: [...safeOptions, newOption] });
   };
 
   const removeOption = (optionId: string) => {
@@ -182,7 +194,7 @@ export const PollBlockNode = React.memo(function PollBlockNode({
       const filteredOptions = safeOptions.filter(option => option.id !== optionId);
       // Recalculate total votes
       const newTotalVotes = filteredOptions.reduce((sum, option) => sum + option.votes, 0);
-      updatePollData({ options: filteredOptions, totalVotes: newTotalVotes });
+      updateData({ options: filteredOptions, totalVotes: newTotalVotes });
     }
   };
 
@@ -196,14 +208,12 @@ export const PollBlockNode = React.memo(function PollBlockNode({
         newOptions[newIndex],
         newOptions[currentIndex],
       ];
-      updatePollData({ options: newOptions });
+      updateData({ options: newOptions });
     }
   };
 
   const toggleEditMode = () => {
     setIsEditMode(!isEditMode);
-    setEditingQuestion(false);
-    setEditingOption(null);
   };
 
   const getOptionPercentage = (votes: number) => {
@@ -246,29 +256,16 @@ export const PollBlockNode = React.memo(function PollBlockNode({
             <CardHeader className="pb-4">
               <div className="flex items-center justify-between">
                 <div className="flex-1 mr-4">
-                  {editingQuestion ? (
-                    <Input
-                      value={safeQuestion}
-                      onChange={e => handleQuestionEdit(e.target.value)}
-                      onBlur={() => setEditingQuestion(false)}
-                      onKeyDown={e => {
-                        if (e.key === 'Enter' || e.key === 'Escape') {
-                          setEditingQuestion(false);
-                        }
-                      }}
-                      className="text-lg font-semibold border-0 p-0 bg-transparent"
-                      style={{ color: pollColors.text }}
-                      autoFocus
-                    />
-                  ) : (
-                    <CardTitle
-                      className="text-lg font-semibold cursor-text"
-                      style={{ color: pollColors.text }}
-                      onClick={() => isEditMode && setEditingQuestion(true)}
-                    >
-                      {safeQuestion}
-                    </CardTitle>
-                  )}
+                  {/* STANDARDIZED: Editable Question using unified EditableField */}
+                  <EditableField
+                    value={pollData?.question || ''}
+                    onUpdate={question => updateData({ question })}
+                    placeholder={PLACEHOLDERS.POLL_QUESTION}
+                    blockId={id}
+                    blockSelected={selected}
+                    className="text-lg font-semibold"
+                    style={{ color: pollColors.text }}
+                  />
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge variant="outline" className="flex items-center gap-1">
@@ -281,7 +278,7 @@ export const PollBlockNode = React.memo(function PollBlockNode({
                       variant="outline"
                       onClick={toggleEditMode}
                       className="h-7 px-2"
-                      title={isEditMode ? 'Exit edit mode' : 'Edit poll'}
+                      title={isEditMode ? 'Exit edit mode' : 'Show edit options'}
                     >
                       {isEditMode ? (
                         <Settings className="w-3 h-3" />
@@ -312,13 +309,13 @@ export const PollBlockNode = React.memo(function PollBlockNode({
             </CardHeader>
 
             <CardContent className="space-y-3">
-              {/* Add Option Button (in edit mode) */}
-              {isEditMode && selected && (
+              {/* Add Option Button - Always visible when selected */}
+              {selected && (
                 <Button
                   size="sm"
                   variant="outline"
                   onClick={addOption}
-                  className="w-full h-10 border-dashed"
+                  className="w-full h-10 border-dashed opacity-60 hover:opacity-100 transition-opacity"
                   title="Add new option"
                 >
                   <Plus className="w-4 h-4 mr-2" />
@@ -330,7 +327,6 @@ export const PollBlockNode = React.memo(function PollBlockNode({
                 const percentage = getOptionPercentage(option.votes);
                 const isSelected = userVotes.has(option.id);
                 const showResults = safeShowResults && hasVoted;
-                const isEditingThisOption = editingOption === option.id;
 
                 return (
                   <div
@@ -353,7 +349,12 @@ export const PollBlockNode = React.memo(function PollBlockNode({
                           : pollColors.border,
                       borderRadius: '8px',
                     }}
-                    onClick={() => !showResults && !isEditMode && handleVote(option.id)}
+                    onClick={e => {
+                      // Only handle voting if not clicking on text or if results are hidden
+                      if (!showResults && !isEditMode && e.target === e.currentTarget) {
+                        handleVote(option.id);
+                      }
+                    }}
                   >
                     {/* Option Controls (edit mode) */}
                     {isEditMode && selected && (
@@ -433,36 +434,17 @@ export const PollBlockNode = React.memo(function PollBlockNode({
                           )}
                         </div>
 
-                        {/* Option text */}
+                        {/* STANDARDIZED: Option text using unified EditableField */}
                         <div className="flex-1">
-                          {isEditingThisOption ? (
-                            <Input
-                              value={option.text}
-                              onChange={e => handleOptionEdit(option.id, e.target.value)}
-                              onBlur={() => setEditingOption(null)}
-                              onKeyDown={e => {
-                                if (e.key === 'Enter' || e.key === 'Escape') {
-                                  setEditingOption(null);
-                                }
-                              }}
-                              className="font-medium border-0 p-0 bg-transparent"
-                              style={{ color: pollColors.text }}
-                              autoFocus
-                            />
-                          ) : (
-                            <span
-                              className={cn('font-medium', isEditMode && 'cursor-text')}
-                              style={{ color: pollColors.text }}
-                              onClick={e => {
-                                if (isEditMode) {
-                                  e.stopPropagation();
-                                  setEditingOption(option.id);
-                                }
-                              }}
-                            >
-                              {option.text}
-                            </span>
-                          )}
+                          <EditableField
+                            value={option.text}
+                            onUpdate={text => handleOptionEdit(option.id, text)}
+                            placeholder={`${PLACEHOLDERS.POLL_OPTION} ${index + 1}`}
+                            blockId={id}
+                            blockSelected={selected}
+                            className="font-medium"
+                            style={{ color: pollColors.text }}
+                          />
                         </div>
                       </div>
 
