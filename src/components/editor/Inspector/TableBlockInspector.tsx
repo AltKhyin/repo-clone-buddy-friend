@@ -1,29 +1,25 @@
-// ABOUTME: Inspector panel for TableBlock with comprehensive table structure and styling controls
+// ABOUTME: Inspector panel for TableBlock with structure management, typography controls, and unified styling
 
 import React from 'react';
 import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Slider } from '@/components/ui/slider';
 import { Separator } from '@/components/ui/separator';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { useEditorStore } from '@/store/editorStore';
-import { SafeSwitch } from '../SafeSwitch';
-import { Table, Plus, Minus, Palette, ArrowUpDown, RotateCcw } from 'lucide-react';
-
-// Utility function to sanitize color values for HTML color inputs
-const sanitizeColorForInput = (color: string | undefined, fallback: string): string => {
-  if (!color || color === 'transparent') {
-    return fallback;
-  }
-  return color;
-};
+import { 
+  Table, 
+  Plus, 
+  Minus, 
+  RotateCcw,
+  Type,
+  Palette,
+  Move,
+  Layers,
+  Grid3X3
+} from 'lucide-react';
+import { TableBlockData } from '@/types/editor';
+import { SpacingControls, BorderControls, BackgroundControls } from './shared/UnifiedControls';
 
 interface TableBlockInspectorProps {
   nodeId: string;
@@ -35,45 +31,95 @@ export const TableBlockInspector: React.FC<TableBlockInspectorProps> = ({ nodeId
   const node = nodes.find(n => n.id === nodeId);
   if (!node || node.type !== 'tableBlock') return null;
 
-  const data = node.data;
+  const data = node.data as TableBlockData;
+  
+  // Safety check for data integrity
+  if (!data || typeof data !== 'object') {
+    return (
+      <div className="p-4 text-center bg-red-50 rounded-lg border border-red-200">
+        <p className="text-red-700 font-medium">TableBlock Inspector</p>
+        <p className="text-red-600 text-sm">Invalid data structure detected</p>
+      </div>
+    );
+  }
+  
+  // CRITICAL FIX: Additional safety check for required properties
+  if (!data.htmlHeaders || !data.htmlRows || !Array.isArray(data.htmlHeaders) || !Array.isArray(data.htmlRows)) {
+    return (
+      <div className="p-4 text-center bg-yellow-50 rounded-lg border border-yellow-200">
+        <p className="text-yellow-700 font-medium">TableBlock Inspector</p>
+        <p className="text-yellow-600 text-sm">Table structure initializing...</p>
+        <button 
+          onClick={() => {
+            // Initialize with safe defaults
+            updateTableData({
+              htmlHeaders: ['<p>Column 1</p>', '<p>Column 2</p>'],
+              htmlRows: [['<p></p>', '<p></p>']]
+            });
+          }}
+          className="mt-2 px-3 py-1 bg-yellow-200 text-yellow-800 rounded text-xs hover:bg-yellow-300"
+        >
+          Initialize Table
+        </button>
+      </div>
+    );
+  }
 
-  const updateNodeData = (updates: Partial<typeof data>) => {
+  const updateTableData = (updates: Partial<TableBlockData>) => {
     updateNode(nodeId, {
       data: { ...data, ...updates },
     });
   };
 
-  const addRow = () => {
-    const newRow = new Array(data.headers.length).fill('');
-    updateNodeData({ rows: [...data.rows, newRow] });
-  };
+  // Table structure helpers with safe defaults and additional null checks
+  const currentHeaders = Array.isArray(data.htmlHeaders) ? data.htmlHeaders : [];
+  const currentRows = Array.isArray(data.htmlRows) ? data.htmlRows : [];
+  const rowCount = currentRows.length || 0;
+  const colCount = currentHeaders.length || 0;
+  
+  // SAFETY: Ensure we have minimum viable table structure
+  if (colCount === 0 && rowCount === 0) {
+    console.warn('[TableBlockInspector] Empty table structure detected');
+  }
 
-  const removeRow = () => {
-    if (data.rows.length > 1) {
-      updateNodeData({ rows: data.rows.slice(0, -1) });
-    }
-  };
-
+  // Add/Remove structure functions with safe array handling
   const addColumn = () => {
-    const newHeaders = [...data.headers, `Column ${data.headers.length + 1}`];
-    const newRows = data.rows.map(row => [...row, '']);
-    updateNodeData({ headers: newHeaders, rows: newRows });
+    const newHeaders = [...currentHeaders, '<p>New Column</p>'];
+    const newRows = currentRows.map(row => [...(Array.isArray(row) ? row : []), '<p></p>']);
+    updateTableData({ htmlHeaders: newHeaders, htmlRows: newRows });
   };
 
   const removeColumn = () => {
-    if (data.headers.length > 1) {
-      const newHeaders = data.headers.slice(0, -1);
-      const newRows = data.rows.map(row => row.slice(0, -1));
-      updateNodeData({ headers: newHeaders, rows: newRows });
-    }
+    if (colCount <= 1) return; // Keep at least one column
+    const newHeaders = currentHeaders.slice(0, -1);
+    const newRows = currentRows.map(row => (Array.isArray(row) ? row : []).slice(0, -1));
+    updateTableData({ htmlHeaders: newHeaders, htmlRows: newRows });
   };
 
-  const clearAllData = () => {
-    const emptyRows = data.rows.map(row => new Array(row.length).fill(''));
-    updateNodeData({
-      headers: data.headers.map((_, index) => `Column ${index + 1}`),
-      rows: emptyRows,
-    });
+  const addRow = () => {
+    const newRow = Array(Math.max(1, colCount)).fill('<p></p>');
+    const newRows = [...currentRows, newRow];
+    updateTableData({ htmlRows: newRows });
+  };
+
+  const removeRow = () => {
+    if (rowCount <= 1) return; // Keep at least one row
+    const newRows = currentRows.slice(0, -1);
+    updateTableData({ htmlRows: newRows });
+  };
+
+  const resetTable = () => {
+    const defaultHeaders = ['<p>Column 1</p>', '<p>Column 2</p>'];
+    const defaultRows = [['<p></p>', '<p></p>']];
+    updateTableData({ htmlHeaders: defaultHeaders, htmlRows: defaultRows });
+  };
+
+  const initializeTable = () => {
+    if (currentHeaders.length === 0) {
+      const defaultHeaders = ['<p>Column 1</p>', '<p>Column 2</p>'];
+      const defaultRows = [['<p></p>', '<p></p>']];
+      updateTableData({ htmlHeaders: defaultHeaders, htmlRows: defaultRows });
+    }
   };
 
   return (
@@ -81,393 +127,174 @@ export const TableBlockInspector: React.FC<TableBlockInspectorProps> = ({ nodeId
       <div className="flex items-center gap-2">
         <Table size={16} />
         <h3 className="font-medium">Table Block</h3>
+        <Badge variant="secondary" className="text-xs">
+          {colCount}×{rowCount}
+        </Badge>
       </div>
 
       <Separator />
 
       {/* Table Structure Section */}
-      <div className="space-y-2">
-        <h4 className="text-sm font-medium">Table Structure</h4>
-
-        {/* Compact Controls */}
-        <div className="grid grid-cols-2 gap-2">
-          <Button size="sm" variant="outline" onClick={addRow} className="h-8 text-xs">
-            <Plus size={12} className="mr-1" />
-            Add Row
-          </Button>
-          <Button size="sm" variant="outline" onClick={addColumn} className="h-8 text-xs">
-            <Plus size={12} className="mr-1" />
-            Add Column
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={removeRow}
-            disabled={data.rows.length <= 1}
-            className="h-8 text-xs"
-          >
-            <Minus size={12} className="mr-1" />
-            Remove Row
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={removeColumn}
-            disabled={data.headers.length <= 1}
-            className="h-8 text-xs"
-          >
-            <Minus size={12} className="mr-1" />
-            Remove Column
-          </Button>
-        </div>
-
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={clearAllData}
-          className="w-full h-8 text-xs text-orange-600 hover:text-orange-700"
-        >
-          <RotateCcw size={12} className="mr-1" />
-          Clear All Data
-        </Button>
-      </div>
-
-      <Separator />
-
-      {/* Table Behavior Section */}
       <div className="space-y-3">
         <h4 className="text-sm font-medium flex items-center gap-2">
-          <ArrowUpDown size={14} />
-          Table Behavior
+          <Grid3X3 size={14} />
+          Table Structure
         </h4>
 
-        {/* Sortable Toggle */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="table-sortable" className="text-xs">
-              Enable Column Sorting
-            </Label>
-            <SafeSwitch
-              id="table-sortable"
-              checked={data.sortable || false}
-              onCheckedChange={checked => updateNodeData({ sortable: checked })}
-            />
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Allow users to click column headers to sort data
-          </p>
-        </div>
+        {(currentHeaders?.length || 0) === 0 ? (
+          /* Empty State */
+          <Card>
+            <CardContent className="p-4 text-center">
+              <Table size={24} className="mx-auto mb-2 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground mb-3">
+                No table created yet
+              </p>
+              <Button onClick={initializeTable} size="sm" className="w-full">
+                <Plus size={14} className="mr-2" />
+                Create Table
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          /* Structure Controls */
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-2">
+                <Label className="text-xs">Columns ({colCount || 0})</Label>
+                <div className="flex gap-1">
+                  <Button onClick={addColumn} variant="outline" size="sm" className="flex-1">
+                    <Plus size={12} />
+                  </Button>
+                  <Button 
+                    onClick={removeColumn} 
+                    variant="outline" 
+                    size="sm" 
+                    className="flex-1"
+                    disabled={(colCount || 0) <= 1}
+                  >
+                    <Minus size={12} />
+                  </Button>
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label className="text-xs">Rows ({rowCount || 0})</Label>
+                <div className="flex gap-1">
+                  <Button onClick={addRow} variant="outline" size="sm" className="flex-1">
+                    <Plus size={12} />
+                  </Button>
+                  <Button 
+                    onClick={removeRow} 
+                    variant="outline" 
+                    size="sm" 
+                    className="flex-1"
+                    disabled={(rowCount || 0) <= 1}
+                  >
+                    <Minus size={12} />
+                  </Button>
+                </div>
+              </div>
+            </div>
 
-        {/* Alternating Row Colors */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="table-alternating" className="text-xs">
-              Alternating Row Colors
-            </Label>
-            <SafeSwitch
-              id="table-alternating"
-              checked={data.alternatingRowColors || false}
-              onCheckedChange={checked => updateNodeData({ alternatingRowColors: checked })}
-            />
+            <Button 
+              onClick={resetTable} 
+              variant="outline" 
+              size="sm" 
+              className="w-full text-muted-foreground"
+            >
+              <RotateCcw size={12} className="mr-2" />
+              Reset to 2×1 Table
+            </Button>
           </div>
-          <p className="text-xs text-muted-foreground">
-            Alternate background colors for better readability
-          </p>
+        )}
+      </div>
+
+      <Separator />
+
+      {/* Typography Note */}
+      <div className="space-y-2">
+        <h4 className="text-sm font-medium flex items-center gap-2">
+          <Type size={14} />
+          Typography
+        </h4>
+        <div className="text-xs text-muted-foreground bg-muted/20 p-3 rounded-lg">
+          💡 Typography controls are available in the toolbar when editing cells. 
+          Select any cell and use the formatting controls to style text.
         </div>
       </div>
 
       <Separator />
 
-      {/* Header Styling Section */}
+      {/* Colors & Background Section */}
       <div className="space-y-3">
         <h4 className="text-sm font-medium flex items-center gap-2">
           <Palette size={14} />
-          Header Styling
+          Colors & Background
         </h4>
-
-        {/* Header Background Color */}
-        <div className="space-y-2">
-          <Label htmlFor="header-bg-color" className="text-xs">
-            Header Background
-          </Label>
-          <div className="flex items-center gap-2">
-            <Input
-              id="header-bg-color"
-              type="color"
-              value={data.headerStyle?.backgroundColor || '#f3f4f6'}
-              onChange={e =>
-                updateNodeData({
-                  headerStyle: {
-                    ...data.headerStyle,
-                    backgroundColor: e.target.value,
-                  },
-                })
-              }
-              className="w-12 h-8 p-1 border rounded"
-            />
-            <Input
-              type="text"
-              value={data.headerStyle?.backgroundColor || '#f3f4f6'}
-              onChange={e =>
-                updateNodeData({
-                  headerStyle: {
-                    ...data.headerStyle,
-                    backgroundColor: e.target.value,
-                  },
-                })
-              }
-              placeholder="#f3f4f6"
-              className="flex-1 h-8 text-xs"
-            />
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() =>
-                updateNodeData({
-                  headerStyle: {
-                    ...data.headerStyle,
-                    backgroundColor: undefined,
-                  },
-                })
-              }
-              className="h-8 px-2 text-xs"
-            >
-              Reset
-            </Button>
-          </div>
-        </div>
-
-        {/* Header Text Color */}
-        <div className="space-y-2">
-          <Label htmlFor="header-text-color" className="text-xs">
-            Header Text Color
-          </Label>
-          <div className="flex items-center gap-2">
-            <Input
-              id="header-text-color"
-              type="color"
-              value={data.headerStyle?.textColor || '#374151'}
-              onChange={e =>
-                updateNodeData({
-                  headerStyle: {
-                    ...data.headerStyle,
-                    textColor: e.target.value,
-                  },
-                })
-              }
-              className="w-12 h-8 p-1 border rounded"
-            />
-            <Input
-              type="text"
-              value={data.headerStyle?.textColor || '#374151'}
-              onChange={e =>
-                updateNodeData({
-                  headerStyle: {
-                    ...data.headerStyle,
-                    textColor: e.target.value,
-                  },
-                })
-              }
-              placeholder="#374151"
-              className="flex-1 h-8 text-xs"
-            />
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() =>
-                updateNodeData({
-                  headerStyle: {
-                    ...data.headerStyle,
-                    textColor: undefined,
-                  },
-                })
-              }
-              className="h-8 px-2 text-xs"
-            >
-              Reset
-            </Button>
-          </div>
-        </div>
+        
+        <BackgroundControls
+          data={data}
+          onChange={updateTableData}
+          enableImage={false} // Tables don't typically need background images
+          compact={true}
+          className="space-y-3"
+          colorKey="backgroundColor"
+          defaultColor="transparent"
+          label="Table Background"
+        />
       </div>
 
       <Separator />
 
-      {/* Spacing & Borders Section */}
+      {/* Spacing & Layout Section */}
       <div className="space-y-3">
-        <h4 className="text-sm font-medium">Spacing & Borders</h4>
+        <h4 className="text-sm font-medium flex items-center gap-2">
+          <Move size={14} />
+          Spacing & Layout
+        </h4>
+        
+        <SpacingControls
+          data={data}
+          onChange={updateTableData}
+          compact={true}
+          className="space-y-3"
+          enablePresets={true}
+          enableBorders={false} // Use separate border controls
+          showDetailedControls={false}
+        />
+      </div>
 
-        {/* Horizontal Padding */}
-        <div className="space-y-2">
-          <div className="text-xs font-medium">Horizontal Padding</div>
-          <div className="flex items-center gap-2">
-            <Slider
-              id="table-padding-x"
-              min={0}
-              max={48}
-              step={4}
-              value={[data.paddingX || 16]}
-              onValueChange={([value]) => updateNodeData({ paddingX: value })}
-              className="flex-1"
-            />
-            <Input
-              type="number"
-              value={data.paddingX || 16}
-              onChange={e => updateNodeData({ paddingX: parseInt(e.target.value) || 16 })}
-              className="w-16 h-8 text-xs"
-              min={0}
-              max={48}
-            />
-            <span className="text-xs text-muted-foreground">px</span>
+      <Separator />
+
+      {/* Border & Style Section */}
+      <div className="space-y-3">
+        <h4 className="text-sm font-medium flex items-center gap-2">
+          <Layers size={14} />
+          Border & Style
+        </h4>
+        
+        <BorderControls
+          data={data}
+          onChange={updateTableData}
+          compact={true}
+          className="space-y-3"
+          enableCornerRadius={true}
+          enableBorderStyle={true}
+          defaultBorderColor="#e5e7eb"
+          defaultBorderWidth={1}
+        />
+      </div>
+
+      {/* Table Info */}
+      <div className="pt-2 border-t bg-muted/20 p-3 rounded-lg">
+        <div className="text-xs text-muted-foreground space-y-1">
+          <div className="font-medium">Table Info</div>
+          <div>Size: {colCount || 0} columns × {rowCount || 0} rows</div>
+          <div>Total cells: {(colCount || 0) * (rowCount || 0)}</div>
+          <div className="text-xs text-muted-foreground/70 mt-2">
+            💡 Use Tab to navigate between cells, Enter to add new rows
           </div>
         </div>
-
-        {/* Vertical Padding */}
-        <div className="space-y-2">
-          <div className="text-xs font-medium">Vertical Padding</div>
-          <div className="flex items-center gap-2">
-            <Slider
-              id="table-padding-y"
-              min={0}
-              max={48}
-              step={4}
-              value={[data.paddingY || 16]}
-              onValueChange={([value]) => updateNodeData({ paddingY: value })}
-              className="flex-1"
-            />
-            <Input
-              type="number"
-              value={data.paddingY || 16}
-              onChange={e => updateNodeData({ paddingY: parseInt(e.target.value) || 16 })}
-              className="w-16 h-8 text-xs"
-              min={0}
-              max={48}
-            />
-            <span className="text-xs text-muted-foreground">px</span>
-          </div>
-        </div>
-
-        {/* Background Color */}
-        <div className="space-y-2">
-          <Label htmlFor="table-bg-color" className="text-xs">
-            Background Color
-          </Label>
-          <div className="flex items-center gap-2">
-            <Input
-              id="table-bg-color"
-              type="color"
-              value={sanitizeColorForInput(data.backgroundColor, '#ffffff')}
-              onChange={e => updateNodeData({ backgroundColor: e.target.value })}
-              className="w-12 h-8 p-1 border rounded"
-            />
-            <Input
-              type="text"
-              value={data.backgroundColor || 'transparent'}
-              onChange={e => updateNodeData({ backgroundColor: e.target.value })}
-              placeholder="transparent"
-              className="flex-1 h-8 text-xs"
-            />
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => updateNodeData({ backgroundColor: 'transparent' })}
-              className="h-8 px-2 text-xs"
-            >
-              Clear
-            </Button>
-          </div>
-        </div>
-
-        {/* Border Radius */}
-        <div className="space-y-2">
-          <div className="text-xs font-medium">Border Radius</div>
-          <div className="flex items-center gap-2">
-            <Slider
-              id="table-border-radius"
-              min={0}
-              max={24}
-              step={2}
-              value={[data.borderRadius || 8]}
-              onValueChange={([value]) => updateNodeData({ borderRadius: value })}
-              className="flex-1"
-            />
-            <Input
-              type="number"
-              value={data.borderRadius || 8}
-              onChange={e => updateNodeData({ borderRadius: parseInt(e.target.value) || 8 })}
-              className="w-16 h-8 text-xs"
-              min={0}
-              max={24}
-            />
-            <span className="text-xs text-muted-foreground">px</span>
-          </div>
-        </div>
-
-        {/* Border Toggle */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="table-border-toggle" className="text-xs">
-              Enable Border
-            </Label>
-            <SafeSwitch
-              id="table-border-toggle"
-              checked={(data.borderWidth || 0) > 0}
-              onCheckedChange={checked => updateNodeData({ borderWidth: checked ? 1 : 0 })}
-            />
-          </div>
-        </div>
-
-        {/* Border Controls - Only show when border is enabled */}
-        {(data.borderWidth || 0) > 0 && (
-          <>
-            {/* Border Width */}
-            <div className="space-y-2">
-              <div className="text-xs font-medium">Border Width</div>
-              <div className="flex items-center gap-2">
-                <Slider
-                  id="table-border-width"
-                  min={1}
-                  max={8}
-                  step={1}
-                  value={[data.borderWidth || 1]}
-                  onValueChange={([value]) => updateNodeData({ borderWidth: value })}
-                  className="flex-1"
-                />
-                <Input
-                  type="number"
-                  value={data.borderWidth || 1}
-                  onChange={e => updateNodeData({ borderWidth: parseInt(e.target.value) || 1 })}
-                  className="w-16 h-8 text-xs"
-                  min={1}
-                  max={8}
-                />
-                <span className="text-xs text-muted-foreground">px</span>
-              </div>
-            </div>
-
-            {/* Border Color */}
-            <div className="space-y-2">
-              <Label htmlFor="table-border-color" className="text-xs">
-                Border Color
-              </Label>
-              <div className="flex items-center gap-2">
-                <Input
-                  id="table-border-color"
-                  type="color"
-                  value={data.borderColor || '#e5e7eb'}
-                  onChange={e => updateNodeData({ borderColor: e.target.value })}
-                  className="w-12 h-8 p-1 border rounded"
-                />
-                <Input
-                  type="text"
-                  value={data.borderColor || '#e5e7eb'}
-                  onChange={e => updateNodeData({ borderColor: e.target.value })}
-                  placeholder="#e5e7eb"
-                  className="flex-1 h-8 text-xs"
-                />
-              </div>
-            </div>
-          </>
-        )}
       </div>
     </div>
   );

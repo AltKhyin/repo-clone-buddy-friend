@@ -51,8 +51,24 @@ export function PollBlockInspector({ nodeId }: PollBlockInspectorProps) {
     });
   };
 
+  // Helper functions to convert between HTML and plain text for inspector editing
+  const htmlToText = (html: string): string => {
+    if (!html || html === '<p></p>' || html === '<p><br></p>') return '';
+    return html
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<\/p><p>/gi, '\n')
+      .replace(/<[^>]+>/g, '')
+      .trim();
+  };
+
+  const textToHtml = (text: string): string => {
+    if (!text || text.trim() === '') return '<p></p>';
+    return `<p>${text.replace(/\n/g, '<br>')}</p>`;
+  };
+
   const handleQuestionChange = (question: string) => {
-    updatePollData({ question });
+    const htmlQuestion = textToHtml(question);
+    updatePollData({ htmlQuestion });
   };
 
   const handleAddOption = () => {
@@ -60,7 +76,7 @@ export function PollBlockInspector({ nodeId }: PollBlockInspectorProps) {
 
     const newOption = {
       id: generateNodeId(),
-      text: newOptionText.trim(),
+      htmlText: textToHtml(newOptionText.trim()),
       votes: 0,
     };
 
@@ -72,7 +88,7 @@ export function PollBlockInspector({ nodeId }: PollBlockInspectorProps) {
 
   const handleUpdateOption = (optionId: string, text: string) => {
     const updatedOptions = data.options.map(option =>
-      option.id === optionId ? { ...option, text } : option
+      option.id === optionId ? { ...option, htmlText: textToHtml(text) } : option
     );
     updatePollData({ options: updatedOptions });
   };
@@ -126,7 +142,7 @@ export function PollBlockInspector({ nodeId }: PollBlockInspectorProps) {
         </Label>
         <Textarea
           id="poll-question"
-          value={data.question || ''}
+          value={htmlToText(data.htmlQuestion || '')}
           onChange={e => handleQuestionChange(e.target.value)}
           placeholder="Enter your poll question..."
           className="min-h-[60px] text-sm"
@@ -153,7 +169,7 @@ export function PollBlockInspector({ nodeId }: PollBlockInspectorProps) {
               <div className="flex items-center gap-2">
                 <GripVertical className="w-3 h-3 text-gray-400 flex-shrink-0" />
                 <Input
-                  value={option.text}
+                  value={htmlToText(option.htmlText || '')}
                   onChange={e => handleUpdateOption(option.id, e.target.value)}
                   placeholder={`Option ${index + 1}`}
                   className="text-sm"

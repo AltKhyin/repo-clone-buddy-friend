@@ -30,6 +30,36 @@ export const QuoteBlockInspector: React.FC<QuoteBlockInspectorProps> = ({ nodeId
     });
   };
 
+  // Helper functions to convert between HTML and plain text for inspector editing
+  const htmlToText = (html: string): string => {
+    if (!html || html === '<p></p>' || html === '<p><br></p>') return '';
+    return html
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<\/p><p>/gi, '\n')
+      .replace(/<[^>]+>/g, '')
+      .trim();
+  };
+
+  const textToHtml = (text: string): string => {
+    if (!text || text.trim() === '') return '<p></p>';
+    return `<p>${text.replace(/\n/g, '<br>')}</p>`;
+  };
+
+  // Get text values for inspector editing
+  const contentText = htmlToText(data.htmlContent || '');
+  const citationText = htmlToText(data.htmlCitation || '');
+
+  // Handle content updates with HTML conversion
+  const handleContentUpdate = (text: string) => {
+    const htmlContent = textToHtml(text);
+    updateQuoteData({ htmlContent });
+  };
+
+  const handleCitationUpdate = (text: string) => {
+    const htmlCitation = textToHtml(text);
+    updateQuoteData({ htmlCitation });
+  };
+
   // Predefined border colors
   const borderColors = [
     { value: '#3b82f6', label: 'Blue', color: '#3b82f6' },
@@ -63,8 +93,8 @@ export const QuoteBlockInspector: React.FC<QuoteBlockInspectorProps> = ({ nodeId
           </Label>
           <Textarea
             id="quote-content"
-            value={data.content || ''}
-            onChange={e => updateQuoteData({ content: e.target.value })}
+            value={contentText}
+            onChange={e => handleContentUpdate(e.target.value)}
             placeholder="Enter the quote text here..."
             className="min-h-[100px] text-sm"
             rows={4}
@@ -81,8 +111,8 @@ export const QuoteBlockInspector: React.FC<QuoteBlockInspectorProps> = ({ nodeId
           </Label>
           <Input
             id="quote-citation"
-            value={data.citation || ''}
-            onChange={e => updateQuoteData({ citation: e.target.value })}
+            value={citationText}
+            onChange={e => handleCitationUpdate(e.target.value)}
             placeholder="— Author Name, Source"
             className="h-8 text-xs"
           />

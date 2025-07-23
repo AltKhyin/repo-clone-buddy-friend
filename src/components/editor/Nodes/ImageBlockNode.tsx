@@ -1,16 +1,17 @@
-// ABOUTME: WYSIWYG node component
+// ABOUTME: WYSIWYG node component with Tiptap integration for caption typography support
 
-import React from 'react';
+import React, { useCallback } from 'react';
+import { EditorContent } from '@tiptap/react';
 import { ImageBlockData } from '@/types/editor';
 import { ImageIcon, ImageOff } from 'lucide-react';
 import { useIntersectionObserver } from '@/hooks/useIntersectionObserver';
+import { useTiptapEditor } from '@/hooks/useTiptapEditor';
+import { useEditorStore } from '@/store/editorStore';
+import { useEditorTheme } from '@/hooks/useEditorTheme';
 import {
   UnifiedBlockWrapper,
-  EditableField,
   useBlockStyling,
   useStyledBlockDataUpdate,
-  useEditorStore,
-  useEditorTheme,
   PLACEHOLDERS,
 } from '@/components/editor/shared';
 
@@ -47,6 +48,34 @@ export const ImageBlockNode = React.memo<ImageBlockNodeProps>(
     // Use unified data update hook
     const { updateField } = useStyledBlockDataUpdate(id, data);
 
+    // Handle caption updates from Tiptap
+    const handleCaptionUpdate = useCallback(
+      (nodeId: string, htmlCaption: string) => {
+        updateNode(nodeId, {
+          data: {
+            ...data,
+            htmlCaption,
+          },
+        });
+      },
+      [updateNode, data]
+    );
+
+    // Get initial content for caption field
+    const getInitialCaption = () => {
+      return data.htmlCaption || '<p></p>';
+    };
+
+    // Initialize Tiptap editor for caption
+    const captionEditor = useTiptapEditor({
+      nodeId: `${id}-caption`,
+      initialContent: getInitialCaption(),
+      placeholder: PLACEHOLDERS.IMAGE_CAPTION,
+      onUpdate: handleCaptionUpdate,
+      editable: true,
+      fieldConfig: { fieldType: 'multi-line' },
+    });
+
     // Use styling hook for consistent styling
     const { contentStyles } = useBlockStyling(data, selected || false, {
       defaultPaddingX: 16,
@@ -73,6 +102,22 @@ export const ImageBlockNode = React.memo<ImageBlockNodeProps>(
     const paddingX = data.paddingX ?? 16;
     const paddingY = data.paddingY ?? 16;
     const backgroundColor = data.backgroundColor ?? 'transparent';
+
+    // Typography styles for caption field (like TextBlockNode)
+    const captionDynamicStyles = {
+      fontSize: data.fontSize ? `${data.fontSize}px` : '14px',
+      textAlign: data.textAlign || 'center',
+      color: data.color || colors.block.textSecondary,
+      lineHeight: data.lineHeight || 1.5,
+      fontFamily: data.fontFamily || 'inherit',
+      fontWeight: data.fontWeight || 400,
+      letterSpacing: data.letterSpacing ? `${data.letterSpacing}px` : '0px',
+      textTransform: data.textTransform || 'none',
+      textDecoration: data.textDecoration || 'none',
+      fontStyle: data.fontStyle || 'italic', // Default italic for captions
+      width: '100%',
+      cursor: 'text',
+    } as React.CSSProperties;
 
     // Convert image URL to WebP if supported and provide fallback
     const getOptimizedImageUrl = (originalUrl: string): string => {
@@ -287,21 +332,20 @@ export const ImageBlockNode = React.memo<ImageBlockNodeProps>(
             )}
           </div>
 
-          {/* STANDARDIZED: Editable Caption using unified EditableField */}
-          {(data.caption || selected) && (
+          {/* Caption with Tiptap Integration */}
+          {(data.htmlCaption || selected) && (
             <div className="mt-2 w-full">
-              <EditableField
-                value={data.caption || ''}
-                onUpdate={caption => updateField('caption', caption)}
-                placeholder={PLACEHOLDERS.IMAGE_CAPTION}
-                type="textarea"
-                rows={1}
-                emptyText={`${PLACEHOLDERS.CLICK_TO_ADD} caption`}
-                blockId={id}
-                blockSelected={selected}
-                className="text-sm italic text-center w-full"
-                style={{ color: data.color || colors.block.textSecondary }}
-              />
+              <div className="relative w-full">
+                <EditorContent
+                  editor={captionEditor.editor}
+                  className="tiptap-image-caption max-w-none focus:outline-none text-center italic [&>*]:my-0 [&_p]:my-0"
+                  style={captionDynamicStyles}
+                />
+                {/* Focus indicator for caption */}
+                {captionEditor.isFocused && (
+                  <div className="absolute inset-0 pointer-events-none ring-1 ring-blue-400 ring-opacity-50 rounded" />
+                )}
+              </div>
             </div>
           )}
 

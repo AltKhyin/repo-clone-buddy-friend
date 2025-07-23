@@ -208,11 +208,17 @@ export const useEditorStore = create<EditorState>((set, get) => {
     // ===== NODE ACTIONS =====
 
     addNode: nodeData => {
+      const nodeType = nodeData.type || 'textBlock';
+      const nodeDataValue = nodeData.data || getDefaultDataForBlockType(nodeType);
+      
       const newNode: NodeObject = {
         id: generateNodeId(),
-        type: nodeData.type || 'textBlock',
-        data: nodeData.data || getDefaultDataForBlockType(nodeData.type || 'textBlock'),
-        ...nodeData,
+        type: nodeType,
+        data: nodeDataValue,
+        // Include any additional properties from nodeData EXCEPT id, type, data
+        ...Object.fromEntries(
+          Object.entries(nodeData).filter(([key]) => !['id', 'type', 'data'].includes(key))
+        ),
       } as NodeObject;
 
       set(state => {

@@ -3,8 +3,10 @@
 import React from 'react';
 import { useEditorStore } from '@/store/editorStore';
 import { useEditorTheme } from '@/hooks/useEditorTheme';
+import { useTiptapEditor } from '@/hooks/useTiptapEditor';
 import { ReferenceBlockData } from '@/types/editor';
 import { cn } from '@/lib/utils';
+import { EditorContent } from '@tiptap/react';
 
 interface ReferenceBlockNodeProps {
   id: string;
@@ -36,8 +38,33 @@ export function ReferenceBlockNode({ id, data, selected }: ReferenceBlockNodePro
   const { updateNode } = useEditorStore();
   const { colors } = useEditorTheme();
 
-  // Generate APA formatted citation
+  // Handle content updates from Tiptap editor
+  const handleHtmlFormattedUpdate = React.useCallback(
+    (nodeId: string, htmlFormatted: string) => {
+      updateNode(nodeId, { 
+        data: { ...data, htmlFormatted } 
+      });
+    },
+    [updateNode, data]
+  );
+
+  // Initialize Tiptap editor for custom formatted field
+  const formattedEditor = useTiptapEditor({
+    nodeId: id,
+    initialContent: data.htmlFormatted || '<p></p>',
+    placeholder: 'Enter custom citation format...',
+    onUpdate: handleHtmlFormattedUpdate,
+    editable: selected, // Only editable when selected
+    fieldConfig: { fieldType: 'multi-line' },
+  });
+
+  // Generate APA formatted citation (fallback to auto-format if no custom format)
   const formattedCitation = React.useMemo(() => {
+    // If custom HTML formatting exists and has content, use it
+    if (data.htmlFormatted && data.htmlFormatted !== '<p></p>' && data.htmlFormatted.trim() !== '<p></p>') {
+      return data.htmlFormatted;
+    }
+    // Otherwise use legacy formatted field or auto-generate APA
     return data.formatted || formatAPA(data);
   }, [data]);
 
@@ -87,9 +114,50 @@ export function ReferenceBlockNode({ id, data, selected }: ReferenceBlockNodePro
 
         {/* Formatted Citation Display */}
         <div className="space-y-2">
-          <p className="text-sm leading-relaxed font-serif" style={{ color: colors.block.text }}>
-            {formattedCitation}
-          </p>
+          {/* Show Tiptap editor when selected and using custom formatting */}
+          {selected && data.htmlFormatted && data.htmlFormatted !== '<p></p>' ? (
+            <div className="border border-blue-300 rounded-md p-2 bg-blue-50/50">
+              <div className="text-xs text-blue-600 mb-1 font-medium">Custom Format (Editable)</div>
+              <EditorContent
+                editor={formattedEditor.editor}
+                className="tiptap-reference-formatted prose prose-sm max-w-none focus:outline-none"
+                style={{
+                  fontSize: data.fontSize ? `${data.fontSize}px` : '14px',
+                  fontFamily: data.fontFamily || 'serif',
+                  fontWeight: data.fontWeight || 400,
+                  lineHeight: data.lineHeight || 1.4,
+                  color: data.color || colors.block.text,
+                  textAlign: data.textAlign || 'left',
+                  letterSpacing: data.letterSpacing ? `${data.letterSpacing}px` : undefined,
+                  textTransform: data.textTransform || 'none',
+                  textDecoration: data.textDecoration || 'none',
+                  fontStyle: data.fontStyle || 'normal',
+                }}
+              />
+            </div>
+          ) : (
+            /* Auto-formatted or legacy citation display */
+            <div 
+              className="text-sm leading-relaxed font-serif"
+              style={{ 
+                color: data.color || colors.block.text,
+                fontSize: data.fontSize ? `${data.fontSize}px` : '14px',
+                fontFamily: data.fontFamily || 'serif',
+                fontWeight: data.fontWeight || 400,
+                lineHeight: data.lineHeight || 1.4,
+                textAlign: data.textAlign || 'left',
+                letterSpacing: data.letterSpacing ? `${data.letterSpacing}px` : undefined,
+                textTransform: data.textTransform || 'none',
+                textDecoration: data.textDecoration || 'none',
+                fontStyle: data.fontStyle || 'normal',
+              }}
+              dangerouslySetInnerHTML={{ 
+                __html: typeof formattedCitation === 'string' 
+                  ? formattedCitation 
+                  : formatAPA(data)
+              }}
+            />
+          )}
 
           {/* Metadata Display */}
           {isComplete && (

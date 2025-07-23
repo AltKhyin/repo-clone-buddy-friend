@@ -9,6 +9,8 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Slider } from '@/components/ui/slider';
 import {
   Lightbulb,
   CheckCircle,
@@ -20,6 +22,7 @@ import {
   Target,
   Palette,
   RotateCcw,
+  Type,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -81,6 +84,30 @@ export function KeyTakeawayBlockInspector({ nodeId }: KeyTakeawayBlockInspectorP
     });
   };
 
+  // Helper functions to convert between HTML and plain text for inspector editing
+  const htmlToText = (html: string): string => {
+    if (!html || html === '<p></p>' || html === '<p><br></p>') return '';
+    return html
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<\/p><p>/gi, '\n')
+      .replace(/<[^>]+>/g, '')
+      .trim();
+  };
+
+  const textToHtml = (text: string): string => {
+    if (!text || text.trim() === '') return '<p></p>';
+    return `<p>${text.replace(/\n/g, '<br>')}</p>`;
+  };
+
+  // Get text value for inspector editing
+  const contentText = htmlToText(data.htmlContent || '');
+
+  // Handle content updates with HTML conversion
+  const handleContentUpdate = (text: string) => {
+    const htmlContent = textToHtml(text);
+    updateData({ htmlContent });
+  };
+
   return (
     <div className="space-y-4">
       {/* Header */}
@@ -96,8 +123,8 @@ export function KeyTakeawayBlockInspector({ nodeId }: KeyTakeawayBlockInspectorP
         <Label htmlFor="content">Message</Label>
         <Textarea
           id="content"
-          value={data.content || ''}
-          onChange={e => updateData({ content: e.target.value })}
+          value={contentText}
+          onChange={e => handleContentUpdate(e.target.value)}
           placeholder="Enter your key takeaway message..."
           rows={3}
           className="resize-none"
@@ -214,6 +241,217 @@ export function KeyTakeawayBlockInspector({ nodeId }: KeyTakeawayBlockInspectorP
         <p className="text-xs text-muted-foreground">
           Supports transparency: use rgba() or hex with alpha
         </p>
+      </div>
+
+      <Separator />
+
+      {/* Typography Controls */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-2">
+          <Type size={16} />
+          <h4 className="font-medium">Typography</h4>
+        </div>
+
+        {/* Font Size */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label>Font Size</Label>
+            <span className="text-sm text-muted-foreground">{data.fontSize || 16}px</span>
+          </div>
+          <Slider
+            value={[data.fontSize || 16]}
+            onValueChange={([value]) => updateData({ fontSize: value })}
+            min={12}
+            max={48}
+            step={1}
+            className="w-full"
+          />
+        </div>
+
+        {/* Text Alignment */}
+        <div className="space-y-2">
+          <Label>Text Alignment</Label>
+          <Select
+            value={data.textAlign || 'left'}
+            onValueChange={(value: 'left' | 'center' | 'right' | 'justify') =>
+              updateData({ textAlign: value })
+            }
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="left">Left</SelectItem>
+              <SelectItem value="center">Center</SelectItem>
+              <SelectItem value="right">Right</SelectItem>
+              <SelectItem value="justify">Justify</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Text Color */}
+        <div className="space-y-2">
+          <Label>Text Color</Label>
+          <div className="flex items-center gap-2">
+            <Input
+              type="color"
+              value={data.color || '#1f2937'}
+              onChange={e => updateData({ color: e.target.value })}
+              className="w-12 h-8 p-1 border rounded"
+            />
+            <Input
+              type="text"
+              value={data.color || '#1f2937'}
+              onChange={e => updateData({ color: e.target.value })}
+              placeholder="#1f2937"
+              className="flex-1 h-8 text-xs"
+            />
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => updateData({ color: '#1f2937' })}
+              className="h-8 px-2 text-xs"
+            >
+              Reset
+            </Button>
+          </div>
+        </div>
+
+        {/* Font Family */}
+        <div className="space-y-2">
+          <Label>Font Family</Label>
+          <Select
+            value={data.fontFamily || 'inherit'}
+            onValueChange={(value: string) => updateData({ fontFamily: value })}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="inherit">System Default</SelectItem>
+              <SelectItem value="ui-serif, Georgia, Cambria, serif">Serif</SelectItem>
+              <SelectItem value="ui-sans-serif, -apple-system, BlinkMacSystemFont, sans-serif">Sans Serif</SelectItem>
+              <SelectItem value="ui-monospace, 'Cascadia Code', 'Source Code Pro', monospace">Monospace</SelectItem>
+              <SelectItem value="cursive">Cursive</SelectItem>
+              <SelectItem value="fantasy">Fantasy</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Font Weight */}
+        <div className="space-y-2">
+          <Label>Font Weight</Label>
+          <Select
+            value={data.fontWeight?.toString() || '400'}
+            onValueChange={(value: string) => updateData({ fontWeight: parseInt(value) })}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="300">Light (300)</SelectItem>
+              <SelectItem value="400">Normal (400)</SelectItem>
+              <SelectItem value="500">Medium (500)</SelectItem>
+              <SelectItem value="600">Semi Bold (600)</SelectItem>
+              <SelectItem value="700">Bold (700)</SelectItem>
+              <SelectItem value="800">Extra Bold (800)</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Line Height */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label>Line Height</Label>
+            <span className="text-sm text-muted-foreground">{data.lineHeight || 1.5}</span>
+          </div>
+          <Slider
+            value={[data.lineHeight || 1.5]}
+            onValueChange={([value]) => updateData({ lineHeight: value })}
+            min={1.0}
+            max={3.0}
+            step={0.1}
+            className="w-full"
+          />
+        </div>
+
+        {/* Letter Spacing */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label>Letter Spacing</Label>
+            <span className="text-sm text-muted-foreground">{data.letterSpacing || 0}px</span>
+          </div>
+          <Slider
+            value={[data.letterSpacing || 0]}
+            onValueChange={([value]) => updateData({ letterSpacing: value })}
+            min={-2}
+            max={5}
+            step={0.1}
+            className="w-full"
+          />
+        </div>
+
+        {/* Text Transform */}
+        <div className="space-y-2">
+          <Label>Text Transform</Label>
+          <Select
+            value={data.textTransform || 'none'}
+            onValueChange={(value: 'none' | 'uppercase' | 'lowercase' | 'capitalize') =>
+              updateData({ textTransform: value })
+            }
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">None</SelectItem>
+              <SelectItem value="uppercase">UPPERCASE</SelectItem>
+              <SelectItem value="lowercase">lowercase</SelectItem>
+              <SelectItem value="capitalize">Capitalize</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Text Decoration */}
+        <div className="space-y-2">
+          <Label>Text Decoration</Label>
+          <Select
+            value={data.textDecoration || 'none'}
+            onValueChange={(value: 'none' | 'underline' | 'overline' | 'line-through') =>
+              updateData({ textDecoration: value })
+            }
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">None</SelectItem>
+              <SelectItem value="underline">Underline</SelectItem>
+              <SelectItem value="overline">Overline</SelectItem>
+              <SelectItem value="line-through">Strike Through</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Font Style */}
+        <div className="space-y-2">
+          <Label>Font Style</Label>
+          <Select
+            value={data.fontStyle || 'normal'}
+            onValueChange={(value: 'normal' | 'italic' | 'oblique') =>
+              updateData({ fontStyle: value })
+            }
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="normal">Normal</SelectItem>
+              <SelectItem value="italic">Italic</SelectItem>
+              <SelectItem value="oblique">Oblique</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
     </div>
   );

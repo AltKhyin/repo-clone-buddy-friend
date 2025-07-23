@@ -1,13 +1,15 @@
-// ABOUTME: WYSIWYG node component - STANDARDIZED with unified text editing framework
+// ABOUTME: WYSIWYG node component with Tiptap integration and typography support like TextBlockNode
 
-import React from 'react';
+import React, { useCallback } from 'react';
+import { EditorContent } from '@tiptap/react';
 import { KeyTakeawayBlockData } from '@/types/editor';
+import { useEditorStore } from '@/store/editorStore';
+import { useEditorTheme } from '@/hooks/useEditorTheme';
+import { useTiptapEditor } from '@/hooks/useTiptapEditor';
 import {
   UnifiedBlockWrapper,
-  EditableField,
   useSemanticBlockStyling,
   useStyledBlockDataUpdate,
-  useEditorStore,
   cn,
   PLACEHOLDERS,
 } from '@/components/editor/shared';
@@ -92,12 +94,13 @@ export function KeyTakeawayBlockNode({
   onMove,
 }: KeyTakeawayBlockNodeProps) {
   const { updateNode } = useEditorStore();
+  const { colors, theme } = useEditorTheme();
 
   // Use unified data update hook
   const { updateField } = useStyledBlockDataUpdate(id, data);
 
   // Use semantic styling hook for key takeaway theming
-  const { contentStyles, colors } = useSemanticBlockStyling(
+  const { contentStyles, colors: semanticColors } = useSemanticBlockStyling(
     data,
     selected || false,
     'keytakeaway',
@@ -108,13 +111,36 @@ export function KeyTakeawayBlockNode({
     }
   );
 
-  const handleClick = () => {
-    const editorStore = useEditorStore.getState();
-    editorStore.selectNode(id);
+  // Handle content updates from Tiptap (like TextBlockNode)
+  const handleContentUpdate = useCallback(
+    (nodeId: string, htmlContent: string) => {
+      updateNode(nodeId, {
+        data: {
+          ...data,
+          htmlContent,
+        },
+      });
+    },
+    [updateNode, data]
+  );
+
+  // Get initial content
+  const getInitialContent = () => {
+    return data.htmlContent || '<p>Enter your key takeaway...</p>';
   };
 
+  // Initialize Tiptap editor for content
+  const contentEditor = useTiptapEditor({
+    nodeId: `${id}-content`,
+    initialContent: getInitialContent(),
+    placeholder: PLACEHOLDERS.KEY_TAKEAWAY_CONTENT,
+    onUpdate: handleContentUpdate,
+    editable: true,
+    fieldConfig: { fieldType: 'multi-line' },
+  });
+
   // Get theme colors using CSS custom properties (fallback to semanticColors)
-  const themeColors = colors.semantic?.keytakeaway || colors.semantic?.quote || colors.block;
+  const themeColors = semanticColors;
   const fallbackConfig = THEME_CONFIGS[data.theme || 'info'];
 
   // Get icon component
@@ -126,29 +152,53 @@ export function KeyTakeawayBlockNode({
   // Get accent color (used for icon and border)
   const accentColor = data.borderColor || themeColors.border;
 
-  // Custom styling with data properties (inner content level)
-  const customStyles = {
-    backgroundColor: data.backgroundColor || themeColors.background,
-    borderRadius: `${data.borderRadius || 8}px`,
-    padding: `${data.paddingY || 16}px ${data.paddingX || 16}px`,
-    borderWidth: data.borderWidth ? `${data.borderWidth}px` : '0',
-    borderColor: data.borderWidth ? data.borderColor || accentColor : 'transparent',
-    borderStyle: 'solid',
-    // Fix Issue #3: Add prominent left border accent strip
-    borderLeft: `4px solid ${accentColor}`,
-    position: 'relative' as const,
+  // Calculate dynamic styles based on typography data (like TextBlockNode)
+  const paddingX = data.paddingX ?? 16;
+  const paddingY = data.paddingY ?? 16;
+
+  // Typography styles for content field
+  const contentDynamicStyles = {
+    fontSize: data.fontSize ? `${data.fontSize}px` : '16px',
+    textAlign: data.textAlign || 'left',
+    color: data.color || themeColors.text,
+    lineHeight: data.lineHeight || 1.6,
+    fontFamily: data.fontFamily || 'inherit',
+    fontWeight: data.fontWeight || 500, // Medium weight for key takeaways
+    letterSpacing: data.letterSpacing ? `${data.letterSpacing}px` : '0px',
+    textTransform: data.textTransform || 'none',
+    textDecoration: data.textDecoration || 'none',
+    fontStyle: data.fontStyle || 'normal',
+    width: '100%',
+    height: '100%',
+    minHeight: '100%',
+    cursor: 'text',
   } as React.CSSProperties;
 
-  // Safely get title and subtitle with defaults
-  const safeTitle = data.title || PLACEHOLDERS.KEY_TAKEAWAY_TITLE;
-  const safeSubtitle = data.subtitle || '';
-  const shouldShowMessage = safeTitle === PLACEHOLDERS.KEY_TAKEAWAY_TITLE && !safeSubtitle;
+  // Content styles for UnifiedBlockWrapper
+  const wrapperContentStyles = {
+    backgroundColor: data.backgroundColor || themeColors.background,
+    borderRadius: data.borderRadius ? `${data.borderRadius}px` : '8px',
+    borderWidth: `${data.borderWidth || 0}px`,
+    borderColor: data.borderWidth ? data.borderColor || accentColor : 'transparent',
+    borderStyle: 'solid',
+    // Add prominent left border accent strip
+    borderLeft: `4px solid ${accentColor}`,
+    padding: `${paddingY}px ${paddingX}px`,
+    display: 'flex',
+    flexDirection: 'column' as const,
+    justifyContent: 'flex-start',
+    alignItems: 'stretch',
+    minHeight: '100%',
+    cursor: 'text',
+    position: 'relative' as const,
+  };
 
-  // Override content styles with custom background handling
-  const customContentStyles = {
-    ...contentStyles,
-    backgroundColor: 'transparent', // Fix Issue #2: Don't duplicate background color at wrapper level
-    borderRadius: customStyles.borderRadius || '8px',
+  // Handle full-area click to focus editor
+  const handleBlockClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (contentEditor.editor) {
+      contentEditor.focusEditor();
+    }
   };
 
   return (
@@ -160,7 +210,7 @@ export function KeyTakeawayBlockNode({
       y={y}
       selected={selected}
       blockType="keyTakeawayBlock"
-      contentStyles={customContentStyles}
+      contentStyles={wrapperContentStyles}
       minDimensions={{ width: 200, height: 80 }}
       maxDimensions={{ width: 800, height: 300 }}
       onSelect={onSelect}
@@ -168,65 +218,34 @@ export function KeyTakeawayBlockNode({
     >
       <div
         data-node-id={id}
+        data-block-id={id}
         data-block-type="keyTakeawayBlock"
-        className={cn(
-          'w-full h-full relative cursor-pointer transition-all duration-200',
-          'min-h-[80px]',
-          // Hover state
-          'hover:shadow-md hover:scale-[1.01]'
-        )}
-        style={customStyles}
+        className="w-full h-full cursor-text"
+        onClick={handleBlockClick}
       >
-        {/* Header with Icon and Title */}
-        <div className="flex items-start gap-3 mb-3">
-          <div className="flex-shrink-0">
-            <IconComponent size={20} style={{ color: accentColor }} />
+        {/* Primary Content with Icon - Simplified Structure */}
+        <div className="flex items-start gap-3">
+          <div className="flex-shrink-0 pt-1">
+            <IconComponent size={24} style={{ color: accentColor }} />
           </div>
 
-          <div className="flex-1">
-            {/* STANDARDIZED: Editable Title using unified EditableField */}
-            <EditableField
-              value={data.title || ''}
-              onUpdate={title => updateField('title', title)}
-              placeholder={PLACEHOLDERS.KEY_TAKEAWAY_TITLE}
-              emptyText={PLACEHOLDERS.KEY_TAKEAWAY_TITLE}
-              blockId={id}
-              blockSelected={selected}
-              className="font-semibold text-sm uppercase tracking-wide"
-              style={{ color: themeColors.text }}
+          <div className="flex-1 relative">
+            {/* Content with Tiptap Integration */}
+            <EditorContent
+              editor={contentEditor.editor}
+              className="tiptap-keytakeaway-content max-w-none focus:outline-none [&>*]:my-0 [&_p]:my-0 [&>*]:leading-none [&_p]:leading-none"
+              style={contentDynamicStyles}
+              onClick={e => {
+                // Allow text content clicks to propagate for proper text selection
+                e.stopPropagation();
+              }}
             />
-
-            {/* STANDARDIZED: Editable Subtitle using unified EditableField */}
-            <EditableField
-              value={data.subtitle || ''}
-              onUpdate={subtitle => updateField('subtitle', subtitle)}
-              placeholder={`${PLACEHOLDERS.KEY_TAKEAWAY_SUBTITLE} ${PLACEHOLDERS.OPTIONAL}`}
-              emptyText={`${PLACEHOLDERS.CLICK_TO_ADD} subtitle`}
-              blockId={id}
-              blockSelected={selected}
-              className="text-xs opacity-70 mt-1"
-              style={{ color: themeColors.text }}
-            />
+            {/* Focus indicator */}
+            {contentEditor.isFocused && (
+              <div className="absolute inset-0 pointer-events-none ring-2 ring-blue-400 ring-opacity-50 rounded-lg" />
+            )}
           </div>
         </div>
-
-        {/* STANDARDIZED: Content - Show only if title/subtitle are default */}
-        {shouldShowMessage && (
-          <div className="mt-2">
-            <EditableField
-              value={data.content || ''}
-              onUpdate={content => updateField('content', content)}
-              placeholder={PLACEHOLDERS.KEY_TAKEAWAY_CONTENT}
-              type="textarea"
-              rows={2}
-              emptyText={PLACEHOLDERS.KEY_TAKEAWAY_CONTENT}
-              blockId={id}
-              blockSelected={selected}
-              className="text-sm leading-relaxed font-medium"
-              style={{ color: themeColors.text }}
-            />
-          </div>
-        )}
 
         {/* Selection Indicator */}
         {selected && (

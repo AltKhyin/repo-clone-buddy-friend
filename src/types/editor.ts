@@ -104,7 +104,8 @@ export const TextBlockDataSchema = z.object({
 export const ImageBlockDataSchema = z.object({
   src: z.string(),
   alt: z.string(),
-  caption: z.string().optional(),
+  // HTML caption for typography integration (like TextBlock)
+  htmlCaption: z.string().optional(),
   borderRadius: z.number().optional(),
   width: z.number().optional(),
   height: z.number().optional(),
@@ -114,17 +115,24 @@ export const ImageBlockDataSchema = z.object({
   backgroundColor: z.string().optional(),
   borderWidth: z.number().default(0),
   borderColor: z.string().optional(),
-  // Caption styling properties
+  // Caption styling properties - applied as CSS like TextBlock
   textAlign: z.enum(['left', 'center', 'right', 'justify']).optional(),
   color: z.string().optional(),
   fontSize: z.number().optional(),
   fontFamily: z.string().optional(),
   fontWeight: z.number().optional(),
+  lineHeight: z.number().optional(),
+  letterSpacing: z.number().optional(),
+  textTransform: z.enum(['none', 'uppercase', 'lowercase', 'capitalize']).optional(),
+  textDecoration: z.enum(['none', 'underline', 'line-through']).optional(),
+  fontStyle: z.enum(['normal', 'italic']).optional(),
 });
 
 export const TableBlockDataSchema = z.object({
-  headers: z.array(z.string()),
-  rows: z.array(z.array(z.string())),
+  // HTML headers for typography integration (like TextBlock)
+  htmlHeaders: z.array(z.string()),
+  // HTML cells for typography integration with multi-line support
+  htmlRows: z.array(z.array(z.string())),
   headerStyle: z
     .object({
       backgroundColor: z.string().optional(),
@@ -140,20 +148,26 @@ export const TableBlockDataSchema = z.object({
   borderRadius: z.number().optional(),
   borderWidth: z.number().default(0),
   borderColor: z.string().optional(),
-  // Table content styling properties
+  // Table content styling properties - applied as CSS like TextBlock
   textAlign: z.enum(['left', 'center', 'right', 'justify']).optional(),
   color: z.string().optional(),
   fontSize: z.number().optional(),
   fontFamily: z.string().optional(),
   fontWeight: z.number().optional(),
+  lineHeight: z.number().optional(),
+  letterSpacing: z.number().optional(),
+  textTransform: z.enum(['none', 'uppercase', 'lowercase', 'capitalize']).optional(),
+  textDecoration: z.enum(['none', 'underline', 'line-through']).optional(),
+  fontStyle: z.enum(['normal', 'italic']).optional(),
 });
 
 export const PollBlockDataSchema = z.object({
-  question: z.string(),
+  // HTML question for typography integration (like TextBlock)
+  htmlQuestion: z.string(),
   options: z.array(
     z.object({
       id: z.string(),
-      text: z.string(),
+      htmlText: z.string(), // HTML text for typography integration
       votes: z.number().default(0),
     })
   ),
@@ -167,18 +181,22 @@ export const PollBlockDataSchema = z.object({
   borderRadius: z.number().optional(),
   borderWidth: z.number().default(0),
   borderColor: z.string().optional(),
-  // Typography for question and options
+  // Typography for question and options - applied as CSS like TextBlock
   textAlign: z.enum(['left', 'center', 'right', 'justify']).optional(),
   color: z.string().optional(),
   fontSize: z.number().optional(),
   fontFamily: z.string().optional(),
   fontWeight: z.number().optional(),
+  lineHeight: z.number().optional(),
+  letterSpacing: z.number().optional(),
+  textTransform: z.enum(['none', 'uppercase', 'lowercase', 'capitalize']).optional(),
+  textDecoration: z.enum(['none', 'underline', 'line-through']).optional(),
+  fontStyle: z.enum(['normal', 'italic']).optional(),
 });
 
 export const KeyTakeawayBlockDataSchema = z.object({
-  content: z.string(),
-  title: z.string().optional(),
-  subtitle: z.string().optional(),
+  // HTML content for typography integration (like TextBlock)
+  htmlContent: z.string(),
   icon: z.string().optional(),
   theme: z.enum(['info', 'success', 'warning', 'error']).default('info'),
   backgroundColor: z.string().optional(),
@@ -188,12 +206,17 @@ export const KeyTakeawayBlockDataSchema = z.object({
   borderRadius: z.number().optional(),
   borderWidth: z.number().default(0),
   borderColor: z.string().optional(),
-  // Typography for content
+  // Typography for content - applied as CSS like TextBlock
   textAlign: z.enum(['left', 'center', 'right', 'justify']).optional(),
   color: z.string().optional(),
   fontSize: z.number().optional(),
   fontFamily: z.string().optional(),
   fontWeight: z.number().optional(),
+  lineHeight: z.number().optional(),
+  letterSpacing: z.number().optional(),
+  textTransform: z.enum(['none', 'uppercase', 'lowercase', 'capitalize']).optional(),
+  textDecoration: z.enum(['none', 'underline', 'line-through']).optional(),
+  fontStyle: z.enum(['normal', 'italic']).optional(),
 });
 
 export const ReferenceBlockDataSchema = z.object({
@@ -203,7 +226,8 @@ export const ReferenceBlockDataSchema = z.object({
   source: z.string(),
   doi: z.string().optional(),
   url: z.string().url().optional(),
-  formatted: z.string().optional(), // APA formatted citation
+  formatted: z.string().optional(), // Legacy APA formatted citation (plain text)
+  htmlFormatted: z.string().optional(), // HTML formatted citation for rich text editing
   // Universal styling properties
   paddingX: z.number().optional(),
   paddingY: z.number().optional(),
@@ -217,11 +241,17 @@ export const ReferenceBlockDataSchema = z.object({
   fontSize: z.number().optional(),
   fontFamily: z.string().optional(),
   fontWeight: z.number().optional(),
+  lineHeight: z.number().optional(),
+  letterSpacing: z.number().optional(),
+  textTransform: z.enum(['none', 'uppercase', 'lowercase', 'capitalize']).optional(),
+  textDecoration: z.enum(['none', 'underline', 'overline', 'line-through']).optional(),
+  fontStyle: z.enum(['normal', 'italic', 'oblique']).optional(),
 });
 
 export const QuoteBlockDataSchema = z.object({
-  content: z.string(),
-  citation: z.string().optional(),
+  // HTML content for typography integration (like TextBlock)
+  htmlContent: z.string(),
+  htmlCitation: z.string().optional(),
   authorImage: z.string().optional(),
   style: z.enum(['default']).default('default'),
   borderColor: z.string().optional(),
@@ -231,12 +261,17 @@ export const QuoteBlockDataSchema = z.object({
   backgroundColor: z.string().optional(),
   borderRadius: z.number().optional(),
   borderWidth: z.number().default(0),
-  // Typography for quote content
+  // Typography for quote content - applied as CSS like TextBlock
   textAlign: z.enum(['left', 'center', 'right', 'justify']).optional(),
   color: z.string().optional(),
   fontSize: z.number().optional(),
   fontFamily: z.string().optional(),
   fontWeight: z.number().optional(),
+  lineHeight: z.number().optional(),
+  letterSpacing: z.number().optional(),
+  textTransform: z.enum(['none', 'uppercase', 'lowercase', 'capitalize']).optional(),
+  textDecoration: z.enum(['none', 'underline', 'line-through']).optional(),
+  fontStyle: z.enum(['normal', 'italic']).optional(),
 });
 
 export const VideoEmbedBlockDataSchema = z.object({
@@ -564,15 +599,162 @@ export interface BlockType {
 
 // ===== VALIDATION UTILITIES =====
 
+// Migration utility: Convert plain text to HTML format
+const textToHtml = (text: string | undefined | null): string => {
+  if (!text || text.trim() === '') return '<p></p>';
+  return `<p>${text.replace(/\n/g, '<br>')}</p>`;
+};
+
+// Migration function: Convert legacy block data to new HTML schema
+const migrateLegacyBlockData = (node: any): any => {
+  if (!node || !node.type || !node.data) return node;
+
+  const migratedData = { ...node.data };
+
+  switch (node.type) {
+    case 'quoteBlock':
+      // Migrate content -> htmlContent, citation -> htmlCitation
+      if ('content' in migratedData && !('htmlContent' in migratedData)) {
+        migratedData.htmlContent = textToHtml(migratedData.content);
+        delete migratedData.content;
+      }
+      if ('citation' in migratedData && !('htmlCitation' in migratedData)) {
+        migratedData.htmlCitation = textToHtml(migratedData.citation);
+        delete migratedData.citation;
+      }
+      break;
+
+    case 'keyTakeawayBlock':
+      // Migrate content -> htmlContent, remove title/subtitle
+      if ('content' in migratedData && !('htmlContent' in migratedData)) {
+        migratedData.htmlContent = textToHtml(migratedData.content);
+        delete migratedData.content;
+      }
+      // Remove legacy title/subtitle fields
+      delete migratedData.title;
+      delete migratedData.subtitle;
+      break;
+
+    case 'imageBlock':
+      // Migrate caption -> htmlCaption
+      if ('caption' in migratedData && !('htmlCaption' in migratedData)) {
+        migratedData.htmlCaption = textToHtml(migratedData.caption);
+        delete migratedData.caption;
+      }
+      break;
+
+    case 'pollBlock':
+      // Migrate question -> htmlQuestion
+      if ('question' in migratedData && !('htmlQuestion' in migratedData)) {
+        migratedData.htmlQuestion = textToHtml(migratedData.question);
+        delete migratedData.question;
+      }
+      // Migrate options[].text -> options[].htmlText
+      if (Array.isArray(migratedData.options)) {
+        migratedData.options = migratedData.options.map((option: any) => {
+          if ('text' in option && !('htmlText' in option)) {
+            return {
+              ...option,
+              htmlText: textToHtml(option.text),
+            };
+          }
+          return option;
+        });
+      }
+      break;
+
+    case 'tableBlock':
+      // Migrate headers -> htmlHeaders
+      if ('headers' in migratedData && !('htmlHeaders' in migratedData)) {
+        migratedData.htmlHeaders = Array.isArray(migratedData.headers) 
+          ? migratedData.headers.map((header: string) => textToHtml(header))
+          : [];
+        delete migratedData.headers;
+      }
+      // Migrate rows -> htmlRows
+      if ('rows' in migratedData && !('htmlRows' in migratedData)) {
+        migratedData.htmlRows = Array.isArray(migratedData.rows)
+          ? migratedData.rows.map((row: string[]) => 
+              Array.isArray(row) 
+                ? row.map((cell: string) => textToHtml(cell))
+                : []
+            )
+          : [];
+        delete migratedData.rows;
+      }
+      
+      // CRITICAL: Ensure required fields exist (handle corrupted/empty tables)
+      if (!('htmlHeaders' in migratedData) || !Array.isArray(migratedData.htmlHeaders)) {
+        migratedData.htmlHeaders = ['<p>Column 1</p>', '<p>Column 2</p>'];
+      }
+      if (!('htmlRows' in migratedData) || !Array.isArray(migratedData.htmlRows)) {
+        migratedData.htmlRows = [['<p></p>', '<p></p>']];
+      }
+      
+      // Ensure rows match header count
+      if (migratedData.htmlHeaders.length > 0) {
+        // CRITICAL: Filter out any undefined/null rows and ensure all rows are valid arrays
+        migratedData.htmlRows = migratedData.htmlRows
+          .filter((row: any) => row !== null && row !== undefined)
+          .map((row: string[]) => {
+            const normalizedRow = Array.isArray(row) ? [...row] : [];
+            while (normalizedRow.length < migratedData.htmlHeaders.length) {
+              normalizedRow.push('<p></p>');
+            }
+            return normalizedRow.slice(0, migratedData.htmlHeaders.length);
+          });
+        
+        // CRITICAL: Ensure we have at least one row
+        if (migratedData.htmlRows.length === 0) {
+          migratedData.htmlRows = [new Array(migratedData.htmlHeaders.length).fill('<p></p>')];
+        }
+      }
+      break;
+
+    case 'referenceBlock':
+      // Migrate formatted -> htmlFormatted
+      if ('formatted' in migratedData && migratedData.formatted && !('htmlFormatted' in migratedData)) {
+        migratedData.htmlFormatted = textToHtml(migratedData.formatted as string);
+        // Keep original formatted field for backward compatibility
+      }
+      break;
+  }
+
+  return { ...node, data: migratedData };
+};
+
 export const validateStructuredContent = (content: unknown): StructuredContent => {
   try {
+    // First, try to parse with the new schema
     return StructuredContentSchema.parse(content);
   } catch (error) {
+    // If validation fails, attempt migration from legacy format
     if (error instanceof z.ZodError) {
-      throw new Error(`Invalid structured content: ${error.errors.map(e => e.message).join(', ')}`);
+      try {
+        console.warn('[Schema Migration] Attempting to migrate legacy content format');
+        const migrated = migrateStructuredContent(content);
+        return StructuredContentSchema.parse(migrated);
+      } catch (migrationError) {
+        console.error('[Schema Migration] Migration failed:', migrationError);
+        throw new Error(`Invalid structured content: ${error.errors.map(e => e.message).join(', ')}`);
+      }
     }
     throw error;
   }
+};
+
+// Function to migrate entire structured content from legacy format
+const migrateStructuredContent = (content: any): any => {
+  if (!content || typeof content !== 'object') return content;
+
+  const migratedContent = { ...content };
+
+  // Migrate nodes if present
+  if (Array.isArray(migratedContent.nodes)) {
+    migratedContent.nodes = migratedContent.nodes.map(migrateLegacyBlockData);
+  }
+
+  return migratedContent;
 };
 
 export const validateNode = (node: unknown): NodeObject => {
@@ -580,7 +762,14 @@ export const validateNode = (node: unknown): NodeObject => {
     return NodeSchema.parse(node);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      throw new Error(`Invalid node: ${error.errors.map(e => e.message).join(', ')}`);
+      try {
+        console.warn('[Node Migration] Attempting to migrate legacy node format');
+        const migratedNode = migrateLegacyBlockData(node);
+        return NodeSchema.parse(migratedNode);
+      } catch (migrationError) {
+        console.error('[Node Migration] Migration failed:', migrationError);
+        throw new Error(`Invalid node: ${error.errors.map(e => e.message).join(', ')}`);
+      }
     }
     throw error;
   }
@@ -630,7 +819,7 @@ export const getDefaultDataForBlockType = (blockType: string): any => {
       return {
         src: '',
         alt: '',
-        caption: '',
+        htmlCaption: '<p></p>',
         paddingX: 0,
         paddingY: 0,
         backgroundColor: 'transparent',
@@ -640,8 +829,8 @@ export const getDefaultDataForBlockType = (blockType: string): any => {
       };
     case 'tableBlock':
       return {
-        headers: ['Column 1', 'Column 2'],
-        rows: [['', '']],
+        htmlHeaders: ['<p>Column 1</p>', '<p>Column 2</p>'],
+        htmlRows: [['<p></p>', '<p></p>']],
         headerStyle: {
           backgroundColor: '#f3f4f6',
           textColor: '#374151',
@@ -657,10 +846,10 @@ export const getDefaultDataForBlockType = (blockType: string): any => {
       };
     case 'pollBlock':
       return {
-        question: 'Your question here',
+        htmlQuestion: '<p>Your question here</p>',
         options: [
-          { id: generateNodeId(), text: 'Option 1', votes: 0 },
-          { id: generateNodeId(), text: 'Option 2', votes: 0 },
+          { id: generateNodeId(), htmlText: '<p>Option 1</p>', votes: 0 },
+          { id: generateNodeId(), htmlText: '<p>Option 2</p>', votes: 0 },
         ],
         allowMultiple: false,
         showResults: true,
@@ -675,7 +864,7 @@ export const getDefaultDataForBlockType = (blockType: string): any => {
       };
     case 'keyTakeawayBlock':
       return {
-        content: 'Key takeaway message',
+        htmlContent: '<p>Key takeaway message</p>',
         theme: 'info' as const,
         // Default styling properties
         paddingX: 0,
@@ -690,6 +879,7 @@ export const getDefaultDataForBlockType = (blockType: string): any => {
         year: new Date().getFullYear(),
         title: '',
         source: '',
+        htmlFormatted: '<p></p>', // Default HTML content for Tiptap integration
         // Default styling properties
         paddingX: 0,
         paddingY: 0,
@@ -697,10 +887,21 @@ export const getDefaultDataForBlockType = (blockType: string): any => {
         borderRadius: 8,
         borderWidth: 0,
         borderColor: '#e5e7eb',
+        // Typography defaults
+        textAlign: 'left' as const,
+        fontSize: 14,
+        fontFamily: 'inherit',
+        fontWeight: 400,
+        lineHeight: 1.4,
+        letterSpacing: 0,
+        textTransform: 'none' as const,
+        textDecoration: 'none' as const,
+        fontStyle: 'normal' as const,
       };
     case 'quoteBlock':
       return {
-        content: 'Quote text here',
+        htmlContent: '<p>Quote text here</p>',
+        htmlCitation: '<p></p>',
         style: 'default' as const,
         // Default styling properties
         paddingX: 0,

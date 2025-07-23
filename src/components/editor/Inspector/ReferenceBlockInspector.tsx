@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { useEditorStore } from '@/store/editorStore';
+import { useTiptapEditor } from '@/hooks/useTiptapEditor';
 import { ReferenceBlockData } from '@/types/editor';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -9,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { Copy, Check, RefreshCw } from 'lucide-react';
+import { Copy, Check, RefreshCw, Edit3, FileText } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { BackgroundControls, SpacingControls, BorderControls } from './shared/UnifiedControls';
 import { FONT_FAMILIES, FONT_WEIGHTS } from '../shared/typography-system';
@@ -20,6 +21,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { EditorContent } from '@tiptap/react';
+import { Switch } from '@/components/ui/switch';
 
 interface ReferenceBlockInspectorProps {
   nodeId: string;
@@ -48,6 +51,7 @@ export function ReferenceBlockInspector({ nodeId }: ReferenceBlockInspectorProps
   const { nodes, updateNode } = useEditorStore();
   const { toast } = useToast();
   const [copied, setCopied] = React.useState(false);
+  const [useCustomFormat, setUseCustomFormat] = React.useState(false);
 
   const node = nodes.find(n => n.id === nodeId);
 
@@ -67,6 +71,32 @@ export function ReferenceBlockInspector({ nodeId }: ReferenceBlockInspectorProps
       data: { ...data, ...updates },
     });
   };
+
+  // Initialize custom format toggle based on existing data
+  React.useEffect(() => {
+    const hasCustomFormat = data.htmlFormatted && 
+      data.htmlFormatted !== '<p></p>' && 
+      data.htmlFormatted.trim() !== '';
+    setUseCustomFormat(hasCustomFormat);
+  }, [data.htmlFormatted]);
+
+  // Handle HTML formatted content updates from Tiptap
+  const handleHtmlFormattedUpdate = React.useCallback(
+    (nodeId: string, htmlFormatted: string) => {
+      updateData({ htmlFormatted });
+    },
+    [updateData]
+  );
+
+  // Initialize Tiptap editor for custom formatted field
+  const formattedEditor = useTiptapEditor({
+    nodeId: `${nodeId}-formatted`,
+    initialContent: data.htmlFormatted || '<p></p>',
+    placeholder: 'Enter your custom citation format with rich text...',
+    onUpdate: handleHtmlFormattedUpdate,
+    editable: true,
+    fieldConfig: { fieldType: 'rich-text' }, // Rich text for custom formatting
+  });
 
   // Check completion status
   const isComplete = data.authors && data.year && data.title && data.source;
@@ -276,20 +306,61 @@ export function ReferenceBlockInspector({ nodeId }: ReferenceBlockInspectorProps
 
       {/* Custom Formatting Override */}
       <div className="space-y-4">
-        <h4 className="font-medium text-sm">Custom Formatting (Optional)</h4>
-        <div className="space-y-2">
-          <Label htmlFor="formatted">Override Formatted Citation</Label>
-          <Textarea
-            id="formatted"
-            value={data.formatted || ''}
-            onChange={e => updateData({ formatted: e.target.value })}
-            placeholder="Enter custom citation format if needed..."
-            rows={3}
-          />
-          <p className="text-xs text-muted-foreground">
-            Leave empty to use automatic APA formatting
-          </p>
+        <div className="flex items-center justify-between">
+          <h4 className="font-medium text-sm">Custom Formatting</h4>
+          <div className="flex items-center gap-2">
+            <FileText size={14} />
+            <Switch
+              checked={useCustomFormat}
+              onCheckedChange={(checked) => {
+                setUseCustomFormat(checked);
+                if (!checked) {
+                  // Clear custom format when disabled
+                  updateData({ htmlFormatted: '<p></p>' });
+                } else {
+                  // Initialize with current auto-generated format
+                  const autoFormat = formatAPA(data);
+                  updateData({ htmlFormatted: `<p>${autoFormat}</p>` });
+                }
+              }}
+            />
+            <Edit3 size={14} />
+          </div>
         </div>
+
+        {useCustomFormat ? (
+          <div className="space-y-2">
+            <Label>Rich Text Citation Format</Label>
+            <div className="border border-input rounded-md p-3 bg-background min-h-[100px]">
+              <EditorContent
+                editor={formattedEditor.editor}
+                className="tiptap-reference-inspector prose prose-sm max-w-none focus:outline-none"
+                style={{
+                  fontSize: data.fontSize ? `${data.fontSize}px` : '14px',
+                  fontFamily: data.fontFamily || 'serif',
+                  fontWeight: data.fontWeight || 400,
+                  lineHeight: data.lineHeight || 1.4,
+                  color: data.color || 'inherit',
+                  textAlign: data.textAlign || 'left',
+                  letterSpacing: data.letterSpacing ? `${data.letterSpacing}px` : undefined,
+                  textTransform: data.textTransform || 'none',
+                  textDecoration: data.textDecoration || 'none',
+                  fontStyle: data.fontStyle || 'normal',
+                }}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Create your own citation format with rich text formatting, links, and styling
+            </p>
+          </div>
+        ) : (
+          <div className="p-3 bg-muted rounded-lg">
+            <p className="text-sm text-muted-foreground">
+              Using automatic APA formatting based on the fields above. 
+              Enable custom formatting to create your own citation with rich text.
+            </p>
+          </div>
+        )}
       </div>
 
       <Separator />

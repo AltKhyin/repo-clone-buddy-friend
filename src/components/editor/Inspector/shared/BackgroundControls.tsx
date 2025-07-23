@@ -78,37 +78,134 @@ const DEFAULT_COLOR_PRESETS = [
   '#d32f2f',
 ];
 
-// Theme-aware color options that adapt to current theme
+// Utility to resolve CSS custom properties to actual color values
+const resolveCSSVariable = (variableName: string): string => {
+  if (typeof window === 'undefined') return '#ffffff';
+  
+  try {
+    const value = getComputedStyle(document.documentElement)
+      .getPropertyValue(variableName)
+      .trim();
+    
+    if (!value) return '#ffffff';
+    
+    // If it's already a valid color, return it
+    if (value.startsWith('#') || value.startsWith('rgb') || value.startsWith('hsl')) {
+      return value;
+    }
+    
+    // If it's HSL values without hsl(), wrap them
+    if (/^\d+(\.\d+)?\s+\d+(\.\d+)?%\s+\d+(\.\d+)?%$/.test(value)) {
+      return `hsl(${value})`;
+    }
+    
+    return '#ffffff';
+  } catch {
+    return '#ffffff';
+  }
+};
+
+// Convert HSL color to hex for color picker compatibility
+const convertToHex = (color: string): string => {
+  if (color.startsWith('#')) return color;
+  if (color === 'transparent') return '#ffffff';
+  
+  // Handle hsl(var(--variable)) pattern
+  if (color.includes('var(')) {
+    const varMatch = color.match(/var\((--[^)]+)\)/);
+    if (varMatch) {
+      const resolvedColor = resolveCSSVariable(varMatch[1]);
+      return convertToHex(resolvedColor);
+    }
+  }
+  
+  // Handle HSL values
+  if (color.startsWith('hsl')) {
+    try {
+      // Create a temporary element to get computed color
+      const tempDiv = document.createElement('div');
+      tempDiv.style.color = color;
+      document.body.appendChild(tempDiv);
+      const computedColor = getComputedStyle(tempDiv).color;
+      document.body.removeChild(tempDiv);
+      
+      // Convert RGB to hex
+      const rgbMatch = computedColor.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+      if (rgbMatch) {
+        const r = parseInt(rgbMatch[1]);
+        const g = parseInt(rgbMatch[2]);
+        const b = parseInt(rgbMatch[3]);
+        return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+      }
+    } catch {
+      // Fallback
+    }
+  }
+  
+  return '#ffffff';
+};
+
+// Theme-aware color options with resolved values
 const getThemeColors = (theme: 'light' | 'dark' | 'black') => {
+  // Define actual theme color values based on theme
+  const themeColorMaps = {
+    light: {
+      primary: '#1976d2',
+      surface: '#f8f9fa',
+      accent: '#e3f2fd',
+      muted: '#f8f9fa',
+      border: '#e5e7eb',
+      card: '#ffffff',
+    },
+    dark: {
+      primary: '#64b5f6',
+      surface: '#1e1e1e',
+      accent: '#424242',
+      muted: '#2a2a2a',
+      border: '#404040',
+      card: '#1a1a1a',
+    },
+    black: {
+      primary: '#90caf9',
+      surface: '#000000',
+      accent: '#1a1a1a',
+      muted: '#0a0a0a',
+      border: '#333333',
+      card: '#000000',
+    },
+  };
+  
+  const colorMap = themeColorMaps[theme];
+  
   return [
     {
       name: 'Primary',
-      value: 'hsl(var(--primary))',
+      value: colorMap.primary,
       description: 'Theme primary color',
     },
     {
       name: 'Surface',
-      value: 'hsl(var(--surface))',
+      value: colorMap.surface,
       description: 'Theme surface color',
     },
     {
       name: 'Accent',
-      value: 'hsl(var(--accent))',
+      value: colorMap.accent,
       description: 'Theme accent color',
     },
     {
       name: 'Muted',
-      value: 'hsl(var(--muted))',
+      value: colorMap.muted,
       description: 'Theme muted color',
     },
     {
       name: 'Border',
-      value: 'hsl(var(--border))',
+      value: colorMap.border,
       description: 'Theme border color',
     },
     {
       name: 'Card',
-      value: 'hsl(var(--card))',
+      value: colorMap.card,
       description: 'Theme card background',
     },
   ];
@@ -184,7 +281,7 @@ export function BackgroundControls({
         <div className="flex items-center gap-2">
           <Input
             type="color"
-            value={backgroundColor === 'transparent' ? '#ffffff' : backgroundColor}
+            value={convertToHex(backgroundColor)}
             onChange={e => handleColorChange(e.target.value)}
             className={cn('p-1 border rounded cursor-pointer', compact ? 'w-8 h-6' : 'w-12 h-8')}
           />
@@ -225,8 +322,6 @@ export function BackgroundControls({
                 )}
                 style={{
                   backgroundColor: themeColor.value,
-                  // Fallback for CSS custom properties that might not render in style attribute
-                  background: themeColor.value.includes('var(') ? undefined : themeColor.value,
                 }}
                 title={`${themeColor.name} - ${themeColor.description}`}
                 aria-label={`Set background to ${themeColor.name}`}

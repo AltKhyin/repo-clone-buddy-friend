@@ -164,7 +164,8 @@ export const DraggableBlock: React.FC<DraggableBlockProps> = ({
       case 'videoEmbedBlock':
         return <VideoEmbedBlockNode {...commonProps} />;
       case 'tableBlock':
-        return <TableBlockNode {...commonProps} />;
+        // TableBlock now uses UnifiedBlockWrapper - return without DraggableBlock container
+        return <TableBlockNode {...unifiedProps} />;
       case 'pollBlock':
         return <PollBlockNode {...commonProps} />;
       case 'referenceBlock':
@@ -201,6 +202,7 @@ export const DraggableBlock: React.FC<DraggableBlockProps> = ({
   if (
     node.type === 'textBlock' ||
     node.type === 'imageBlock' ||
+    node.type === 'tableBlock' ||
     node.type === 'quoteBlock' ||
     node.type === 'keyTakeawayBlock'
   ) {

@@ -63,6 +63,21 @@ export const ImageBlockInspector: React.FC<ImageBlockInspectorProps> = ({ nodeId
     });
   };
 
+  // Helper functions to convert between HTML and plain text for inspector editing
+  const htmlToText = (html: string): string => {
+    if (!html || html === '<p></p>' || html === '<p><br></p>') return '';
+    return html
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<\/p><p>/gi, '\n')
+      .replace(/<[^>]+>/g, '')
+      .trim();
+  };
+
+  const textToHtml = (text: string): string => {
+    if (!text || text.trim() === '') return '<p></p>';
+    return `<p>${text.replace(/\n/g, '<br>')}</p>`;
+  };
+
   const handleImageUrlChange = (url: string) => {
     updateNodeData({ src: url });
     setUploadError(null);
@@ -454,8 +469,11 @@ export const ImageBlockInspector: React.FC<ImageBlockInspectorProps> = ({ nodeId
           </Label>
           <Textarea
             id="image-caption"
-            value={data.caption || ''}
-            onChange={e => updateNodeData({ caption: e.target.value })}
+            value={htmlToText(data.htmlCaption || '')}
+            onChange={e => {
+              const htmlCaption = textToHtml(e.target.value);
+              updateNodeData({ htmlCaption });
+            }}
             placeholder="Optional caption displayed below the image..."
             className="text-xs min-h-[60px]"
           />

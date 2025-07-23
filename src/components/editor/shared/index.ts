@@ -24,3 +24,4 @@ export * from './placeholder-constants';
 // Re-export types for convenience
 export type { EditableFieldProps } from './EditableField';
 export type { ContentBoundaryProps } from '../../../types/editor';
+export type { TiptapFieldType, TiptapFieldConfig } from '../../../hooks/useTiptapEditor';
