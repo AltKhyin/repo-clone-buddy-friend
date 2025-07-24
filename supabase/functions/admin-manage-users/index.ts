@@ -8,7 +8,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 interface UserManagementPayload {
   action: 'promote' | 'demote' | 'ban' | 'unban' | 'delete' | 'list' | 'update_profile' | 'get';
   targetUserId?: string;
-  newRole?: 'admin' | 'moderator' | 'practitioner';
+  newRole?: 'admin' | 'practitioner'; // Simplified 2-tier role system
   subscriptionTier?: 'free' | 'premium' | 'pro';
   reason?: string;
   profileData?: {
@@ -53,8 +53,9 @@ Deno.serve(async (req: Request) => {
       .eq('id', user.id)
       .single();
 
-    if (adminCheck?.role !== 'admin') {
-      return sendError('Admin privileges required', 403);
+    // Accept admin or editor role during transition (editor will be migrated to admin)
+    if (!adminCheck?.role || !['admin', 'editor'].includes(adminCheck.role)) {
+      return sendError('Admin or editor privileges required', 403);
     }
 
     // Parse request body

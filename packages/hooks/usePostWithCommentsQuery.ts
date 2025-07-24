@@ -95,7 +95,9 @@ const fetchPostWithComments = async (postId: number): Promise<PostWithCommentsDa
           author:Practitioners!CommunityPosts_author_id_fkey (
             id,
             full_name,
-            avatar_url
+            avatar_url,
+            role,
+            profession
           )
         `
         )

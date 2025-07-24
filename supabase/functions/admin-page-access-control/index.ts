@@ -8,8 +8,8 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
 };
 
-// Valid access levels
-const VALID_ACCESS_LEVELS = ['public', 'free', 'premium', 'editor_admin'];
+// Valid access levels - simplified to admin from editor_admin
+const VALID_ACCESS_LEVELS = ['public', 'free', 'premium', 'admin'];
 
 interface PageAccessControlData {
   page_path: string;
@@ -57,7 +57,7 @@ Deno.serve(async req => {
 
     console.log('User authenticated:', user.id, 'Role:', user.app_metadata?.role);
 
-    // Check if user has admin or editor role
+    // Check if user has admin or editor role (transitional - editor will be migrated to admin)
     const userRole = user.app_metadata?.role;
     if (!userRole || !['admin', 'editor'].includes(userRole)) {
       console.error('Insufficient role:', userRole);

@@ -45,6 +45,8 @@ export interface CommunityPost {
     id: string;
     full_name: string;
     avatar_url?: string;
+    role?: string;
+    profession?: string | null;
   };
   user_vote?: 'up' | 'down' | null;
   reply_count?: number;
@@ -66,6 +68,8 @@ export interface AuthorInfo {
   id: string;
   full_name: string | null;
   avatar_url: string | null;
+  role?: string;
+  profession?: string | null;
 }
 
 // Poll data interface - improved structure
@@ -130,7 +134,10 @@ export interface RecentActivity {
   id: number;
   title: string;
   created_at: string;
-  Practitioners: { full_name: string };
+  Practitioners: {
+    full_name: string;
+    profession?: string | null;
+  };
 }
 
 // Community page response interface - optimized

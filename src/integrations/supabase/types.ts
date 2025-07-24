@@ -1633,7 +1633,7 @@ export type Database = {
       };
     };
     Enums: {
-      access_level_enum: 'public' | 'free' | 'premium' | 'editor_admin';
+      access_level_enum: 'public' | 'free' | 'premium' | 'admin'; // Simplified from editor_admin to admin
     };
     CompositeTypes: {
       [_ in never]: never;
@@ -1759,7 +1759,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      access_level_enum: ['public', 'free', 'premium', 'editor_admin'],
+      access_level_enum: ['public', 'free', 'premium', 'admin'], // Simplified from editor_admin to admin
     },
   },
 } as const;

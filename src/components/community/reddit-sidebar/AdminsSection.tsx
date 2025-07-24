@@ -1,4 +1,4 @@
-// ABOUTME: Reddit-style Moderators section showing admins and moderators with user flair
+// ABOUTME: Reddit-style Admins section showing administrators with user profession display
 
 import React from 'react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
@@ -9,19 +9,19 @@ import type {
   CommunitySidebarData,
 } from '../../../../packages/hooks/useCommunityManagementQuery';
 
-interface ModeratorsSectionProps {
+interface AdminsSectionProps {
   section: CommunitySidebarSection;
   sidebarData: CommunitySidebarData;
   isLast?: boolean;
 }
 
-const ModeratorCard = ({ moderator }: { moderator: any }) => {
+const AdminCard = ({ admin }: { admin: any }) => {
   return (
     <div className="flex items-center gap-2 py-1 px-2 -mx-2 rounded hover:bg-reddit-hover-bg transition-colors">
       <Avatar className="h-7 w-7">
-        <AvatarImage src={moderator.avatar_url} alt={moderator.full_name} />
+        <AvatarImage src={admin.avatar_url} alt={admin.full_name} />
         <AvatarFallback className="text-xs bg-primary text-primary-foreground">
-          {moderator.full_name
+          {admin.full_name
             ?.split(' ')
             .map((n: string) => n[0])
             .join('')
@@ -32,51 +32,49 @@ const ModeratorCard = ({ moderator }: { moderator: any }) => {
 
       <div className="flex-1 min-w-0">
         <span className="text-sm font-medium text-reddit-text-primary truncate">
-          {moderator.full_name}
+          {admin.full_name}
         </span>
 
-        {moderator.title && (
-          <p className="text-xs text-reddit-text-meta truncate">{moderator.title}</p>
-        )}
+        {admin.title && <p className="text-xs text-reddit-text-meta truncate">{admin.title}</p>}
       </div>
     </div>
   );
 };
 
-export const ModeratorsSection = ({ section, sidebarData, isLast }: ModeratorsSectionProps) => {
+export const AdminsSection = ({ section, sidebarData, isLast }: AdminsSectionProps) => {
   const content = section.content || {};
-  const showModerators = content.show_moderators !== false;
+  const showAdmins = content.show_moderators !== false; // Keep existing config key for compatibility
 
-  // Get real moderators from the computed data or sidebar data
+  // Get real admins from the computed data or sidebar data (previously moderators)
   const computedData = section.computed_data || {};
-  const moderators = computedData.moderators || sidebarData?.moderators || [];
+  const admins = computedData.moderators || sidebarData?.moderators || []; // Keep moderators key for data compatibility
 
   // Add profession as title
-  const moderatorsWithTitles = moderators.map((moderator: any) => ({
-    ...moderator,
-    title: moderator.profession,
+  const adminsWithTitles = admins.map((admin: any) => ({
+    ...admin,
+    title: admin.profession,
   }));
 
-  if (!showModerators) {
+  if (!showAdmins) {
     return null;
   }
 
   return (
     <RedditSidebarCard title={section.title} isLast={isLast}>
       <div className="space-y-2">
-        {/* Moderators List - No header, no count */}
-        {showModerators && moderatorsWithTitles.length > 0 && (
+        {/* Admins List - No header, no count */}
+        {showAdmins && adminsWithTitles.length > 0 && (
           <div className="space-y-1">
-            {moderatorsWithTitles.map(moderator => (
-              <ModeratorCard key={moderator.id} moderator={moderator} />
+            {adminsWithTitles.map(admin => (
+              <AdminCard key={admin.id} admin={admin} />
             ))}
           </div>
         )}
 
-        {/* No Moderators Message */}
-        {showModerators && moderatorsWithTitles.length === 0 && (
+        {/* No Admins Message */}
+        {showAdmins && adminsWithTitles.length === 0 && (
           <div className="text-center py-4 text-reddit-text-secondary">
-            <p className="text-sm">Nenhum moderador encontrado</p>
+            <p className="text-sm">Nenhum administrador encontrado</p>
           </div>
         )}
       </div>

@@ -12,6 +12,7 @@ import { Award } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { CommunityPost } from '../../types/community';
 import { VoteButton } from '../ui/VoteButton';
+import { CommentAuthor } from './CommunityAuthor';
 
 interface CommentProps {
   comment: CommunityPost;
@@ -89,13 +90,13 @@ export const Comment = ({
           {/* Comment Header */}
           <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
             <div className="flex items-center gap-2">
-              <Avatar className="w-6 h-6">
-                <AvatarImage src={comment.author?.avatar_url || ''} />
-                <AvatarFallback>{comment.author?.full_name?.charAt(0) || 'A'}</AvatarFallback>
-              </Avatar>
-              <span className="font-medium text-foreground">{comment.author?.full_name}</span>
-              <span>•</span>
-              <span>{formatCommentDate(comment.created_at)}</span>
+              <CommentAuthor
+                author={comment.author}
+                size="sm"
+                showTimestamp={true}
+                timestamp={formatCommentDate(comment.created_at)}
+                className="flex-1"
+              />
               {comment.is_rewarded && (
                 <Badge
                   variant="secondary"
