@@ -74,19 +74,12 @@ export const useTiptapEditor = ({
     : { ...DEFAULT_FIELD_CONFIGS['rich-text'], ...fieldConfig };
   
   // Create debounced update function with configurable delay
-  const debouncedUpdate = useRef(
+  const debouncedUpdate = useCallback(
     debounce((nodeId: string, content: string) => {
       onUpdate(nodeId, content);
-    }, debounceMs)
-  ).current;
-
-  // Update debounce delay when it changes
-  useRef(() => {
-    debouncedUpdate.cancel();
-    Object.assign(debouncedUpdate, debounce((nodeId: string, content: string) => {
-      onUpdate(nodeId, content);
-    }, debounceMs));
-  }).current;
+    }, debounceMs),
+    [onUpdate, debounceMs]
+  );
 
   const editor = useEditor({
     extensions: [
