@@ -4,14 +4,7 @@ import React, { useCallback, useRef, useState, useEffect } from 'react';
 import { NodeObject, BlockPosition } from '@/types/editor';
 import { useResizeSystem, ResizeHandle, getResizeHandleClasses } from './ResizeSystem';
 
-// Block node imports
-import { TextBlockNode } from './Nodes/TextBlockNode';
-import { ImageBlockNode } from './Nodes/ImageBlockNode';
-import { VideoEmbedBlockNode } from './Nodes/VideoEmbedBlockNode';
-import { ReferenceBlockNode } from './Nodes/ReferenceBlockNode';
-import { KeyTakeawayBlockNode } from './Nodes/KeyTakeawayBlockNode';
-import { SeparatorBlockNode } from './Nodes/SeparatorBlockNode';
-import { QuoteBlockNode } from './Nodes/QuoteBlockNode';
+// Unified Rich Block node import
 import { RichBlockNode } from './Nodes/RichBlockNode';
 
 interface DraggableBlockProps {
@@ -154,24 +147,6 @@ export const DraggableBlock: React.FC<DraggableBlockProps> = ({
     };
 
     switch (node.type) {
-      case 'textBlock':
-        // TextBlock now uses UnifiedBlockWrapper - return without DraggableBlock container
-        return <TextBlockNode {...unifiedProps} />;
-      case 'imageBlock':
-        // ImageBlock now uses UnifiedBlockWrapper - return without DraggableBlock container
-        return <ImageBlockNode {...unifiedProps} />;
-      case 'videoEmbedBlock':
-        return <VideoEmbedBlockNode {...commonProps} />;
-      case 'referenceBlock':
-        return <ReferenceBlockNode {...commonProps} />;
-      case 'keyTakeawayBlock':
-        // KeyTakeawayBlock now uses UnifiedBlockWrapper - return without DraggableBlock container
-        return <KeyTakeawayBlockNode {...unifiedProps} />;
-      case 'separatorBlock':
-        return <SeparatorBlockNode {...commonProps} />;
-      case 'quoteBlock':
-        // QuoteBlock now uses UnifiedBlockWrapper - return without DraggableBlock container
-        return <QuoteBlockNode {...unifiedProps} />;
       case 'richBlock':
         // RichBlock uses UnifiedBlockWrapper - return without DraggableBlock container
         return <RichBlockNode {...unifiedProps} />;
@@ -195,15 +170,8 @@ export const DraggableBlock: React.FC<DraggableBlockProps> = ({
     return 'Selected - drag to move';
   };
 
-  // For blocks that use UnifiedBlockWrapper, return them directly
-  if (
-    node.type === 'textBlock' ||
-    node.type === 'imageBlock' ||
-    node.type === 'tableBlock' ||
-    node.type === 'quoteBlock' ||
-    node.type === 'keyTakeawayBlock' ||
-    node.type === 'richBlock'
-  ) {
+  // For Rich Block (uses UnifiedBlockWrapper), return it directly
+  if (node.type === 'richBlock') {
     return renderBlockContent();
   }
 

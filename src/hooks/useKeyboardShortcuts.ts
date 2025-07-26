@@ -413,64 +413,19 @@ export function useKeyboardShortcuts() {
         disabled: !selectedNodeId,
       },
 
-      // Quick block creation
+      // Unified block creation
       {
-        id: 'add-text',
-        name: 'Add Text Block',
-        description: 'Add a new text block',
-        keys: ['ctrl', 'shift', 't'],
+        id: 'add-rich-block',
+        name: 'Add Rich Block',
+        description: 'Add a new Rich Block with all content types',
+        keys: ['ctrl', 'shift', 'r'],
         category: 'blocks',
         action: () => {
-          addNode({ type: 'textBlock' });
+          addNode({ type: 'richBlock' });
           toast({
-            title: 'Text Block Added',
-            description: 'Added new text block',
-            duration: 1000,
-          });
-        },
-      },
-      {
-        id: 'add-heading',
-        name: 'Add Heading Block',
-        description: 'Add a new heading block (H1)',
-        keys: ['ctrl', 'shift', 'h'],
-        category: 'blocks',
-        action: () => {
-          addNode({ type: 'textBlock', data: { headingLevel: 1 } });
-          toast({
-            title: 'Heading Block Added',
-            description: 'Added new H1 heading block',
-            duration: 1000,
-          });
-        },
-      },
-      {
-        id: 'add-image',
-        name: 'Add Image Block',
-        description: 'Add a new image block',
-        keys: ['ctrl', 'shift', 'i'],
-        category: 'blocks',
-        action: () => {
-          addNode({ type: 'imageBlock' });
-          toast({
-            title: 'Image Block Added',
-            description: 'Added new image block',
-            duration: 1000,
-          });
-        },
-      },
-      {
-        id: 'add-separator',
-        name: 'Add Separator',
-        description: 'Add a new separator block',
-        keys: ['ctrl', 'shift', 's'],
-        category: 'blocks',
-        action: () => {
-          addNode({ type: 'separatorBlock' });
-          toast({
-            title: 'Separator Added',
-            description: 'Added new separator block',
-            duration: 1000,
+            title: 'Rich Block Added',
+            description: 'Added new Rich Block - use extensions for tables, polls, images, etc.',
+            duration: 2000,
           });
         },
       },

@@ -37,8 +37,6 @@ import {
   ZoomOut,
   Table,
   BarChart3,
-  Image,
-  Video,
   Plus,
 } from 'lucide-react';
 import { KeyboardShortcutsPanel } from './KeyboardShortcutsPanel';
@@ -555,30 +553,6 @@ export const UnifiedToolbar = React.memo(function UnifiedToolbar({
     });
   }, []);
 
-  const handleInsertImage = React.useCallback(() => {
-    const { addNode } = useEditorStore.getState();
-    addNode({
-      type: 'imageBlock',
-      data: {
-        src: '',
-        alt: 'New image',
-        caption: '',
-      },
-    });
-  }, []);
-
-  const handleInsertVideo = React.useCallback(() => {
-    const { addNode } = useEditorStore.getState();
-    addNode({
-      type: 'videoEmbedBlock',
-      data: {
-        url: '',
-        title: 'New video',
-        provider: 'youtube',
-      },
-    });
-  }, []);
-
   // Block Actions Handlers
   const handleDeleteBlock = React.useCallback(() => {
     if (selectedNodeId) {
@@ -826,28 +800,6 @@ export const UnifiedToolbar = React.memo(function UnifiedToolbar({
               aria-label="Add poll"
             >
               <BarChart3 size={10} />
-            </Button>
-
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleInsertImage}
-              className="h-6 w-6 p-0"
-              title="Add image (Ctrl+Shift+I)"
-              aria-label="Add image"
-            >
-              <Image size={10} />
-            </Button>
-
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleInsertVideo}
-              className="h-6 w-6 p-0"
-              title="Add video (Ctrl+Shift+V)"
-              aria-label="Add video"
-            >
-              <Video size={10} />
             </Button>
           </div>
         </div>

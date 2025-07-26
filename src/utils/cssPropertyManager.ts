@@ -1,6 +1,8 @@
 // ABOUTME: CSS custom property injection and management utility for dynamic theming
 
-import type { ThemeTokens, ColorValue } from '@/types/unified-editor';
+// CSS Property management for Rich Block theming
+type ThemeTokens = Record<string, string>;
+type ColorValue = string;
 
 // ============================================================================
 // CSS PROPERTY MANAGER CLASS

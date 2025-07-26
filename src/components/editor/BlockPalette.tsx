@@ -2,113 +2,23 @@
 
 import React from 'react';
 import { useDraggable } from '@dnd-kit/core';
-import {
-  Type,
-  Heading1,
-  Image,
-  Table,
-  BarChart,
-  MessageSquare,
-  Lightbulb,
-  Quote,
-  Video,
-  Minus,
-  FileText,
-  Edit3,
-} from 'lucide-react';
+import { Edit3 } from 'lucide-react';
 import { BlockType } from '@/types/editor';
 
 const blockTypes: BlockType[] = [
-  // Content Blocks
+  // Unified Content Block - The only block type needed
   {
     id: 'richBlock',
     label: 'Rich Block',
     icon: Edit3,
     category: 'content',
-    description: 'Unified block with rich text, images, tables, polls, and embeds',
-  },
-  {
-    id: 'textBlock',
-    label: 'Text Block',
-    icon: Type,
-    category: 'content',
-    description: 'Rich text content with formatting and headings',
-  },
-  {
-    id: 'quoteBlock',
-    label: 'Quote',
-    icon: Quote,
-    category: 'content',
-    description: 'Highlighted quotes and citations',
-  },
-
-  // Media Blocks
-  {
-    id: 'imageBlock',
-    label: 'Image',
-    icon: Image,
-    category: 'media',
-    description: 'Images with captions and styling',
-  },
-  {
-    id: 'videoEmbedBlock',
-    label: 'Video',
-    icon: Video,
-    category: 'media',
-    description: 'YouTube/Vimeo video embeds',
-  },
-
-  // Data Blocks
-  {
-    id: 'tableBlock',
-    label: 'Table',
-    icon: Table,
-    category: 'data',
-    description: 'Data tables with sorting',
-  },
-
-  // Interactive Blocks
-  {
-    id: 'pollBlock',
-    label: 'Poll',
-    icon: MessageSquare,
-    category: 'interactive',
-    description: 'Interactive voting polls',
-  },
-
-  // EVIDENS Blocks
-  {
-    id: 'keyTakeawayBlock',
-    label: 'Key Takeaway',
-    icon: Lightbulb,
-    category: 'evidens',
-    description: 'Highlighted key messages',
-  },
-  {
-    id: 'referenceBlock',
-    label: 'Reference',
-    icon: FileText,
-    category: 'evidens',
-    description: 'Academic citations',
-  },
-
-  // Visual Blocks
-  {
-    id: 'separatorBlock',
-    label: 'Separator',
-    icon: Minus,
-    category: 'visual',
-    description: 'Section dividers',
+    description:
+      'Unified block with rich text, images, tables, polls, quotes, references, and all content types',
   },
 ];
 
 const categoryLabels = {
   content: 'Content',
-  media: 'Media',
-  data: 'Data',
-  interactive: 'Interactive',
-  evidens: 'EVIDENS',
-  visual: 'Visual',
 };
 
 const DraggableBlock = React.memo(function DraggableBlock({ block }: { block: BlockType }) {

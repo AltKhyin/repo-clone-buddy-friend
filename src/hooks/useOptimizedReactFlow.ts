@@ -11,25 +11,11 @@ import {
 } from '@xyflow/react';
 import { useEditorStore } from '@/store/editorStore';
 
-// Import all node types with React.memo optimization
-import { TextBlockNode } from '@/components/editor/Nodes/TextBlockNode';
-import { ImageBlockNode } from '@/components/editor/Nodes/ImageBlockNode';
-import { VideoEmbedBlockNode } from '@/components/editor/Nodes/VideoEmbedBlockNode';
-import { QuoteBlockNode } from '@/components/editor/Nodes/QuoteBlockNode';
-import { ReferenceBlockNode } from '@/components/editor/Nodes/ReferenceBlockNode';
-import { KeyTakeawayBlockNode } from '@/components/editor/Nodes/KeyTakeawayBlockNode';
-import { SeparatorBlockNode } from '@/components/editor/Nodes/SeparatorBlockNode';
+// Import unified Rich Block node component
 import { RichBlockNode } from '@/components/editor/Nodes/RichBlockNode';
 
-// Define node types with memoization
+// Define node types - unified Rich Block architecture
 export const nodeTypes: NodeTypes = {
-  textBlock: TextBlockNode,
-  imageBlock: ImageBlockNode,
-  videoEmbedBlock: VideoEmbedBlockNode,
-  quoteBlock: QuoteBlockNode,
-  referenceBlock: ReferenceBlockNode,
-  keyTakeawayBlock: KeyTakeawayBlockNode,
-  separatorBlock: SeparatorBlockNode,
   richBlock: RichBlockNode,
 };
 

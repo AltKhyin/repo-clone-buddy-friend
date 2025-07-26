@@ -7,7 +7,7 @@ import {
   StateTarget,
   StateUpdate,
 } from './stateSynchronizer';
-import { useUnifiedEditorStore } from '@/store/unifiedEditorStore';
+import { useEditorStore } from '@/store/editorStore';
 
 /**
  * TipTap-specific state update types
@@ -39,7 +39,7 @@ export interface ComponentStateSnapshot {
  */
 export class TipTapStateSynchronizer extends EditorStateSynchronizer {
   private componentSnapshots = new Map<string, ComponentStateSnapshot>();
-  private editorStore = useUnifiedEditorStore.getState();
+  private editorStore = useEditorStore.getState();
 
   /**
    * Synchronize TipTap node attributes with React component state
@@ -252,14 +252,14 @@ export class TipTapStateSynchronizer extends EditorStateSynchronizer {
   }
 
   /**
-   * Update unified editor store
+   * Update main editor store
    */
   private async updateUnifiedStore(update: StateUpdate): Promise<void> {
     const { blockId, content } = update.data;
 
     if (blockId && content) {
-      // Update the unified editor store
-      this.editorStore.actions.updateContent(blockId, content);
+      // Update the main editor store
+      this.editorStore.updateNode(blockId, { data: content });
     }
   }
 

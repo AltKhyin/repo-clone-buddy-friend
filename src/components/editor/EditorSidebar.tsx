@@ -8,39 +8,12 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useDraggable } from '@dnd-kit/core';
-import {
-  Blocks,
-  Settings2,
-  Palette,
-  Move,
-  Heading1,
-  Heading2,
-  Heading3,
-  Heading4,
-  Type,
-  Image,
-  Table,
-  BarChart,
-  MessageSquare,
-  Lightbulb,
-  Quote,
-  Video,
-  Minus,
-  FileText,
-  Edit3,
-} from 'lucide-react';
+import { Blocks, Settings2, Palette, Move, Edit3 } from 'lucide-react';
 import { BlockType } from '@/types/editor';
 import { BackgroundControls } from './Inspector/shared/BackgroundControls';
 import { SpacingControls } from './Inspector/shared/SpacingControls';
 import { BorderControls } from './Inspector/shared/BorderControls';
 import { RichBlockInspector } from './Inspector/RichBlockInspector';
-import { TextBlockInspector } from './Inspector/TextBlockInspector';
-import { QuoteBlockInspector } from './Inspector/QuoteBlockInspector';
-import { VideoEmbedBlockInspector } from './Inspector/VideoEmbedBlockInspector';
-import { SeparatorBlockInspector } from './Inspector/SeparatorBlockInspector';
-import { ImageBlockInspector } from './Inspector/ImageBlockInspector';
-import { KeyTakeawayBlockInspector } from './Inspector/KeyTakeawayBlockInspector';
-import { ReferenceBlockInspector } from './Inspector/ReferenceBlockInspector';
 
 // Tab value constants for type safety and consistency
 const TAB_VALUES = {
@@ -50,96 +23,21 @@ const TAB_VALUES = {
 
 type TabValue = (typeof TAB_VALUES)[keyof typeof TAB_VALUES];
 
-// Block types data (copied from BlockPalette to avoid circular dependency)
+// Block types data (simplified for unified Rich Block architecture)
 const blockTypes: BlockType[] = [
-  // Content Blocks
+  // Unified Content Block - The only block type needed
   {
     id: 'richBlock',
     label: 'Rich Block',
     icon: Edit3,
     category: 'content',
-    description: 'Unified block with rich text, images, tables, polls, and embeds',
-  },
-  {
-    id: 'textBlock',
-    label: 'Text & Headings',
-    icon: Type,
-    category: 'content',
-    description: 'Rich text content with formatting and heading levels (H1-H4)',
-  },
-  {
-    id: 'quoteBlock',
-    label: 'Quote',
-    icon: Quote,
-    category: 'content',
-    description: 'Highlighted quotes and citations',
-  },
-
-  // Media Blocks
-  {
-    id: 'imageBlock',
-    label: 'Image',
-    icon: Image,
-    category: 'media',
-    description: 'Images with captions and styling',
-  },
-  {
-    id: 'videoEmbedBlock',
-    label: 'Video',
-    icon: Video,
-    category: 'media',
-    description: 'YouTube and Vimeo embeds',
-  },
-
-  // Data Blocks
-  {
-    id: 'tableBlock',
-    label: 'Table',
-    icon: Table,
-    category: 'data',
-    description: 'Data tables with sorting',
-  },
-  {
-    id: 'pollBlock',
-    label: 'Poll',
-    icon: BarChart,
-    category: 'interactive',
-    description: 'Interactive polls and surveys',
-  },
-
-  // EVIDENS Blocks
-  {
-    id: 'keyTakeawayBlock',
-    label: 'Key Takeaway',
-    icon: Lightbulb,
-    category: 'evidens',
-    description: 'Important insights and highlights',
-  },
-  {
-    id: 'referenceBlock',
-    label: 'Reference',
-    icon: FileText,
-    category: 'evidens',
-    description: 'Academic citations and references',
-  },
-
-  // Visual Blocks
-  {
-    id: 'separatorBlock',
-    label: 'Separator',
-    icon: Minus,
-    category: 'visual',
-    description: 'Section dividers',
+    description:
+      'Unified block with rich text, images, tables, polls, quotes, references, and all content types',
   },
 ];
 
 const categoryLabels = {
   content: 'Content',
-  media: 'Media',
-  data: 'Data',
-  interactive: 'Interactive',
-  evidens: 'EVIDENS',
-  visual: 'Visual',
 };
 
 const DraggableBlock = React.memo(function DraggableBlock({ block }: { block: BlockType }) {
@@ -321,52 +219,13 @@ export function EditorSidebar({ className }: EditorSidebarProps) {
                 <>
                   {/* Properties Content */}
                   <div className="flex-1 overflow-y-auto p-4">
-                    {/* Block-Specific Inspectors */}
+                    {/* Block-Specific Inspector - Unified Rich Block only */}
                     {selectedNode.type === 'richBlock' && (
                       <RichBlockInspector nodeId={selectedNode.id} />
                     )}
 
-                    {selectedNode.type === 'textBlock' && (
-                      <TextBlockInspector nodeId={selectedNode.id} />
-                    )}
-
-                    {selectedNode.type === 'quoteBlock' && (
-                      <QuoteBlockInspector nodeId={selectedNode.id} />
-                    )}
-
-                    {selectedNode.type === 'videoEmbedBlock' && (
-                      <VideoEmbedBlockInspector nodeId={selectedNode.id} />
-                    )}
-
-                    {selectedNode.type === 'separatorBlock' && (
-                      <SeparatorBlockInspector nodeId={selectedNode.id} />
-                    )}
-
-                    {selectedNode.type === 'imageBlock' && (
-                      <ImageBlockInspector nodeId={selectedNode.id} />
-                    )}
-
-                    {selectedNode.type === 'keyTakeawayBlock' && (
-                      <KeyTakeawayBlockInspector nodeId={selectedNode.id} />
-                    )}
-
-                    {selectedNode.type === 'referenceBlock' && (
-                      <ReferenceBlockInspector nodeId={selectedNode.id} />
-                    )}
-
-                    {/* Fallback for block types without dedicated inspectors */}
-                    {![
-                      'richBlock',
-                      'textBlock',
-                      'tableBlock',
-                      'quoteBlock',
-                      'videoEmbedBlock',
-                      'separatorBlock',
-                      'imageBlock',
-                      'pollBlock',
-                      'keyTakeawayBlock',
-                      'referenceBlock',
-                    ].includes(selectedNode.type) && (
+                    {/* Fallback for any remaining legacy block types */}
+                    {selectedNode.type !== 'richBlock' && (
                       <div className="space-y-6">
                         {/* Colors Section */}
                         <div className="space-y-3">

@@ -31,37 +31,14 @@ const initialWYSIWYGCanvas: WYSIWYGCanvas = {
 // Initial positions (empty for new documents)
 const initialPositions: BlockPositions = {};
 
-// Enhanced utility: Find available position with content-aware sizing for different block types
+// Simplified utility: Find available position for Rich Block only
 const findAvailablePosition = (
   existingPositions: BlockPositions,
   blockType?: string
 ): BlockPosition => {
-  // Content-aware default dimensions based on block type
-  const getDefaultDimensions = (type?: string) => {
-    switch (type) {
-      case 'textBlock':
-        return { width: 400, height: 120 };
-      case 'imageBlock':
-        return { width: 400, height: 300 };
-      case 'quoteBlock':
-        return { width: 400, height: 150 };
-      case 'keyTakeawayBlock':
-        return { width: 400, height: 150 };
-      case 'videoEmbedBlock':
-        return { width: 560, height: 315 }; // 16:9 aspect ratio
-      case 'tableBlock': // DEPRECATED - use richBlock with TipTap table extension
-        return { width: 600, height: 200 };
-      case 'pollBlock': // DEPRECATED - use richBlock with TipTap poll extension
-        return { width: 400, height: 250 };
-      case 'richBlock': // UNIFIED - handles text, tables, polls, images, videos through TipTap
-        return { width: 600, height: 200 };
-      case 'referenceBlock':
-        return { width: 400, height: 180 };
-      case 'separatorBlock':
-        return { width: 400, height: 40 };
-      default:
-        return { width: 400, height: 120 }; // Default fallback
-    }
+  // Single Rich Block default dimensions - unified editor architecture
+  const getDefaultDimensions = () => {
+    return { width: 600, height: 200 }; // Rich Block handles all content types
   };
 
   const { width: defaultWidth, height: defaultHeight } = getDefaultDimensions(blockType);
@@ -198,6 +175,13 @@ export const useEditorStore = create<EditorState>((set, get) => {
     showGrid: true,
     showSnapGuides: true,
 
+    // UI State - Rich Block Architecture
+    isInspectorVisible: true,
+    canvasTheme: 'light',
+    showRulers: false,
+    showGuidelines: false,
+    guidelines: { horizontal: [], vertical: [] },
+
     // Clipboard State
     clipboardData: null,
 
@@ -211,21 +195,21 @@ export const useEditorStore = create<EditorState>((set, get) => {
     // ===== NODE ACTIONS =====
 
     addNode: nodeData => {
-      const nodeType = nodeData.type || 'textBlock';
+      // Force all new nodes to be Rich Blocks - unified architecture
+      const nodeType = 'richBlock';
       const nodeDataValue = nodeData.data || getDefaultDataForBlockType(nodeType);
 
-      // Auto-migrate legacy table/poll blocks to unified richBlock
-      const migration = autoMigrateNodeData(nodeType, nodeDataValue);
-      const finalNodeType = migration.newType || nodeType;
+      // Auto-migrate any legacy content to richBlock format
+      const migration = autoMigrateNodeData(nodeData.type || 'textBlock', nodeDataValue);
       const finalNodeData = migration.data;
 
       if (migration.migrated) {
-        console.log(`[EditorStore] Auto-migrated ${nodeType} to ${finalNodeType}`);
+        console.log(`[EditorStore] Auto-migrated ${nodeData.type} to richBlock`);
       }
 
       const newNode: NodeObject = {
         id: generateNodeId(),
-        type: finalNodeType,
+        type: nodeType, // Always richBlock
         data: finalNodeData,
         // Include any additional properties from nodeData EXCEPT id, type, data
         ...Object.fromEntries(
@@ -234,9 +218,9 @@ export const useEditorStore = create<EditorState>((set, get) => {
       } as NodeObject;
 
       set(state => {
-        // Create position for new node to avoid overlaps with correct dimensions for migrated type
+        // Create position for new Rich Block
         const existingPositions = Object.values(state.positions);
-        const newPosition = findAvailablePosition(existingPositions, finalNodeType);
+        const newPosition = findAvailablePosition(existingPositions);
         newPosition.id = newNode.id;
 
         const updatedState = {
@@ -312,12 +296,9 @@ export const useEditorStore = create<EditorState>((set, get) => {
       set(state => {
         if (state.positions[nodeId]) return state; // Already has position
 
-        // Find the node to get its type if not provided
-        const node = state.nodes.find(n => n.id === nodeId);
-        const typeToUse = blockType || node?.type;
-
+        // All blocks are Rich Blocks in unified architecture
         const existingPositions = Object.values(state.positions);
-        const newPosition = findAvailablePosition(existingPositions, typeToUse);
+        const newPosition = findAvailablePosition(existingPositions);
         newPosition.id = nodeId;
 
         return {
@@ -406,51 +387,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
     },
 
     // ===== LAYOUT ACTIONS =====
-
-    updateLayout: (nodeId, layout, viewport) => {
-      set(state => {
-        // Ensure we have master/derived layouts
-        const layouts = ensureMasterDerivedLayouts(state.layouts);
-
-        // Get the current layout config for the viewport
-        const currentLayoutConfig = getLayoutForViewport(layouts, viewport);
-        const currentItems = currentLayoutConfig.items;
-        const existingIndex = currentItems.findIndex(i => i.nodeId === nodeId);
-
-        let updatedItems;
-        if (existingIndex >= 0) {
-          // Update existing layout item
-          updatedItems = [...currentItems];
-          updatedItems[existingIndex] = { ...layout, nodeId };
-        } else {
-          // Add new layout item
-          updatedItems = [...currentItems, { ...layout, nodeId }];
-        }
-
-        // Create updated layout config
-        const updatedLayoutConfig = {
-          ...currentLayoutConfig,
-          items: updatedItems,
-        };
-
-        // Update the appropriate layout using utility functions
-        const updatedLayouts =
-          viewport === 'desktop'
-            ? updateDesktopLayout(layouts, updatedLayoutConfig)
-            : updateMobileLayout(layouts, updatedLayoutConfig);
-
-        const updatedState = {
-          ...state,
-          layouts: updatedLayouts,
-          isDirty: true,
-        };
-
-        // Auto-save after layout update
-        debouncedSave();
-
-        return updatedState;
-      });
-    },
+    // NOTE: Layout actions removed - Rich Block uses WYSIWYG positioning only
 
     // ===== SELECTION ACTIONS =====
 
@@ -464,78 +401,13 @@ export const useEditorStore = create<EditorState>((set, get) => {
 
     // ===== VIEWPORT ACTIONS =====
 
-    // ===== MASTER/DERIVED LAYOUT SYSTEM =====
+    // ===== VIEWPORT ACTIONS =====
+    // NOTE: Legacy layout system removed - Rich Block uses responsive WYSIWYG positioning
 
     switchViewport: viewport => {
-      const state = get();
-      if (state.currentViewport === viewport) return; // No change needed
-
-      // Check if switching to mobile and mobile layout needs generation
-      if (viewport === 'mobile') {
-        const layouts = ensureMasterDerivedLayouts(state.layouts);
-        if (!layouts.mobile.isGenerated && layouts.mobile.data.items.length === 0) {
-          console.log('[EditorStore] Auto-generating mobile layout from desktop');
-          get().generateMobileFromDesktop();
-        }
-      }
-
-      // Simple viewport switch - no layout conversion
-      set({
-        currentViewport: viewport,
-      });
-
-      console.log(`[EditorStore] Switched to ${viewport} viewport (no conversion)`);
-    },
-
-    generateMobileFromDesktop: () => {
-      set(state => {
-        const layouts = ensureMasterDerivedLayouts(state.layouts);
-
-        try {
-          const { mobileLayout, nodeUpdates } = generateMobileFromDesktop(
-            layouts.desktop.data,
-            state.nodes
-          );
-
-          // Apply node content adaptations for mobile
-          Object.entries(nodeUpdates).forEach(([nodeId, updates]) => {
-            if (Object.keys(updates).length > 0) {
-              get().updateNode(nodeId, updates);
-            }
-          });
-
-          // Mark mobile as generated from current desktop
-          const updatedLayouts = markMobileAsGenerated(layouts, mobileLayout);
-
-          console.log('[EditorStore] Generated mobile layout from desktop:', {
-            mobileItems: mobileLayout.items.length,
-            nodeUpdates: Object.keys(nodeUpdates).length,
-          });
-
-          return {
-            ...state,
-            layouts: updatedLayouts,
-            isDirty: true,
-          };
-        } catch (error) {
-          console.error('[EditorStore] Failed to generate mobile layout:', error);
-          return state;
-        }
-      });
-
-      // Auto-save after generation
-      debouncedSave();
-    },
-
-    shouldRegenerateMobile: () => {
-      const state = get();
-      const layouts = ensureMasterDerivedLayouts(state.layouts);
-      return shouldRegenerateMobile(layouts);
-    },
-
-    resetMobileLayout: () => {
-      console.log('[EditorStore] Resetting mobile layout from desktop');
-      get().generateMobileFromDesktop();
+      // Simple viewport switch for Rich Block responsive design
+      set({ currentViewport: viewport });
+      console.log(`[EditorStore] Switched to ${viewport} viewport (Rich Block responsive)`);
     },
 
     updateCanvasTransform: transform => {
@@ -577,6 +449,10 @@ export const useEditorStore = create<EditorState>((set, get) => {
 
       // Update internal state
       set({ isFullscreen: newFullscreenState });
+    },
+
+    toggleInspector: () => {
+      set(state => ({ isInspectorVisible: !state.isInspectorVisible }));
     },
 
     addGuideline: (type, position) => {
@@ -644,31 +520,15 @@ export const useEditorStore = create<EditorState>((set, get) => {
             isDirty: true,
           });
         }
-        // Handle V2 format (legacy) - migrate to V3
+        // Handle legacy V2 format - create Rich Block positions
         else {
-          // For legacy V2 format, we need to migrate to V3 positions
+          // Create default Rich Block positions for legacy content
           const positions: any = {};
-          const columnWidth = 800 / 12;
-
           previousState.nodes.forEach((node, index) => {
-            const layoutItem = previousState.layouts?.desktop?.items?.find(
-              item => item.nodeId === node.id
-            );
-
-            if (layoutItem) {
-              positions[node.id] = {
-                id: node.id,
-                x: layoutItem.x * (columnWidth / 2),
-                y: layoutItem.y * 20,
-                width: layoutItem.w * (columnWidth / 2),
-                height: layoutItem.h * 20,
-              };
-            } else {
-              const existingPositions = Object.values(positions);
-              const newPosition = findAvailablePosition(existingPositions);
-              newPosition.id = node.id;
-              positions[node.id] = newPosition;
-            }
+            const existingPositions = Object.values(positions);
+            const newPosition = findAvailablePosition(existingPositions);
+            newPosition.id = node.id;
+            positions[node.id] = newPosition;
           });
 
           set({
@@ -697,31 +557,15 @@ export const useEditorStore = create<EditorState>((set, get) => {
             isDirty: true,
           });
         }
-        // Handle V2 format (legacy) - migrate to V3
+        // Handle legacy V2 format - create Rich Block positions
         else {
-          // For legacy V2 format, we need to migrate to V3 positions
+          // Create default Rich Block positions for legacy content
           const positions: any = {};
-          const columnWidth = 800 / 12;
-
           nextState.nodes.forEach((node, index) => {
-            const layoutItem = nextState.layouts?.desktop?.items?.find(
-              item => item.nodeId === node.id
-            );
-
-            if (layoutItem) {
-              positions[node.id] = {
-                id: node.id,
-                x: layoutItem.x * (columnWidth / 2),
-                y: layoutItem.y * 20,
-                width: layoutItem.w * (columnWidth / 2),
-                height: layoutItem.h * 20,
-              };
-            } else {
-              const existingPositions = Object.values(positions);
-              const newPosition = findAvailablePosition(existingPositions);
-              newPosition.id = node.id;
-              positions[node.id] = newPosition;
-            }
+            const existingPositions = Object.values(positions);
+            const newPosition = findAvailablePosition(existingPositions);
+            newPosition.id = node.id;
+            positions[node.id] = newPosition;
           });
 
           set({
@@ -863,42 +707,22 @@ export const useEditorStore = create<EditorState>((set, get) => {
 
               console.log('[EditorStore] V3 content loaded successfully');
             }
-            // Handle V2 format (legacy layouts) - migrate to V3
+            // Handle legacy V2 format - migrate to V3 Rich Block
             else if (content.version === '2.0.0') {
-              console.log('[EditorStore] Loading V2 content and migrating to V3:', {
+              console.log('[EditorStore] Loading V2 content and migrating to Rich Block V3:', {
                 nodeCount: content.nodes.length,
-                hasLayouts: !!content.layouts,
               });
 
               // Migrate any legacy heading blocks to unified text blocks
               const migratedNodes = migrateAllHeadingBlocks(content.nodes);
 
-              // Migrate V2 layout to V3 positions
+              // Create default Rich Block positions for all legacy content
               const positions: any = {};
-              const columnWidth = 800 / 12; // Standard 12-column grid
-
               migratedNodes.forEach((node, index) => {
-                // Try to find layout item in desktop layout
-                const layoutItem = content.layouts?.desktop?.items?.find(
-                  item => item.nodeId === node.id
-                );
-
-                if (layoutItem) {
-                  // Convert grid coordinates to pixel coordinates
-                  positions[node.id] = {
-                    id: node.id,
-                    x: layoutItem.x * (columnWidth / 2),
-                    y: layoutItem.y * 20,
-                    width: layoutItem.w * (columnWidth / 2),
-                    height: layoutItem.h * 20,
-                  };
-                } else {
-                  // Create default position
-                  const existingPositions = Object.values(positions);
-                  const newPosition = findAvailablePosition(existingPositions);
-                  newPosition.id = node.id;
-                  positions[node.id] = newPosition;
-                }
+                const existingPositions = Object.values(positions);
+                const newPosition = findAvailablePosition(existingPositions);
+                newPosition.id = node.id;
+                positions[node.id] = newPosition;
               });
 
               set({
@@ -911,7 +735,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
                 lastSaved: new Date(data.updated_at),
               });
 
-              console.log('[EditorStore] V2 content migrated to V3 successfully');
+              console.log('[EditorStore] V2 content migrated to Rich Block V3 successfully');
             }
           } else {
             console.log('[EditorStore] No existing content found, using empty state');
@@ -971,36 +795,17 @@ export const useEditorStore = create<EditorState>((set, get) => {
             selectedNodeId: null,
           });
         }
-        // Handle V2 format (legacy layouts) - migrate to V3
+        // Handle legacy V2 format - migrate to Rich Block V3
         else {
           const validatedContent = validateStructuredContent(json);
 
-          // Migrate V2 layout to V3 positions
+          // Create default Rich Block positions for all legacy content
           const positions: any = {};
-          const columnWidth = 800 / 12; // Standard 12-column grid
-
           validatedContent.nodes.forEach((node, index) => {
-            // Try to find layout item in desktop layout
-            const layoutItem = validatedContent.layouts?.desktop?.items?.find(
-              item => item.nodeId === node.id
-            );
-
-            if (layoutItem) {
-              // Convert grid coordinates to pixel coordinates
-              positions[node.id] = {
-                id: node.id,
-                x: layoutItem.x * (columnWidth / 2),
-                y: layoutItem.y * 20,
-                width: layoutItem.w * (columnWidth / 2),
-                height: layoutItem.h * 20,
-              };
-            } else {
-              // Create default position
-              const existingPositions = Object.values(positions);
-              const newPosition = findAvailablePosition(existingPositions);
-              newPosition.id = node.id;
-              positions[node.id] = newPosition;
-            }
+            const existingPositions = Object.values(positions);
+            const newPosition = findAvailablePosition(existingPositions);
+            newPosition.id = node.id;
+            positions[node.id] = newPosition;
           });
 
           set({
@@ -1067,9 +872,15 @@ export const useEditorStore = create<EditorState>((set, get) => {
         lastSaved: null,
         showGrid: true,
         showSnapGuides: true,
-        // Legacy support
+        // Rich Block responsive viewport
         currentViewport: 'desktop',
         canvasTransform: initialCanvasTransform,
+        // UI State
+        isInspectorVisible: true,
+        canvasTheme: 'light',
+        showRulers: false,
+        showGuidelines: false,
+        guidelines: { horizontal: [], vertical: [] },
         clipboardData: null,
         history: [],
         historyIndex: -1,
@@ -1129,12 +940,8 @@ export const usePersistenceState = () =>
     lastSaved: state.lastSaved,
   }));
 
-// Layout selectors
-export const useCurrentLayout = () =>
-  useEditorStore(state => {
-    const layouts = ensureMasterDerivedLayouts(state.layouts);
-    return getLayoutForViewport(layouts, state.currentViewport);
-  });
+// Rich Block viewport selector
+export const useCurrentViewport = () => useEditorStore(state => state.currentViewport);
 
 // Stable action selectors (prevents function recreation)
 export const useEditorActions = () =>

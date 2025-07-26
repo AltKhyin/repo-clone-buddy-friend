@@ -40,66 +40,13 @@ interface ContextAwareInspectorProps {
   compact?: boolean;
 }
 
-// Block type configurations
+// Legacy block fallback configuration
 const BLOCK_CONFIGS = {
-  textBlock: {
-    icon: Type,
-    name: 'Text Block',
-    sections: ['typography', 'colors', 'spacing'],
-    typographyType: 'text' as const,
-  },
-  headingBlock: {
-    icon: Hash,
-    name: 'Heading Block',
-    sections: ['typography', 'colors', 'spacing'],
-    typographyType: 'heading' as const,
-  },
-  imageBlock: {
-    icon: Image,
-    name: 'Image Block',
-    sections: ['media', 'spacing', 'accessibility'],
-    typographyType: null,
-  },
-  pollBlock: {
-    icon: BarChart3,
-    name: 'Poll Block',
-    sections: ['colors', 'spacing', 'behavior'],
-    typographyType: null,
-  },
-  referenceBlock: {
-    icon: FileText,
-    name: 'Reference Block',
-    sections: ['typography', 'colors', 'spacing', 'citation'],
-    typographyType: 'reference' as const,
-  },
-  keyTakeawayBlock: {
-    icon: Lightbulb,
-    name: 'Key Takeaway',
-    sections: ['theme', 'colors', 'spacing'],
-    typographyType: null,
-  },
-  separatorBlock: {
-    icon: Minus,
-    name: 'Separator',
-    sections: ['style', 'colors'],
-    typographyType: null,
-  },
-  quoteBlock: {
-    icon: Quote,
-    name: 'Quote Block',
-    sections: ['typography', 'colors', 'spacing'],
-    typographyType: 'quote' as const,
-  },
-  tableBlock: {
-    icon: BarChart3,
-    name: 'Table Block',
+  // Fallback config for any remaining legacy blocks
+  fallback: {
+    icon: Settings,
+    name: 'Legacy Block',
     sections: ['colors', 'spacing'],
-    typographyType: null,
-  },
-  videoEmbedBlock: {
-    icon: Image,
-    name: 'Video Embed',
-    sections: ['spacing'],
     typographyType: null,
   },
 };
@@ -111,7 +58,7 @@ export const ContextAwareInspector = React.memo(function ContextAwareInspector({
   const { nodes, updateNode, currentViewport } = useEditorStore();
 
   const node = nodes.find(n => n.id === nodeId);
-  const blockConfig = node ? BLOCK_CONFIGS[node.type as keyof typeof BLOCK_CONFIGS] : null;
+  const blockConfig = node ? BLOCK_CONFIGS.fallback : null;
 
   // Generate inspector context
   const context: InspectorContext = useMemo(() => {

@@ -3,9 +3,6 @@
 import React from 'react';
 import { useEditorStore } from '@/store/editorStore';
 import { ContextAwareInspector } from './shared/ContextAwareInspector';
-import { TableBlockInspector } from './TableBlockInspector';
-import { PollBlockInspector } from './PollBlockInspector';
-import { ImageBlockInspector } from './ImageBlockInspector';
 import { RichBlockInspector } from './RichBlockInspector';
 import { Settings, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -58,19 +55,12 @@ export const InspectorPanel = React.memo(function InspectorPanel({
         <div className="p-4">
           {selectedNode ? (
             <>
-              {/* Route to specific inspectors for complex blocks */}
-              {selectedNode.type === 'tableBlock' && (
-                <TableBlockInspector nodeId={selectedNodeId!} />
-              )}
-              {selectedNode.type === 'pollBlock' && <PollBlockInspector nodeId={selectedNodeId!} />}
-              {selectedNode.type === 'imageBlock' && (
-                <ImageBlockInspector nodeId={selectedNodeId!} />
-              )}
+              {/* Rich Block Inspector - unified block architecture */}
               {selectedNode.type === 'richBlock' && <RichBlockInspector nodeId={selectedNodeId!} />}
-              {/* Use ContextAwareInspector for simpler blocks */}
-              {!['tableBlock', 'pollBlock', 'imageBlock', 'richBlock'].includes(
-                selectedNode.type
-              ) && <ContextAwareInspector nodeId={selectedNodeId!} compact={false} />}
+              {/* ContextAwareInspector fallback for any remaining legacy blocks */}
+              {selectedNode.type !== 'richBlock' && (
+                <ContextAwareInspector nodeId={selectedNodeId!} compact={false} />
+              )}
             </>
           ) : (
             <div className="text-center py-8">
