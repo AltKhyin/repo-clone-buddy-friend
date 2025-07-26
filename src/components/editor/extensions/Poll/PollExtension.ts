@@ -260,6 +260,46 @@ export const PollExtension = Node.create<PollOptions>({
       percentage: totalVotes > 0 ? Math.round((option.votes / totalVotes) * 100) : 0,
     }));
 
+    // Build poll content array without conditional spreads
+    const pollContentChildren: any[] = [
+      [
+        'h3',
+        {
+          style: `font-size: ${pollData.styling.questionFontSize || 18}px; font-weight: ${pollData.styling.questionFontWeight || 600}; margin: 0 0 16px 0; text-align: ${pollData.styling.textAlign || 'left'};`,
+        },
+        pollData.question || 'Poll Question',
+      ],
+      [
+        'div',
+        {},
+        ...optionsWithPercentage.map(option => [
+          'div',
+          {
+            style: `margin: 8px 0; padding: ${pollData.styling.optionPadding || 12}px; border: 1px solid ${pollData.styling.borderColor || '#e2e8f0'}; border-radius: ${(pollData.styling.borderRadius || 8) / 2}px; display: flex; justify-content: space-between; align-items: center; font-size: ${pollData.styling.optionFontSize || 16}px;`,
+          },
+          ['span', {}, option.text],
+          [
+            'span',
+            {
+              style: 'font-weight: 500; color: #64748b;',
+            },
+            `${option.votes} (${option.percentage}%)`,
+          ],
+        ]),
+      ],
+    ];
+
+    // Add vote count if there are votes
+    if (totalVotes > 0) {
+      pollContentChildren.push([
+        'div',
+        {
+          style: 'margin-top: 12px; font-size: 14px; color: #64748b; text-align: center;',
+        },
+        `Total votes: ${totalVotes}`,
+      ]);
+    }
+
     return [
       'div',
       mergeAttributes(
@@ -277,38 +317,7 @@ export const PollExtension = Node.create<PollOptions>({
         {
           style: `border: ${pollData.styling.borderWidth || 1}px solid ${pollData.styling.borderColor || '#e2e8f0'}; border-radius: ${pollData.styling.borderRadius || 8}px; padding: 16px; background-color: ${pollData.styling.backgroundColor || 'transparent'};`,
         },
-        [
-          'h3',
-          {
-            style: `font-size: ${pollData.styling.questionFontSize || 18}px; font-weight: ${pollData.styling.questionFontWeight || 600}; margin: 0 0 16px 0; text-align: ${pollData.styling.textAlign || 'left'};`,
-          },
-          pollData.question || 'Poll Question',
-        ],
-        [
-          'div',
-          {},
-          ...optionsWithPercentage.map(option => [
-            'div',
-            {
-              style: `margin: 8px 0; padding: ${pollData.styling.optionPadding || 12}px; border: 1px solid ${pollData.styling.borderColor || '#e2e8f0'}; border-radius: ${(pollData.styling.borderRadius || 8) / 2}px; display: flex; justify-content: space-between; align-items: center; font-size: ${pollData.styling.optionFontSize || 16}px;`,
-            },
-            ['span', {}, option.text],
-            [
-              'span',
-              {
-                style: 'font-weight: 500; color: #64748b;',
-              },
-              `${option.votes} (${option.percentage}%)`,
-            ],
-          ]),
-        ],
-        totalVotes > 0 && [
-          'div',
-          {
-            style: 'margin-top: 12px; font-size: 14px; color: #64748b; text-align: center;',
-          },
-          `Total votes: ${totalVotes}`,
-        ],
+        ...pollContentChildren,
       ],
     ];
   },

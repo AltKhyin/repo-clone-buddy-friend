@@ -128,6 +128,8 @@ export const ImageBlockDataSchema = z.object({
   fontStyle: z.enum(['normal', 'italic']).optional(),
 });
 
+// DEPRECATED: TableBlockDataSchema - Use RichBlockDataSchema with TipTap table extension instead
+// This schema is maintained for backward compatibility and migration purposes only
 export const TableBlockDataSchema = z.object({
   // HTML headers for typography integration (like TextBlock)
   htmlHeaders: z.array(z.string()),
@@ -161,6 +163,8 @@ export const TableBlockDataSchema = z.object({
   fontStyle: z.enum(['normal', 'italic']).optional(),
 });
 
+// DEPRECATED: PollBlockDataSchema - Use RichBlockDataSchema with TipTap poll extension instead
+// This schema is maintained for backward compatibility and migration purposes only
 export const PollBlockDataSchema = z.object({
   // HTML question for typography integration (like TextBlock)
   htmlQuestion: z.string(),
@@ -301,13 +305,43 @@ export const SeparatorBlockDataSchema = z.object({
   borderColor: z.string().optional(),
 });
 
+// UNIFIED: RichBlockDataSchema - Single schema for all rich content including tables, polls, text, images, videos
+// TipTap extensions handle tables (customTable) and polls (customPoll) natively within the editor
+export const RichBlockDataSchema = z.object({
+  // Content storage - TipTap JSON is the single source of truth for unified editing
+  content: z.object({
+    tiptapJSON: z.any().optional(), // TipTap editor JSON content with native table/poll support
+    htmlContent: z.string().default('<p>Start typing...</p>'), // HTML representation for fallback display
+  }),
+  // Universal styling properties (following existing pattern)
+  paddingX: z.number().optional(),
+  paddingY: z.number().optional(),
+  backgroundColor: z.string().optional(),
+  borderRadius: z.number().optional(),
+  borderWidth: z.number().default(0),
+  borderColor: z.string().optional(),
+  // Typography properties
+  textAlign: z.enum(['left', 'center', 'right', 'justify']).optional(),
+  color: z.string().optional(),
+  fontSize: z.number().optional(),
+  fontFamily: z.string().optional(),
+  fontWeight: z.number().optional(),
+  lineHeight: z.number().optional(),
+  letterSpacing: z.number().optional(),
+  textTransform: z.enum(['none', 'uppercase', 'lowercase', 'capitalize']).optional(),
+  textDecoration: z.enum(['none', 'underline', 'line-through']).optional(),
+  fontStyle: z.enum(['normal', 'italic']).optional(),
+});
+
 // ===== MASTER NODE SCHEMA =====
+// NOTE: tableBlock and pollBlock are DEPRECATED - use richBlock with TipTap extensions instead
+// These legacy types are maintained for backward compatibility and auto-migration support
 
 export const NodeSchema = z.discriminatedUnion('type', [
   z.object({ id: z.string().uuid(), type: z.literal('textBlock'), data: TextBlockDataSchema }),
   z.object({ id: z.string().uuid(), type: z.literal('imageBlock'), data: ImageBlockDataSchema }),
-  z.object({ id: z.string().uuid(), type: z.literal('tableBlock'), data: TableBlockDataSchema }),
-  z.object({ id: z.string().uuid(), type: z.literal('pollBlock'), data: PollBlockDataSchema }),
+  z.object({ id: z.string().uuid(), type: z.literal('tableBlock'), data: TableBlockDataSchema }), // DEPRECATED
+  z.object({ id: z.string().uuid(), type: z.literal('pollBlock'), data: PollBlockDataSchema }), // DEPRECATED
   z.object({
     id: z.string().uuid(),
     type: z.literal('keyTakeawayBlock'),
@@ -328,6 +362,11 @@ export const NodeSchema = z.discriminatedUnion('type', [
     id: z.string().uuid(),
     type: z.literal('separatorBlock'),
     data: SeparatorBlockDataSchema,
+  }),
+  z.object({
+    id: z.string().uuid(),
+    type: z.literal('richBlock'),
+    data: RichBlockDataSchema,
   }),
 ]);
 
@@ -403,6 +442,7 @@ export type ReferenceBlockData = z.infer<typeof ReferenceBlockDataSchema>;
 export type QuoteBlockData = z.infer<typeof QuoteBlockDataSchema>;
 export type VideoEmbedBlockData = z.infer<typeof VideoEmbedBlockDataSchema>;
 export type SeparatorBlockData = z.infer<typeof SeparatorBlockDataSchema>;
+export type RichBlockData = z.infer<typeof RichBlockDataSchema>;
 
 // ===== EDITOR STATE TYPES =====
 
@@ -666,7 +706,7 @@ const migrateLegacyBlockData = (node: any): any => {
     case 'tableBlock':
       // Migrate headers -> htmlHeaders
       if ('headers' in migratedData && !('htmlHeaders' in migratedData)) {
-        migratedData.htmlHeaders = Array.isArray(migratedData.headers) 
+        migratedData.htmlHeaders = Array.isArray(migratedData.headers)
           ? migratedData.headers.map((header: string) => textToHtml(header))
           : [];
         delete migratedData.headers;
@@ -674,15 +714,13 @@ const migrateLegacyBlockData = (node: any): any => {
       // Migrate rows -> htmlRows
       if ('rows' in migratedData && !('htmlRows' in migratedData)) {
         migratedData.htmlRows = Array.isArray(migratedData.rows)
-          ? migratedData.rows.map((row: string[]) => 
-              Array.isArray(row) 
-                ? row.map((cell: string) => textToHtml(cell))
-                : []
+          ? migratedData.rows.map((row: string[]) =>
+              Array.isArray(row) ? row.map((cell: string) => textToHtml(cell)) : []
             )
           : [];
         delete migratedData.rows;
       }
-      
+
       // CRITICAL: Ensure required fields exist (handle corrupted/empty tables)
       if (!('htmlHeaders' in migratedData) || !Array.isArray(migratedData.htmlHeaders)) {
         migratedData.htmlHeaders = ['<p>Column 1</p>', '<p>Column 2</p>'];
@@ -690,7 +728,7 @@ const migrateLegacyBlockData = (node: any): any => {
       if (!('htmlRows' in migratedData) || !Array.isArray(migratedData.htmlRows)) {
         migratedData.htmlRows = [['<p></p>', '<p></p>']];
       }
-      
+
       // Ensure rows match header count
       if (migratedData.htmlHeaders.length > 0) {
         // CRITICAL: Filter out any undefined/null rows and ensure all rows are valid arrays
@@ -703,7 +741,7 @@ const migrateLegacyBlockData = (node: any): any => {
             }
             return normalizedRow.slice(0, migratedData.htmlHeaders.length);
           });
-        
+
         // CRITICAL: Ensure we have at least one row
         if (migratedData.htmlRows.length === 0) {
           migratedData.htmlRows = [new Array(migratedData.htmlHeaders.length).fill('<p></p>')];
@@ -713,7 +751,11 @@ const migrateLegacyBlockData = (node: any): any => {
 
     case 'referenceBlock':
       // Migrate formatted -> htmlFormatted
-      if ('formatted' in migratedData && migratedData.formatted && !('htmlFormatted' in migratedData)) {
+      if (
+        'formatted' in migratedData &&
+        migratedData.formatted &&
+        !('htmlFormatted' in migratedData)
+      ) {
         migratedData.htmlFormatted = textToHtml(migratedData.formatted as string);
         // Keep original formatted field for backward compatibility
       }
@@ -736,7 +778,9 @@ export const validateStructuredContent = (content: unknown): StructuredContent =
         return StructuredContentSchema.parse(migrated);
       } catch (migrationError) {
         console.error('[Schema Migration] Migration failed:', migrationError);
-        throw new Error(`Invalid structured content: ${error.errors.map(e => e.message).join(', ')}`);
+        throw new Error(
+          `Invalid structured content: ${error.errors.map(e => e.message).join(', ')}`
+        );
       }
     }
     throw error;
@@ -936,6 +980,44 @@ export const getDefaultDataForBlockType = (blockType: string): any => {
         borderRadius: 8,
         borderWidth: 0,
         borderColor: '#e5e7eb',
+      };
+    case 'richBlock':
+      return {
+        // Content with initial TipTap structure
+        content: {
+          tiptapJSON: {
+            type: 'doc',
+            content: [
+              {
+                type: 'paragraph',
+                content: [
+                  {
+                    type: 'text',
+                    text: 'Start typing...',
+                  },
+                ],
+              },
+            ],
+          },
+          htmlContent: '<p>Start typing...</p>',
+        },
+        // Default styling properties following existing pattern
+        paddingX: 0,
+        paddingY: 0,
+        backgroundColor: 'transparent',
+        borderRadius: 8,
+        borderWidth: 0,
+        borderColor: '#e5e7eb',
+        // Typography defaults
+        textAlign: 'left' as const,
+        fontSize: undefined, // Use component defaults
+        fontFamily: 'inherit',
+        fontWeight: undefined, // Use component defaults
+        lineHeight: undefined, // Use component defaults
+        letterSpacing: undefined,
+        textTransform: 'none' as const,
+        textDecoration: 'none' as const,
+        fontStyle: 'normal' as const,
       };
     default:
       return {};

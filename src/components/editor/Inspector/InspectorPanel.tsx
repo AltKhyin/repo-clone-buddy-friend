@@ -6,6 +6,7 @@ import { ContextAwareInspector } from './shared/ContextAwareInspector';
 import { TableBlockInspector } from './TableBlockInspector';
 import { PollBlockInspector } from './PollBlockInspector';
 import { ImageBlockInspector } from './ImageBlockInspector';
+import { RichBlockInspector } from './RichBlockInspector';
 import { Settings, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -65,10 +66,11 @@ export const InspectorPanel = React.memo(function InspectorPanel({
               {selectedNode.type === 'imageBlock' && (
                 <ImageBlockInspector nodeId={selectedNodeId!} />
               )}
+              {selectedNode.type === 'richBlock' && <RichBlockInspector nodeId={selectedNodeId!} />}
               {/* Use ContextAwareInspector for simpler blocks */}
-              {!['tableBlock', 'pollBlock', 'imageBlock'].includes(selectedNode.type) && (
-                <ContextAwareInspector nodeId={selectedNodeId!} compact={false} />
-              )}
+              {!['tableBlock', 'pollBlock', 'imageBlock', 'richBlock'].includes(
+                selectedNode.type
+              ) && <ContextAwareInspector nodeId={selectedNodeId!} compact={false} />}
             </>
           ) : (
             <div className="text-center py-8">

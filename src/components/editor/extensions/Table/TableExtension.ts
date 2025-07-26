@@ -220,6 +220,45 @@ export const TableExtension = Node.create<TableOptions>({
       settings: node.attrs.settings || {},
     };
 
+    // Build table children array without conditional spreads
+    const tableChildren: any[] = [];
+
+    // Add thead if headers should be shown
+    if (tableData.settings.showHeaders && tableData.headers.length > 0) {
+      tableChildren.push([
+        'thead',
+        {},
+        [
+          'tr',
+          {},
+          ...tableData.headers.map(header => [
+            'th',
+            {
+              style: `padding: ${tableData.styling.cellPadding || 12}px; border: 1px solid ${tableData.styling.borderColor || '#e2e8f0'}; background-color: ${tableData.styling.headerBackgroundColor || '#f8fafc'}; text-align: ${tableData.styling.textAlign || 'left'};`,
+            },
+            header,
+          ]),
+        ],
+      ]);
+    }
+
+    // Add tbody
+    tableChildren.push([
+      'tbody',
+      {},
+      ...tableData.rows.map(row => [
+        'tr',
+        {},
+        ...row.map(cell => [
+          'td',
+          {
+            style: `padding: ${tableData.styling.cellPadding || 12}px; border: 1px solid ${tableData.styling.borderColor || '#e2e8f0'}; text-align: ${tableData.styling.textAlign || 'left'};`,
+          },
+          cell,
+        ]),
+      ]),
+    ]);
+
     return [
       'div',
       mergeAttributes(
@@ -237,40 +276,7 @@ export const TableExtension = Node.create<TableOptions>({
         {
           style: `border-collapse: collapse; width: 100%; border: ${tableData.styling.borderWidth || 1}px ${tableData.styling.borderStyle || 'solid'} ${tableData.styling.borderColor || '#e2e8f0'};`,
         },
-        ...(tableData.settings.showHeaders && tableData.headers.length > 0
-          ? [
-              [
-                'thead',
-                {},
-                [
-                  'tr',
-                  {},
-                  ...tableData.headers.map(header => [
-                    'th',
-                    {
-                      style: `padding: ${tableData.styling.cellPadding || 12}px; border: 1px solid ${tableData.styling.borderColor || '#e2e8f0'}; background-color: ${tableData.styling.headerBackgroundColor || '#f8fafc'}; text-align: ${tableData.styling.textAlign || 'left'};`,
-                    },
-                    header,
-                  ]),
-                ],
-              ],
-            ]
-          : []),
-        [
-          'tbody',
-          {},
-          ...tableData.rows.map(row => [
-            'tr',
-            {},
-            ...row.map(cell => [
-              'td',
-              {
-                style: `padding: ${tableData.styling.cellPadding || 12}px; border: 1px solid ${tableData.styling.borderColor || '#e2e8f0'}; text-align: ${tableData.styling.textAlign || 'left'};`,
-              },
-              cell,
-            ]),
-          ]),
-        ],
+        ...tableChildren,
       ],
     ];
   },

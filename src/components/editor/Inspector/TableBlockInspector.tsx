@@ -1,301 +1,553 @@
-// ABOUTME: Inspector panel for TableBlock with structure management, typography controls, and unified styling
+// ABOUTME: Inspector panel for TableBlock with comprehensive table management controls and command integration
 
-import React from 'react';
+import React, { useState, useCallback } from 'react';
+import { useEditorStore } from '@/store/editorStore';
+import { useTiptapEditor } from '@/hooks/useTiptapEditor';
+import { TableData } from '../extensions/Table/TableExtension';
+import { tableComponentRegistry } from '../extensions/Table/tableCommands';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { useEditorStore } from '@/store/editorStore';
-import { 
-  Table, 
-  Plus, 
-  Minus, 
+import { Switch } from '@/components/ui/switch';
+import { Slider } from '@/components/ui/slider';
+import {
+  Plus,
+  Minus,
+  Table,
+  Grid,
+  Download,
+  Upload,
   RotateCcw,
-  Type,
-  Palette,
-  Move,
-  Layers,
-  Grid3X3
+  Settings,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
 } from 'lucide-react';
-import { TableBlockData } from '@/types/editor';
-import { SpacingControls, BorderControls, BackgroundControls } from './shared/UnifiedControls';
+import { useToast } from '@/hooks/use-toast';
+import { BackgroundControls, SpacingControls, BorderControls } from './shared/UnifiedControls';
+import { FONT_FAMILIES, FONT_WEIGHTS } from '../shared/typography-system';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface TableBlockInspectorProps {
   nodeId: string;
 }
 
-export const TableBlockInspector: React.FC<TableBlockInspectorProps> = ({ nodeId }) => {
+export function TableBlockInspector({ nodeId }: TableBlockInspectorProps) {
   const { nodes, updateNode } = useEditorStore();
+  const { toast } = useToast();
+  const [isExporting, setIsExporting] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
 
   const node = nodes.find(n => n.id === nodeId);
+  const data = node?.type === 'tableBlock' ? (node.data as TableData) : {};
+
+  const updateData = useCallback(
+    (updates: Partial<TableData>) => {
+      if (node) {
+        updateNode(nodeId, {
+          data: { ...data, ...updates },
+        });
+      }
+    },
+    [updateNode, nodeId, data, node]
+  );
+
+  // Get table component methods from registry
+  const getTableComponent = useCallback(() => {
+    const tableId = data.tableId || nodeId;
+    return tableComponentRegistry.get(tableId);
+  }, [data.tableId, nodeId]);
+
+  // Table structure operations
+  const handleAddColumn = useCallback(() => {
+    const component = getTableComponent();
+    if (component) {
+      component.addColumn();
+      toast({
+        title: 'Column Added',
+        description: 'New column added to the table',
+        duration: 2000,
+      });
+    }
+  }, [getTableComponent, toast]);
+
+  const handleRemoveColumn = useCallback(() => {
+    const component = getTableComponent();
+    if (component) {
+      const currentPos = component.getCurrentCellPosition();
+      if (currentPos) {
+        component.removeColumn(currentPos.col);
+        toast({
+          title: 'Column Removed',
+          description: 'Column removed from the table',
+          duration: 2000,
+        });
+      }
+    }
+  }, [getTableComponent, toast]);
+
+  const handleAddRow = useCallback(() => {
+    const component = getTableComponent();
+    if (component) {
+      component.addRow();
+      toast({
+        title: 'Row Added',
+        description: 'New row added to the table',
+        duration: 2000,
+      });
+    }
+  }, [getTableComponent, toast]);
+
+  const handleRemoveRow = useCallback(() => {
+    const component = getTableComponent();
+    if (component) {
+      const currentPos = component.getCurrentCellPosition();
+      if (currentPos) {
+        component.removeRow(currentPos.row);
+        toast({
+          title: 'Row Removed',
+          description: 'Row removed from the table',
+          duration: 2000,
+        });
+      }
+    }
+  }, [getTableComponent, toast]);
+
+  // CSV Export/Import operations
+  const handleExportCSV = useCallback(async () => {
+    setIsExporting(true);
+    try {
+      const headers = data.headers || [];
+      const rows = data.rows || [];
+
+      // Create CSV content
+      const csvContent = [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
+
+      // Create and download file
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `table-${nodeId}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toast({
+        title: 'CSV Exported',
+        description: 'Table data exported as CSV file',
+        duration: 2000,
+      });
+    } catch (error) {
+      toast({
+        title: 'Export Failed',
+        description: 'Failed to export table data',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  }, [data.headers, data.rows, nodeId, toast]);
+
+  const handleImportCSV = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      if (!file) return;
+
+      setIsImporting(true);
+      const reader = new FileReader();
+
+      reader.onload = e => {
+        try {
+          const text = e.target?.result as string;
+          const lines = text.split('\n').filter(line => line.trim());
+
+          if (lines.length === 0) {
+            throw new Error('Empty file');
+          }
+
+          const headers = lines[0].split(',').map(h => h.trim());
+          const rows = lines.slice(1).map(line => line.split(',').map(cell => cell.trim()));
+
+          const component = getTableComponent();
+          if (component) {
+            component.updateTableData({ headers, rows });
+            toast({
+              title: 'CSV Imported',
+              description: `Imported ${rows.length} rows and ${headers.length} columns`,
+              duration: 2000,
+            });
+          }
+        } catch (error) {
+          toast({
+            title: 'Import Failed',
+            description: 'Failed to parse CSV file',
+            variant: 'destructive',
+          });
+        } finally {
+          setIsImporting(false);
+          // Clear the input
+          event.target.value = '';
+        }
+      };
+
+      reader.readAsText(file);
+    },
+    [getTableComponent, toast]
+  );
+
+  // Reset table data
+  const handleResetTable = useCallback(() => {
+    const component = getTableComponent();
+    if (component) {
+      component.updateTableData({
+        headers: ['Column 1', 'Column 2', 'Column 3'],
+        rows: [
+          ['', '', ''],
+          ['', '', ''],
+          ['', '', ''],
+        ],
+      });
+      toast({
+        title: 'Table Reset',
+        description: 'Table has been reset to default state',
+        duration: 2000,
+      });
+    }
+  }, [getTableComponent, toast]);
+
   if (!node || node.type !== 'tableBlock') return null;
 
-  const data = node.data as TableBlockData;
-  
-  // Safety check for data integrity
-  if (!data || typeof data !== 'object') {
-    return (
-      <div className="p-4 text-center bg-red-50 rounded-lg border border-red-200">
-        <p className="text-red-700 font-medium">TableBlock Inspector</p>
-        <p className="text-red-600 text-sm">Invalid data structure detected</p>
-      </div>
-    );
-  }
-  
-  // CRITICAL FIX: Additional safety check for required properties
-  if (!data.htmlHeaders || !data.htmlRows || !Array.isArray(data.htmlHeaders) || !Array.isArray(data.htmlRows)) {
-    return (
-      <div className="p-4 text-center bg-yellow-50 rounded-lg border border-yellow-200">
-        <p className="text-yellow-700 font-medium">TableBlock Inspector</p>
-        <p className="text-yellow-600 text-sm">Table structure initializing...</p>
-        <button 
-          onClick={() => {
-            // Initialize with safe defaults
-            updateTableData({
-              htmlHeaders: ['<p>Column 1</p>', '<p>Column 2</p>'],
-              htmlRows: [['<p></p>', '<p></p>']]
-            });
-          }}
-          className="mt-2 px-3 py-1 bg-yellow-200 text-yellow-800 rounded text-xs hover:bg-yellow-300"
-        >
-          Initialize Table
-        </button>
-      </div>
-    );
-  }
-
-  const updateTableData = (updates: Partial<TableBlockData>) => {
-    updateNode(nodeId, {
-      data: { ...data, ...updates },
-    });
-  };
-
-  // Table structure helpers with safe defaults and additional null checks
-  const currentHeaders = Array.isArray(data.htmlHeaders) ? data.htmlHeaders : [];
-  const currentRows = Array.isArray(data.htmlRows) ? data.htmlRows : [];
-  const rowCount = currentRows.length || 0;
-  const colCount = currentHeaders.length || 0;
-  
-  // SAFETY: Ensure we have minimum viable table structure
-  if (colCount === 0 && rowCount === 0) {
-    console.warn('[TableBlockInspector] Empty table structure detected');
-  }
-
-  // Add/Remove structure functions with safe array handling
-  const addColumn = () => {
-    const newHeaders = [...currentHeaders, '<p>New Column</p>'];
-    const newRows = currentRows.map(row => [...(Array.isArray(row) ? row : []), '<p></p>']);
-    updateTableData({ htmlHeaders: newHeaders, htmlRows: newRows });
-  };
-
-  const removeColumn = () => {
-    if (colCount <= 1) return; // Keep at least one column
-    const newHeaders = currentHeaders.slice(0, -1);
-    const newRows = currentRows.map(row => (Array.isArray(row) ? row : []).slice(0, -1));
-    updateTableData({ htmlHeaders: newHeaders, htmlRows: newRows });
-  };
-
-  const addRow = () => {
-    const newRow = Array(Math.max(1, colCount)).fill('<p></p>');
-    const newRows = [...currentRows, newRow];
-    updateTableData({ htmlRows: newRows });
-  };
-
-  const removeRow = () => {
-    if (rowCount <= 1) return; // Keep at least one row
-    const newRows = currentRows.slice(0, -1);
-    updateTableData({ htmlRows: newRows });
-  };
-
-  const resetTable = () => {
-    const defaultHeaders = ['<p>Column 1</p>', '<p>Column 2</p>'];
-    const defaultRows = [['<p></p>', '<p></p>']];
-    updateTableData({ htmlHeaders: defaultHeaders, htmlRows: defaultRows });
-  };
-
-  const initializeTable = () => {
-    if (currentHeaders.length === 0) {
-      const defaultHeaders = ['<p>Column 1</p>', '<p>Column 2</p>'];
-      const defaultRows = [['<p></p>', '<p></p>']];
-      updateTableData({ htmlHeaders: defaultHeaders, htmlRows: defaultRows });
-    }
+  const tableStats = {
+    rows: data.rows?.length || 0,
+    columns: data.headers?.length || 0,
+    cells: (data.rows?.length || 0) * (data.headers?.length || 0),
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-2">
-        <Table size={16} />
-        <h3 className="font-medium">Table Block</h3>
-        <Badge variant="secondary" className="text-xs">
-          {colCount}×{rowCount}
-        </Badge>
+    <div className="space-y-6 p-4">
+      {/* Header */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold">Table Configuration</h3>
+          <Badge variant="outline" className="flex items-center gap-1">
+            <Table size={12} />
+            {tableStats.rows} × {tableStats.columns}
+          </Badge>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          Configure your table structure, styling, and data management
+        </p>
       </div>
 
       <Separator />
 
-      {/* Table Structure Section */}
-      <div className="space-y-3">
-        <h4 className="text-sm font-medium flex items-center gap-2">
-          <Grid3X3 size={14} />
-          Table Structure
-        </h4>
+      {/* Table Structure Controls */}
+      <div className="space-y-4">
+        <h4 className="font-medium text-sm">Table Structure</h4>
 
-        {(currentHeaders?.length || 0) === 0 ? (
-          /* Empty State */
-          <Card>
-            <CardContent className="p-4 text-center">
-              <Table size={24} className="mx-auto mb-2 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground mb-3">
-                No table created yet
-              </p>
-              <Button onClick={initializeTable} size="sm" className="w-full">
-                <Plus size={14} className="mr-2" />
-                Create Table
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          /* Structure Controls */
-          <div className="space-y-3">
-            <div className="grid grid-cols-2 gap-2">
-              <div className="space-y-2">
-                <Label className="text-xs">Columns ({colCount || 0})</Label>
-                <div className="flex gap-1">
-                  <Button onClick={addColumn} variant="outline" size="sm" className="flex-1">
-                    <Plus size={12} />
-                  </Button>
-                  <Button 
-                    onClick={removeColumn} 
-                    variant="outline" 
-                    size="sm" 
-                    className="flex-1"
-                    disabled={(colCount || 0) <= 1}
-                  >
-                    <Minus size={12} />
-                  </Button>
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <Label className="text-xs">Rows ({rowCount || 0})</Label>
-                <div className="flex gap-1">
-                  <Button onClick={addRow} variant="outline" size="sm" className="flex-1">
-                    <Plus size={12} />
-                  </Button>
-                  <Button 
-                    onClick={removeRow} 
-                    variant="outline" 
-                    size="sm" 
-                    className="flex-1"
-                    disabled={(rowCount || 0) <= 1}
-                  >
-                    <Minus size={12} />
-                  </Button>
-                </div>
-              </div>
+        <div className="grid grid-cols-2 gap-3">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleAddColumn}
+            className="flex items-center gap-2"
+          >
+            <Plus size={14} />
+            Add Column
+          </Button>
+
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleRemoveColumn}
+            className="flex items-center gap-2"
+          >
+            <Minus size={14} />
+            Remove Column
+          </Button>
+
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleAddRow}
+            className="flex items-center gap-2"
+          >
+            <Plus size={14} />
+            Add Row
+          </Button>
+
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleRemoveRow}
+            className="flex items-center gap-2"
+          >
+            <Minus size={14} />
+            Remove Row
+          </Button>
+        </div>
+
+        {/* Table Statistics */}
+        <div className="p-3 bg-muted rounded-lg">
+          <div className="text-sm space-y-1">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Rows:</span>
+              <span className="font-medium">{tableStats.rows}</span>
             </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Columns:</span>
+              <span className="font-medium">{tableStats.columns}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Total Cells:</span>
+              <span className="font-medium">{tableStats.cells}</span>
+            </div>
+          </div>
+        </div>
+      </div>
 
-            <Button 
-              onClick={resetTable} 
-              variant="outline" 
-              size="sm" 
-              className="w-full text-muted-foreground"
+      <Separator />
+
+      {/* Data Management */}
+      <div className="space-y-4">
+        <h4 className="font-medium text-sm">Data Management</h4>
+
+        <div className="space-y-3">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleExportCSV}
+            disabled={isExporting}
+            className="w-full flex items-center gap-2"
+          >
+            <Download size={14} />
+            {isExporting ? 'Exporting...' : 'Export as CSV'}
+          </Button>
+
+          <div className="relative">
+            <input
+              type="file"
+              accept=".csv"
+              onChange={handleImportCSV}
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+              disabled={isImporting}
+            />
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={isImporting}
+              className="w-full flex items-center gap-2"
             >
-              <RotateCcw size={12} className="mr-2" />
-              Reset to 2×1 Table
+              <Upload size={14} />
+              {isImporting ? 'Importing...' : 'Import CSV'}
             </Button>
           </div>
-        )}
-      </div>
 
-      <Separator />
-
-      {/* Typography Note */}
-      <div className="space-y-2">
-        <h4 className="text-sm font-medium flex items-center gap-2">
-          <Type size={14} />
-          Typography
-        </h4>
-        <div className="text-xs text-muted-foreground bg-muted/20 p-3 rounded-lg">
-          💡 Typography controls are available in the toolbar when editing cells. 
-          Select any cell and use the formatting controls to style text.
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleResetTable}
+            className="w-full flex items-center gap-2 text-orange-600 hover:text-orange-700"
+          >
+            <RotateCcw size={14} />
+            Reset Table
+          </Button>
         </div>
       </div>
 
       <Separator />
 
-      {/* Colors & Background Section */}
-      <div className="space-y-3">
-        <h4 className="text-sm font-medium flex items-center gap-2">
-          <Palette size={14} />
-          Colors & Background
-        </h4>
-        
-        <BackgroundControls
-          data={data}
-          onChange={updateTableData}
-          enableImage={false} // Tables don't typically need background images
-          compact={true}
-          className="space-y-3"
-          colorKey="backgroundColor"
-          defaultColor="transparent"
-          label="Table Background"
-        />
-      </div>
+      {/* Table Settings */}
+      <div className="space-y-4">
+        <h4 className="font-medium text-sm">Table Settings</h4>
 
-      <Separator />
+        <div className="space-y-4">
+          {/* Show Headers Toggle */}
+          <div className="flex items-center justify-between">
+            <Label htmlFor="show-headers" className="text-sm">
+              Show Headers
+            </Label>
+            <Switch
+              id="show-headers"
+              checked={data.settings?.showHeaders !== false}
+              onCheckedChange={checked =>
+                updateData({
+                  settings: { ...data.settings, showHeaders: checked },
+                })
+              }
+            />
+          </div>
 
-      {/* Spacing & Layout Section */}
-      <div className="space-y-3">
-        <h4 className="text-sm font-medium flex items-center gap-2">
-          <Move size={14} />
-          Spacing & Layout
-        </h4>
-        
-        <SpacingControls
-          data={data}
-          onChange={updateTableData}
-          compact={true}
-          className="space-y-3"
-          enablePresets={true}
-          enableBorders={false} // Use separate border controls
-          showDetailedControls={false}
-        />
-      </div>
+          {/* Resizable Toggle */}
+          <div className="flex items-center justify-between">
+            <Label htmlFor="resizable" className="text-sm">
+              Resizable Columns
+            </Label>
+            <Switch
+              id="resizable"
+              checked={data.settings?.resizable !== false}
+              onCheckedChange={checked =>
+                updateData({
+                  settings: { ...data.settings, resizable: checked },
+                })
+              }
+            />
+          </div>
 
-      <Separator />
+          {/* Striped Rows Toggle */}
+          <div className="flex items-center justify-between">
+            <Label htmlFor="striped" className="text-sm">
+              Striped Rows
+            </Label>
+            <Switch
+              id="striped"
+              checked={data.styling?.striped === true}
+              onCheckedChange={checked =>
+                updateData({
+                  styling: { ...data.styling, striped: checked },
+                })
+              }
+            />
+          </div>
 
-      {/* Border & Style Section */}
-      <div className="space-y-3">
-        <h4 className="text-sm font-medium flex items-center gap-2">
-          <Layers size={14} />
-          Border & Style
-        </h4>
-        
-        <BorderControls
-          data={data}
-          onChange={updateTableData}
-          compact={true}
-          className="space-y-3"
-          enableCornerRadius={true}
-          enableBorderStyle={true}
-          defaultBorderColor="#e5e7eb"
-          defaultBorderWidth={1}
-        />
-      </div>
-
-      {/* Table Info */}
-      <div className="pt-2 border-t bg-muted/20 p-3 rounded-lg">
-        <div className="text-xs text-muted-foreground space-y-1">
-          <div className="font-medium">Table Info</div>
-          <div>Size: {colCount || 0} columns × {rowCount || 0} rows</div>
-          <div>Total cells: {(colCount || 0) * (rowCount || 0)}</div>
-          <div className="text-xs text-muted-foreground/70 mt-2">
-            💡 Use Tab to navigate between cells, Enter to add new rows
+          {/* Compact Mode Toggle */}
+          <div className="flex items-center justify-between">
+            <Label htmlFor="compact" className="text-sm">
+              Compact Mode
+            </Label>
+            <Switch
+              id="compact"
+              checked={data.styling?.compact === true}
+              onCheckedChange={checked =>
+                updateData({
+                  styling: { ...data.styling, compact: checked },
+                })
+              }
+            />
           </div>
         </div>
       </div>
+
+      <Separator />
+
+      {/* Styling Controls */}
+      <div className="space-y-4">
+        <h4 className="font-medium text-sm">Table Styling</h4>
+
+        <div className="space-y-4">
+          {/* Text Alignment */}
+          <div className="space-y-2">
+            <Label className="text-sm">Text Alignment</Label>
+            <div className="grid grid-cols-3 gap-1">
+              <Button
+                size="sm"
+                variant={data.styling?.textAlign === 'left' ? 'default' : 'outline'}
+                onClick={() =>
+                  updateData({
+                    styling: { ...data.styling, textAlign: 'left' },
+                  })
+                }
+                className="flex items-center justify-center"
+              >
+                <AlignLeft size={14} />
+              </Button>
+              <Button
+                size="sm"
+                variant={data.styling?.textAlign === 'center' ? 'default' : 'outline'}
+                onClick={() =>
+                  updateData({
+                    styling: { ...data.styling, textAlign: 'center' },
+                  })
+                }
+                className="flex items-center justify-center"
+              >
+                <AlignCenter size={14} />
+              </Button>
+              <Button
+                size="sm"
+                variant={data.styling?.textAlign === 'right' ? 'default' : 'outline'}
+                onClick={() =>
+                  updateData({
+                    styling: { ...data.styling, textAlign: 'right' },
+                  })
+                }
+                className="flex items-center justify-center"
+              >
+                <AlignRight size={14} />
+              </Button>
+            </div>
+          </div>
+
+          {/* Font Size */}
+          <div className="space-y-2">
+            <Label className="text-sm">Font Size</Label>
+            <div className="flex items-center gap-2">
+              <Slider
+                value={[data.styling?.fontSize || 14]}
+                onValueChange={([value]) =>
+                  updateData({
+                    styling: { ...data.styling, fontSize: value },
+                  })
+                }
+                min={10}
+                max={24}
+                step={1}
+                className="flex-1"
+              />
+              <span className="text-xs text-muted-foreground w-8">
+                {data.styling?.fontSize || 14}px
+              </span>
+            </div>
+          </div>
+
+          {/* Cell Padding */}
+          <div className="space-y-2">
+            <Label className="text-sm">Cell Padding</Label>
+            <div className="flex items-center gap-2">
+              <Slider
+                value={[data.styling?.cellPadding || 12]}
+                onValueChange={([value]) =>
+                  updateData({
+                    styling: { ...data.styling, cellPadding: value },
+                  })
+                }
+                min={4}
+                max={24}
+                step={2}
+                className="flex-1"
+              />
+              <span className="text-xs text-muted-foreground w-8">
+                {data.styling?.cellPadding || 12}px
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <Separator />
+
+      {/* Border Controls */}
+      <BorderControls data={data} onChange={updates => updateData(updates)} compact={false} />
+
+      {/* Background Controls */}
+      <BackgroundControls
+        data={data}
+        onChange={updates => updateData(updates)}
+        enableImage={false}
+        compact={false}
+        colorKey="backgroundColor"
+        defaultColor="transparent"
+      />
     </div>
   );
-};
+}

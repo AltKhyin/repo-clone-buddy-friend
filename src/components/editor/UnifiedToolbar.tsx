@@ -1,6 +1,6 @@
 // ABOUTME: Unified toolbar containing ALL editor functionality in organized categories to replace fragmented interfaces
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { useEditorStore } from '@/store/editorStore';
 import { useTheme } from '@/components/providers/CustomThemeProvider';
@@ -35,6 +35,11 @@ import {
   Strikethrough,
   ZoomIn,
   ZoomOut,
+  Table,
+  BarChart3,
+  Image,
+  Video,
+  Plus,
 } from 'lucide-react';
 import { KeyboardShortcutsPanel } from './KeyboardShortcutsPanel';
 import { ThemeSelector } from '@/components/header/ThemeSelector';
@@ -69,13 +74,14 @@ export const UnifiedToolbar = React.memo(function UnifiedToolbar({
 
   const selectedNode = selectedNodeId ? nodes.find(n => n.id === selectedNodeId) : null;
 
-  // Block Typography Context
+  // Block Typography Context - memoized to prevent dependency changes
   const blockTypographySupported = selectedNode
     ? isBlockTypographySupported(selectedNode.type)
     : false;
-  const blockTypographyProperties = selectedNode
-    ? getBlockTypographyProperties(selectedNode.type)
-    : [];
+  const blockTypographyProperties = useMemo(
+    () => (selectedNode ? getBlockTypographyProperties(selectedNode.type) : []),
+    [selectedNode]
+  );
   const blockTypographyContext = selectedNode ? getBlockTypographyContext(selectedNode.type) : null;
 
   // Block Special Features
@@ -368,6 +374,211 @@ export const UnifiedToolbar = React.memo(function UnifiedToolbar({
     ]
   );
 
+  // Content Insertion Handlers
+  const handleInsertRichBlock = React.useCallback(() => {
+    const { addNode } = useEditorStore.getState();
+    addNode({
+      type: 'richBlock',
+      data: {
+        content: '<p>Start typing...</p>',
+      },
+    });
+  }, []);
+
+  const handleInsertTable = React.useCallback(() => {
+    const { addNode, selectedNodeId, nodes } = useEditorStore.getState();
+
+    // Smart content insertion: Insert into existing Rich Block if selected, otherwise create new block
+    const selectedNode = selectedNodeId ? nodes.find(n => n.id === selectedNodeId) : null;
+    const isRichBlockSelected = selectedNode?.type === 'richBlock';
+
+    // Import the helper function inline to avoid circular dependencies
+    const createTableContent = () => {
+      const rows = 3;
+      const cols = 3;
+      const withHeaderRow = true;
+
+      // Generate default headers
+      const headers = Array.from({ length: cols }, (_, i) => `Column ${i + 1}`);
+
+      // Generate empty rows
+      const emptyRows = Array.from({ length: rows }, () => Array.from({ length: cols }, () => ''));
+
+      // Generate unique table ID
+      const tableId = `table-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+      // Create TipTap JSON document with table node
+      return {
+        type: 'doc',
+        content: [
+          {
+            type: 'customTable',
+            attrs: {
+              tableId,
+              headers: withHeaderRow ? headers : [],
+              rows: emptyRows,
+              styling: {
+                borderStyle: 'solid',
+                borderWidth: 1,
+                borderColor: '#e2e8f0',
+                backgroundColor: 'transparent',
+                headerBackgroundColor: '#f8fafc',
+                cellPadding: 12,
+                textAlign: 'left',
+                fontSize: 14,
+                fontWeight: 400,
+                striped: false,
+                compact: false,
+              },
+              settings: {
+                sortable: false,
+                resizable: true,
+                showHeaders: withHeaderRow,
+                minRows: 1,
+                maxRows: 50,
+              },
+            },
+          },
+        ],
+      };
+    };
+
+    const tiptapJSON = createTableContent();
+
+    if (isRichBlockSelected) {
+      // TODO: Insert table into existing Rich Block using TipTap commands
+      // This requires access to the TipTap editor instance from the selected Rich Block
+      // For now, we'll create a new block but this should be enhanced
+      console.log('TODO: Insert table into existing Rich Block', selectedNodeId);
+    }
+
+    // Fallback: Create new Rich Block with table content
+    addNode({
+      type: 'richBlock',
+      data: {
+        content: {
+          tiptapJSON,
+          htmlContent:
+            '<table><tbody><tr><th>Header 1</th><th>Header 2</th><th>Header 3</th></tr><tr><td>Cell 1</td><td>Cell 2</td><td>Cell 3</td></tr><tr><td>Cell 4</td><td>Cell 5</td><td>Cell 6</td></tr></tbody></table>',
+        },
+      },
+    });
+  }, []);
+
+  const handleInsertPoll = React.useCallback(() => {
+    const { addNode, selectedNodeId, nodes } = useEditorStore.getState();
+
+    // Smart content insertion: Insert into existing Rich Block if selected, otherwise create new block
+    const selectedNode = selectedNodeId ? nodes.find(n => n.id === selectedNodeId) : null;
+    const isRichBlockSelected = selectedNode?.type === 'richBlock';
+
+    // Import the helper function inline to avoid circular dependencies
+    const createPollContent = () => {
+      const question = 'What is your opinion?';
+      const pollOptions = ['Option 1', 'Option 2'];
+      const allowMultiple = false;
+      const showResults = true;
+
+      // Generate unique poll ID
+      const pollId = `poll-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+      // Create option objects with IDs
+      const formattedOptions = pollOptions.map((text, index) => ({
+        id: `option-${index + 1}-${Date.now()}`,
+        text,
+        votes: 0,
+      }));
+
+      const now = new Date().toISOString();
+
+      // Create TipTap JSON document with poll node
+      return {
+        type: 'doc',
+        content: [
+          {
+            type: 'customPoll',
+            attrs: {
+              pollId,
+              question,
+              options: formattedOptions,
+              settings: {
+                allowMultiple,
+                showResults,
+                allowAnonymous: true,
+                requireLogin: false,
+              },
+              metadata: {
+                totalVotes: 0,
+                uniqueVoters: 0,
+                createdAt: now,
+              },
+              styling: {
+                questionFontSize: 18,
+                questionFontWeight: 600,
+                optionFontSize: 16,
+                optionPadding: 12,
+                borderRadius: 8,
+                borderWidth: 1,
+                borderColor: '#e2e8f0',
+                backgroundColor: 'transparent',
+                selectedColor: '#3b82f6',
+                resultBarColor: '#60a5fa',
+                textAlign: 'left',
+                compact: false,
+              },
+              userVotes: [],
+            },
+          },
+        ],
+      };
+    };
+
+    const tiptapJSON = createPollContent();
+
+    if (isRichBlockSelected) {
+      // TODO: Insert poll into existing Rich Block using TipTap commands
+      // This requires access to the TipTap editor instance from the selected Rich Block
+      // For now, we'll create a new block but this should be enhanced
+      console.log('TODO: Insert poll into existing Rich Block', selectedNodeId);
+    }
+
+    // Fallback: Create new Rich Block with poll content
+    addNode({
+      type: 'richBlock',
+      data: {
+        content: {
+          tiptapJSON,
+          htmlContent:
+            '<div data-type="customPoll" data-question="What do you think?" data-options="[&quot;Option 1&quot;, &quot;Option 2&quot;, &quot;Option 3&quot;]" data-allow-multiple="false"></div>',
+        },
+      },
+    });
+  }, []);
+
+  const handleInsertImage = React.useCallback(() => {
+    const { addNode } = useEditorStore.getState();
+    addNode({
+      type: 'imageBlock',
+      data: {
+        src: '',
+        alt: 'New image',
+        caption: '',
+      },
+    });
+  }, []);
+
+  const handleInsertVideo = React.useCallback(() => {
+    const { addNode } = useEditorStore.getState();
+    addNode({
+      type: 'videoEmbedBlock',
+      data: {
+        url: '',
+        title: 'New video',
+        provider: 'youtube',
+      },
+    });
+  }, []);
+
   // Block Actions Handlers
   const handleDeleteBlock = React.useCallback(() => {
     if (selectedNodeId) {
@@ -391,15 +602,15 @@ export const UnifiedToolbar = React.memo(function UnifiedToolbar({
 
   const handleZoomIn = React.useCallback(() => {
     updateCanvasZoom(Math.min(CANVAS_CONFIG.maxZoom, canvasZoom + 0.1));
-  }, [canvasZoom, updateCanvasZoom]);
+  }, [canvasZoom, updateCanvasZoom, CANVAS_CONFIG.maxZoom]);
 
   const handleZoomOut = React.useCallback(() => {
     updateCanvasZoom(Math.max(CANVAS_CONFIG.minZoom, canvasZoom - 0.1));
-  }, [canvasZoom, updateCanvasZoom]);
+  }, [canvasZoom, updateCanvasZoom, CANVAS_CONFIG.minZoom]);
 
   const handleActualSize = React.useCallback(() => {
     updateCanvasZoom(CANVAS_CONFIG.defaultZoom);
-  }, [updateCanvasZoom]);
+  }, [updateCanvasZoom, CANVAS_CONFIG.defaultZoom]);
 
   return (
     <div
@@ -578,6 +789,68 @@ export const UnifiedToolbar = React.memo(function UnifiedToolbar({
             )}
           </div>
         )}
+
+        <Separator orientation="vertical" className="h-4" />
+
+        {/* Content Insertion - Common Tools */}
+        <div role="group" aria-label="Content insertion tools" className="flex items-center gap-1">
+          <div className="flex items-center gap-0.5 bg-muted/30 rounded p-0.5">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleInsertRichBlock}
+              className="h-6 w-6 p-0"
+              title="Add text block (Ctrl+Shift+T)"
+              aria-label="Add text block"
+            >
+              <Plus size={10} />
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleInsertTable}
+              className="h-6 w-6 p-0"
+              title="Add table (Ctrl+Shift+T)"
+              aria-label="Add table"
+            >
+              <Table size={10} />
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleInsertPoll}
+              className="h-6 w-6 p-0"
+              title="Add poll (Ctrl+Shift+P)"
+              aria-label="Add poll"
+            >
+              <BarChart3 size={10} />
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleInsertImage}
+              className="h-6 w-6 p-0"
+              title="Add image (Ctrl+Shift+I)"
+              aria-label="Add image"
+            >
+              <Image size={10} />
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleInsertVideo}
+              className="h-6 w-6 p-0"
+              title="Add video (Ctrl+Shift+V)"
+              aria-label="Add video"
+            >
+              <Video size={10} />
+            </Button>
+          </div>
+        </div>
 
         <Separator orientation="vertical" className="h-4" />
 

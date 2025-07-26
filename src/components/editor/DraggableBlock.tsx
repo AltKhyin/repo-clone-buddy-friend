@@ -8,12 +8,11 @@ import { useResizeSystem, ResizeHandle, getResizeHandleClasses } from './ResizeS
 import { TextBlockNode } from './Nodes/TextBlockNode';
 import { ImageBlockNode } from './Nodes/ImageBlockNode';
 import { VideoEmbedBlockNode } from './Nodes/VideoEmbedBlockNode';
-import { TableBlockNode } from './Nodes/TableBlockNode';
-import { PollBlockNode } from './Nodes/PollBlockNode';
 import { ReferenceBlockNode } from './Nodes/ReferenceBlockNode';
 import { KeyTakeawayBlockNode } from './Nodes/KeyTakeawayBlockNode';
 import { SeparatorBlockNode } from './Nodes/SeparatorBlockNode';
 import { QuoteBlockNode } from './Nodes/QuoteBlockNode';
+import { RichBlockNode } from './Nodes/RichBlockNode';
 
 interface DraggableBlockProps {
   node: NodeObject;
@@ -163,11 +162,6 @@ export const DraggableBlock: React.FC<DraggableBlockProps> = ({
         return <ImageBlockNode {...unifiedProps} />;
       case 'videoEmbedBlock':
         return <VideoEmbedBlockNode {...commonProps} />;
-      case 'tableBlock':
-        // TableBlock now uses UnifiedBlockWrapper - return without DraggableBlock container
-        return <TableBlockNode {...unifiedProps} />;
-      case 'pollBlock':
-        return <PollBlockNode {...commonProps} />;
       case 'referenceBlock':
         return <ReferenceBlockNode {...commonProps} />;
       case 'keyTakeawayBlock':
@@ -178,6 +172,9 @@ export const DraggableBlock: React.FC<DraggableBlockProps> = ({
       case 'quoteBlock':
         // QuoteBlock now uses UnifiedBlockWrapper - return without DraggableBlock container
         return <QuoteBlockNode {...unifiedProps} />;
+      case 'richBlock':
+        // RichBlock uses UnifiedBlockWrapper - return without DraggableBlock container
+        return <RichBlockNode {...unifiedProps} />;
       default:
         return (
           <div className="p-4 bg-muted/50 border-2 border-dashed border-muted-foreground/25 rounded">
@@ -204,7 +201,8 @@ export const DraggableBlock: React.FC<DraggableBlockProps> = ({
     node.type === 'imageBlock' ||
     node.type === 'tableBlock' ||
     node.type === 'quoteBlock' ||
-    node.type === 'keyTakeawayBlock'
+    node.type === 'keyTakeawayBlock' ||
+    node.type === 'richBlock'
   ) {
     return renderBlockContent();
   }

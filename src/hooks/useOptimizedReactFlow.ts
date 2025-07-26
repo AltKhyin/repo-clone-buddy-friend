@@ -14,26 +14,23 @@ import { useEditorStore } from '@/store/editorStore';
 // Import all node types with React.memo optimization
 import { TextBlockNode } from '@/components/editor/Nodes/TextBlockNode';
 import { ImageBlockNode } from '@/components/editor/Nodes/ImageBlockNode';
-import { TableBlockNode } from '@/components/editor/Nodes/TableBlockNode';
-import { PollBlockNode } from '@/components/editor/Nodes/PollBlockNode';
 import { VideoEmbedBlockNode } from '@/components/editor/Nodes/VideoEmbedBlockNode';
 import { QuoteBlockNode } from '@/components/editor/Nodes/QuoteBlockNode';
 import { ReferenceBlockNode } from '@/components/editor/Nodes/ReferenceBlockNode';
 import { KeyTakeawayBlockNode } from '@/components/editor/Nodes/KeyTakeawayBlockNode';
 import { SeparatorBlockNode } from '@/components/editor/Nodes/SeparatorBlockNode';
+import { RichBlockNode } from '@/components/editor/Nodes/RichBlockNode';
 
 // Define node types with memoization
 export const nodeTypes: NodeTypes = {
   textBlock: TextBlockNode,
-
   imageBlock: ImageBlockNode,
-  tableBlock: TableBlockNode,
-  pollBlock: PollBlockNode,
   videoEmbedBlock: VideoEmbedBlockNode,
   quoteBlock: QuoteBlockNode,
   referenceBlock: ReferenceBlockNode,
   keyTakeawayBlock: KeyTakeawayBlockNode,
   separatorBlock: SeparatorBlockNode,
+  richBlock: RichBlockNode,
 };
 
 // Edge types (can be extended later)

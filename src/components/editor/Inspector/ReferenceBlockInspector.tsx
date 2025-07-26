@@ -55,29 +55,32 @@ export function ReferenceBlockInspector({ nodeId }: ReferenceBlockInspectorProps
 
   const node = nodes.find(n => n.id === nodeId);
 
+  // All hooks must be called before any early return
+  const data = node?.type === 'referenceBlock' ? (node.data as ReferenceBlockData) : {};
+
   // Generate live APA preview
   const formattedCitation = React.useMemo(() => {
     if (!node || node.type !== 'referenceBlock') return '';
-    const data = node.data as ReferenceBlockData;
     return formatAPA(data);
-  }, [node]);
+  }, [node, data]);
 
-  if (!node || node.type !== 'referenceBlock') return null;
-
-  const data = node.data as ReferenceBlockData;
-
-  const updateData = (updates: Partial<ReferenceBlockData>) => {
-    updateNode(nodeId, {
-      data: { ...data, ...updates },
-    });
-  };
+  const updateData = React.useCallback(
+    (updates: Partial<ReferenceBlockData>) => {
+      if (node) {
+        updateNode(nodeId, {
+          data: { ...data, ...updates },
+        });
+      }
+    },
+    [updateNode, nodeId, data, node]
+  );
 
   // Initialize custom format toggle based on existing data
   React.useEffect(() => {
-    const hasCustomFormat = data.htmlFormatted && 
-      data.htmlFormatted !== '<p></p>' && 
-      data.htmlFormatted.trim() !== '';
-    setUseCustomFormat(hasCustomFormat);
+    if (data.htmlFormatted) {
+      const hasCustomFormat = data.htmlFormatted !== '<p></p>' && data.htmlFormatted.trim() !== '';
+      setUseCustomFormat(hasCustomFormat);
+    }
   }, [data.htmlFormatted]);
 
   // Handle HTML formatted content updates from Tiptap
@@ -97,6 +100,9 @@ export function ReferenceBlockInspector({ nodeId }: ReferenceBlockInspectorProps
     editable: true,
     fieldConfig: { fieldType: 'rich-text' }, // Rich text for custom formatting
   });
+
+  // Early return check after all hooks
+  if (!node || node.type !== 'referenceBlock') return null;
 
   // Check completion status
   const isComplete = data.authors && data.year && data.title && data.source;
@@ -312,7 +318,7 @@ export function ReferenceBlockInspector({ nodeId }: ReferenceBlockInspectorProps
             <FileText size={14} />
             <Switch
               checked={useCustomFormat}
-              onCheckedChange={(checked) => {
+              onCheckedChange={checked => {
                 setUseCustomFormat(checked);
                 if (!checked) {
                   // Clear custom format when disabled
@@ -356,8 +362,8 @@ export function ReferenceBlockInspector({ nodeId }: ReferenceBlockInspectorProps
         ) : (
           <div className="p-3 bg-muted rounded-lg">
             <p className="text-sm text-muted-foreground">
-              Using automatic APA formatting based on the fields above. 
-              Enable custom formatting to create your own citation with rich text.
+              Using automatic APA formatting based on the fields above. Enable custom formatting to
+              create your own citation with rich text.
             </p>
           </div>
         )}

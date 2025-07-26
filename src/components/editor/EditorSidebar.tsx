@@ -27,18 +27,18 @@ import {
   Video,
   Minus,
   FileText,
+  Edit3,
 } from 'lucide-react';
 import { BlockType } from '@/types/editor';
 import { BackgroundControls } from './Inspector/shared/BackgroundControls';
 import { SpacingControls } from './Inspector/shared/SpacingControls';
 import { BorderControls } from './Inspector/shared/BorderControls';
+import { RichBlockInspector } from './Inspector/RichBlockInspector';
 import { TextBlockInspector } from './Inspector/TextBlockInspector';
-import { TableBlockInspector } from './Inspector/TableBlockInspector';
 import { QuoteBlockInspector } from './Inspector/QuoteBlockInspector';
 import { VideoEmbedBlockInspector } from './Inspector/VideoEmbedBlockInspector';
 import { SeparatorBlockInspector } from './Inspector/SeparatorBlockInspector';
 import { ImageBlockInspector } from './Inspector/ImageBlockInspector';
-import { PollBlockInspector } from './Inspector/PollBlockInspector';
 import { KeyTakeawayBlockInspector } from './Inspector/KeyTakeawayBlockInspector';
 import { ReferenceBlockInspector } from './Inspector/ReferenceBlockInspector';
 
@@ -53,6 +53,13 @@ type TabValue = (typeof TAB_VALUES)[keyof typeof TAB_VALUES];
 // Block types data (copied from BlockPalette to avoid circular dependency)
 const blockTypes: BlockType[] = [
   // Content Blocks
+  {
+    id: 'richBlock',
+    label: 'Rich Block',
+    icon: Edit3,
+    category: 'content',
+    description: 'Unified block with rich text, images, tables, polls, and embeds',
+  },
   {
     id: 'textBlock',
     label: 'Text & Headings',
@@ -315,12 +322,12 @@ export function EditorSidebar({ className }: EditorSidebarProps) {
                   {/* Properties Content */}
                   <div className="flex-1 overflow-y-auto p-4">
                     {/* Block-Specific Inspectors */}
-                    {selectedNode.type === 'textBlock' && (
-                      <TextBlockInspector nodeId={selectedNode.id} />
+                    {selectedNode.type === 'richBlock' && (
+                      <RichBlockInspector nodeId={selectedNode.id} />
                     )}
 
-                    {selectedNode.type === 'tableBlock' && (
-                      <TableBlockInspector nodeId={selectedNode.id} />
+                    {selectedNode.type === 'textBlock' && (
+                      <TextBlockInspector nodeId={selectedNode.id} />
                     )}
 
                     {selectedNode.type === 'quoteBlock' && (
@@ -339,10 +346,6 @@ export function EditorSidebar({ className }: EditorSidebarProps) {
                       <ImageBlockInspector nodeId={selectedNode.id} />
                     )}
 
-                    {selectedNode.type === 'pollBlock' && (
-                      <PollBlockInspector nodeId={selectedNode.id} />
-                    )}
-
                     {selectedNode.type === 'keyTakeawayBlock' && (
                       <KeyTakeawayBlockInspector nodeId={selectedNode.id} />
                     )}
@@ -353,6 +356,7 @@ export function EditorSidebar({ className }: EditorSidebarProps) {
 
                     {/* Fallback for block types without dedicated inspectors */}
                     {![
+                      'richBlock',
                       'textBlock',
                       'tableBlock',
                       'quoteBlock',

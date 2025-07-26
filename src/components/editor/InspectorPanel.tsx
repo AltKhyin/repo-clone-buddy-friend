@@ -31,12 +31,11 @@ import { SafeSwitch } from './SafeSwitch';
 import { TextBlockInspector } from './Inspector/TextBlockInspector';
 import { ImageBlockInspector } from './Inspector/ImageBlockInspector';
 import { VideoEmbedBlockInspector } from './Inspector/VideoEmbedBlockInspector';
-import { TableBlockInspector } from './Inspector/TableBlockInspector';
-import { PollBlockInspector } from './Inspector/PollBlockInspector';
 import { ReferenceBlockInspector } from './Inspector/ReferenceBlockInspector';
 import { KeyTakeawayBlockInspector } from './Inspector/KeyTakeawayBlockInspector';
 import { SeparatorBlockInspector } from './Inspector/SeparatorBlockInspector';
 import { QuoteBlockInspector } from './Inspector/QuoteBlockInspector';
+import { RichBlockInspector } from './Inspector/RichBlockInspector';
 
 export const InspectorPanel = React.memo(function InspectorPanel() {
   const {
@@ -99,11 +98,8 @@ export const InspectorPanel = React.memo(function InspectorPanel() {
       case 'videoEmbedBlock':
         return <VideoEmbedBlockInspector nodeId={selectedNode.id} />;
 
-      case 'tableBlock':
-        return <TableBlockInspector nodeId={selectedNode.id} />;
-
-      case 'pollBlock':
-        return <PollBlockInspector nodeId={selectedNode.id} data={selectedNode.data} />;
+      case 'richBlock':
+        return <RichBlockInspector nodeId={selectedNode.id} />;
 
       case 'referenceBlock':
         return <ReferenceBlockInspector nodeId={selectedNode.id} />;

@@ -6,6 +6,8 @@ import { StarterKit } from '@tiptap/starter-kit';
 import { Placeholder } from '@tiptap/extension-placeholder';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/components/theme/CustomThemeProvider';
+import { TableExtension } from '@/components/editor/extensions/Table';
+import { PollExtension } from '@/components/editor/extensions/Poll';
 
 interface UnifiedTipTapEditorProps {
   blockId: string;
@@ -121,6 +123,20 @@ export const UnifiedTipTapEditor: React.FC<UnifiedTipTapEditorProps> = ({
           showOnlyWhenEditable: true,
           showOnlyCurrent: false,
           includeChildren: true,
+        }),
+        // Rich Block extensions - always enabled
+        TableExtension.configure({
+          resizable: true,
+          HTMLAttributes: {
+            class: 'table-extension',
+          },
+        }),
+        PollExtension.configure({
+          allowAnonymousVoting: true,
+          enableVoteTracking: true,
+          HTMLAttributes: {
+            class: 'poll-extension',
+          },
         }),
       ],
       content: content,
@@ -295,6 +311,55 @@ export const UnifiedTipTapEditor: React.FC<UnifiedTipTapEditorProps> = ({
       // Other commands
       setHorizontalRule: () => editor.chain().focus().setHorizontalRule().run(),
       clearFormatting: () => editor.chain().focus().clearNodes().unsetAllMarks().run(),
+
+      // Rich Block extensions
+      insertTable: (rows: number = 3, cols: number = 3, withHeaders: boolean = true) =>
+        editor
+          .chain()
+          .focus()
+          .insertTable({
+            rows,
+            cols,
+            withHeaderRow: withHeaders,
+          })
+          .run(),
+      insertPoll: (pollData?: any) => {
+        const defaultPollData = {
+          pollId: `poll-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          question: pollData?.question || 'What is your opinion?',
+          options: pollData?.options || [
+            { id: `option-1-${Date.now()}`, text: 'Option 1', votes: 0 },
+            { id: `option-2-${Date.now()}`, text: 'Option 2', votes: 0 },
+          ],
+          settings: {
+            allowMultiple: pollData?.allowMultiple || false,
+            showResults: pollData?.showResults !== false,
+            allowAnonymous: pollData?.allowAnonymous !== false,
+            requireLogin: pollData?.requireLogin || false,
+          },
+          metadata: {
+            totalVotes: 0,
+            uniqueVoters: 0,
+            createdAt: new Date().toISOString(),
+          },
+          styling: {
+            questionFontSize: 18,
+            questionFontWeight: 600,
+            optionFontSize: 16,
+            optionPadding: 12,
+            borderRadius: 8,
+            borderWidth: 1,
+            borderColor: '#e2e8f0',
+            backgroundColor: 'transparent',
+            selectedColor: '#3b82f6',
+            resultBarColor: '#60a5fa',
+            textAlign: 'left',
+            compact: false,
+          },
+        };
+
+        return editor.chain().focus().insertPoll(defaultPollData).run();
+      },
 
       // Content manipulation
       insertContent: (content: string | JSONContent) =>

@@ -14,11 +14,19 @@ import {
   Video,
   Minus,
   FileText,
+  Edit3,
 } from 'lucide-react';
 import { BlockType } from '@/types/editor';
 
 const blockTypes: BlockType[] = [
   // Content Blocks
+  {
+    id: 'richBlock',
+    label: 'Rich Block',
+    icon: Edit3,
+    category: 'content',
+    description: 'Unified block with rich text, images, tables, polls, and embeds',
+  },
   {
     id: 'textBlock',
     label: 'Text Block',

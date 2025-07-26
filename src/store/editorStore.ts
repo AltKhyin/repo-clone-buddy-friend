@@ -17,6 +17,7 @@ import {
   validateStructuredContent,
 } from '@/types/editor';
 import { migrateAllHeadingBlocks } from '@/utils/headingBlockMigration';
+import { autoMigrateNodeData } from '@/utils/schemaMigration';
 const AUTOSAVE_DELAY = 30000; // 30 seconds as per user requirements
 
 // WYSIWYG Canvas Configuration
@@ -48,10 +49,12 @@ const findAvailablePosition = (
         return { width: 400, height: 150 };
       case 'videoEmbedBlock':
         return { width: 560, height: 315 }; // 16:9 aspect ratio
-      case 'tableBlock':
+      case 'tableBlock': // DEPRECATED - use richBlock with TipTap table extension
         return { width: 600, height: 200 };
-      case 'pollBlock':
+      case 'pollBlock': // DEPRECATED - use richBlock with TipTap poll extension
         return { width: 400, height: 250 };
+      case 'richBlock': // UNIFIED - handles text, tables, polls, images, videos through TipTap
+        return { width: 600, height: 200 };
       case 'referenceBlock':
         return { width: 400, height: 180 };
       case 'separatorBlock':
@@ -210,11 +213,20 @@ export const useEditorStore = create<EditorState>((set, get) => {
     addNode: nodeData => {
       const nodeType = nodeData.type || 'textBlock';
       const nodeDataValue = nodeData.data || getDefaultDataForBlockType(nodeType);
-      
+
+      // Auto-migrate legacy table/poll blocks to unified richBlock
+      const migration = autoMigrateNodeData(nodeType, nodeDataValue);
+      const finalNodeType = migration.newType || nodeType;
+      const finalNodeData = migration.data;
+
+      if (migration.migrated) {
+        console.log(`[EditorStore] Auto-migrated ${nodeType} to ${finalNodeType}`);
+      }
+
       const newNode: NodeObject = {
         id: generateNodeId(),
-        type: nodeType,
-        data: nodeDataValue,
+        type: finalNodeType,
+        data: finalNodeData,
         // Include any additional properties from nodeData EXCEPT id, type, data
         ...Object.fromEntries(
           Object.entries(nodeData).filter(([key]) => !['id', 'type', 'data'].includes(key))
@@ -222,9 +234,9 @@ export const useEditorStore = create<EditorState>((set, get) => {
       } as NodeObject;
 
       set(state => {
-        // Create position for new node to avoid overlaps
+        // Create position for new node to avoid overlaps with correct dimensions for migrated type
         const existingPositions = Object.values(state.positions);
-        const newPosition = findAvailablePosition(existingPositions);
+        const newPosition = findAvailablePosition(existingPositions, finalNodeType);
         newPosition.id = newNode.id;
 
         const updatedState = {

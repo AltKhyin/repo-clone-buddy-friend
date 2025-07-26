@@ -5,6 +5,8 @@ import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
 import { useCallback, useRef } from 'react';
 import { debounce } from 'lodash-es';
+import { TableExtension } from '@/components/editor/extensions/Table';
+import { PollExtension } from '@/components/editor/extensions/Poll';
 
 // Field type configurations for different text editing needs
 export type TiptapFieldType = 'rich-text' | 'multi-line' | 'simple-text';
@@ -69,10 +71,10 @@ export const useTiptapEditor = ({
   debounceMs = 1000,
 }: UseTiptapEditorProps) => {
   // Determine field configuration with defaults
-  const resolvedConfig = fieldConfig?.fieldType 
+  const resolvedConfig = fieldConfig?.fieldType
     ? { ...DEFAULT_FIELD_CONFIGS[fieldConfig.fieldType], ...fieldConfig }
     : { ...DEFAULT_FIELD_CONFIGS['rich-text'], ...fieldConfig };
-  
+
   // Create debounced update function with configurable delay
   const debouncedUpdate = useCallback(
     debounce((nodeId: string, content: string) => {
@@ -85,21 +87,27 @@ export const useTiptapEditor = ({
     extensions: [
       StarterKit.configure({
         // Conditionally enable/disable features based on field type
-        heading: resolvedConfig.enableHeadings ? {
-          levels: [1, 2, 3, 4, 5, 6],
-        } : false,
+        heading: resolvedConfig.enableHeadings
+          ? {
+              levels: [1, 2, 3, 4, 5, 6],
+            }
+          : false,
         bold: resolvedConfig.enableFormatting,
         italic: resolvedConfig.enableFormatting,
         strike: resolvedConfig.enableFormatting,
         code: resolvedConfig.enableFormatting,
-        bulletList: resolvedConfig.enableBlocks ? {
-          keepMarks: true,
-          keepAttributes: false,
-        } : false,
-        orderedList: resolvedConfig.enableBlocks ? {
-          keepMarks: true,
-          keepAttributes: false,
-        } : false,
+        bulletList: resolvedConfig.enableBlocks
+          ? {
+              keepMarks: true,
+              keepAttributes: false,
+            }
+          : false,
+        orderedList: resolvedConfig.enableBlocks
+          ? {
+              keepMarks: true,
+              keepAttributes: false,
+            }
+          : false,
         blockquote: resolvedConfig.enableBlocks,
         codeBlock: resolvedConfig.enableBlocks,
         horizontalRule: resolvedConfig.enableBlocks,
@@ -113,6 +121,20 @@ export const useTiptapEditor = ({
       Placeholder.configure({
         placeholder,
         showOnlyWhenEditable: true,
+      }),
+      // Advanced Rich Block extensions - always enabled for Rich Block compatibility
+      TableExtension.configure({
+        resizable: true,
+        HTMLAttributes: {
+          class: 'table-extension',
+        },
+      }),
+      PollExtension.configure({
+        allowAnonymousVoting: true,
+        enableVoteTracking: true,
+        HTMLAttributes: {
+          class: 'poll-extension',
+        },
       }),
     ],
     content: initialContent,
@@ -138,7 +160,11 @@ export const useTiptapEditor = ({
           }
         }
         // For simple-text fields, prevent Enter from creating paragraphs
-        if (resolvedConfig.fieldType === 'simple-text' && event.key === 'Enter' && !event.shiftKey) {
+        if (
+          resolvedConfig.fieldType === 'simple-text' &&
+          event.key === 'Enter' &&
+          !event.shiftKey
+        ) {
           return true; // Block paragraph creation
         }
         return false; // Let Tiptap handle other keys
@@ -159,8 +185,7 @@ export const useTiptapEditor = ({
       },
       // ANTI-FLICKER: Remove height dependencies to prevent circular calculations
       attributes: {
-        style:
-          'width: 100%; cursor: text; user-select: text; -webkit-user-select: text;',
+        style: 'width: 100%; cursor: text; user-select: text; -webkit-user-select: text;',
       },
     },
   });
@@ -216,6 +241,63 @@ export const useTiptapEditor = ({
     editor?.chain().focus().setParagraph().run();
   }, [editor]);
 
+  // Rich Block extension commands
+  const insertTable = useCallback(
+    (rows: number = 3, cols: number = 3, withHeaders: boolean = true) => {
+      editor
+        ?.chain()
+        .focus()
+        .insertTable({
+          rows,
+          cols,
+          withHeaderRow: withHeaders,
+        })
+        .run();
+    },
+    [editor]
+  );
+
+  const insertPoll = useCallback(
+    (pollData?: any) => {
+      const defaultPollData = {
+        pollId: `poll-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        question: pollData?.question || 'What is your opinion?',
+        options: pollData?.options || [
+          { id: `option-1-${Date.now()}`, text: 'Option 1', votes: 0 },
+          { id: `option-2-${Date.now()}`, text: 'Option 2', votes: 0 },
+        ],
+        settings: {
+          allowMultiple: pollData?.allowMultiple || false,
+          showResults: pollData?.showResults !== false,
+          allowAnonymous: pollData?.allowAnonymous !== false,
+          requireLogin: pollData?.requireLogin || false,
+        },
+        metadata: {
+          totalVotes: 0,
+          uniqueVoters: 0,
+          createdAt: new Date().toISOString(),
+        },
+        styling: {
+          questionFontSize: 18,
+          questionFontWeight: 600,
+          optionFontSize: 16,
+          optionPadding: 12,
+          borderRadius: 8,
+          borderWidth: 1,
+          borderColor: '#e2e8f0',
+          backgroundColor: 'transparent',
+          selectedColor: '#3b82f6',
+          resultBarColor: '#60a5fa',
+          textAlign: 'left',
+          compact: false,
+        },
+      };
+
+      editor?.chain().focus().insertPoll(defaultPollData).run();
+    },
+    [editor]
+  );
+
   // Focus the editor
   const focusEditor = useCallback(() => {
     editor?.chain().focus().run();
@@ -241,6 +323,9 @@ export const useTiptapEditor = ({
     toggleBlockquote: resolvedConfig.enableBlocks ? toggleBlockquote : undefined,
     setHeading: resolvedConfig.enableHeadings ? setHeading : undefined,
     setParagraph,
+    // Rich Block extension commands (always available)
+    insertTable,
+    insertPoll,
     // State checks (only for enabled features)
     isActive: {
       bold: resolvedConfig.enableFormatting ? (editor?.isActive('bold') ?? false) : false,
@@ -250,9 +335,12 @@ export const useTiptapEditor = ({
       bulletList: resolvedConfig.enableBlocks ? (editor?.isActive('bulletList') ?? false) : false,
       orderedList: resolvedConfig.enableBlocks ? (editor?.isActive('orderedList') ?? false) : false,
       blockquote: resolvedConfig.enableBlocks ? (editor?.isActive('blockquote') ?? false) : false,
-      heading: resolvedConfig.enableHeadings ? 
-        (level: number) => editor?.isActive('heading', { level }) ?? false : 
-        () => false,
+      heading: resolvedConfig.enableHeadings
+        ? (level: number) => editor?.isActive('heading', { level }) ?? false
+        : () => false,
+      // Rich Block extension states (always available)
+      table: editor?.isActive('customTable') ?? false,
+      poll: editor?.isActive('customPoll') ?? false,
     },
   };
 };

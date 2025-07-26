@@ -5,6 +5,7 @@ import { ContentBoundaryProps } from '@/types/editor';
 import { useEditorStore } from '@/store/editorStore';
 import { cn } from '@/lib/utils';
 import { useContentMeasurement, calculateStyledMinDimensions } from '@/hooks/useContentMeasurement';
+import { GripVertical } from 'lucide-react';
 
 /**
  * UnifiedBlockWrapper eliminates the disconnect between resize boundaries and actual content
@@ -167,12 +168,25 @@ export const UnifiedBlockWrapper = React.memo<ContentBoundaryProps>(
       setHoverHandle('');
     }, []);
 
-    // Unified mouse down handler for drag and selection
-    const handleMouseDown = useCallback(
+    // Selection handler - only handles block selection, not dragging
+    const handleBlockSelection = useCallback(
       (e: React.MouseEvent) => {
         if (e.button !== 0 || isResizing) return; // Only left click, don't interfere with resize
 
-        // Call onSelect for selection
+        // Only call onSelect for selection - no dragging
+        if (onSelect) {
+          onSelect();
+        }
+      },
+      [onSelect, isResizing]
+    );
+
+    // Dedicated drag handler - only triggered from drag handle
+    const handleDragStart = useCallback(
+      (e: React.MouseEvent) => {
+        if (e.button !== 0 || isResizing) return; // Only left click, don't interfere with resize
+
+        // Ensure block is selected before dragging
         if (onSelect) {
           onSelect();
         }
@@ -189,7 +203,7 @@ export const UnifiedBlockWrapper = React.memo<ContentBoundaryProps>(
         e.preventDefault();
         e.stopPropagation();
       },
-      [onSelect, id, x, y, isResizing]
+      [onSelect, x, y, isResizing]
     );
 
     // Drag movement handler
@@ -297,7 +311,7 @@ export const UnifiedBlockWrapper = React.memo<ContentBoundaryProps>(
         data-block-id={id}
         data-block-type={blockType}
         data-testid={`unified-block-${id}`}
-        onMouseDown={handleMouseDown}
+        onClick={handleBlockSelection}
       >
         {/* Content Area - fills container exactly */}
         <div
@@ -330,6 +344,17 @@ export const UnifiedBlockWrapper = React.memo<ContentBoundaryProps>(
             onHandleLeave={handleHandleLeave}
             contentDimensions={contentDimensions}
           />
+        )}
+
+        {/* Drag Handle - positioned in top-right corner */}
+        {selected && (
+          <div
+            className="absolute -top-6 -right-6 w-6 h-6 flex items-center justify-center bg-primary text-primary-foreground rounded cursor-move hover:bg-primary/80 transition-colors z-30"
+            onMouseDown={handleDragStart}
+            title="Drag to move block"
+          >
+            <GripVertical size={12} />
+          </div>
         )}
 
         {/* Enhanced Selection Indicator with real-time dimensions and status */}

@@ -40,6 +40,23 @@ export const TYPOGRAPHY_PROPERTY_CATEGORIES = {
 // Block type to typography support mapping
 export const BLOCK_TYPOGRAPHY_SUPPORT: Record<EditorNodeType, BlockTypographyContext> = {
   // Full typography support blocks
+  richBlock: {
+    blockType: 'richBlock',
+    supportsTypography: true,
+    typographyScope: 'full',
+    availableProperties: [
+      'fontFamily',
+      'fontSize',
+      'fontWeight',
+      'fontStyle',
+      'lineHeight',
+      'letterSpacing',
+      'textTransform',
+      'textDecoration',
+      'textAlign',
+      'color',
+    ],
+  },
   textBlock: {
     blockType: 'textBlock',
     supportsTypography: true,
