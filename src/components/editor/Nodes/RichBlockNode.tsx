@@ -5,8 +5,9 @@ import { EditorContent } from '@tiptap/react';
 import { useEditorStore } from '@/store/editorStore';
 import { useEditorTheme } from '@/hooks/useEditorTheme';
 import { useRichTextEditor } from '@/hooks/useRichTextEditor';
+import { useSelectionCoordination } from '@/hooks/useSelectionCoordination';
 import { UnifiedBlockWrapper } from '@/components/editor/shared/UnifiedBlockWrapper';
-import { RichBlockData } from '@/types/editor';
+import { RichBlockData, ContentSelectionType } from '@/types/editor';
 
 interface RichBlockNodeProps {
   id: string;
@@ -26,6 +27,13 @@ export const RichBlockNode = memo<RichBlockNodeProps>(
   ({ id, data, selected, width = 600, height = 200, x = 0, y = 0, onSelect, onMove }) => {
     const { updateNode } = useEditorStore();
     const { colors } = useEditorTheme();
+
+    // Selection coordination for text content
+    const { isActive, handleContentSelection, handleBlockActivation } = useSelectionCoordination({
+      blockId: id,
+      componentType: 'text',
+      enableContentSelection: true,
+    });
 
     // Handle content updates from TipTap
     const handleContentUpdate = useCallback(
@@ -137,7 +145,7 @@ export const RichBlockNode = memo<RichBlockNodeProps>(
       [dynamicStyles, paddingX, paddingY]
     );
 
-    // Handle block click to focus editor
+    // Handle block click to focus editor with coordination
     const handleBlockClick = useCallback(
       (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -157,6 +165,17 @@ export const RichBlockNode = memo<RichBlockNodeProps>(
           clickY <= rect.height - paddingY;
 
         if (isWithinContentArea) {
+          // Coordinate text selection with unified system
+          handleContentSelection(ContentSelectionType.TEXT, {
+            textSelection: {
+              blockId: id,
+              selectedText: editorInstance.editor.state.doc.textContent,
+              textElement: e.currentTarget as HTMLElement,
+              range: null,
+              hasSelection: false,
+            },
+          });
+
           // Focus the editor
           editorInstance.editor.commands.focus();
 
@@ -164,9 +183,12 @@ export const RichBlockNode = memo<RichBlockNodeProps>(
           if (editorInstance.editor.isEmpty) {
             editorInstance.editor.commands.focus('end');
           }
+        } else {
+          // Click outside content area just activates block
+          handleBlockActivation(e);
         }
       },
-      [editorInstance.editor, paddingX, paddingY]
+      [editorInstance.editor, paddingX, paddingY, id, handleContentSelection, handleBlockActivation]
     );
 
     // Unified content rendering - always use TipTap editor
@@ -203,7 +225,7 @@ export const RichBlockNode = memo<RichBlockNodeProps>(
           height={height}
           x={x}
           y={y}
-          selected={selected}
+          selected={isActive}
           blockType="richBlock"
           contentStyles={contentStyles}
           minDimensions={{ width: 200, height: 120 }}

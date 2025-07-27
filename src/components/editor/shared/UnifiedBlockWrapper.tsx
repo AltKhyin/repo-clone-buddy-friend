@@ -2,7 +2,8 @@
 
 import React, { useRef, useCallback, useMemo, useState, useEffect } from 'react';
 import { ContentBoundaryProps } from '@/types/editor';
-import { useEditorStore } from '@/store/editorStore';
+import { useEditorStore, useActiveBlockId, useEditorActions } from '@/store/editorStore';
+import { useSelectionCoordination } from '@/hooks/useSelectionCoordination';
 import { cn } from '@/lib/utils';
 import { useContentMeasurement, calculateStyledMinDimensions } from '@/hooks/useContentMeasurement';
 import { GripVertical } from 'lucide-react';
@@ -31,6 +32,16 @@ export const UnifiedBlockWrapper = React.memo<ContentBoundaryProps>(
   }) => {
     const contentRef = useRef<HTMLDivElement>(null);
     const { updateNodePosition } = useEditorStore();
+    const activeBlockId = useActiveBlockId();
+    const { setActiveBlock } = useEditorActions();
+
+    // Unified selection coordination system
+    const { isActive, handleBlockActivation } = useSelectionCoordination({
+      blockId: id,
+      componentType: 'generic',
+      enableContentSelection: false, // Block wrapper doesn't handle content selection
+      preventBubbling: true,
+    });
 
     // Content measurement for content-aware resize constraints
     const {
@@ -168,20 +179,7 @@ export const UnifiedBlockWrapper = React.memo<ContentBoundaryProps>(
       setHoverHandle('');
     }, []);
 
-    // Selection handler - only handles block selection, not dragging
-    const handleBlockSelection = useCallback(
-      (e: React.MouseEvent) => {
-        if (e.button !== 0 || isResizing) return; // Only left click, don't interfere with resize
-
-        // Only call onSelect for selection - no dragging
-        if (onSelect) {
-          onSelect();
-        }
-      },
-      [onSelect, isResizing]
-    );
-
-    // Dedicated drag handler - only triggered from drag handle
+    // Dedicated drag handler - only triggered from zone detection
     const handleDragStart = useCallback(
       (e: React.MouseEvent) => {
         if (e.button !== 0 || isResizing) return; // Only left click, don't interfere with resize
@@ -200,10 +198,27 @@ export const UnifiedBlockWrapper = React.memo<ContentBoundaryProps>(
           mouseY: e.clientY,
         });
 
-        e.preventDefault();
-        e.stopPropagation();
+        // Event handling is already done by the calling handler
       },
       [onSelect, x, y, isResizing]
+    );
+
+    // Enhanced block activation with coordination
+    const handleBlockClick = useCallback(
+      (e: React.MouseEvent) => {
+        if (e.button !== 0 || isResizing) return; // Only left click, don't interfere with resize
+
+        // Use coordinated activation system
+        handleBlockActivation(e);
+
+        // Also call legacy onSelect for backward compatibility
+        if (onSelect) {
+          onSelect();
+        }
+
+        // Don't preventDefault - let TipTap and content editing work naturally
+      },
+      [handleBlockActivation, onSelect, isResizing]
     );
 
     // Drag movement handler
@@ -269,18 +284,18 @@ export const UnifiedBlockWrapper = React.memo<ContentBoundaryProps>(
         // Enhanced visual feedback
         transition: isResizing || isDragging ? 'none' : 'all 0.15s ease-out',
         transform: isResizing || isDragging ? 'scale(1.001)' : 'scale(1)', // Subtle scale during interaction
-        zIndex: isResizing || isDragging ? 1000 : selected ? 100 : 1,
+        zIndex: isResizing || isDragging ? 1000 : isActive ? 100 : 1,
         cursor: isDragging ? 'grabbing' : isResizing ? 'default' : 'grab',
         // Development feedback (can be removed in production)
         ...(process.env.NODE_ENV === 'development' &&
-          selected && {
+          isActive && {
             outline: isResizing
               ? '2px dashed rgba(16, 185, 129, 0.6)'
               : '1px dashed rgba(59, 130, 246, 0.3)',
             outlineOffset: '-1px',
           }),
       }),
-      [x, y, width, height, selected, isResizing]
+      [x, y, width, height, selected, isResizing, isActive, isDragging]
     );
 
     // Content area styles (fills container exactly)
@@ -311,7 +326,7 @@ export const UnifiedBlockWrapper = React.memo<ContentBoundaryProps>(
         data-block-id={id}
         data-block-type={blockType}
         data-testid={`unified-block-${id}`}
-        onClick={handleBlockSelection}
+        onClick={handleBlockClick}
       >
         {/* Content Area - fills container exactly */}
         <div
@@ -327,8 +342,8 @@ export const UnifiedBlockWrapper = React.memo<ContentBoundaryProps>(
           {children}
         </div>
 
-        {/* Resize Handles - only visible when selected and enabled */}
-        {selected && showResizeHandles && (
+        {/* Resize Handles - only visible when active and enabled */}
+        {isActive && showResizeHandles && (
           <ResizeHandles
             width={width}
             height={height}
@@ -347,7 +362,7 @@ export const UnifiedBlockWrapper = React.memo<ContentBoundaryProps>(
         )}
 
         {/* Drag Handle - positioned in top-right corner */}
-        {selected && (
+        {isActive && (
           <div
             className="absolute -top-6 -right-6 w-6 h-6 flex items-center justify-center bg-primary text-primary-foreground rounded cursor-move hover:bg-primary/80 transition-colors z-30"
             onMouseDown={handleDragStart}
@@ -358,7 +373,7 @@ export const UnifiedBlockWrapper = React.memo<ContentBoundaryProps>(
         )}
 
         {/* Enhanced Selection Indicator with real-time dimensions and status */}
-        {selected && (
+        {isActive && (
           <div className="absolute -top-6 left-0 flex gap-2 text-xs z-20">
             <div
               className={cn(

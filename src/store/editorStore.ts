@@ -171,6 +171,18 @@ export const useEditorStore = create<EditorState>((set, get) => {
     lastSaved: null,
     isFullscreen: false,
 
+    // Simple Block Activation - replaces complex interaction system
+    activeBlockId: null,
+
+    // Unified Selection System - coordinates all selection types
+    selectionState: {
+      activeBlockId: null,
+      contentSelection: null,
+      hasBlockSelection: false,
+      hasContentSelection: false,
+      preventMultiSelection: true,
+    },
+
     // WYSIWYG Canvas Display Options
     showGrid: true,
     showSnapGuides: true,
@@ -397,6 +409,139 @@ export const useEditorStore = create<EditorState>((set, get) => {
 
     setTextSelection: textSelection => {
       set({ textSelection });
+    },
+
+    // ===== SIMPLE BLOCK ACTIVATION ACTIONS =====
+
+    setActiveBlock: blockId => {
+      set({ activeBlockId: blockId });
+    },
+
+    // ===== UNIFIED SELECTION COORDINATION ACTIONS =====
+
+    activateBlock: blockId => {
+      set(state => ({
+        selectionState: {
+          activeBlockId: blockId,
+          contentSelection:
+            blockId !== state.selectionState.activeBlockId
+              ? null
+              : state.selectionState.contentSelection,
+          hasBlockSelection: blockId !== null,
+          hasContentSelection:
+            blockId !== state.selectionState.activeBlockId
+              ? false
+              : state.selectionState.hasContentSelection,
+          preventMultiSelection: true,
+        },
+        // Sync legacy activeBlockId for backward compatibility
+        activeBlockId: blockId,
+      }));
+    },
+
+    setContentSelection: contentSelection => {
+      set(state => ({
+        selectionState: {
+          ...state.selectionState,
+          contentSelection,
+          hasContentSelection: contentSelection !== null,
+          // If setting content selection, ensure the block is also active
+          activeBlockId: contentSelection
+            ? contentSelection.blockId
+            : state.selectionState.activeBlockId,
+          hasBlockSelection: contentSelection ? true : state.selectionState.hasBlockSelection,
+        },
+        // Sync legacy activeBlockId
+        activeBlockId: contentSelection
+          ? contentSelection.blockId
+          : state.selectionState.activeBlockId,
+      }));
+    },
+
+    clearAllSelection: () => {
+      set({
+        selectionState: {
+          activeBlockId: null,
+          contentSelection: null,
+          hasBlockSelection: false,
+          hasContentSelection: false,
+          preventMultiSelection: true,
+        },
+        // Sync legacy state
+        activeBlockId: null,
+        selectedNodeId: null,
+        textSelection: null,
+      });
+    },
+
+    // Content-specific selection actions
+    selectTableCell: (blockId, tableId, cellPosition, isEditing = false) => {
+      const state = get();
+      const contentSelection = {
+        type: 'table_cell' as const,
+        blockId,
+        data: {
+          tableCell: {
+            tableId,
+            cellPosition,
+            isEditing,
+            editValue: '',
+          },
+        },
+      };
+
+      state.setContentSelection(contentSelection);
+    },
+
+    selectPollOption: (blockId, pollId, optionId, isEditing = false) => {
+      const state = get();
+      const contentSelection = {
+        type: 'poll_option' as const,
+        blockId,
+        data: {
+          pollOption: {
+            pollId,
+            optionId,
+            isEditing,
+            editValue: '',
+          },
+        },
+      };
+
+      state.setContentSelection(contentSelection);
+    },
+
+    selectPollQuestion: (blockId, pollId, isEditing = false) => {
+      const state = get();
+      const contentSelection = {
+        type: 'poll_question' as const,
+        blockId,
+        data: {
+          pollQuestion: {
+            pollId,
+            isEditing,
+            editValue: '',
+          },
+        },
+      };
+
+      state.setContentSelection(contentSelection);
+    },
+
+    // Selection state queries
+    isBlockActive: blockId => {
+      const state = get();
+      return state.selectionState.activeBlockId === blockId;
+    },
+
+    hasContentSelection: () => {
+      const state = get();
+      return state.selectionState.hasContentSelection;
+    },
+
+    getActiveContentType: () => {
+      const state = get();
+      return state.selectionState.contentSelection?.type || 'none';
     },
 
     // ===== VIEWPORT ACTIONS =====
@@ -870,6 +1015,14 @@ export const useEditorStore = create<EditorState>((set, get) => {
         isDirty: false,
         isSaving: false,
         lastSaved: null,
+        activeBlockId: null,
+        selectionState: {
+          activeBlockId: null,
+          contentSelection: null,
+          hasBlockSelection: false,
+          hasContentSelection: false,
+          preventMultiSelection: true,
+        },
         showGrid: true,
         showSnapGuides: true,
         // Rich Block responsive viewport
@@ -943,6 +1096,32 @@ export const usePersistenceState = () =>
 // Rich Block viewport selector
 export const useCurrentViewport = () => useEditorStore(state => state.currentViewport);
 
+// Active block selector
+export const useActiveBlockId = () => useEditorStore(state => state.activeBlockId);
+
+// Unified Selection System selectors
+export const useSelectionState = () => useEditorStore(state => state.selectionState);
+
+export const useIsBlockActive = (blockId: string) =>
+  useEditorStore(state => state.selectionState.activeBlockId === blockId);
+
+export const useContentSelection = () =>
+  useEditorStore(state => state.selectionState.contentSelection);
+
+export const useHasContentSelection = () =>
+  useEditorStore(state => state.selectionState.hasContentSelection);
+
+export const useActiveContentType = () =>
+  useEditorStore(state => state.selectionState.contentSelection?.type || 'none');
+
+// Selection query selectors
+export const useSelectionQueries = () =>
+  useEditorStore(state => ({
+    isBlockActive: state.isBlockActive,
+    hasContentSelection: state.hasContentSelection,
+    getActiveContentType: state.getActiveContentType,
+  }));
+
 // Stable action selectors (prevents function recreation)
 export const useEditorActions = () =>
   useEditorStore(state => ({
@@ -951,6 +1130,14 @@ export const useEditorActions = () =>
     deleteNode: state.deleteNode,
     selectNode: state.selectNode,
     duplicateNode: state.duplicateNode,
+    setActiveBlock: state.setActiveBlock,
+    // Unified selection actions
+    activateBlock: state.activateBlock,
+    setContentSelection: state.setContentSelection,
+    clearAllSelection: state.clearAllSelection,
+    selectTableCell: state.selectTableCell,
+    selectPollOption: state.selectPollOption,
+    selectPollQuestion: state.selectPollQuestion,
   }));
 
 export const useCanvasActions = () =>

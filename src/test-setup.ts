@@ -227,21 +227,16 @@ vi.mock('lucide-react', () => {
     'PauseCircle',
     'StopCircle',
     'Power',
-    'Zap',
-    'Battery',
     'Cpu',
-    'HardDrive',
-    'Wifi',
-    'Bluetooth',
     'Type',
     'Bold',
     'Italic',
     'Underline',
+    'Strikethrough',
     'AlignLeft',
     'AlignCenter',
     'AlignRight',
     'AlignJustify',
-    'List',
     'Quote',
     'Code',
     'Terminal',
@@ -271,10 +266,14 @@ vi.mock('lucide-react', () => {
     'BarChart3',
     'FileText',
     'Lightbulb',
-    'Hash',
-    'Minus',
     'MousePointer',
     'Hand',
+    'Table',
+    'ZoomIn',
+    'ZoomOut',
+    'Ruler',
+    'LogOut',
+    'LucideIcon',
   ];
 
   const mockIcons: Record<string, any> = {};
@@ -282,7 +281,14 @@ vi.mock('lucide-react', () => {
     mockIcons[name] = MockIcon;
   });
 
-  return mockIcons;
+  // Also add LucideIcon as a fallback
+  mockIcons.LucideIcon = MockIcon;
+
+  return {
+    ...mockIcons,
+    // Ensure default export exists
+    default: mockIcons,
+  };
 });
 
 // Clean test isolation

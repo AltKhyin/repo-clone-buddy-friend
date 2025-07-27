@@ -468,6 +468,73 @@ export interface TextSelectionInfo {
   hasSelection: boolean;
 }
 
+// ===== UNIFIED SELECTION SYSTEM =====
+
+/**
+ * Types of content selection within Rich Blocks
+ */
+export enum ContentSelectionType {
+  NONE = 'none',
+  TEXT = 'text', // Text selection within TipTap editor
+  TABLE_CELL = 'table_cell', // Table cell editing
+  POLL_OPTION = 'poll_option', // Poll option editing
+  POLL_QUESTION = 'poll_question', // Poll question editing
+}
+
+/**
+ * Content-specific selection data for different interaction types
+ */
+export interface ContentSelectionInfo {
+  type: ContentSelectionType;
+  blockId: string;
+  data: {
+    // Text selection data (when type === TEXT)
+    textSelection?: TextSelectionInfo;
+
+    // Table cell selection data (when type === TABLE_CELL)
+    tableCell?: {
+      tableId: string;
+      cellPosition: { row: number; col: number };
+      isEditing: boolean;
+      editValue?: string;
+    };
+
+    // Poll option selection data (when type === POLL_OPTION)
+    pollOption?: {
+      pollId: string;
+      optionId: string;
+      isEditing: boolean;
+      editValue?: string;
+    };
+
+    // Poll question selection data (when type === POLL_QUESTION)
+    pollQuestion?: {
+      pollId: string;
+      isEditing: boolean;
+      editValue?: string;
+    };
+  };
+}
+
+/**
+ * Unified selection state coordinating block and content selection
+ * Following the hierarchy: Block Selection > Content Selection > UI State
+ */
+export interface SelectionState {
+  // Block-level selection (shows resize handles, activates block)
+  activeBlockId: string | null;
+
+  // Content-level selection (editing within the active block)
+  contentSelection: ContentSelectionInfo | null;
+
+  // Selection coordination flags
+  hasBlockSelection: boolean;
+  hasContentSelection: boolean;
+
+  // Prevents multiple selections across different blocks
+  preventMultiSelection: boolean;
+}
+
 // Unified Content Boundary System for Resize
 export interface ContentBoundaryProps {
   /** Block ID for identification */
@@ -536,6 +603,12 @@ export interface EditorState {
   lastSaved: Date | null;
   isFullscreen: boolean;
 
+  // Simple Block Activation - replaces complex interaction system
+  activeBlockId: string | null;
+
+  // Unified Selection System - coordinates all selection types
+  selectionState: SelectionState;
+
   // WYSIWYG Canvas Display Options
   showGrid: boolean; // Show grid overlay for alignment
   showSnapGuides: boolean; // Show snapping guides during drag
@@ -573,6 +646,34 @@ export interface EditorState {
   duplicateNode: (nodeId: string) => void;
   selectNode: (nodeId: string | null) => void;
   setTextSelection: (textSelection: TextSelectionInfo | null) => void;
+
+  // Simple Block Activation Actions (Legacy - maintained for compatibility)
+  setActiveBlock: (blockId: string | null) => void;
+
+  // Unified Selection Coordination Actions
+  activateBlock: (blockId: string | null) => void;
+  setContentSelection: (contentSelection: ContentSelectionInfo | null) => void;
+  clearAllSelection: () => void;
+
+  // Content-specific selection actions
+  selectTableCell: (
+    blockId: string,
+    tableId: string,
+    cellPosition: { row: number; col: number },
+    isEditing?: boolean
+  ) => void;
+  selectPollOption: (
+    blockId: string,
+    pollId: string,
+    optionId: string,
+    isEditing?: boolean
+  ) => void;
+  selectPollQuestion: (blockId: string, pollId: string, isEditing?: boolean) => void;
+
+  // Selection state queries
+  isBlockActive: (blockId: string) => boolean;
+  hasContentSelection: () => boolean;
+  getActiveContentType: () => ContentSelectionType;
 
   // WYSIWYG Position Management Actions
   updateNodePosition: (nodeId: string, positionUpdate: Partial<BlockPosition>) => void;

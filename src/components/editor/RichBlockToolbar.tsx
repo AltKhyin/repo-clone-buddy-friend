@@ -27,7 +27,7 @@ import {
   Undo,
   Redo,
 } from 'lucide-react';
-import { useRenderTracking, useStableCallback } from '@/hooks/useRenderOptimization';
+// Removed problematic performance monitoring imports
 import { tableComponentRegistry } from './extensions/Table/tableCommands';
 import { pollComponentRegistry } from './extensions/Poll/pollCommands';
 import {
@@ -49,12 +49,9 @@ export const RichBlockToolbar = React.memo(function RichBlockToolbar({
   editor,
   className,
 }: RichBlockToolbarProps) {
-  // Performance tracking
-  const { renderCount } = useRenderTracking('RichBlockToolbar', {
-    nodeId,
-    hasEditor: !!editor,
-    isActive: editor?.isActive || false,
-  });
+  // Simple render counter for development debugging
+  const renderCountRef = React.useRef(0);
+  renderCountRef.current++;
 
   const { nodes } = useEditorStore();
   const node = nodes.find(n => n.id === nodeId);
@@ -80,66 +77,66 @@ export const RichBlockToolbar = React.memo(function RichBlockToolbar({
     };
   }, [editor]);
 
-  // Optimized command handlers with stable callbacks
-  const handleUndo = useStableCallback(() => {
+  // Simple command handlers using React's useCallback
+  const handleUndo = useCallback(() => {
     editor?.chain().focus().undo().run();
   }, [editor]);
 
-  const handleRedo = useStableCallback(() => {
+  const handleRedo = useCallback(() => {
     editor?.chain().focus().redo().run();
   }, [editor]);
 
-  const handleBold = useStableCallback(() => {
+  const handleBold = useCallback(() => {
     editor?.chain().focus().toggleBold().run();
   }, [editor]);
 
-  const handleItalic = useStableCallback(() => {
+  const handleItalic = useCallback(() => {
     editor?.chain().focus().toggleItalic().run();
   }, [editor]);
 
-  const handleUnderline = useStableCallback(() => {
+  const handleUnderline = useCallback(() => {
     editor?.chain().focus().toggleUnderline().run();
   }, [editor]);
 
-  const handleStrikethrough = useStableCallback(() => {
+  const handleStrikethrough = useCallback(() => {
     editor?.chain().focus().toggleStrike().run();
   }, [editor]);
 
-  const handleTextAlign = useStableCallback(
+  const handleTextAlign = useCallback(
     (alignment: 'left' | 'center' | 'right' | 'justify') => {
       editor?.chain().focus().setTextAlign(alignment).run();
     },
     [editor]
   );
 
-  const handleHeading = useStableCallback(
+  const handleHeading = useCallback(
     (level: 1 | 2 | 3 | 4 | 5 | 6) => {
       editor?.chain().focus().toggleHeading({ level }).run();
     },
     [editor]
   );
 
-  const handleParagraph = useStableCallback(() => {
+  const handleParagraph = useCallback(() => {
     editor?.chain().focus().setParagraph().run();
   }, [editor]);
 
-  const handleQuote = useStableCallback(() => {
+  const handleQuote = useCallback(() => {
     editor?.chain().focus().toggleBlockquote().run();
   }, [editor]);
 
-  const handleBulletList = useStableCallback(() => {
+  const handleBulletList = useCallback(() => {
     editor?.chain().focus().toggleBulletList().run();
   }, [editor]);
 
-  const handleOrderedList = useStableCallback(() => {
+  const handleOrderedList = useCallback(() => {
     editor?.chain().focus().toggleOrderedList().run();
   }, [editor]);
 
-  const handleInsertTable = useStableCallback(() => {
+  const handleInsertTable = useCallback(() => {
     editor?.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run();
   }, [editor]);
 
-  const handleInsertPoll = useStableCallback(() => {
+  const handleInsertPoll = useCallback(() => {
     const pollId = `poll-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const pollData = {
       pollId,
@@ -178,7 +175,7 @@ export const RichBlockToolbar = React.memo(function RichBlockToolbar({
     editor?.chain().focus().insertPoll(pollData).run();
   }, [editor]);
 
-  const handleToggleLink = useStableCallback(() => {
+  const handleToggleLink = useCallback(() => {
     if (toolbarState?.isLink) {
       editor?.chain().focus().unsetLink().run();
     } else {
@@ -190,7 +187,7 @@ export const RichBlockToolbar = React.memo(function RichBlockToolbar({
   }, [editor, toolbarState?.isLink]);
 
   // Get active table/poll components for additional controls
-  const getActiveTableComponent = useStableCallback(() => {
+  const getActiveTableComponent = useCallback(() => {
     const selection = editor?.state.selection;
     if (!selection) return null;
 
@@ -199,7 +196,7 @@ export const RichBlockToolbar = React.memo(function RichBlockToolbar({
     return tableNode?.attrs?.tableId ? tableComponentRegistry.get(tableNode.attrs.tableId) : null;
   }, [editor]);
 
-  const getActivePollComponent = useStableCallback(() => {
+  const getActivePollComponent = useCallback(() => {
     const selection = editor?.state.selection;
     if (!selection) return null;
 
@@ -438,7 +435,7 @@ export const RichBlockToolbar = React.memo(function RichBlockToolbar({
         <>
           <div className="flex-1" />
           <Badge variant="outline" className="text-xs">
-            Render #{renderCount}
+            Render #{renderCountRef.current}
           </Badge>
         </>
       )}

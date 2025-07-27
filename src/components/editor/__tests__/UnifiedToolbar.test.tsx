@@ -6,6 +6,44 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { useEditorStore } from '@/store/editorStore';
 import { UnifiedToolbar } from '../UnifiedToolbar';
 
+// Mock lucide-react icons using importOriginal for better compatibility
+vi.mock('lucide-react', async importOriginal => {
+  const MockIcon = ({ size, className, ...props }: any) =>
+    React.createElement('div', {
+      'data-testid': 'mock-icon',
+      'data-size': size,
+      className,
+      ...props,
+    });
+
+  // Get the actual module to preserve any exports we might have missed
+  const actual = await importOriginal<typeof import('lucide-react')>();
+
+  return {
+    ...actual,
+    Plus: MockIcon,
+    Minus: MockIcon,
+    Bold: MockIcon,
+    Italic: MockIcon,
+    Underline: MockIcon,
+    Strikethrough: MockIcon,
+    AlignLeft: MockIcon,
+    AlignCenter: MockIcon,
+    AlignRight: MockIcon,
+    AlignJustify: MockIcon,
+    Monitor: MockIcon,
+    Smartphone: MockIcon,
+    HelpCircle: MockIcon,
+    Trash2: MockIcon,
+    Copy: MockIcon,
+    Ruler: MockIcon,
+    ZoomIn: MockIcon,
+    ZoomOut: MockIcon,
+    Table: MockIcon,
+    BarChart3: MockIcon,
+  };
+});
+
 // Mock the editor store
 vi.mock('@/store/editorStore');
 
