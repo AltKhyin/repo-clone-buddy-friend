@@ -1,6 +1,7 @@
 // ABOUTME: Enhanced TipTap editor hook for Rich Block with Reddit-like features and advanced formatting
 
 import { useEditor, Editor } from '@tiptap/react';
+import { NodeSelection } from '@tiptap/pm/state';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
 import Highlight from '@tiptap/extension-highlight';
@@ -8,12 +9,13 @@ import Link from '@tiptap/extension-link';
 import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
 import Mention from '@tiptap/extension-mention';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useRef, useState, useEffect } from 'react';
 import { debounce } from 'lodash-es';
+import { useEditorStore } from '@/store/editorStore';
+import { ContentSelectionType } from '@/types/editor';
 import { InlineImage } from '@/components/editor/extensions/InlineImage';
 import { VideoEmbed, VideoUtils } from '@/components/editor/extensions/VideoEmbed';
 import { TableExtension } from '@/components/editor/extensions/Table';
-import { PollExtension } from '@/components/editor/extensions/Poll';
 import { useMediaDropHandler } from './useMediaDropHandler';
 
 // Rich text editor configuration specifically for Rich Block
@@ -92,6 +94,9 @@ export const useRichTextEditor = ({
       onUpdate(nodeId, content);
     }, debounceMs)
   ).current;
+
+  // Get editor store actions for selection management
+  const { setContentSelection } = useEditorStore();
 
   const editor = useEditor({
     extensions: [
@@ -217,15 +222,6 @@ export const useRichTextEditor = ({
           class: 'table-extension',
         },
       }),
-
-      // Polls (always enabled)
-      PollExtension.configure({
-        allowAnonymousVoting: true,
-        enableVoteTracking: true,
-        HTMLAttributes: {
-          class: 'poll-extension',
-        },
-      }),
     ],
 
     content: initialContent, // Can be HTML string or TipTap JSON object
@@ -234,6 +230,100 @@ export const useRichTextEditor = ({
     onUpdate: ({ editor }) => {
       const html = editor.getHTML();
       debouncedUpdate(nodeId, html);
+    },
+    onSelectionUpdate: ({ editor }) => {
+      // Handle media node selection for Inspector integration
+      const { state } = editor;
+      const { selection } = state;
+
+      // Check if we have a node selection (clicking on media elements)
+      if (selection instanceof NodeSelection) {
+        const selectedNode = selection.node;
+        const nodeType = selectedNode.type.name;
+
+        // Handle inline image selection
+        if (nodeType === 'inlineImage') {
+          setContentSelection({
+            type: ContentSelectionType.INLINE_IMAGE,
+            blockId: nodeId,
+            data: {
+              mediaNode: {
+                nodeType: 'inlineImage',
+                position: selection.from,
+                attrs: {
+                  src: selectedNode.attrs.src,
+                  alt: selectedNode.attrs.alt,
+                  width: selectedNode.attrs.width,
+                  height: selectedNode.attrs.height,
+                  objectFit: selectedNode.attrs.objectFit || 'contain',
+                  size: selectedNode.attrs.size || 'medium',
+                  caption: selectedNode.attrs.caption,
+                  loading: selectedNode.attrs.loading,
+                  placeholder: selectedNode.attrs.placeholder, // CRITICAL: Include placeholder state
+                  error: selectedNode.attrs.error,
+                },
+                // Provide direct update function
+                updateAttributes: (attributes: Record<string, any>) => {
+                  const transaction = state.tr.setNodeMarkup(selection.from, null, {
+                    ...selectedNode.attrs,
+                    ...attributes,
+                  });
+                  editor.view.dispatch(transaction);
+                },
+              },
+            },
+          });
+          return;
+        }
+
+        // Handle video embed selection
+        if (nodeType === 'videoEmbed') {
+          setContentSelection({
+            type: ContentSelectionType.VIDEO_EMBED,
+            blockId: nodeId,
+            data: {
+              mediaNode: {
+                nodeType: 'videoEmbed',
+                position: selection.from,
+                attrs: {
+                  src: selectedNode.attrs.src,
+                  width: selectedNode.attrs.width,
+                  height: selectedNode.attrs.height,
+                  objectFit: selectedNode.attrs.objectFit || 'contain',
+                  size: selectedNode.attrs.size || 'medium',
+                  provider: selectedNode.attrs.provider,
+                  videoId: selectedNode.attrs.videoId,
+                  thumbnail: selectedNode.attrs.thumbnail,
+                  placeholder: selectedNode.attrs.placeholder, // CRITICAL: Include placeholder state
+                  error: selectedNode.attrs.error,
+                  allowFullscreen: selectedNode.attrs.allowFullscreen,
+                },
+                // Provide direct update function
+                updateAttributes: (attributes: Record<string, any>) => {
+                  const transaction = state.tr.setNodeMarkup(selection.from, null, {
+                    ...selectedNode.attrs,
+                    ...attributes,
+                  });
+                  editor.view.dispatch(transaction);
+                },
+              },
+            },
+          });
+          return;
+        }
+      }
+
+      // Clear media selection if not selecting a media node
+      // Only clear if the current selection was a media type
+      const currentSelection = useEditorStore.getState().selectionState.contentSelection;
+      if (
+        currentSelection &&
+        (currentSelection.type === ContentSelectionType.INLINE_IMAGE ||
+          currentSelection.type === ContentSelectionType.VIDEO_EMBED) &&
+        currentSelection.blockId === nodeId
+      ) {
+        setContentSelection(null);
+      }
     },
 
     // Enhanced editor props for Reddit-like experience
@@ -468,19 +558,7 @@ export const useRichTextEditor = ({
     [editor]
   );
 
-  const insertPoll = useCallback(
-    (question?: string, options?: string[], allowMultiple: boolean = false) => {
-      if (!editor) return;
-
-      editor.commands.insertPoll({
-        question,
-        options,
-        allowMultiple,
-        showResults: true,
-      });
-    },
-    [editor]
-  );
+  // REMOVED: insertPoll function - polls moved to community-only features
 
   const toggleTaskList = useCallback(() => {
     if (!editor) return;
@@ -560,7 +638,7 @@ export const useRichTextEditor = ({
     insertImageFromFile,
     insertVideo,
     insertTable,
-    insertPoll,
+    // REMOVED: insertPoll - polls moved to community-only features
     toggleTaskList,
     insertCodeBlock,
     toggleHighlight,
@@ -598,7 +676,7 @@ export const useRichTextEditor = ({
       codeBlock: editor?.isActive('codeBlock') ?? false,
       heading: (level: number) => editor?.isActive('heading', { level }) ?? false,
       table: editor?.isActive('customTable') ?? false,
-      poll: editor?.isActive('customPoll') ?? false,
+      // REMOVED: poll state - polls moved to community-only features
     },
   };
 };

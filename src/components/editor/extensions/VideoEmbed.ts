@@ -22,6 +22,9 @@ export interface VideoData {
   width?: number;
   height?: number;
   allowFullscreen?: boolean;
+  placeholder?: boolean;
+  objectFit?: string;
+  size?: string;
 }
 
 declare module '@tiptap/core' {
@@ -249,6 +252,21 @@ export const VideoEmbed = Node.create<VideoEmbedOptions>({
       },
       error: {
         default: null,
+      },
+      // Transform attributes for media controls
+      objectFit: {
+        default: 'contain',
+        rendered: false, // Don't render to HTML, used for styling
+      },
+      size: {
+        default: 'medium',
+        rendered: false,
+      },
+      // Placeholder state
+      placeholder: {
+        default: false,
+        parseHTML: element => element.getAttribute('data-placeholder') === 'true',
+        renderHTML: attributes => ({ 'data-placeholder': attributes.placeholder.toString() }),
       },
     };
   },

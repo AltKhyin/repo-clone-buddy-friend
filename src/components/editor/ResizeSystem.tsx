@@ -4,19 +4,24 @@ import React, { useCallback, useRef, useState, useEffect } from 'react';
 import { BlockPosition } from '@/types/editor';
 import { debounce } from 'lodash-es';
 
-// Canvas configuration
+// Canvas configuration - SIMPLIFIED (removed grid snapping config)
 const CANVAS_CONFIG = {
   width: 800,
   minZoom: 0.5,
   maxZoom: 2.0,
-  snapTolerance: 10,
-  gridColumns: 12,
-  minWidth: 50,
-  minHeight: 30,
+  // REMOVED: snapTolerance, gridColumns - no longer using grid snapping
+  minWidth: 50, // Basic fallback minimum (will be replaced by content-aware minimums)
+  minHeight: 30, // Basic fallback minimum (will be replaced by content-aware minimums)
 };
 
 // Resize handle types
 type ResizeHandle = 'nw' | 'n' | 'ne' | 'w' | 'e' | 'sw' | 's' | 'se';
+
+// Content-aware minimum dimensions interface
+interface ContentAwareMinimums {
+  minWidth: number;
+  minHeight: number;
+}
 
 // Resize state interface
 interface ResizeState {
@@ -27,19 +32,17 @@ interface ResizeState {
   startBlockSize: { width: number; height: number };
 }
 
-// Constraint application order
+// Constraint application order - SIMPLIFIED (removed grid snapping for smooth resize)
 enum ConstraintOrder {
   SIZE_MINIMUMS = 1,
   POSITION_BOUNDS = 2,
   CANVAS_BOUNDS = 3,
-  GRID_SNAPPING = 4,
 }
 
-// Resize calculation result
+// Resize calculation result - SIMPLIFIED (removed snap tracking)
 interface ResizeCalculation {
   position: BlockPosition;
   constraintsApplied: ConstraintOrder[];
-  snapApplied: boolean;
 }
 
 /**
@@ -51,7 +54,8 @@ class ResizeCalculator {
   calculateResize(
     resizeState: ResizeState,
     currentMousePosition: { x: number; y: number },
-    zoom: number
+    zoom: number,
+    contentAwareMinimums?: ContentAwareMinimums
   ): ResizeCalculation {
     const { handle, startMousePosition, startBlockPosition, startBlockSize } = resizeState;
 
@@ -72,8 +76,8 @@ class ResizeCalculator {
     const constraintsApplied: ConstraintOrder[] = [];
     let result = rawCalculation;
 
-    // 1. SIZE_MINIMUMS - Enforce minimum dimensions first
-    result = this.applySizeConstraints(result, constraintsApplied);
+    // 1. SIZE_MINIMUMS - Enforce minimum dimensions first (content-aware)
+    result = this.applySizeConstraints(result, constraintsApplied, contentAwareMinimums);
 
     // 2. POSITION_BOUNDS - Ensure position is within canvas
     result = this.applyPositionConstraints(result, constraintsApplied);
@@ -81,13 +85,11 @@ class ResizeCalculator {
     // 3. CANVAS_BOUNDS - Ensure block doesn't exceed canvas
     result = this.applyCanvasConstraints(result, constraintsApplied);
 
-    // 4. GRID_SNAPPING - Apply snapping last to avoid conflicts
-    const snapResult = this.applyGridSnapping(result);
+    // REMOVED: Grid snapping for smooth resize behavior
 
     return {
-      position: snapResult.position,
+      position: result,
       constraintsApplied,
-      snapApplied: snapResult.snapApplied,
     };
   }
 
@@ -153,10 +155,15 @@ class ResizeCalculator {
 
   private applySizeConstraints(
     position: BlockPosition,
-    constraintsApplied: ConstraintOrder[]
+    constraintsApplied: ConstraintOrder[],
+    contentAwareMinimums?: ContentAwareMinimums
   ): BlockPosition {
-    const adjustedWidth = Math.max(this.config.minWidth, position.width);
-    const adjustedHeight = Math.max(this.config.minHeight, position.height);
+    // Use content-aware minimums if provided, otherwise fall back to config defaults
+    const minWidth = contentAwareMinimums?.minWidth ?? this.config.minWidth;
+    const minHeight = contentAwareMinimums?.minHeight ?? this.config.minHeight;
+
+    const adjustedWidth = Math.max(minWidth, position.width);
+    const adjustedHeight = Math.max(minHeight, position.height);
 
     // Adjust position if size was constrained
     let adjustedX = position.x;
@@ -237,35 +244,7 @@ class ResizeCalculator {
     };
   }
 
-  private applyGridSnapping(position: BlockPosition): {
-    position: BlockPosition;
-    snapApplied: boolean;
-  } {
-    const columnWidth = this.config.width / this.config.gridColumns;
-    const snapX = Math.round(position.x / columnWidth) * columnWidth;
-    const snapWidth = Math.round(position.width / columnWidth) * columnWidth;
-    const snapY = Math.round(position.y / 20) * 20;
-    const snapHeight = Math.round(position.height / 20) * 20;
-
-    // Only snap if within tolerance
-    const shouldSnapX = Math.abs(position.x - snapX) <= this.config.snapTolerance;
-    const shouldSnapWidth = Math.abs(position.width - snapWidth) <= this.config.snapTolerance;
-    const shouldSnapY = Math.abs(position.y - snapY) <= this.config.snapTolerance;
-    const shouldSnapHeight = Math.abs(position.height - snapHeight) <= this.config.snapTolerance;
-
-    const snapApplied = shouldSnapX || shouldSnapWidth || shouldSnapY || shouldSnapHeight;
-
-    return {
-      position: {
-        ...position,
-        x: shouldSnapX ? snapX : position.x,
-        y: shouldSnapY ? snapY : position.y,
-        width: shouldSnapWidth ? snapWidth : position.width,
-        height: shouldSnapHeight ? snapHeight : position.height,
-      },
-      snapApplied,
-    };
-  }
+  // REMOVED: applyGridSnapping method - eliminated for smooth resize behavior
 }
 
 /**
@@ -274,7 +253,8 @@ class ResizeCalculator {
 export function useResizeSystem(
   blockPosition: BlockPosition,
   zoom: number,
-  onPositionChange: (position: Partial<BlockPosition>) => void
+  onPositionChange: (position: Partial<BlockPosition>) => void,
+  contentAwareMinimums?: ContentAwareMinimums
 ) {
   const [resizeState, setResizeState] = useState<ResizeState>({
     isActive: false,
@@ -326,11 +306,16 @@ export function useResizeSystem(
     (mousePosition: { x: number; y: number }) => {
       if (!resizeState.isActive || operationLockRef.current) return;
 
-      const calculation = calculatorRef.current.calculateResize(resizeState, mousePosition, zoom);
+      const calculation = calculatorRef.current.calculateResize(
+        resizeState,
+        mousePosition,
+        zoom,
+        contentAwareMinimums
+      );
 
       debouncedUpdatePosition(calculation.position);
     },
-    [resizeState, zoom, debouncedUpdatePosition]
+    [resizeState, zoom, debouncedUpdatePosition, contentAwareMinimums]
   );
 
   const endResize = useCallback(() => {

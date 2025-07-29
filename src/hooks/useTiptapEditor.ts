@@ -6,7 +6,7 @@ import Placeholder from '@tiptap/extension-placeholder';
 import { useCallback, useRef } from 'react';
 import { debounce } from 'lodash-es';
 import { TableExtension } from '@/components/editor/extensions/Table';
-import { PollExtension } from '@/components/editor/extensions/Poll';
+// REMOVED: PollExtension import - polls moved to community-only features
 
 // Field type configurations for different text editing needs
 export type TiptapFieldType = 'rich-text' | 'multi-line' | 'simple-text';
@@ -129,13 +129,7 @@ export const useTiptapEditor = ({
           class: 'table-extension',
         },
       }),
-      PollExtension.configure({
-        allowAnonymousVoting: true,
-        enableVoteTracking: true,
-        HTMLAttributes: {
-          class: 'poll-extension',
-        },
-      }),
+      // REMOVED: PollExtension configuration - polls moved to community-only features
     ],
     content: initialContent,
     editable,
@@ -257,46 +251,7 @@ export const useTiptapEditor = ({
     [editor]
   );
 
-  const insertPoll = useCallback(
-    (pollData?: any) => {
-      const defaultPollData = {
-        pollId: `poll-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        question: pollData?.question || 'What is your opinion?',
-        options: pollData?.options || [
-          { id: `option-1-${Date.now()}`, text: 'Option 1', votes: 0 },
-          { id: `option-2-${Date.now()}`, text: 'Option 2', votes: 0 },
-        ],
-        settings: {
-          allowMultiple: pollData?.allowMultiple || false,
-          showResults: pollData?.showResults !== false,
-          allowAnonymous: pollData?.allowAnonymous !== false,
-          requireLogin: pollData?.requireLogin || false,
-        },
-        metadata: {
-          totalVotes: 0,
-          uniqueVoters: 0,
-          createdAt: new Date().toISOString(),
-        },
-        styling: {
-          questionFontSize: 18,
-          questionFontWeight: 600,
-          optionFontSize: 16,
-          optionPadding: 12,
-          borderRadius: 8,
-          borderWidth: 1,
-          borderColor: '#e2e8f0',
-          backgroundColor: 'transparent',
-          selectedColor: '#3b82f6',
-          resultBarColor: '#60a5fa',
-          textAlign: 'left',
-          compact: false,
-        },
-      };
-
-      editor?.chain().focus().insertPoll(defaultPollData).run();
-    },
-    [editor]
-  );
+  // REMOVED: insertPoll function - polls moved to community-only features
 
   // Focus the editor
   const focusEditor = useCallback(() => {
@@ -325,7 +280,7 @@ export const useTiptapEditor = ({
     setParagraph,
     // Rich Block extension commands (always available)
     insertTable,
-    insertPoll,
+    // REMOVED: insertPoll - polls moved to community-only features
     // State checks (only for enabled features)
     isActive: {
       bold: resolvedConfig.enableFormatting ? (editor?.isActive('bold') ?? false) : false,
@@ -340,7 +295,7 @@ export const useTiptapEditor = ({
         : () => false,
       // Rich Block extension states (always available)
       table: editor?.isActive('customTable') ?? false,
-      poll: editor?.isActive('customPoll') ?? false,
+      // REMOVED: poll state - polls moved to community-only features
     },
   };
 };

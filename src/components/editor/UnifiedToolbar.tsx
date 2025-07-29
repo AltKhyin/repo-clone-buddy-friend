@@ -36,13 +36,15 @@ import {
   ZoomIn,
   ZoomOut,
   Table,
-  BarChart3,
   Plus,
+  Image,
+  Video,
 } from 'lucide-react';
 import { KeyboardShortcutsPanel } from './KeyboardShortcutsPanel';
 import { ThemeSelector } from '@/components/header/ThemeSelector';
 import { TypographyDropdown } from './TypographyDropdown';
 import { useTextSelection } from '@/hooks/useTextSelection';
+import { PLACEHOLDER_IMAGES, PLACEHOLDER_DIMENSIONS } from './shared/mediaConstants';
 
 interface UnifiedToolbarProps {
   className?: string;
@@ -65,6 +67,7 @@ export const UnifiedToolbar = React.memo(function UnifiedToolbar({
     toggleSnapGuides,
     canvasZoom,
     updateCanvasZoom,
+    getEditor,
   } = useEditorStore();
 
   // Text Selection Hook for unified typography editing
@@ -463,95 +466,119 @@ export const UnifiedToolbar = React.memo(function UnifiedToolbar({
     });
   }, []);
 
-  const handleInsertPoll = React.useCallback(() => {
+  // Media Insertion Handlers
+  const handleInsertImage = React.useCallback(() => {
     const { addNode, selectedNodeId, nodes } = useEditorStore.getState();
 
     // Smart content insertion: Insert into existing Rich Block if selected, otherwise create new block
     const selectedNode = selectedNodeId ? nodes.find(n => n.id === selectedNodeId) : null;
     const isRichBlockSelected = selectedNode?.type === 'richBlock';
 
-    // Import the helper function inline to avoid circular dependencies
-    const createPollContent = () => {
-      const question = 'What is your opinion?';
-      const pollOptions = ['Option 1', 'Option 2'];
-      const allowMultiple = false;
-      const showResults = true;
+    if (isRichBlockSelected && selectedNodeId) {
+      // Get registered editor instance for direct insertion
+      const editor = getEditor(selectedNodeId);
 
-      // Generate unique poll ID
-      const pollId = `poll-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-
-      // Create option objects with IDs
-      const formattedOptions = pollOptions.map((text, index) => ({
-        id: `option-${index + 1}-${Date.now()}`,
-        text,
-        votes: 0,
-      }));
-
-      const now = new Date().toISOString();
-
-      // Create TipTap JSON document with poll node
-      return {
-        type: 'doc',
-        content: [
-          {
-            type: 'customPoll',
-            attrs: {
-              pollId,
-              question,
-              options: formattedOptions,
-              settings: {
-                allowMultiple,
-                showResults,
-                allowAnonymous: true,
-                requireLogin: false,
-              },
-              metadata: {
-                totalVotes: 0,
-                uniqueVoters: 0,
-                createdAt: now,
-              },
-              styling: {
-                questionFontSize: 18,
-                questionFontWeight: 600,
-                optionFontSize: 16,
-                optionPadding: 12,
-                borderRadius: 8,
-                borderWidth: 1,
-                borderColor: '#e2e8f0',
-                backgroundColor: 'transparent',
-                selectedColor: '#3b82f6',
-                resultBarColor: '#60a5fa',
-                textAlign: 'left',
-                compact: false,
-              },
-              userVotes: [],
-            },
-          },
-        ],
-      };
-    };
-
-    const tiptapJSON = createPollContent();
-
-    if (isRichBlockSelected) {
-      // TODO: Insert poll into existing Rich Block using TipTap commands
-      // This requires access to the TipTap editor instance from the selected Rich Block
-      // For now, we'll create a new block but this should be enhanced
-      console.log('TODO: Insert poll into existing Rich Block', selectedNodeId);
+      if (editor && editor.commands) {
+        // Insert image placeholder directly into existing Rich Block using TipTap commands
+        editor.commands.setInlineImage({
+          src: PLACEHOLDER_IMAGES.default,
+          alt: 'Placeholder image',
+          placeholder: true,
+          objectFit: 'contain',
+          size: 'medium',
+          width: PLACEHOLDER_DIMENSIONS.image.width,
+          height: PLACEHOLDER_DIMENSIONS.image.height,
+        });
+        return; // Successfully inserted into existing block
+      }
     }
 
-    // Fallback: Create new Rich Block with poll content
+    // Fallback: Create new Rich Block with image content
     addNode({
       type: 'richBlock',
       data: {
         content: {
-          tiptapJSON,
-          htmlContent:
-            '<div data-type="customPoll" data-question="What do you think?" data-options="[&quot;Option 1&quot;, &quot;Option 2&quot;, &quot;Option 3&quot;]" data-allow-multiple="false"></div>',
+          tiptapJSON: {
+            type: 'doc',
+            content: [
+              {
+                type: 'paragraph',
+                content: [
+                  {
+                    type: 'inlineImage',
+                    attrs: {
+                      src: PLACEHOLDER_IMAGES.default,
+                      alt: 'Placeholder image',
+                      placeholder: true, // Key placeholder flag
+                      objectFit: 'contain',
+                      size: 'medium',
+                      width: PLACEHOLDER_DIMENSIONS.image.width,
+                      height: PLACEHOLDER_DIMENSIONS.image.height,
+                    },
+                  },
+                ],
+              },
+            ],
+          },
         },
       },
     });
-  }, []);
+  }, [getEditor]);
+
+  const handleInsertVideo = React.useCallback(() => {
+    const { addNode, selectedNodeId, nodes } = useEditorStore.getState();
+
+    // Smart content insertion: Insert into existing Rich Block if selected, otherwise create new block
+    const selectedNode = selectedNodeId ? nodes.find(n => n.id === selectedNodeId) : null;
+    const isRichBlockSelected = selectedNode?.type === 'richBlock';
+
+    if (isRichBlockSelected && selectedNodeId) {
+      // Get registered editor instance for direct insertion
+      const editor = getEditor(selectedNodeId);
+
+      if (editor && editor.commands) {
+        // Insert video placeholder directly into existing Rich Block using TipTap commands
+        editor.commands.setVideoEmbed({
+          src: '', // Empty for placeholder
+          placeholder: true,
+          width: PLACEHOLDER_DIMENSIONS.video.width,
+          height: PLACEHOLDER_DIMENSIONS.video.height,
+          objectFit: 'contain',
+          size: 'medium',
+          provider: 'youtube', // Default provider
+          allowFullscreen: true,
+        });
+        return; // Successfully inserted into existing block
+      }
+    }
+
+    // Fallback: Create new Rich Block with video content
+    addNode({
+      type: 'richBlock',
+      data: {
+        content: {
+          tiptapJSON: {
+            type: 'doc',
+            content: [
+              {
+                type: 'videoEmbed',
+                attrs: {
+                  src: '', // Empty for placeholder
+                  placeholder: true, // Key placeholder flag
+                  width: PLACEHOLDER_DIMENSIONS.video.width,
+                  height: PLACEHOLDER_DIMENSIONS.video.height,
+                  objectFit: 'contain',
+                  size: 'medium',
+                  provider: 'youtube', // Default provider
+                  allowFullscreen: true,
+                },
+              },
+            ],
+          },
+        },
+      },
+    });
+  }, [getEditor]);
 
   // Block Actions Handlers
   const handleDeleteBlock = React.useCallback(() => {
@@ -794,12 +821,23 @@ export const UnifiedToolbar = React.memo(function UnifiedToolbar({
             <Button
               variant="ghost"
               size="sm"
-              onClick={handleInsertPoll}
+              onClick={handleInsertImage}
               className="h-6 w-6 p-0"
-              title="Add poll (Ctrl+Shift+P)"
-              aria-label="Add poll"
+              title="Add image"
+              aria-label="Add image"
             >
-              <BarChart3 size={10} />
+              <Image size={10} />
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleInsertVideo}
+              className="h-6 w-6 p-0"
+              title="Add video"
+              aria-label="Add video"
+            >
+              <Video size={10} />
             </Button>
           </div>
         </div>

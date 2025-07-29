@@ -22,6 +22,9 @@ declare module '@tiptap/core' {
         title?: string;
         width?: number;
         height?: number;
+        placeholder?: boolean;
+        objectFit?: string;
+        size?: string;
       }) => ReturnType;
     };
   }
@@ -76,6 +79,21 @@ export const InlineImage = Node.create<InlineImageOptions>({
       },
       error: {
         default: null,
+      },
+      // Transform attributes for media controls
+      objectFit: {
+        default: 'contain',
+        rendered: false, // Don't render to HTML, used for styling
+      },
+      size: {
+        default: 'medium',
+        rendered: false,
+      },
+      // Placeholder state
+      placeholder: {
+        default: false,
+        parseHTML: element => element.getAttribute('data-placeholder') === 'true',
+        renderHTML: attributes => ({ 'data-placeholder': attributes.placeholder.toString() }),
       },
     };
   },

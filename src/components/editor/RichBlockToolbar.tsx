@@ -16,7 +16,6 @@ import {
   AlignRight,
   AlignJustify,
   Table,
-  BarChart3,
   Plus,
   Settings,
   Type,
@@ -26,10 +25,14 @@ import {
   ListOrdered,
   Undo,
   Redo,
+  Image,
+  Video,
 } from 'lucide-react';
+// REMOVED: BarChart3 - no longer needed after poll removal
 // Removed problematic performance monitoring imports
 import { tableComponentRegistry } from './extensions/Table/tableCommands';
-import { pollComponentRegistry } from './extensions/Poll/pollCommands';
+import { PLACEHOLDER_IMAGES, PLACEHOLDER_DIMENSIONS } from './shared/mediaConstants';
+// REMOVED: pollComponentRegistry - polls moved to community-only features
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -136,44 +139,34 @@ export const RichBlockToolbar = React.memo(function RichBlockToolbar({
     editor?.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run();
   }, [editor]);
 
-  const handleInsertPoll = useCallback(() => {
-    const pollId = `poll-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    const pollData = {
-      pollId,
-      question: 'What is your opinion?',
-      options: [
-        { id: `option-1-${Date.now()}`, text: 'Option 1', votes: 0 },
-        { id: `option-2-${Date.now()}`, text: 'Option 2', votes: 0 },
-      ],
-      settings: {
-        allowMultiple: false,
-        showResults: true,
-        allowAnonymous: true,
-        requireLogin: false,
-      },
-      metadata: {
-        totalVotes: 0,
-        uniqueVoters: 0,
-        createdAt: new Date().toISOString(),
-      },
-      styling: {
-        questionFontSize: 18,
-        questionFontWeight: 600,
-        optionFontSize: 16,
-        optionPadding: 12,
-        borderRadius: 8,
-        borderWidth: 1,
-        borderColor: '#e2e8f0',
-        backgroundColor: 'transparent',
-        selectedColor: '#3b82f6',
-        resultBarColor: '#60a5fa',
-        textAlign: 'left',
-        compact: false,
-      },
-    };
-
-    editor?.chain().focus().insertPoll(pollData).run();
+  const handleInsertImage = useCallback(() => {
+    // Insert image placeholder directly into the current Rich Block using TipTap commands
+    editor?.commands.setInlineImage({
+      src: PLACEHOLDER_IMAGES.default,
+      alt: 'Placeholder image',
+      placeholder: true,
+      objectFit: 'contain',
+      size: 'medium',
+      width: PLACEHOLDER_DIMENSIONS.image.width,
+      height: PLACEHOLDER_DIMENSIONS.image.height,
+    });
   }, [editor]);
+
+  const handleInsertVideo = useCallback(() => {
+    // Insert video placeholder directly into the current Rich Block using TipTap commands
+    editor?.commands.setVideoEmbed({
+      src: '',
+      placeholder: true,
+      width: PLACEHOLDER_DIMENSIONS.video.width,
+      height: PLACEHOLDER_DIMENSIONS.video.height,
+      objectFit: 'contain',
+      size: 'medium',
+      provider: 'youtube',
+      allowFullscreen: true,
+    });
+  }, [editor]);
+
+  // REMOVED: handleInsertPoll - polls moved to community-only features
 
   const handleToggleLink = useCallback(() => {
     if (toolbarState?.isLink) {
@@ -196,14 +189,7 @@ export const RichBlockToolbar = React.memo(function RichBlockToolbar({
     return tableNode?.attrs?.tableId ? tableComponentRegistry.get(tableNode.attrs.tableId) : null;
   }, [editor]);
 
-  const getActivePollComponent = useCallback(() => {
-    const selection = editor?.state.selection;
-    if (!selection) return null;
-
-    // Find poll node in selection
-    const pollNode = editor?.state.doc.nodeAt(selection.from);
-    return pollNode?.attrs?.pollId ? pollComponentRegistry.get(pollNode.attrs.pollId) : null;
-  }, [editor]);
+  // REMOVED: getActivePollComponent - polls moved to community-only features
 
   if (!editor || !toolbarState) {
     return (
@@ -405,6 +391,26 @@ export const RichBlockToolbar = React.memo(function RichBlockToolbar({
           <Link size={16} />
         </Button>
 
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={handleInsertImage}
+          className="h-8 w-8 p-0"
+          title="Insert Image"
+        >
+          <Image size={16} />
+        </Button>
+
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={handleInsertVideo}
+          className="h-8 w-8 p-0"
+          title="Insert Video"
+        >
+          <Video size={16} />
+        </Button>
+
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
@@ -422,10 +428,7 @@ export const RichBlockToolbar = React.memo(function RichBlockToolbar({
               <Table size={16} className="mr-2" />
               Table
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={handleInsertPoll}>
-              <BarChart3 size={16} className="mr-2" />
-              Poll
-            </DropdownMenuItem>
+            {/* REMOVED: Poll insertion - polls moved to community-only features */}
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

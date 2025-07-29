@@ -1,11 +1,12 @@
 // ABOUTME: Rich Block node component with unified TipTap editor for all content types
 
-import React, { memo, useCallback, useMemo } from 'react';
+import React, { memo, useCallback, useMemo, useEffect, useRef } from 'react';
 import { EditorContent } from '@tiptap/react';
 import { useEditorStore } from '@/store/editorStore';
 import { useEditorTheme } from '@/hooks/useEditorTheme';
 import { useRichTextEditor } from '@/hooks/useRichTextEditor';
 import { useSelectionCoordination } from '@/hooks/useSelectionCoordination';
+import { useContentHeightCalculator } from '@/hooks/useContentHeightCalculator';
 import { UnifiedBlockWrapper } from '@/components/editor/shared/UnifiedBlockWrapper';
 import { RichBlockData, ContentSelectionType } from '@/types/editor';
 
@@ -21,11 +22,23 @@ interface RichBlockNodeProps {
   // Interaction callbacks
   onSelect?: () => void;
   onMove?: (position: { x: number; y: number }) => void;
+  onHeightAdjust?: (newHeight: number) => void;
 }
 
 export const RichBlockNode = memo<RichBlockNodeProps>(
-  ({ id, data, selected, width = 600, height = 200, x = 0, y = 0, onSelect, onMove }) => {
-    const { updateNode } = useEditorStore();
+  ({
+    id,
+    data,
+    selected,
+    width = 600,
+    height = 200,
+    x = 0,
+    y = 0,
+    onSelect,
+    onMove,
+    onHeightAdjust,
+  }) => {
+    const { updateNode, registerEditor, unregisterEditor } = useEditorStore();
     const { colors } = useEditorTheme();
 
     // Selection coordination for text content
@@ -68,6 +81,10 @@ export const RichBlockNode = memo<RichBlockNodeProps>(
       return data.content.htmlContent || '<p>Start typing...</p>';
     }, [data.content.tiptapJSON, data.content.htmlContent]);
 
+    // Calculate styling properties EARLY - needed for height calculator
+    const paddingX = data.paddingX || 16;
+    const paddingY = data.paddingY || 16;
+
     // Initialize enhanced rich text editor for Rich Block
     const editorInstance = useRichTextEditor({
       nodeId: id,
@@ -78,9 +95,46 @@ export const RichBlockNode = memo<RichBlockNodeProps>(
       debounceMs: 1000,
     });
 
-    // Calculate styling properties
-    const paddingX = data.paddingX || 16;
-    const paddingY = data.paddingY || 16;
+    // Initialize content height calculator for "Adjust Height" functionality
+    const heightCalculator = useContentHeightCalculator({
+      currentHeight: height,
+      currentWidth: width,
+      paddingX,
+      paddingY,
+      borderWidth: data.borderWidth || 0,
+      minHeight: 120, // From the component's minimum dimensions
+      maxHeight: 800, // From the component's maximum dimensions
+      editor: editorInstance.editor,
+    });
+
+    // Handle height adjustment - exposed for Inspector integration
+    const handleHeightAdjustment = useCallback(() => {
+      const optimalHeight = heightCalculator.adjustHeightToContent();
+
+      // Update node dimensions in store
+      updateNode(id, {
+        height: optimalHeight,
+      });
+
+      // Notify parent component of height change
+      onHeightAdjust?.(optimalHeight);
+
+      return optimalHeight;
+    }, [heightCalculator, updateNode, id, onHeightAdjust]);
+
+    // Register/unregister editor instance for unified insertion architecture
+    useEffect(() => {
+      if (editorInstance.editor) {
+        registerEditor(id, editorInstance.editor);
+      }
+
+      return () => {
+        unregisterEditor(id);
+      };
+    }, [id, editorInstance.editor, registerEditor, unregisterEditor]);
+
+    // Note: Height adjustment functionality is exposed through handleHeightAdjustment
+    // and heightCalculator state for Inspector integration (Milestone 3)
 
     // Dynamic styles based on current mode and settings
     const dynamicStyles = useMemo(
@@ -191,29 +245,39 @@ export const RichBlockNode = memo<RichBlockNodeProps>(
       [editorInstance.editor, paddingX, paddingY, id, handleContentSelection, handleBlockActivation]
     );
 
-    // Unified content rendering - always use TipTap editor
+    // Unified content rendering - always use TipTap editor with height calculation ref
     const renderUnifiedContent = () => {
       return (
-        <EditorContent
-          editor={editorInstance.editor}
-          className="rich-block-content"
+        <div
+          ref={heightCalculator.contentRef}
+          className="rich-block-content-wrapper"
           style={{
-            fontSize: dynamicStyles.fontSize,
-            textAlign: dynamicStyles.textAlign,
-            color: dynamicStyles.color,
-            lineHeight: dynamicStyles.lineHeight,
-            fontFamily: dynamicStyles.fontFamily,
-            fontWeight: dynamicStyles.fontWeight,
-            letterSpacing: dynamicStyles.letterSpacing,
-            textTransform: dynamicStyles.textTransform,
-            textDecoration: dynamicStyles.textDecoration,
-            minHeight: '60px',
-            outline: 'none',
-            border: 'none',
             width: '100%',
             flex: 1,
+            position: 'relative',
           }}
-        />
+        >
+          <EditorContent
+            editor={editorInstance.editor}
+            className="rich-block-content"
+            style={{
+              fontSize: dynamicStyles.fontSize,
+              textAlign: dynamicStyles.textAlign,
+              color: dynamicStyles.color,
+              lineHeight: dynamicStyles.lineHeight,
+              fontFamily: dynamicStyles.fontFamily,
+              fontWeight: dynamicStyles.fontWeight,
+              letterSpacing: dynamicStyles.letterSpacing,
+              textTransform: dynamicStyles.textTransform,
+              textDecoration: dynamicStyles.textDecoration,
+              minHeight: '60px',
+              outline: 'none',
+              border: 'none',
+              width: '100%',
+              flex: 1,
+            }}
+          />
+        </div>
       );
     };
 

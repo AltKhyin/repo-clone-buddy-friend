@@ -27,8 +27,9 @@ export const UnifiedBlockWrapper = React.memo<ContentBoundaryProps>(
     onMove,
     onSelect,
     showResizeHandles = true,
-    minDimensions = { width: 50, height: 30 },
+    minDimensions, // No default - purely content-driven
     maxDimensions = { width: 1200, height: 800 },
+    enableConstraints = true, // Allow bypassing constraints for resize freedom
   }) => {
     const contentRef = useRef<HTMLDivElement>(null);
     const { updateNodePosition } = useEditorStore();
@@ -99,10 +100,13 @@ export const UnifiedBlockWrapper = React.memo<ContentBoundaryProps>(
         borderWidth: numBorderWidth,
       });
 
-      // Combine with explicit minDimensions (use the larger value)
+      // Combine with explicit minDimensions if provided (use the larger value)
+      const explicitMinWidth = minDimensions?.width ?? 0;
+      const explicitMinHeight = minDimensions?.height ?? 0;
+
       return {
-        width: Math.max(minDimensions.width, styledMinDimensions.width),
-        height: Math.max(minDimensions.height, styledMinDimensions.height),
+        width: Math.max(explicitMinWidth, styledMinDimensions.width),
+        height: Math.max(explicitMinHeight, styledMinDimensions.height),
       };
     }, [contentDimensions, contentStyles, minDimensions]);
 
@@ -116,20 +120,18 @@ export const UnifiedBlockWrapper = React.memo<ContentBoundaryProps>(
       (update: { width: number; height: number; x?: number; y?: number }) => {
         const { width: newWidth, height: newHeight, x: newX, y: newY } = update;
 
-        // Enforce content-aware minimum and maximum dimensions
-        const constrainedWidth = Math.max(
-          contentAwareMinDimensions.width,
-          Math.min(maxDimensions.width, newWidth)
-        );
-        const constrainedHeight = Math.max(
-          contentAwareMinDimensions.height,
-          Math.min(maxDimensions.height, newHeight)
-        );
+        // Apply constraints only if enabled, otherwise use raw dimensions
+        const finalWidth = enableConstraints
+          ? Math.max(contentAwareMinDimensions.width, Math.min(maxDimensions.width, newWidth))
+          : newWidth;
+        const finalHeight = enableConstraints
+          ? Math.max(contentAwareMinDimensions.height, Math.min(maxDimensions.height, newHeight))
+          : newHeight;
 
         // Prepare position update object
         const positionUpdate: any = {
-          width: constrainedWidth,
-          height: constrainedHeight,
+          width: finalWidth,
+          height: finalHeight,
         };
 
         // Include position changes if provided
@@ -140,9 +142,16 @@ export const UnifiedBlockWrapper = React.memo<ContentBoundaryProps>(
         updateNodePosition(id, positionUpdate);
 
         // Notify parent component
-        onResize?.({ width: constrainedWidth, height: constrainedHeight });
+        onResize?.({ width: finalWidth, height: finalHeight });
       },
-      [id, contentAwareMinDimensions, maxDimensions, updateNodePosition, onResize]
+      [
+        id,
+        contentAwareMinDimensions,
+        maxDimensions,
+        enableConstraints,
+        updateNodePosition,
+        onResize,
+      ]
     );
 
     // Handle movement operations

@@ -62,15 +62,7 @@ const TestSelectionComponent = ({
         </div>
       )}
 
-      {componentType === 'poll' && (
-        <div
-          data-testid="poll-question"
-          onClick={() => handlePollQuestionClick('poll-1', false)}
-          className={isPollQuestionSelected('poll-1') ? 'question-active' : 'question-inactive'}
-        >
-          Poll Question
-        </div>
-      )}
+      {/* REMOVED: Poll test component - polls moved to community-only features */}
 
       <button
         data-testid="content-selector"
@@ -180,25 +172,7 @@ describe('🔥 Unified Selection Integration', () => {
     });
   });
 
-  describe('📋 Poll Selection Integration', () => {
-    it('should handle poll question selection correctly', async () => {
-      render(<TestSelectionComponent blockId="poll-block-1" componentType="poll" />);
-
-      const pollQuestion = screen.getByTestId('poll-question');
-      fireEvent.click(pollQuestion);
-
-      // Should set content selection for poll question
-      expect(mockEditorStore.setContentSelection).toHaveBeenCalledWith(
-        expect.objectContaining({
-          type: ContentSelectionType.POLL_QUESTION,
-          pollSelection: expect.objectContaining({
-            pollId: 'poll-1',
-            isEditing: false,
-          }),
-        })
-      );
-    });
-  });
+  // REMOVED: Poll Selection Integration - polls moved to community-only features
 
   describe('✨ Content Selection Coordination', () => {
     it('should handle text content selection', async () => {

@@ -14,7 +14,7 @@ import { ContentSelectionType } from '@/types/editor';
  */
 export interface SelectionCoordinationConfig {
   blockId: string;
-  componentType: 'table' | 'poll' | 'text' | 'generic';
+  componentType: 'table' | 'text' | 'generic';
   enableContentSelection?: boolean;
   preventBubbling?: boolean;
   autoActivateOnMount?: boolean;
@@ -106,7 +106,7 @@ export const useSelectionCoordination = (config: SelectionCoordinationConfig) =>
   );
 
   /**
-   * Handle content-level selection (table cells, poll options, etc.)
+   * Handle content-level selection (table cells, etc.)
    * This should be called when clicking on interactive content within the block
    */
   const handleContentSelection = useCallback(
@@ -209,41 +209,6 @@ export const useSelectionCoordination = (config: SelectionCoordinationConfig) =>
     [handleContentSelection]
   );
 
-  const handlePollOptionClick = useCallback(
-    (pollId: string, optionId: string, isEditing = false) => {
-      handleContentSelection(
-        ContentSelectionType.POLL_OPTION,
-        {
-          pollOption: {
-            pollId,
-            optionId,
-            isEditing,
-            editValue: '',
-          },
-        },
-        { isEditing }
-      );
-    },
-    [handleContentSelection]
-  );
-
-  const handlePollQuestionClick = useCallback(
-    (pollId: string, isEditing = false) => {
-      handleContentSelection(
-        ContentSelectionType.POLL_QUESTION,
-        {
-          pollQuestion: {
-            pollId,
-            isEditing,
-            editValue: '',
-          },
-        },
-        { isEditing }
-      );
-    },
-    [handleContentSelection]
-  );
-
   // Setup global click listener for outside clicks
   useEffect(() => {
     if (isActive) {
@@ -275,8 +240,6 @@ export const useSelectionCoordination = (config: SelectionCoordinationConfig) =>
     // Content-level handlers
     handleContentSelection,
     handleTableCellClick,
-    handlePollOptionClick,
-    handlePollQuestionClick,
 
     // Convenience methods
     activateThisBlock: () => handleBlockActivation(),
@@ -291,16 +254,6 @@ export const useSelectionCoordination = (config: SelectionCoordinationConfig) =>
         cell?.cellPosition.row === cellPosition.row &&
         cell?.cellPosition.col === cellPosition.col
       );
-    },
-
-    isPollOptionSelected: (pollId: string, optionId: string) => {
-      const option = contentSelection?.data?.pollOption;
-      return option?.pollId === pollId && option?.optionId === optionId;
-    },
-
-    isPollQuestionSelected: (pollId: string) => {
-      const question = contentSelection?.data?.pollQuestion;
-      return question?.pollId === pollId;
     },
   };
 };

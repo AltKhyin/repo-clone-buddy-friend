@@ -163,40 +163,9 @@ export const TableBlockDataSchema = z.object({
   fontStyle: z.enum(['normal', 'italic']).optional(),
 });
 
-// DEPRECATED: PollBlockDataSchema - Use RichBlockDataSchema with TipTap poll extension instead
-// This schema is maintained for backward compatibility and migration purposes only
-export const PollBlockDataSchema = z.object({
-  // HTML question for typography integration (like TextBlock)
-  htmlQuestion: z.string(),
-  options: z.array(
-    z.object({
-      id: z.string(),
-      htmlText: z.string(), // HTML text for typography integration
-      votes: z.number().default(0),
-    })
-  ),
-  allowMultiple: z.boolean().default(false),
-  showResults: z.boolean().default(true),
-  totalVotes: z.number().default(0),
-  // Universal styling properties
-  paddingX: z.number().optional(),
-  paddingY: z.number().optional(),
-  backgroundColor: z.string().optional(),
-  borderRadius: z.number().optional(),
-  borderWidth: z.number().default(0),
-  borderColor: z.string().optional(),
-  // Typography for question and options - applied as CSS like TextBlock
-  textAlign: z.enum(['left', 'center', 'right', 'justify']).optional(),
-  color: z.string().optional(),
-  fontSize: z.number().optional(),
-  fontFamily: z.string().optional(),
-  fontWeight: z.number().optional(),
-  lineHeight: z.number().optional(),
-  letterSpacing: z.number().optional(),
-  textTransform: z.enum(['none', 'uppercase', 'lowercase', 'capitalize']).optional(),
-  textDecoration: z.enum(['none', 'underline', 'line-through']).optional(),
-  fontStyle: z.enum(['normal', 'italic']).optional(),
-});
+// REMOVED: PollBlockDataSchema - Poll functionality moved to community-only features
+// Editor polls were removed as part of M1.2 selection system cleanup
+// Community polls remain available in the community section
 
 export const KeyTakeawayBlockDataSchema = z.object({
   // HTML content for typography integration (like TextBlock)
@@ -305,12 +274,12 @@ export const SeparatorBlockDataSchema = z.object({
   borderColor: z.string().optional(),
 });
 
-// UNIFIED: RichBlockDataSchema - Single schema for all rich content including tables, polls, text, images, videos
-// TipTap extensions handle tables (customTable) and polls (customPoll) natively within the editor
+// UNIFIED: RichBlockDataSchema - Single schema for all rich content including tables, text, images, videos
+// TipTap extensions handle tables (customTable) natively within the editor
 export const RichBlockDataSchema = z.object({
   // Content storage - TipTap JSON is the single source of truth for unified editing
   content: z.object({
-    tiptapJSON: z.any().optional(), // TipTap editor JSON content with native table/poll support
+    tiptapJSON: z.any().optional(), // TipTap editor JSON content with native table support
     htmlContent: z.string().default('<p>Start typing...</p>'), // HTML representation for fallback display
   }),
   // Universal styling properties (following existing pattern)
@@ -334,14 +303,15 @@ export const RichBlockDataSchema = z.object({
 });
 
 // ===== MASTER NODE SCHEMA =====
-// NOTE: tableBlock and pollBlock are DEPRECATED - use richBlock with TipTap extensions instead
-// These legacy types are maintained for backward compatibility and auto-migration support
+// NOTE: tableBlock and pollBlock are DEPRECATED
+// tableBlock: use richBlock with TipTap table extension instead
+// pollBlock: removed from editor, polls moved to community-only features
 
 export const NodeSchema = z.discriminatedUnion('type', [
   z.object({ id: z.string().uuid(), type: z.literal('textBlock'), data: TextBlockDataSchema }),
   z.object({ id: z.string().uuid(), type: z.literal('imageBlock'), data: ImageBlockDataSchema }),
   z.object({ id: z.string().uuid(), type: z.literal('tableBlock'), data: TableBlockDataSchema }), // DEPRECATED
-  z.object({ id: z.string().uuid(), type: z.literal('pollBlock'), data: PollBlockDataSchema }), // DEPRECATED
+  // REMOVED: pollBlock support - polls moved to community-only features
   z.object({
     id: z.string().uuid(),
     type: z.literal('keyTakeawayBlock'),
@@ -436,7 +406,7 @@ export type StructuredContent = z.infer<typeof StructuredContentSchema>;
 export type TextBlockData = z.infer<typeof TextBlockDataSchema>;
 export type ImageBlockData = z.infer<typeof ImageBlockDataSchema>;
 export type TableBlockData = z.infer<typeof TableBlockDataSchema>;
-export type PollBlockData = z.infer<typeof PollBlockDataSchema>;
+// REMOVED: PollBlockData type - polls moved to community-only features
 export type KeyTakeawayBlockData = z.infer<typeof KeyTakeawayBlockDataSchema>;
 export type ReferenceBlockData = z.infer<typeof ReferenceBlockDataSchema>;
 export type QuoteBlockData = z.infer<typeof QuoteBlockDataSchema>;
@@ -477,8 +447,8 @@ export enum ContentSelectionType {
   NONE = 'none',
   TEXT = 'text', // Text selection within TipTap editor
   TABLE_CELL = 'table_cell', // Table cell editing
-  POLL_OPTION = 'poll_option', // Poll option editing
-  POLL_QUESTION = 'poll_question', // Poll question editing
+  INLINE_IMAGE = 'inlineImage', // Inline image node selection
+  VIDEO_EMBED = 'videoEmbed', // Video embed node selection
 }
 
 /**
@@ -499,19 +469,27 @@ export interface ContentSelectionInfo {
       editValue?: string;
     };
 
-    // Poll option selection data (when type === POLL_OPTION)
-    pollOption?: {
-      pollId: string;
-      optionId: string;
-      isEditing: boolean;
-      editValue?: string;
-    };
-
-    // Poll question selection data (when type === POLL_QUESTION)
-    pollQuestion?: {
-      pollId: string;
-      isEditing: boolean;
-      editValue?: string;
+    // Media node selection data (when type === INLINE_IMAGE or VIDEO_EMBED)
+    mediaNode?: {
+      nodeType: 'inlineImage' | 'videoEmbed';
+      position: number;
+      attrs: {
+        src: string;
+        alt?: string;
+        width?: number;
+        height?: number;
+        objectFit?: 'contain' | 'cover' | 'fill' | 'original';
+        size?: 'small' | 'medium' | 'large' | 'auto';
+        // Video-specific attributes
+        provider?: 'youtube' | 'vimeo' | 'direct';
+        videoId?: string;
+        thumbnail?: string;
+        // Image-specific attributes
+        caption?: string;
+        loading?: string;
+      };
+      // Update function for modifying node attributes
+      updateAttributes?: (attributes: Record<string, any>) => void;
     };
   };
 }
@@ -567,6 +545,8 @@ export interface ContentBoundaryProps {
   minDimensions?: { width: number; height: number };
   /** Maximum content dimensions */
   maxDimensions?: { width: number; height: number };
+  /** Whether to enable resize constraints (default: true) */
+  enableConstraints?: boolean;
 }
 
 // Content-Aware Block Position (extends existing BlockPosition)
@@ -626,6 +606,9 @@ export interface EditorState {
     vertical: number[];
   };
 
+  // TipTap Editor Registry for unified insertion architecture
+  editorRegistry: Map<string, any>; // Maps nodeId to TipTap editor instance
+
   // Clipboard State
   clipboardData: NodeObject[] | null;
 
@@ -647,6 +630,11 @@ export interface EditorState {
   selectNode: (nodeId: string | null) => void;
   setTextSelection: (textSelection: TextSelectionInfo | null) => void;
 
+  // TipTap Editor Registry Actions
+  registerEditor: (nodeId: string, editor: any) => void;
+  unregisterEditor: (nodeId: string) => void;
+  getEditor: (nodeId: string) => any;
+
   // Simple Block Activation Actions (Legacy - maintained for compatibility)
   setActiveBlock: (blockId: string | null) => void;
 
@@ -662,13 +650,7 @@ export interface EditorState {
     cellPosition: { row: number; col: number },
     isEditing?: boolean
   ) => void;
-  selectPollOption: (
-    blockId: string,
-    pollId: string,
-    optionId: string,
-    isEditing?: boolean
-  ) => void;
-  selectPollQuestion: (blockId: string, pollId: string, isEditing?: boolean) => void;
+  // REMOVED: selectPollOption and selectPollQuestion - polls moved to community-only features
 
   // Selection state queries
   isBlockActive: (blockId: string) => boolean;
@@ -784,25 +766,7 @@ const migrateLegacyBlockData = (node: any): any => {
       }
       break;
 
-    case 'pollBlock':
-      // Migrate question -> htmlQuestion
-      if ('question' in migratedData && !('htmlQuestion' in migratedData)) {
-        migratedData.htmlQuestion = textToHtml(migratedData.question);
-        delete migratedData.question;
-      }
-      // Migrate options[].text -> options[].htmlText
-      if (Array.isArray(migratedData.options)) {
-        migratedData.options = migratedData.options.map((option: any) => {
-          if ('text' in option && !('htmlText' in option)) {
-            return {
-              ...option,
-              htmlText: textToHtml(option.text),
-            };
-          }
-          return option;
-        });
-      }
-      break;
+    // REMOVED: pollBlock migration - polls moved to community-only features
 
     case 'tableBlock':
       // Migrate headers -> htmlHeaders
@@ -989,24 +953,7 @@ export const getDefaultDataForBlockType = (blockType: string): any => {
         borderWidth: 0,
         borderColor: '#e5e7eb',
       };
-    case 'pollBlock':
-      return {
-        htmlQuestion: '<p>Your question here</p>',
-        options: [
-          { id: generateNodeId(), htmlText: '<p>Option 1</p>', votes: 0 },
-          { id: generateNodeId(), htmlText: '<p>Option 2</p>', votes: 0 },
-        ],
-        allowMultiple: false,
-        showResults: true,
-        totalVotes: 0,
-        // Default styling properties
-        paddingX: 0,
-        paddingY: 0,
-        backgroundColor: 'transparent',
-        borderRadius: 8,
-        borderWidth: 0,
-        borderColor: '#e5e7eb',
-      };
+    // REMOVED: pollBlock defaults - polls moved to community-only features
     case 'keyTakeawayBlock':
       return {
         htmlContent: '<p>Key takeaway message</p>',

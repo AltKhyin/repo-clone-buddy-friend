@@ -24,6 +24,13 @@ import {
   Settings,
 } from 'lucide-react';
 import { VideoUtils, VideoData } from './VideoEmbed';
+import {
+  getMediaMaxWidth,
+  getVideoThumbnailObjectFit,
+  getVideoAspectRatio,
+  PLACEHOLDER_VIDEOS,
+  PLACEHOLDER_DIMENSIONS,
+} from '../shared/mediaConstants';
 
 interface VideoEmbedComponentProps extends NodeViewProps {
   // Inherited from NodeViewProps: node, updateAttributes, deleteNode, etc.
@@ -35,7 +42,7 @@ export const VideoEmbedComponent: React.FC<VideoEmbedComponentProps> = ({
   deleteNode,
   selected,
 }) => {
-  const [isEditing, setIsEditing] = useState(!node.attrs.src);
+  const [isEditing, setIsEditing] = useState(!node.attrs.src || node.attrs.placeholder);
   const [videoUrl, setVideoUrl] = useState(node.attrs.src || '');
   const [isLoading, setIsLoading] = useState(node.attrs.loading || false);
   const [error, setError] = useState(node.attrs.error || null);
@@ -70,6 +77,7 @@ export const VideoEmbedComponent: React.FC<VideoEmbedComponentProps> = ({
         muted,
         loading: false,
         error: null,
+        placeholder: false, // Convert from placeholder to real video
       });
 
       setError(null);
@@ -221,6 +229,41 @@ export const VideoEmbedComponent: React.FC<VideoEmbedComponentProps> = ({
     );
   }
 
+  // Render placeholder display
+  if (node.attrs.placeholder && !isEditing) {
+    return (
+      <NodeViewWrapper className="video-embed-wrapper">
+        <div
+          className={`inline-block cursor-pointer ${selected ? 'ring-2 ring-blue-500 ring-offset-2' : ''}`}
+          onClick={() => setIsEditing(true)}
+          data-placeholder="true"
+        >
+          <div className="relative border-2 border-dashed border-gray-300 rounded-lg bg-gray-900 hover:bg-gray-800 transition-colors">
+            <div
+              className="flex items-center justify-center"
+              style={{
+                width: PLACEHOLDER_DIMENSIONS.video.width,
+                height: PLACEHOLDER_DIMENSIONS.video.height,
+                maxWidth: getMediaMaxWidth(node.attrs.size),
+                aspectRatio: '16/9',
+              }}
+            >
+              <div className="text-center">
+                <div className="w-16 h-16 mx-auto mb-4 bg-blue-600 rounded-full flex items-center justify-center">
+                  <Video size={32} className="text-white" />
+                </div>
+                <span className="text-white font-medium">Click to configure video</span>
+                <div className="text-gray-400 text-sm mt-2">
+                  YouTube, Vimeo, or direct video link
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </NodeViewWrapper>
+    );
+  }
+
   // Render video display
   return (
     <NodeViewWrapper className="video-embed-wrapper">
@@ -228,9 +271,10 @@ export const VideoEmbedComponent: React.FC<VideoEmbedComponentProps> = ({
         <div
           className="relative bg-black rounded-lg overflow-hidden"
           style={{
-            width: node.attrs.width ? `${node.attrs.width}px` : '100%',
+            // Size controls with transform support using shared constants
+            width: node.attrs.width ? `${node.attrs.width}px` : getMediaMaxWidth(node.attrs.size),
             maxWidth: '100%',
-            aspectRatio: '16/9',
+            aspectRatio: getVideoAspectRatio(node.attrs.objectFit),
           }}
         >
           {/* Thumbnail Preview */}
@@ -239,7 +283,10 @@ export const VideoEmbedComponent: React.FC<VideoEmbedComponentProps> = ({
               <img
                 src={node.attrs.thumbnail}
                 alt={node.attrs.title || 'Video thumbnail'}
-                className="w-full h-full object-cover"
+                className="w-full h-full"
+                style={{
+                  objectFit: getVideoThumbnailObjectFit(node.attrs.objectFit),
+                }}
               />
 
               {/* Overlay */}

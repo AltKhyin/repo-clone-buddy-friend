@@ -16,6 +16,12 @@ import {
   Image,
   Eye,
 } from 'lucide-react';
+import {
+  getMediaMaxWidth,
+  getImageObjectFit,
+  PLACEHOLDER_IMAGES,
+  PLACEHOLDER_DIMENSIONS,
+} from '../shared/mediaConstants';
 
 interface InlineImageComponentProps extends NodeViewProps {
   // Inherited from NodeViewProps: node, updateAttributes, deleteNode, etc.
@@ -27,7 +33,7 @@ export const InlineImageComponent: React.FC<InlineImageComponentProps> = ({
   deleteNode,
   selected,
 }) => {
-  const [isEditing, setIsEditing] = useState(!node.attrs.src);
+  const [isEditing, setIsEditing] = useState(!node.attrs.src || node.attrs.placeholder);
   const [imageUrl, setImageUrl] = useState(node.attrs.src || '');
   const [altText, setAltText] = useState(node.attrs.alt || '');
   const [caption, setCaption] = useState(node.attrs.caption || '');
@@ -50,6 +56,7 @@ export const InlineImageComponent: React.FC<InlineImageComponentProps> = ({
       caption: caption,
       error: null,
       uploading: false,
+      placeholder: false, // Convert from placeholder to real image
     });
 
     setError(null);
@@ -94,6 +101,7 @@ export const InlineImageComponent: React.FC<InlineImageComponentProps> = ({
         updateAttributes({
           uploading: false,
           error: null,
+          placeholder: false, // Convert from placeholder to real image
         });
 
         setIsUploading(false);
@@ -260,6 +268,39 @@ export const InlineImageComponent: React.FC<InlineImageComponentProps> = ({
     );
   }
 
+  // Render placeholder display
+  if (node.attrs.placeholder && !isEditing) {
+    return (
+      <NodeViewWrapper className="inline-image-wrapper">
+        <div
+          className={`inline-block cursor-pointer ${selected ? 'ring-2 ring-blue-500 ring-offset-1' : ''}`}
+          onClick={() => setIsEditing(true)}
+          data-placeholder="true"
+        >
+          <div className="relative border-2 border-dashed border-gray-300 rounded bg-gray-50 hover:bg-gray-100 transition-colors">
+            <img
+              src={PLACEHOLDER_IMAGES.default}
+              alt="Click to configure image"
+              className="opacity-60"
+              style={{
+                width: PLACEHOLDER_DIMENSIONS.image.width,
+                height: PLACEHOLDER_DIMENSIONS.image.height,
+                maxWidth: getMediaMaxWidth(node.attrs.size),
+                display: 'block',
+              }}
+            />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="text-center">
+                <Image size={32} className="mx-auto mb-2 text-gray-400" />
+                <span className="text-sm text-gray-600 font-medium">Click to configure image</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </NodeViewWrapper>
+    );
+  }
+
   // Render image display
   return (
     <NodeViewWrapper className="inline-image-wrapper">
@@ -274,8 +315,15 @@ export const InlineImageComponent: React.FC<InlineImageComponentProps> = ({
             onError={handleImageError}
             className="max-w-full h-auto rounded border"
             style={{
-              maxWidth: node.attrs.width ? `${node.attrs.width}px` : '100%',
+              // Existing size controls with consistent sizing
+              maxWidth: node.attrs.width
+                ? `${node.attrs.width}px`
+                : getMediaMaxWidth(node.attrs.size),
               maxHeight: node.attrs.height ? `${node.attrs.height}px` : 'auto',
+
+              // Object-fit transform using shared utilities
+              objectFit: getImageObjectFit(node.attrs.objectFit),
+              aspectRatio: node.attrs.objectFit === 'cover' ? '16/9' : 'auto',
             }}
           />
 

@@ -1,17 +1,17 @@
 // ABOUTME: Content-aware inspector panel for RichBlock with dynamic controls based on TipTap selection
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useEditorStore } from '@/store/editorStore';
-import { RichBlockData } from '@/types/editor';
+import { useEditorStore, useContentSelection } from '@/store/editorStore';
+import { RichBlockData, ContentSelectionType } from '@/types/editor';
 import { InspectorSection } from './shared/InspectorSection';
 import { ColorControl } from './shared/ColorControl';
 import { SpacingControls } from './shared/SpacingControls';
 import { BorderControls } from './shared/BorderControls';
-import { useRichTextEditor } from '@/hooks/useRichTextEditor';
+import { MediaTransformSection } from './sections/MediaTransformSection';
 import {
   Edit3,
   Palette,
@@ -25,74 +25,98 @@ import {
   AlignLeft,
   AlignCenter,
   AlignRight,
+  ChevronsUpDown,
 } from 'lucide-react';
 
 interface RichBlockInspectorProps {
   nodeId: string;
 }
 
-// Content-aware selection detection
-interface TipTapSelection {
-  type: 'text' | 'table' | 'poll' | 'image' | 'video' | 'none';
-  data?: any;
-}
-
 export const RichBlockInspector: React.FC<RichBlockInspectorProps> = ({ nodeId }) => {
   const { nodes, updateNode } = useEditorStore();
-  const [currentSelection, setCurrentSelection] = useState<TipTapSelection>({ type: 'none' });
+  const contentSelection = useContentSelection();
 
   const node = nodes.find(n => n.id === nodeId);
   const data = node?.type === 'richBlock' ? (node.data as RichBlockData) : null;
 
-  // Initialize TipTap editor instance to monitor selection (always call hook)
-  const editorInstance = useRichTextEditor({
-    nodeId,
-    initialContent: data?.content.htmlContent || '<p>Start typing...</p>',
-    placeholder: 'Start typing...',
-    onUpdate: (nodeId, content) => {
-      if (data) {
-        updateNode(nodeId, {
-          data: { ...data, content: { ...data.content, htmlContent: content } },
-        });
-      }
-    },
-    editable: true,
-  });
+  // CRITICAL FIX P3: Use unified selection system instead of separate TipTap editor
+  const currentSelectionType =
+    contentSelection?.blockId === nodeId ? contentSelection.type : 'none';
 
-  // Monitor TipTap editor selection changes (moved before early return)
+  // Height adjustment state - MUST be before early return
+  const [showHeightAdjustment, setShowHeightAdjustment] = useState(false);
+
+  // Height adjustment functionality - MUST be before early return
+  const handleAdjustHeight = useCallback(() => {
+    if (!node || !data) return;
+
+    // Find the block element in the DOM
+    const blockElement = document.querySelector(`[data-block-id="${nodeId}"]`);
+    if (!blockElement) return;
+
+    // Find the content wrapper with the measurement ref
+    const contentWrapper = blockElement.querySelector('.rich-block-content-wrapper') as HTMLElement;
+    if (!contentWrapper) return;
+
+    // Calculate optimal height based on content
+    const paddingY = data.paddingY || 16;
+    const borderWidth = data.borderWidth || 0;
+    const minHeight = 120;
+    const maxHeight = 800;
+
+    // Measure actual content height
+    const contentRect = contentWrapper.getBoundingClientRect();
+    const contentHeight = contentRect.height;
+
+    // Calculate additional spacing
+    const additionalSpacing = paddingY * 2 + borderWidth * 2;
+
+    // Calculate optimal height with constraints
+    const optimalHeight = Math.max(
+      minHeight,
+      Math.min(maxHeight, contentHeight + additionalSpacing)
+    );
+
+    // Update the node height
+    updateNode(nodeId, {
+      height: optimalHeight,
+    });
+  }, [nodeId, node, data, updateNode]);
+
+  // Check if height adjustment is beneficial - MUST be before early return
+  const shouldShowHeightAdjustment = useCallback(() => {
+    if (!node || !data) return false;
+
+    const blockElement = document.querySelector(`[data-block-id="${nodeId}"]`);
+    if (!blockElement) return false;
+
+    const contentWrapper = blockElement.querySelector('.rich-block-content-wrapper') as HTMLElement;
+    if (!contentWrapper) return false;
+
+    const currentHeight = node.height || 200;
+    const contentRect = contentWrapper.getBoundingClientRect();
+    const contentHeight = contentRect.height;
+    const paddingY = data.paddingY || 16;
+    const borderWidth = data.borderWidth || 0;
+    const additionalSpacing = paddingY * 2 + borderWidth * 2;
+    const optimalHeight = contentHeight + additionalSpacing;
+
+    // Show if content is overflowing or if there's significant height waste (>50px)
+    const heightDifference = Math.abs(currentHeight - optimalHeight);
+    return heightDifference > 50;
+  }, [node, data, nodeId]);
+
+  // Check height adjustment on mount and when data changes - MUST be before early return
   useEffect(() => {
-    if (!editorInstance.editor) return;
+    const checkHeight = () => setShowHeightAdjustment(shouldShowHeightAdjustment());
+    checkHeight();
 
-    const updateSelection = () => {
-      const { selection } = editorInstance.editor.state;
-      const { $from } = selection;
+    // Recheck after a brief delay to allow DOM to settle
+    const timeout = setTimeout(checkHeight, 100);
+    return () => clearTimeout(timeout);
+  }, [shouldShowHeightAdjustment, data?.paddingY, data?.borderWidth]);
 
-      // Check what type of content is selected
-      if (editorInstance.isActive.table) {
-        setCurrentSelection({ type: 'table', data: {} });
-      } else if (editorInstance.isActive.poll) {
-        setCurrentSelection({ type: 'poll', data: {} });
-      } else if (selection.empty) {
-        setCurrentSelection({ type: 'none' });
-      } else {
-        setCurrentSelection({ type: 'text' });
-      }
-    };
-
-    // Listen for selection updates
-    editorInstance.editor.on('selectionUpdate', updateSelection);
-    editorInstance.editor.on('update', updateSelection);
-
-    // Initial selection check
-    updateSelection();
-
-    return () => {
-      editorInstance.editor.off('selectionUpdate', updateSelection);
-      editorInstance.editor.off('update', updateSelection);
-    };
-  }, [editorInstance.editor, editorInstance.isActive]);
-
-  // Early return after hooks are called
+  // Early return after ALL hooks are called
   if (!node || node.type !== 'richBlock' || !data) return null;
 
   const updateNodeData = (updates: Partial<RichBlockData>) => {
@@ -101,155 +125,137 @@ export const RichBlockInspector: React.FC<RichBlockInspectorProps> = ({ nodeId }
     });
   };
 
-  // Render content-aware controls based on TipTap selection
+  // Render content-aware controls based on unified selection system
   const renderContentAwareControls = () => {
-    switch (currentSelection.type) {
-      case 'table':
+    switch (currentSelectionType) {
+      case ContentSelectionType.TABLE_CELL:
         return (
           <InspectorSection title="Table Controls" icon={Table} compact={false}>
             <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => editorInstance.editor?.commands.addRowBefore()}
-                  className="flex items-center gap-1"
-                >
-                  <Plus size={12} />
-                  Add Row Above
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => editorInstance.editor?.commands.addRowAfter()}
-                  className="flex items-center gap-1"
-                >
-                  <Plus size={12} />
-                  Add Row Below
-                </Button>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => editorInstance.editor?.commands.addColumnBefore()}
-                  className="flex items-center gap-1"
-                >
-                  <Plus size={12} />
-                  Add Col Left
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => editorInstance.editor?.commands.addColumnAfter()}
-                  className="flex items-center gap-1"
-                >
-                  <Plus size={12} />
-                  Add Col Right
-                </Button>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  onClick={() => editorInstance.editor?.commands.deleteRow()}
-                  className="flex items-center gap-1"
-                >
-                  <Minus size={12} />
-                  Delete Row
-                </Button>
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  onClick={() => editorInstance.editor?.commands.deleteColumn()}
-                  className="flex items-center gap-1"
-                >
-                  <Minus size={12} />
-                  Delete Col
-                </Button>
-              </div>
-              <Separator />
-              <div className="grid grid-cols-3 gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() =>
-                    editorInstance.editor?.commands.setCellAttribute('textAlign', 'left')
-                  }
-                  className="flex items-center gap-1"
-                >
-                  <AlignLeft size={12} />
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() =>
-                    editorInstance.editor?.commands.setCellAttribute('textAlign', 'center')
-                  }
-                  className="flex items-center gap-1"
-                >
-                  <AlignCenter size={12} />
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() =>
-                    editorInstance.editor?.commands.setCellAttribute('textAlign', 'right')
-                  }
-                  className="flex items-center gap-1"
-                >
-                  <AlignRight size={12} />
-                </Button>
+              <div className="text-sm text-muted-foreground">
+                Table cell is selected. Use the table controls in the editor.
               </div>
             </div>
           </InspectorSection>
         );
 
-      case 'poll':
+      case 'poll_option':
+      case 'poll_question':
         return (
           <InspectorSection title="Poll Controls" icon={BarChart3} compact={false}>
             <div className="space-y-3">
-              <div>
-                <Label className="text-sm font-medium">Question</Label>
-                <Input
-                  placeholder="Enter poll question..."
-                  className="mt-1"
-                  // Note: In a full implementation, this would connect to poll data
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <Button size="sm" variant="outline" className="flex items-center gap-1">
-                  <Plus size={12} />
-                  Add Option
-                </Button>
-                <Button size="sm" variant="destructive" className="flex items-center gap-1">
-                  <Minus size={12} />
-                  Remove Option
-                </Button>
-              </div>
-              <div className="flex items-center gap-2">
-                <input type="checkbox" id="allowMultiple" className="rounded" />
-                <Label htmlFor="allowMultiple" className="text-sm">
-                  Allow multiple votes
-                </Label>
-              </div>
-              <div className="flex items-center gap-2">
-                <input type="checkbox" id="showResults" className="rounded" defaultChecked />
-                <Label htmlFor="showResults" className="text-sm">
-                  Show results
-                </Label>
+              <div className="text-sm text-muted-foreground">
+                Poll {currentSelectionType === 'poll_question' ? 'question' : 'option'} is selected.
+                Use the poll controls in the editor.
               </div>
             </div>
           </InspectorSection>
         );
 
-      case 'text':
+      case ContentSelectionType.TEXT:
         return (
           <InspectorSection title="Text Selection" icon={Edit3} compact={false}>
             <div className="text-sm text-muted-foreground">
               Text formatting controls are available in the toolbar above.
             </div>
           </InspectorSection>
+        );
+
+      case ContentSelectionType.INLINE_IMAGE:
+        const isImagePlaceholder = contentSelection?.data?.mediaNode?.attrs?.placeholder;
+        return (
+          <MediaTransformSection
+            nodeType="inlineImage"
+            currentFit={contentSelection?.data?.mediaNode?.attrs?.objectFit || 'contain'}
+            currentSize={contentSelection?.data?.mediaNode?.attrs?.size || 'medium'}
+            isPlaceholder={isImagePlaceholder}
+            onFitChange={fit => {
+              contentSelection?.data?.mediaNode?.updateAttributes?.({ objectFit: fit });
+            }}
+            onSizeChange={size => {
+              contentSelection?.data?.mediaNode?.updateAttributes?.({ size });
+            }}
+            onConfigurePlaceholder={async config => {
+              // CRITICAL FIX: Defer all TipTap updates to prevent input focus loss
+              // Use setTimeout to batch updates after current render cycle
+              setTimeout(() => {
+                if (config.file) {
+                  // Handle file upload - convert to URL and update in single operation
+                  contentSelection?.data?.mediaNode?.updateAttributes?.({
+                    src: URL.createObjectURL(config.file),
+                    alt: config.alt || config.file.name,
+                    uploading: true,
+                    placeholder: false,
+                    error: null,
+                  });
+
+                  // Simulate upload completion after brief delay
+                  setTimeout(() => {
+                    contentSelection?.data?.mediaNode?.updateAttributes?.({
+                      uploading: false,
+                    });
+                  }, 1500);
+                } else if (config.src) {
+                  // Handle URL input - validate and update in single operation
+                  const imageUrlRegex = /\.(jpg|jpeg|png|gif|webp|svg)(\?.*)?$/i;
+                  if (imageUrlRegex.test(config.src)) {
+                    contentSelection?.data?.mediaNode?.updateAttributes?.({
+                      src: config.src,
+                      alt: config.alt || 'Image',
+                      placeholder: false,
+                      error: null,
+                    });
+                  } else {
+                    // Show error for non-image URLs
+                    contentSelection?.data?.mediaNode?.updateAttributes?.({
+                      error: 'Please enter a valid image URL',
+                    });
+                  }
+                }
+              }, 0); // Defer to next tick to preserve input focus
+            }}
+          />
+        );
+
+      case ContentSelectionType.VIDEO_EMBED:
+        const isVideoPlaceholder = contentSelection?.data?.mediaNode?.attrs?.placeholder;
+        return (
+          <MediaTransformSection
+            nodeType="videoEmbed"
+            currentFit={contentSelection?.data?.mediaNode?.attrs?.objectFit || 'contain'}
+            currentSize={contentSelection?.data?.mediaNode?.attrs?.size || 'medium'}
+            isPlaceholder={isVideoPlaceholder}
+            onFitChange={fit => {
+              contentSelection?.data?.mediaNode?.updateAttributes?.({ objectFit: fit });
+            }}
+            onSizeChange={size => {
+              contentSelection?.data?.mediaNode?.updateAttributes?.({ size });
+            }}
+            onConfigurePlaceholder={config => {
+              // CRITICAL FIX: Defer all TipTap updates to prevent input focus loss
+              // Use setTimeout to batch updates after current render cycle
+              setTimeout(() => {
+                if (config.src) {
+                  // Parse video URL using VideoUtils
+                  const { VideoUtils } = require('@/components/editor/extensions/VideoEmbed');
+                  const videoData = VideoUtils.parseVideoUrl(config.src);
+
+                  if (videoData) {
+                    contentSelection?.data?.mediaNode?.updateAttributes?.({
+                      ...videoData,
+                      placeholder: false,
+                      error: null,
+                    });
+                  } else {
+                    // Show error for invalid URL but keep as placeholder
+                    contentSelection?.data?.mediaNode?.updateAttributes?.({
+                      error: 'Invalid video URL format',
+                    });
+                  }
+                }
+              }, 0); // Defer to next tick to preserve input focus
+            }}
+          />
         );
 
       default:
@@ -266,9 +272,9 @@ export const RichBlockInspector: React.FC<RichBlockInspectorProps> = ({ nodeId }
       <div className="flex items-center gap-2">
         <Edit3 size={16} className="text-primary" />
         <h3 className="font-medium">Rich Block</h3>
-        {currentSelection.type !== 'none' && (
+        {currentSelectionType !== 'none' && (
           <span className="text-xs bg-muted px-2 py-1 rounded capitalize">
-            {currentSelection.type} selected
+            {currentSelectionType.replace('_', ' ')} selected
           </span>
         )}
       </div>
@@ -352,6 +358,26 @@ export const RichBlockInspector: React.FC<RichBlockInspectorProps> = ({ nodeId }
             maxRadius={32}
           />
         </InspectorSection>
+
+        {/* Height Adjustment Section - only show when beneficial */}
+        {showHeightAdjustment && (
+          <InspectorSection title="Height Adjustment" icon={ChevronsUpDown} compact={false}>
+            <div className="space-y-3">
+              <div className="text-sm text-muted-foreground">
+                Automatically adjust block height to fit content without hiding text.
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleAdjustHeight}
+                className="w-full justify-center"
+              >
+                <ChevronsUpDown size={16} className="mr-2" />
+                Adjust Height to Content
+              </Button>
+            </div>
+          </InspectorSection>
+        )}
       </div>
     </div>
   );

@@ -194,6 +194,9 @@ export const useEditorStore = create<EditorState>((set, get) => {
     showGuidelines: false,
     guidelines: { horizontal: [], vertical: [] },
 
+    // TipTap Editor Registry for unified insertion architecture
+    editorRegistry: new Map(),
+
     // Clipboard State
     clipboardData: null,
 
@@ -344,10 +347,15 @@ export const useEditorStore = create<EditorState>((set, get) => {
         const updatedPositions = { ...state.positions };
         delete updatedPositions[nodeId];
 
+        // Clean up editor registry for deleted node
+        const newRegistry = new Map(state.editorRegistry);
+        newRegistry.delete(nodeId);
+
         const updatedState = {
           ...state,
           nodes: updatedNodes,
           positions: updatedPositions,
+          editorRegistry: newRegistry,
           selectedNodeId: state.selectedNodeId === nodeId ? null : state.selectedNodeId,
           isDirty: true,
         };
@@ -420,23 +428,26 @@ export const useEditorStore = create<EditorState>((set, get) => {
     // ===== UNIFIED SELECTION COORDINATION ACTIONS =====
 
     activateBlock: blockId => {
-      set(state => ({
-        selectionState: {
+      set(state => {
+        // CRITICAL FIX P2: Preserve content selection when switching blocks for inspector continuity
+        const shouldPreserveContent = state.selectionState.contentSelection?.blockId === blockId;
+
+        return {
+          selectionState: {
+            activeBlockId: blockId,
+            contentSelection: shouldPreserveContent ? state.selectionState.contentSelection : null,
+            hasBlockSelection: blockId !== null,
+            hasContentSelection: shouldPreserveContent
+              ? state.selectionState.hasContentSelection
+              : false,
+            preventMultiSelection: true,
+          },
+          // Sync legacy activeBlockId for backward compatibility
           activeBlockId: blockId,
-          contentSelection:
-            blockId !== state.selectionState.activeBlockId
-              ? null
-              : state.selectionState.contentSelection,
-          hasBlockSelection: blockId !== null,
-          hasContentSelection:
-            blockId !== state.selectionState.activeBlockId
-              ? false
-              : state.selectionState.hasContentSelection,
-          preventMultiSelection: true,
-        },
-        // Sync legacy activeBlockId for backward compatibility
-        activeBlockId: blockId,
-      }));
+          // INSPECTOR INTEGRATION: Connect activeBlockId to selectedNodeId for inspector display
+          selectedNodeId: blockId,
+        };
+      });
     },
 
     setContentSelection: contentSelection => {
@@ -493,41 +504,6 @@ export const useEditorStore = create<EditorState>((set, get) => {
       state.setContentSelection(contentSelection);
     },
 
-    selectPollOption: (blockId, pollId, optionId, isEditing = false) => {
-      const state = get();
-      const contentSelection = {
-        type: 'poll_option' as const,
-        blockId,
-        data: {
-          pollOption: {
-            pollId,
-            optionId,
-            isEditing,
-            editValue: '',
-          },
-        },
-      };
-
-      state.setContentSelection(contentSelection);
-    },
-
-    selectPollQuestion: (blockId, pollId, isEditing = false) => {
-      const state = get();
-      const contentSelection = {
-        type: 'poll_question' as const,
-        blockId,
-        data: {
-          pollQuestion: {
-            pollId,
-            isEditing,
-            editValue: '',
-          },
-        },
-      };
-
-      state.setContentSelection(contentSelection);
-    },
-
     // Selection state queries
     isBlockActive: blockId => {
       const state = get();
@@ -542,6 +518,29 @@ export const useEditorStore = create<EditorState>((set, get) => {
     getActiveContentType: () => {
       const state = get();
       return state.selectionState.contentSelection?.type || 'none';
+    },
+
+    // ===== TIPTAP EDITOR REGISTRY ACTIONS =====
+
+    registerEditor: (nodeId, editor) => {
+      set(state => {
+        const newRegistry = new Map(state.editorRegistry);
+        newRegistry.set(nodeId, editor);
+        return { editorRegistry: newRegistry };
+      });
+    },
+
+    unregisterEditor: nodeId => {
+      set(state => {
+        const newRegistry = new Map(state.editorRegistry);
+        newRegistry.delete(nodeId);
+        return { editorRegistry: newRegistry };
+      });
+    },
+
+    getEditor: nodeId => {
+      const state = get();
+      return state.editorRegistry.get(nodeId) || null;
     },
 
     // ===== VIEWPORT ACTIONS =====
@@ -1136,8 +1135,6 @@ export const useEditorActions = () =>
     setContentSelection: state.setContentSelection,
     clearAllSelection: state.clearAllSelection,
     selectTableCell: state.selectTableCell,
-    selectPollOption: state.selectPollOption,
-    selectPollQuestion: state.selectPollQuestion,
   }));
 
 export const useCanvasActions = () =>

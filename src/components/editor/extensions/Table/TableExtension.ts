@@ -1,8 +1,8 @@
-// ABOUTME: TipTap extension for interactive tables with inline editing and management
+// ABOUTME: TipTap extension for Reddit-style tables with simplified single-click editing using SimpleTableComponent
 
 import { Node, mergeAttributes } from '@tiptap/core';
 import { ReactNodeViewRenderer } from '@tiptap/react';
-import { TableComponent } from './TableComponent';
+import { SimpleTableComponent } from './SimpleTableComponent';
 import { tableCommands } from './tableCommands';
 
 export interface TableOptions {
@@ -95,7 +95,7 @@ export const TableExtension = Node.create<TableOptions>({
       resizable: true,
       handleWidth: 5,
       cellMinWidth: 100,
-      View: TableComponent,
+      View: SimpleTableComponent,
     };
   },
 
@@ -282,7 +282,7 @@ export const TableExtension = Node.create<TableOptions>({
   },
 
   addNodeView() {
-    return ReactNodeViewRenderer(TableComponent);
+    return ReactNodeViewRenderer(SimpleTableComponent);
   },
 
   addCommands() {

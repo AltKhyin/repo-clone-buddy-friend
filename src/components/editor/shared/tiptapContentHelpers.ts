@@ -1,7 +1,5 @@
 // ABOUTME: Utility functions for creating proper TipTap JSON content for Rich Block extensions
 
-import { PollOption } from '../extensions/Poll/PollExtension';
-
 /**
  * Creates TipTap JSON content with a table node
  */
@@ -69,77 +67,7 @@ export function createTableContent(
   };
 }
 
-/**
- * Creates TipTap JSON content with a poll node
- */
-export function createPollContent(
-  options: {
-    question?: string;
-    options?: string[];
-    allowMultiple?: boolean;
-    showResults?: boolean;
-  } = {}
-): any {
-  const {
-    question = 'What is your opinion?',
-    options: pollOptions = ['Option 1', 'Option 2'],
-    allowMultiple = false,
-    showResults = true,
-  } = options;
-
-  // Generate unique poll ID
-  const pollId = `poll-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-
-  // Create option objects with IDs
-  const formattedOptions: PollOption[] = pollOptions.map((text, index) => ({
-    id: `option-${index + 1}-${Date.now()}`,
-    text,
-    votes: 0,
-  }));
-
-  const now = new Date().toISOString();
-
-  // Create TipTap JSON document with poll node
-  return {
-    type: 'doc',
-    content: [
-      {
-        type: 'customPoll',
-        attrs: {
-          pollId,
-          question,
-          options: formattedOptions,
-          settings: {
-            allowMultiple,
-            showResults,
-            allowAnonymous: true,
-            requireLogin: false,
-          },
-          metadata: {
-            totalVotes: 0,
-            uniqueVoters: 0,
-            createdAt: now,
-          },
-          styling: {
-            questionFontSize: 18,
-            questionFontWeight: 600,
-            optionFontSize: 16,
-            optionPadding: 12,
-            borderRadius: 8,
-            borderWidth: 1,
-            borderColor: '#e2e8f0',
-            backgroundColor: 'transparent',
-            selectedColor: '#3b82f6',
-            resultBarColor: '#60a5fa',
-            textAlign: 'left',
-            compact: false,
-          },
-          userVotes: [],
-        },
-      },
-    ],
-  };
-}
+// REMOVED: createPollContent - polls moved to community-only features
 
 /**
  * Creates TipTap JSON content with a paragraph (for basic Rich Blocks)
@@ -182,10 +110,7 @@ export function tiptapJsonToHtml(json: any): string {
     return `<div data-tiptap-node="customTable" data-tiptap-attrs="${encodeURIComponent(JSON.stringify(firstNode.attrs))}"><table><tbody><tr><th>Table Loading...</th></tr></tbody></table></div>`;
   }
 
-  if (firstNode.type === 'customPoll') {
-    // For polls, we'll use a special data attribute to preserve the full JSON
-    return `<div data-tiptap-node="customPoll" data-tiptap-attrs="${encodeURIComponent(JSON.stringify(firstNode.attrs))}">Poll Loading...</div>`;
-  }
+  // REMOVED: customPoll handling - polls moved to community-only features
 
   if (firstNode.type === 'paragraph') {
     const textContent = firstNode.content?.[0]?.text || 'Start typing...';
@@ -217,21 +142,7 @@ export function htmlToTiptapJson(html: string): any {
     }
   }
 
-  // Check for poll node
-  const pollMatch = html.match(/data-tiptap-node="customPoll".*?data-tiptap-attrs="([^"]+)"/);
-  if (pollMatch) {
-    try {
-      const attrs = JSON.parse(decodeURIComponent(pollMatch[1]));
-      return createPollContent({
-        question: attrs.question,
-        options: attrs.options?.map((opt: any) => opt.text),
-        allowMultiple: attrs.settings?.allowMultiple,
-        showResults: attrs.settings?.showResults,
-      });
-    } catch (error) {
-      console.warn('Failed to parse poll attrs from HTML:', error);
-    }
-  }
+  // REMOVED: Poll handling - polls moved to community-only features
 
   // Default to paragraph content
   return createParagraphContent();
