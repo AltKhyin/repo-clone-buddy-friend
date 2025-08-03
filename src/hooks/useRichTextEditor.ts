@@ -14,6 +14,8 @@ import { useCallback, useRef, useState, useEffect } from 'react';
 import { debounce } from 'lodash-es';
 import { useEditorStore } from '@/store/editorStore';
 import { ContentSelectionType } from '@/types/editor';
+import { useSelectionStore } from '@/store/selectionStore';
+import { isTextSelection } from '@/types/selection';
 // INSTRUMENTATION: Performance monitoring for table detection optimization
 import { globalMonitor, instrumentFindParentCell } from '@/utils/performance-monitor';
 // UNIFIED ARCHITECTURE: DOM-first table detection
@@ -30,6 +32,7 @@ import { TextColorMark } from '@/components/editor/extensions/marks/TextColorMar
 import { BackgroundColorMark } from '@/components/editor/extensions/marks/BackgroundColorMark';
 import { TextTransformMark } from '@/components/editor/extensions/marks/TextTransformMark';
 import { LetterSpacingMark } from '@/components/editor/extensions/marks/LetterSpacingMark';
+import { TextAlignNode } from '@/components/editor/extensions/nodes/TextAlignNode';
 
 // Helper functions for table selection detection
 const findParentTable = (state: any, pos: number) => {
@@ -312,6 +315,9 @@ export const useRichTextEditor = ({
 
   // Get editor store actions for selection management
   const { setContentSelection } = useEditorStore();
+  
+  // UNIFIED SELECTION SYSTEM: Get dispatch for text selection integration
+  const { dispatch } = useSelectionStore();
 
   const editor = useEditor({
     extensions: [
@@ -472,6 +478,11 @@ export const useRichTextEditor = ({
       LetterSpacingMark.configure({
         HTMLAttributes: {
           class: 'letter-spacing-mark',
+        },
+      }),
+      TextAlignNode.configure({
+        HTMLAttributes: {
+          class: 'text-align-node',
         },
       }),
     ],
@@ -712,8 +723,49 @@ export const useRichTextEditor = ({
             setContentSelection(null);
           }
           
-          // For normal text selections, we don't need any table-related processing
-          return; // Early return - massive performance gain!
+          // 🎯 UNIFIED SELECTION INTEGRATION: Route text selections to unified system
+          // This replaces the early return that was blocking text selection integration
+          const selectedText = state.doc.textBetween(selection.from, selection.to, ' ');
+          
+          if (selectedText && selectedText.trim().length > 0) {
+            // Route text selection to unified selection system
+            dispatch({
+              type: 'SELECT_TEXT',
+              selection: {
+                blockId: nodeId,
+                selectedText,
+                editor,
+                range: {
+                  from: selection.from,
+                  to: selection.to,
+                },
+                textElement: targetElement,
+                hasSelection: true,
+              },
+            });
+            
+            globalMonitor.recordProseMirrorCall('text-selection-unified-integration', {
+              selectedText: selectedText.substring(0, 50) + (selectedText.length > 50 ? '...' : ''),
+              textLength: selectedText.length,
+              blockId: nodeId,
+              note: 'Text selection successfully routed to unified selection system'
+            });
+          } else {
+            // 🎯 CRITICAL FIX: Only clear selection if this block had an active text selection
+            // Don't clear selections from other blocks or selection types
+            const currentSelection = useSelectionStore.getState().selection;
+            if (currentSelection.type === 'text' && 
+                isTextSelection(currentSelection) && 
+                currentSelection.textSelection?.blockId === nodeId) {
+              dispatch({ type: 'CLEAR_SELECTION' });
+              globalMonitor.recordProseMirrorCall('text-selection-cleared', {
+                blockId: nodeId,
+                note: 'Cleared text selection for this block only'
+              });
+            }
+          }
+          
+          // Continue processing (no early return)
         }
         
         if (cellNode) {
@@ -1131,6 +1183,10 @@ export const useRichTextEditor = ({
       unsetLetterSpacing: () => editor?.commands.unsetLetterSpacing(),
       increaseLetterSpacing: () => editor?.commands.increaseLetterSpacing(),
       decreaseLetterSpacing: () => editor?.commands.decreaseLetterSpacing(),
+      
+      // Text alignment (node-based)
+      setTextAlign: (alignment: 'left' | 'center' | 'right' | 'justify') => editor?.commands.setTextAlign(alignment),
+      unsetTextAlign: () => editor?.commands.unsetTextAlign(),
     },
 
     // Block formatting (always enabled)
@@ -1168,6 +1224,13 @@ export const useRichTextEditor = ({
       backgroundColor: editor?.isActive('backgroundColor') ?? false,
       textTransform: editor?.isActive('textTransform') ?? false,
       letterSpacing: editor?.isActive('letterSpacing') ?? false,
+      textAlign: (() => {
+        if (!editor) return false;
+        // Check if current block has text alignment
+        const { selection } = editor.state;
+        const currentNode = selection.$anchor.parent;
+        return Boolean(currentNode?.attrs?.textAlign);
+      })(),
       
       // REMOVED: poll state - polls moved to community-only features
     },
@@ -1175,6 +1238,11 @@ export const useRichTextEditor = ({
     // Get current typography attributes for selection
     getTypographyAttributes: () => {
       if (!editor) return {};
+      
+      // Get text alignment from current block node
+      const { selection } = editor.state;
+      const currentNode = selection?.$anchor?.parent;
+      const textAlign = currentNode?.attrs?.textAlign || null;
       
       return {
         fontFamily: editor.getAttributes('fontFamily').fontFamily,
@@ -1184,6 +1252,7 @@ export const useRichTextEditor = ({
         backgroundColor: editor.getAttributes('backgroundColor').backgroundColor,
         textTransform: editor.getAttributes('textTransform').textTransform,
         letterSpacing: editor.getAttributes('letterSpacing').letterSpacing,
+        textAlign: textAlign,
       };
     },
   };

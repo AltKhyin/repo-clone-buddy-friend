@@ -4,20 +4,26 @@ import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { Type, Palette, Bold, Italic, Underline, Strikethrough } from 'lucide-react';
-import type { TextSelectionInfo } from '@/hooks/useTextSelection';
+import { useUnifiedSelection } from '@/hooks/useUnifiedSelection';
 
 interface SelectionIndicatorProps {
-  textSelection: TextSelectionInfo;
   className?: string;
   compact?: boolean;
 }
 
 export const SelectionIndicator: React.FC<SelectionIndicatorProps> = ({
-  textSelection,
   className,
   compact = false,
 }) => {
-  const { hasSelection, selectedText, appliedMarks, isTipTapSelection } = textSelection;
+  // 🎯 UNIFIED SELECTION: Use unified system instead of textSelection prop
+  const { hasSelection, appliedMarks, currentSelection } = useUnifiedSelection();
+  
+  // Extract selected text from current selection
+  const selectedText = currentSelection.type === 'text' 
+    ? currentSelection.textSelection?.selectedText || ''
+    : currentSelection.type === 'table-cell'
+    ? 'Table Cell Selected'
+    : '';
 
   if (!hasSelection || !selectedText.trim()) {
     return null;
@@ -170,11 +176,7 @@ export const SelectionIndicator: React.FC<SelectionIndicatorProps> = ({
         </div>
       )}
       
-      {isTipTapSelection && (
-        <Badge variant="outline" className="h-5 px-1.5 text-xs">
-          TipTap
-        </Badge>
-      )}
+      {/* TODO: Add TipTap indicator when selection comes from TipTap editor */}
     </div>
   );
 };
@@ -183,12 +185,10 @@ export const SelectionIndicator: React.FC<SelectionIndicatorProps> = ({
  * Compact selection indicator for toolbar use
  */
 export const CompactSelectionIndicator: React.FC<{
-  textSelection: TextSelectionInfo;
   className?: string;
-}> = ({ textSelection, className }) => {
+}> = ({ className }) => {
   return (
     <SelectionIndicator
-      textSelection={textSelection}
       className={className}
       compact={true}
     />
@@ -199,30 +199,40 @@ export const CompactSelectionIndicator: React.FC<{
  * Floating selection indicator that follows text selection
  */
 export const FloatingSelectionIndicator: React.FC<{
-  textSelection: TextSelectionInfo;
   className?: string;
-}> = ({ textSelection, className }) => {
+}> = ({ className }) => {
+  // 🎯 UNIFIED SELECTION: Use unified system for floating indicator
+  const { hasSelection, currentSelection } = useUnifiedSelection();
   const [position, setPosition] = React.useState<{ x: number; y: number } | null>(null);
 
   React.useEffect(() => {
-    if (!textSelection.hasSelection || !textSelection.range) {
+    if (!hasSelection) {
       setPosition(null);
       return;
     }
 
     try {
-      const rect = textSelection.range.getBoundingClientRect();
-      setPosition({
-        x: rect.left + rect.width / 2,
-        y: rect.top - 40, // Position above the selection
-      });
+      let rect: DOMRect | null = null;
+      
+      if (currentSelection.type === 'text' && currentSelection.textSelection?.range) {
+        rect = currentSelection.textSelection.range.getBoundingClientRect();
+      } else if (currentSelection.type === 'table-cell' && currentSelection.cellSelection?.element) {
+        rect = currentSelection.cellSelection.element.getBoundingClientRect();
+      }
+      
+      if (rect) {
+        setPosition({
+          x: rect.left + rect.width / 2,
+          y: rect.top - 40, // Position above the selection
+        });
+      }
     } catch (error) {
       console.warn('Failed to get selection position:', error);
       setPosition(null);
     }
-  }, [textSelection]);
+  }, [hasSelection, currentSelection]);
 
-  if (!position || !textSelection.hasSelection) {
+  if (!position || !hasSelection) {
     return null;
   }
 
@@ -240,7 +250,7 @@ export const FloatingSelectionIndicator: React.FC<{
         top: position.y,
       }}
     >
-      <SelectionIndicator textSelection={textSelection} compact={true} />
+      <SelectionIndicator compact={true} />
     </div>
   );
 };

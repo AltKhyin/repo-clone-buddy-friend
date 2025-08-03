@@ -4,31 +4,27 @@ import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { MousePointer, Square, Type } from 'lucide-react';
-import type { TextSelectionInfo } from '@/hooks/useTextSelection';
+import { useUnifiedSelection } from '@/hooks/useUnifiedSelection';
 
 interface TypographyModeIndicatorProps {
-  textSelection: TextSelectionInfo | null;
-  isBlockTypographySupported: boolean;
-  selectedNodeType?: string;
   className?: string;
   showLabel?: boolean;
 }
 
 export const TypographyModeIndicator: React.FC<TypographyModeIndicatorProps> = ({
-  textSelection,
-  isBlockTypographySupported,
-  selectedNodeType,
   className,
   showLabel = true,
 }) => {
-  const hasTextSelection = textSelection?.hasSelection ?? false;
-  const isTipTapSelection = textSelection?.isTipTapSelection ?? false;
+  // 🎯 UNIFIED SELECTION: Use unified system to determine typography mode
+  const { hasSelection, canApplyTypography, currentSelection } = useUnifiedSelection();
   
-  // Determine current typography mode
-  const mode = hasTextSelection && isTipTapSelection 
-    ? 'selection' 
-    : isBlockTypographySupported 
-      ? 'block' 
+  // Determine current typography mode based on unified selection
+  const mode = hasSelection && canApplyTypography
+    ? currentSelection.type === 'table-cell' 
+      ? 'table-cell'
+      : 'selection'
+    : hasSelection && currentSelection.type === 'block'
+      ? 'block'
       : 'none';
 
   if (mode === 'none') {
@@ -41,6 +37,13 @@ export const TypographyModeIndicator: React.FC<TypographyModeIndicatorProps> = (
       label: 'Selection Mode',
       description: 'Typography applies to selected text',
       color: 'blue',
+      variant: 'default' as const,
+    },
+    'table-cell': {
+      icon: Square,
+      label: 'Table Cell Mode',
+      description: 'Typography applies to table cell content',
+      color: 'green',
       variant: 'default' as const,
     },
     block: {
@@ -69,6 +72,7 @@ export const TypographyModeIndicator: React.FC<TypographyModeIndicatorProps> = (
         className={cn(
           'flex items-center gap-1 h-5 px-2 text-xs',
           mode === 'selection' && 'bg-blue-100 text-blue-700 border-blue-200',
+          mode === 'table-cell' && 'bg-green-100 text-green-700 border-green-200',
           mode === 'block' && 'bg-slate-100 text-slate-700 border-slate-200'
         )}
         title={config.description}
@@ -77,11 +81,7 @@ export const TypographyModeIndicator: React.FC<TypographyModeIndicatorProps> = (
         {showLabel && <span>{config.label}</span>}
       </Badge>
       
-      {selectedNodeType && (
-        <span className="text-xs text-muted-foreground">
-          {selectedNodeType}
-        </span>
-      )}
+      {/* TODO: Add selected node type indicator when available from editor state */}
     </div>
   );
 };
@@ -90,14 +90,10 @@ export const TypographyModeIndicator: React.FC<TypographyModeIndicatorProps> = (
  * Compact mode indicator for toolbar
  */
 export const CompactTypographyModeIndicator: React.FC<{
-  textSelection: TextSelectionInfo | null;
-  isBlockTypographySupported: boolean;
   className?: string;
-}> = ({ textSelection, isBlockTypographySupported, className }) => {
+}> = ({ className }) => {
   return (
     <TypographyModeIndicator
-      textSelection={textSelection}
-      isBlockTypographySupported={isBlockTypographySupported}
       className={className}
       showLabel={false}
     />
@@ -108,31 +104,19 @@ export const CompactTypographyModeIndicator: React.FC<{
  * Typography context indicator with enhanced information
  */
 export const TypographyContextIndicator: React.FC<{
-  textSelection: TextSelectionInfo | null;
-  isBlockTypographySupported: boolean;
-  selectedNodeType?: string;
-  appliedMarksCount?: number;
   className?: string;
-}> = ({ 
-  textSelection, 
-  isBlockTypographySupported, 
-  selectedNodeType, 
-  appliedMarksCount = 0,
-  className 
-}) => {
-  const hasTextSelection = textSelection?.hasSelection ?? false;
-  const isTipTapSelection = textSelection?.isTipTapSelection ?? false;
+}> = ({ className }) => {
+  // 🎯 UNIFIED SELECTION: Use unified system for context indicator
+  const { hasSelection, canApplyTypography, appliedMarks } = useUnifiedSelection();
+  
+  // Count applied marks
+  const appliedMarksCount = Object.values(appliedMarks).filter(Boolean).length;
   
   return (
     <div className={cn('flex items-center gap-2 text-xs', className)}>
-      <TypographyModeIndicator
-        textSelection={textSelection}
-        isBlockTypographySupported={isBlockTypographySupported}
-        selectedNodeType={selectedNodeType}
-        showLabel={true}
-      />
+      <TypographyModeIndicator showLabel={true} />
       
-      {hasTextSelection && isTipTapSelection && appliedMarksCount > 0 && (
+      {hasSelection && canApplyTypography && appliedMarksCount > 0 && (
         <Badge variant="outline" className="h-5 px-1.5 text-xs">
           {appliedMarksCount} {appliedMarksCount === 1 ? 'format' : 'formats'}
         </Badge>

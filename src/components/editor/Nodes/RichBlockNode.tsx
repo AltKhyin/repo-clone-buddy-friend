@@ -6,6 +6,7 @@ import { useEditorStore } from '@/store/editorStore';
 import { useEditorTheme } from '@/hooks/useEditorTheme';
 import { useRichTextEditor } from '@/hooks/useRichTextEditor';
 import { useSelectionCoordination } from '@/hooks/useSelectionCoordination';
+import { useSelectionStore } from '@/store/selectionStore';
 import { useContentHeightCalculator } from '@/hooks/useContentHeightCalculator';
 import { UnifiedBlockWrapper } from '@/components/editor/shared/UnifiedBlockWrapper';
 import { RichBlockData, ContentSelectionType } from '@/types/editor';
@@ -49,6 +50,9 @@ export const RichBlockNode = memo<RichBlockNodeProps>(
       componentType: 'text',
       enableContentSelection: true,
     });
+    
+    // UNIFIED SELECTION SYSTEM: Direct integration for text selections
+    const { dispatch } = useSelectionStore();
 
     // Handle content updates from TipTap
     const handleContentUpdate = useCallback(
@@ -221,13 +225,16 @@ export const RichBlockNode = memo<RichBlockNodeProps>(
           clickY <= rect.height - paddingY;
 
         if (isWithinContentArea) {
-          // Coordinate text selection with unified system
-          handleContentSelection(ContentSelectionType.TEXT, {
-            textSelection: {
+          // 🎯 UNIFIED SELECTION INTEGRATION: Route text selection directly to unified system
+          // This replaces the old handleContentSelection that went through EditorStore
+          dispatch({
+            type: 'SELECT_TEXT',
+            selection: {
               blockId: id,
               selectedText: editorInstance.editor.state.doc.textContent,
-              textElement: e.currentTarget as HTMLElement,
+              editor: editorInstance.editor,
               range: null,
+              textElement: e.currentTarget as HTMLElement,
               hasSelection: false,
             },
           });
@@ -244,7 +251,7 @@ export const RichBlockNode = memo<RichBlockNodeProps>(
           handleBlockActivation(e);
         }
       },
-      [editorInstance.editor, paddingX, paddingY, id, handleContentSelection, handleBlockActivation]
+      [editorInstance.editor, paddingX, paddingY, id, dispatch, handleBlockActivation]
     );
 
     // Unified content rendering - always use TipTap editor with height calculation ref

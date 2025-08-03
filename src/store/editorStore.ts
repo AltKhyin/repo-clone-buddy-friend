@@ -470,48 +470,20 @@ export const useEditorStore = create<EditorState>((set, get) => {
     },
 
     clearAllSelection: () => {
-      // INTELLIGENT PERSISTENCE: Check if table cell selection should be preserved
-      const shouldPreserveTableSelection = (() => {
-        try {
-          // Dynamic import to avoid circular dependency
-          const { tableSelectionCoordinator } = require('@/components/editor/extensions/Table/selection/TableSelectionCoordinator');
-          return tableSelectionCoordinator.isSelectionLocked();
-        } catch (error) {
-          // If table selection coordinator is not available, proceed with clearing
-          return false;
-        }
-      })();
-
-      if (shouldPreserveTableSelection) {
-        console.log('[EditorStore] Preserving table cell selection - clearing only block selection');
-        // Only clear block selection, preserve table cell selection
-        set({
-          selectionState: {
-            ...get().selectionState,
-            activeBlockId: null,
-            hasBlockSelection: false,
-          },
-          // Sync legacy state
+      // SIMPLIFIED: Clear only block selections - unified system handles text/table selections
+      console.log('[EditorStore] Clearing block selection');
+      set({
+        selectionState: {
           activeBlockId: null,
-          selectedNodeId: null,
-          // Preserve textSelection if it contains table cell info
-        });
-      } else {
-        // Normal clearing behavior
-        set({
-          selectionState: {
-            activeBlockId: null,
-            contentSelection: null,
-            hasBlockSelection: false,
-            hasContentSelection: false,
-            preventMultiSelection: true,
-          },
-          // Sync legacy state
-          activeBlockId: null,
-          selectedNodeId: null,
-          textSelection: null,
-        });
-      }
+          contentSelection: null,
+          hasBlockSelection: false,
+          hasContentSelection: false,
+          preventMultiSelection: true,
+        },
+        // Sync legacy state
+        selectedNodeId: null,
+        textSelection: null,
+      });
     },
 
     // Content-specific selection actions

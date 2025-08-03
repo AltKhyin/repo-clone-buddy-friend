@@ -14,6 +14,7 @@ import { TextColorMark } from '../TextColorMark';
 import { BackgroundColorMark } from '../BackgroundColorMark';
 import { TextTransformMark } from '../TextTransformMark';
 import { LetterSpacingMark } from '../LetterSpacingMark';
+import { TextAlignNode } from '../../nodes/TextAlignNode';
 
 // Import typography system constants for validation
 import { FONT_FAMILIES, FONT_WEIGHTS, TEXT_TRANSFORMS } from '../../../shared/typography-system';
@@ -34,6 +35,7 @@ describe('Typography Mark Extensions', () => {
         BackgroundColorMark,
         TextTransformMark,
         LetterSpacingMark,
+        TextAlignNode,
       ],
       content: '<p>Test content for typography marks</p>',
     });
@@ -527,6 +529,214 @@ describe('Typography Mark Extensions', () => {
     });
   });
 
+  describe('TextAlignNode', () => {
+    describe('Node Configuration', () => {
+      it('should have correct name', () => {
+        expect(TextAlignNode.name).toBe('textAlign');
+      });
+
+      it('should define global attributes for block elements', () => {
+        const globalAttributes = TextAlignNode.config.addGlobalAttributes();
+        expect(globalAttributes).toHaveLength(1);
+        expect(globalAttributes[0].types).toEqual(['paragraph', 'heading']);
+        expect(globalAttributes[0].attributes).toHaveProperty('textAlign');
+      });
+
+      it('should have proper command configuration', () => {
+        expect(TextAlignNode.config.addCommands).toBeDefined();
+        expect(typeof TextAlignNode.config.addCommands).toBe('function');
+      });
+    });
+
+    describe('Command Execution', () => {
+      it('should apply left text alignment to paragraph', () => {
+        editor.commands.selectAll();
+        const result = editor.commands.setTextAlign('left');
+        
+        expect(result).toBe(true);
+        
+        const html = editor.getHTML();
+        expect(html).toContain('<p style="text-align: left">');
+      });
+
+      it('should apply center text alignment to paragraph', () => {
+        editor.commands.selectAll();
+        const result = editor.commands.setTextAlign('center');
+        
+        expect(result).toBe(true);
+        
+        const html = editor.getHTML();
+        expect(html).toContain('<p style="text-align: center">');
+      });
+
+      it('should apply right text alignment to paragraph', () => {
+        editor.commands.selectAll();
+        const result = editor.commands.setTextAlign('right');
+        
+        expect(result).toBe(true);
+        
+        const html = editor.getHTML();
+        expect(html).toContain('<p style="text-align: right">');
+      });
+
+      it('should apply justify text alignment to paragraph', () => {
+        editor.commands.selectAll();
+        const result = editor.commands.setTextAlign('justify');
+        
+        expect(result).toBe(true);
+        
+        const html = editor.getHTML();
+        expect(html).toContain('<p style="text-align: justify">');
+      });
+
+      it('should unset text alignment from paragraph', () => {
+        editor.commands.selectAll();
+        editor.commands.setTextAlign('center');
+        
+        let html = editor.getHTML();
+        expect(html).toContain('<p style="text-align: center">');
+        
+        const result = editor.commands.unsetTextAlign();
+        expect(result).toBe(true);
+        
+        html = editor.getHTML();
+        expect(html).not.toContain('text-align');
+      });
+
+      it('should apply text alignment to block elements', () => {
+        editor.commands.selectAll();
+        const result = editor.commands.setTextAlign('center');
+        
+        expect(result).toBe(true);
+        
+        const html = editor.getHTML();
+        expect(html).toContain('style="text-align: center"');
+      });
+    });
+
+    describe('Validation', () => {
+      it('should reject invalid alignment values', () => {
+        editor.commands.selectAll();
+        
+        const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+        
+        const result = editor.commands.setTextAlign('invalid' as any);
+        expect(result).toBe(false);
+        expect(consoleSpy).toHaveBeenCalledWith(
+          expect.stringContaining('Invalid text alignment: invalid')
+        );
+        
+        consoleSpy.mockRestore();
+      });
+
+      it('should reject null/undefined values', () => {
+        editor.commands.selectAll();
+        
+        const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+        
+        const result1 = editor.commands.setTextAlign(null as any);
+        const result2 = editor.commands.setTextAlign(undefined as any);
+        
+        expect(result1).toBe(false);
+        expect(result2).toBe(false);
+        expect(consoleSpy).toHaveBeenCalledTimes(2);
+        
+        consoleSpy.mockRestore();
+      });
+
+      it('should handle case insensitive input', () => {
+        editor.commands.selectAll();
+        
+        const result = editor.commands.setTextAlign('CENTER' as any);
+        expect(result).toBe(true);
+        
+        const html = editor.getHTML();
+        expect(html).toContain('style="text-align: center"');
+      });
+    });
+
+    describe('HTML Parsing', () => {
+      it('should parse existing text-align styles from paragraph elements', () => {
+        const htmlContent = '<p style="text-align: center">Centered text</p>';
+        editor.commands.setContent(htmlContent);
+        
+        // Check if the alignment is preserved in the paragraph
+        const html = editor.getHTML();
+        expect(html).toContain('<p style="text-align: center">');
+      });
+
+      it('should apply text-align to paragraphs when setting content', () => {
+        // Test content-based alignment application
+        editor.commands.selectAll();
+        editor.commands.setTextAlign('right');
+        
+        // Check if the alignment is applied to the paragraph
+        const html = editor.getHTML();
+        expect(html).toContain('<p style="text-align: right">');
+      });
+
+      it('should ignore text-align on non-block elements', () => {
+        const htmlContent = '<p><span style="text-align: center">Text in span</span></p>';
+        editor.commands.setContent(htmlContent);
+        
+        // The span text-align should be ignored, only paragraph can have alignment
+        const html = editor.getHTML();
+        expect(html).not.toContain('text-align');
+        expect(html).toContain('<p>');
+      });
+    });
+
+    describe('Node and Mark Interaction', () => {
+      it('should work with typography marks on aligned blocks', () => {
+        editor.commands.selectAll();
+        
+        // Apply text alignment to paragraph and marks to text
+        editor.commands.setTextAlign('center');
+        editor.commands.setFontFamily('Arial');
+        editor.commands.setFontSize(18);
+        editor.commands.setTextColor('#ff0000');
+        
+        const html = editor.getHTML();
+        expect(html).toContain('<p style="text-align: center">');
+        expect(html).toContain('font-family: Arial');
+        expect(html).toContain('font-size: 18px');
+        expect(html).toContain('color: #ff0000');
+      });
+
+      it('should override previous text alignment on same block', () => {
+        editor.commands.selectAll();
+        
+        // First alignment
+        editor.commands.setTextAlign('left');
+        let html = editor.getHTML();
+        expect(html).toContain('<p style="text-align: left">');
+        
+        // Override with new alignment
+        editor.commands.setTextAlign('right');
+        html = editor.getHTML();
+        expect(html).toContain('<p style="text-align: right">');
+        expect(html).not.toContain('text-align: left');
+      });
+
+      it('should work with multiple block element operations', () => {
+        editor.commands.selectAll();
+        editor.commands.setTextAlign('center');
+        
+        // Verify alignment persists through content operations
+        let html = editor.getHTML();
+        expect(html).toContain('<p style="text-align: center">');
+        
+        // Clear and re-apply to ensure consistency
+        editor.commands.unsetTextAlign();
+        editor.commands.setTextAlign('justify');
+        
+        html = editor.getHTML();
+        expect(html).toContain('<p style="text-align: justify">');
+        expect(html).not.toContain('text-align: center');
+      });
+    });
+  });
+
   describe('Mark Integration', () => {
     describe('Multiple Marks Application', () => {
       it('should apply multiple marks simultaneously', () => {
@@ -715,6 +925,7 @@ describe('Typography Commands Integration', () => {
         BackgroundColorMark,
         TextTransformMark,
         LetterSpacingMark,
+        TextAlignNode,
       ],
       content: '<p>Test content</p>',
     });

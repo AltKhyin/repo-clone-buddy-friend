@@ -10,10 +10,12 @@ export interface TypographyProperties {
   fontFamily?: string;
   fontSize?: number;
   fontWeight?: number;
+  fontStyle?: 'normal' | 'italic';
   textColor?: string;
   backgroundColor?: string;
   textTransform?: string;
   letterSpacing?: string | number;
+  textAlign?: 'left' | 'center' | 'right' | 'justify';
 }
 
 /**
@@ -93,6 +95,8 @@ export class TypographyCommands {
           return this.setFontSize(value);
         case 'fontWeight':
           return this.setFontWeight(value);
+        case 'fontStyle':
+          return this.setFontStyle(value);
         case 'textColor':
           return this.setTextColor(value);
         case 'backgroundColor':
@@ -101,6 +105,8 @@ export class TypographyCommands {
           return this.setTextTransform(value);
         case 'letterSpacing':
           return this.setLetterSpacing(value);
+        case 'textAlign':
+          return this.setTextAlign(value);
         default:
           result.errors.push(`Unknown typography property: ${property}`);
           return result;
@@ -223,6 +229,40 @@ export class TypographyCommands {
   }
 
   /**
+   * Set font style (italic/normal) with validation
+   */
+  setFontStyle(fontStyle: 'normal' | 'italic'): TypographyCommandResult {
+    const result: TypographyCommandResult = {
+      success: false,
+      appliedProperties: {},
+      errors: [],
+    };
+
+    if (fontStyle !== 'normal' && fontStyle !== 'italic') {
+      result.errors.push(`Invalid font style: ${fontStyle}. Valid styles: normal, italic`);
+      return result;
+    }
+
+    try {
+      // Use TipTap's toggleItalic command for better editor integration
+      const success = fontStyle === 'italic' 
+        ? this.editor.commands.toggleItalic()
+        : this.editor.commands.unsetItalic?.() || this.editor.commands.toggleItalic();
+        
+      if (success) {
+        result.success = true;
+        result.appliedProperties.fontStyle = fontStyle;
+      } else {
+        result.errors.push('Failed to apply font style command');
+      }
+    } catch (error) {
+      result.errors.push(`Font style command error: ${error}`);
+    }
+
+    return result;
+  }
+
+  /**
    * Set text color with validation
    */
   setTextColor(color: string): TypographyCommandResult {
@@ -276,7 +316,8 @@ export class TypographyCommands {
     }
 
     try {
-      const success = this.editor.commands.setBackgroundColor(trimmedColor);
+      // Use TipTap's setHighlight for background colors (highlighting)
+      const success = this.editor.commands.setHighlight({ color: trimmedColor });
       if (success) {
         result.success = true;
         result.appliedProperties.backgroundColor = trimmedColor;
@@ -355,6 +396,46 @@ export class TypographyCommands {
   }
 
   /**
+   * Set text alignment with validation
+   * Uses node-based approach to apply alignment to block elements
+   */
+  setTextAlign(alignment: 'left' | 'center' | 'right' | 'justify'): TypographyCommandResult {
+    const result: TypographyCommandResult = {
+      success: false,
+      appliedProperties: {},
+      errors: [],
+    };
+
+    // Validate alignment value
+    const validAlignments = ['left', 'center', 'right', 'justify'];
+    if (!alignment || typeof alignment !== 'string') {
+      result.errors.push(`Invalid text alignment: ${alignment}`);
+      return result;
+    }
+
+    const trimmedAlignment = alignment.trim().toLowerCase();
+    if (!validAlignments.includes(trimmedAlignment)) {
+      result.errors.push(`Invalid text alignment: ${alignment}. Valid alignments: ${validAlignments.join(', ')}`);
+      return result;
+    }
+
+    try {
+      // Use node-based text alignment command which targets block elements
+      const success = this.editor.commands.setTextAlign(trimmedAlignment as 'left' | 'center' | 'right' | 'justify');
+      if (success) {
+        result.success = true;
+        result.appliedProperties.textAlign = trimmedAlignment as 'left' | 'center' | 'right' | 'justify';
+      } else {
+        result.errors.push('Failed to apply text alignment command to block elements');
+      }
+    } catch (error) {
+      result.errors.push(`Text alignment command error: ${error}`);
+    }
+
+    return result;
+  }
+
+  /**
    * Unset a typography property
    */
   unsetProperty(property: keyof TypographyProperties): TypographyCommandResult {
@@ -394,6 +475,9 @@ export class TypographyCommands {
         case 'letterSpacing':
           success = this.editor.commands.unsetLetterSpacing();
           break;
+        case 'textAlign':
+          success = this.editor.commands.unsetTextAlign();
+          break;
         default:
           result.errors.push(`Cannot unset unknown property: ${property}`);
           return result;
@@ -420,6 +504,11 @@ export class TypographyCommands {
     if (!this.editor) return {};
 
     try {
+      // Get text alignment from current block node (paragraph/heading)
+      const { selection } = this.editor.state;
+      const currentNode = selection.$anchor.parent;
+      const textAlign = currentNode?.attrs?.textAlign || null;
+
       return {
         fontFamily: this.editor.getAttributes('fontFamily').fontFamily,
         fontSize: this.editor.getAttributes('fontSize').fontSize,
@@ -428,6 +517,7 @@ export class TypographyCommands {
         backgroundColor: this.editor.getAttributes('backgroundColor').backgroundColor,
         textTransform: this.editor.getAttributes('textTransform').textTransform,
         letterSpacing: this.editor.getAttributes('letterSpacing').letterSpacing,
+        textAlign: textAlign,
       };
     } catch (error) {
       console.warn('Failed to get current typography attributes:', error);
@@ -448,10 +538,16 @@ export class TypographyCommands {
         backgroundColor: false,
         textTransform: false,
         letterSpacing: false,
+        textAlign: false,
       };
     }
 
     try {
+      // Check text alignment from current block node
+      const { selection } = this.editor.state;
+      const currentNode = selection.$anchor.parent;
+      const hasTextAlign = Boolean(currentNode?.attrs?.textAlign);
+
       return {
         fontFamily: this.editor.isActive('fontFamily'),
         fontSize: this.editor.isActive('fontSize'),
@@ -460,6 +556,7 @@ export class TypographyCommands {
         backgroundColor: this.editor.isActive('backgroundColor'),
         textTransform: this.editor.isActive('textTransform'),
         letterSpacing: this.editor.isActive('letterSpacing'),
+        textAlign: hasTextAlign,
       };
     } catch (error) {
       console.warn('Failed to get active typography marks:', error);
@@ -471,6 +568,7 @@ export class TypographyCommands {
         backgroundColor: false,
         textTransform: false,
         letterSpacing: false,
+        textAlign: false,
       };
     }
   }

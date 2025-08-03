@@ -14,7 +14,7 @@ import {
 import { optimizeForDisplay } from './utils/richContentRenderer';
 import { performanceOptimizedTableCellManager } from './performance/PerformanceOptimizedTableCellManager';
 import { createTypographyCommands } from '../../shared/typography-commands';
-import { tableSelectionCoordinator } from './selection/TableSelectionCoordinator';
+import { useUnifiedSelection } from '@/hooks/useUnifiedSelection';
 
 interface RichTableCellProps {
   /** Cell content (rich HTML or plain text) */
@@ -67,6 +67,9 @@ export const RichTableCell = React.memo(React.forwardRef<RichTableCellRef, RichT
   const editorRef = useRef<Editor | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
+  
+  // 🎯 UNIFIED SELECTION: Replace old tableSelectionCoordinator with unified system
+  const { selectTableCell, clearSelection } = useUnifiedSelection();
 
 
   // Ensure content is in rich format
@@ -133,20 +136,18 @@ export const RichTableCell = React.memo(React.forwardRef<RichTableCellRef, RichT
       setIsEditing(true);
       setIsFocused(true);
       
-      // Coordinate with table selection system
-      // Fix: Extract table ID by removing last two segments (row and col)
+      // 🎯 UNIFIED SELECTION: Use unified system instead of old coordinator
       const parts = cellId.split('-');
       const tableId = parts.slice(0, -2).join('-');
       
-      // CRITICAL FIX: Pass the editor instance to the coordinator
-      tableSelectionCoordinator.focusCell(tableId, position, {
-        scrollIntoView: false, // We handle this manually
-        selectContent: false,
-        clearPreviousSelection: true,
-        // NEW: Pass the editor and element for proper coordination
+      // Select table cell using unified selection system
+      selectTableCell(tableId, {
+        tableId,
+        position,
+        isHeader,
         editor: editorRef.current,
-        cellElement: e.currentTarget as HTMLElement,
-        cellId: cellId
+        element: e.currentTarget as HTMLElement,
+        cellId: cellId,
       });
       
       onFocus?.();
@@ -154,55 +155,34 @@ export const RichTableCell = React.memo(React.forwardRef<RichTableCellRef, RichT
     }
   }, [isFocused, onFocus, cellId, position]);
 
-  // Handle keyboard shortcuts with enhanced coordination
+  // Handle keyboard shortcuts - simplified navigation
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (!editorRef.current) return;
-
-    // Let the table selection coordinator handle navigation first
-    const tableId = cellId.split('-').slice(0, -2).join('-');
     
-    // Table navigation shortcuts - coordinate with selection system
+    // 🎯 SIMPLIFIED NAVIGATION: Direct navigation without complex coordination
     if (e.key === 'Tab') {
       e.preventDefault();
-      const handled = tableSelectionCoordinator.navigateCell(e.shiftKey ? 'left' : 'tab');
-      if (!handled) {
-        onNavigate?.(e.shiftKey ? 'left' : 'right');
-      }
+      onNavigate?.(e.shiftKey ? 'left' : 'right');
     } else if (e.key === 'Enter' && e.ctrlKey) {
       e.preventDefault();
-      const handled = tableSelectionCoordinator.navigateCell('enter');
-      if (!handled) {
-        onNavigate?.('down');
-      }
+      onNavigate?.('down');
     } else if (e.key === 'ArrowUp' && e.ctrlKey) {
       e.preventDefault();
-      const handled = tableSelectionCoordinator.navigateCell('up');
-      if (!handled) {
-        onNavigate?.('up');
-      }
+      onNavigate?.('up');
     } else if (e.key === 'ArrowDown' && e.ctrlKey) {
       e.preventDefault();
-      const handled = tableSelectionCoordinator.navigateCell('down');
-      if (!handled) {
-        onNavigate?.('down');
-      }
+      onNavigate?.('down');
     } else if (e.key === 'ArrowLeft' && e.ctrlKey) {
       e.preventDefault();
-      const handled = tableSelectionCoordinator.navigateCell('left');
-      if (!handled) {
-        onNavigate?.('left');
-      }
+      onNavigate?.('left');
     } else if (e.key === 'ArrowRight' && e.ctrlKey) {
       e.preventDefault();
-      const handled = tableSelectionCoordinator.navigateCell('right');
-      if (!handled) {
-        onNavigate?.('right');
-      }
+      onNavigate?.('right');
     } else if (e.key === 'Escape') {
       e.preventDefault();
-      tableSelectionCoordinator.clearSelection();
+      clearSelection();
     }
-  }, [onNavigate, cellId]);
+  }, [onNavigate, clearSelection]);
 
   // Get typography commands for this cell's editor
   const typographyCommands = useMemo(() => {
