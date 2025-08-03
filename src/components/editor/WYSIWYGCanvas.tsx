@@ -2,7 +2,7 @@
 
 import React, { useCallback, useMemo, useRef } from 'react';
 import { useDroppable } from '@dnd-kit/core';
-import { useEditorStore } from '@/store/editorStore';
+import { useEditorStore, useEditorActions } from '@/store/editorStore';
 import { DraggableBlock } from './DraggableBlock';
 import { useEditorTheme } from '@/hooks/useEditorTheme';
 import { BlockPosition } from '@/types/editor';
@@ -25,12 +25,14 @@ export function WYSIWYGCanvas() {
     positions: storePositions,
     selectedNodeId,
     canvasZoom,
-    selectNode,
     addNode,
     updateNodePosition,
     initializeNodePosition,
     updateCanvasZoom,
   } = useEditorStore();
+
+  // Use unified selection system instead of legacy selectNode
+  const { clearAllSelection, activateBlock } = useEditorActions();
 
   const { colors } = useEditorTheme();
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -66,14 +68,55 @@ export function WYSIWYGCanvas() {
     [updateNodePosition]
   );
 
-  // Handle canvas click (deselect blocks)
+  // Helper to detect if interaction is with toolbar/UI elements that should preserve table selection
+  const isInteractionOutsideCanvas = useCallback((e: React.MouseEvent): boolean => {
+    // Check if the original event target is a toolbar element
+    const target = e.nativeEvent.target as HTMLElement;
+    
+    // Preserve selection for toolbar and UI interactions
+    const preserveSelectionSelectors = [
+      '[data-toolbar]',           // Typography toolbar
+      '[data-inspector]',         // Inspector panel
+      '[data-menu]',             // Dropdown menus
+      '[role="menuitem"]',       // Menu items
+      '[role="button"]',         // Buttons
+      '.toolbar',                // CSS class based selectors
+      '.inspector',
+      '.dropdown',
+      '.popover',
+      '[data-radix-collection-item]', // Radix UI components
+    ];
+    
+    // Check if target or any parent matches preservation selectors
+    for (const selector of preserveSelectionSelectors) {
+      if (target.closest(selector)) {
+        return true;
+      }
+    }
+    
+    // Check if target is outside the canvas entirely
+    const canvasElement = canvasRef.current;
+    if (canvasElement && !canvasElement.contains(target)) {
+      return true;
+    }
+    
+    return false;
+  }, []);
+
+  // Handle canvas click (deselect blocks) - using unified selection system with table cell selection persistence
   const handleCanvasClick = useCallback(
     (e: React.MouseEvent) => {
+      // Only clear selection if clicking directly on the canvas background
       if (e.target === e.currentTarget) {
-        selectNode(null);
+        // INTELLIGENT SELECTION PERSISTENCE: Check if we should preserve table cell selection
+        const shouldPreserveTableSelection = isInteractionOutsideCanvas(e);
+        
+        if (!shouldPreserveTableSelection) {
+          clearAllSelection();
+        }
       }
     },
-    [selectNode]
+    [clearAllSelection, isInteractionOutsideCanvas]
   );
 
   return (
@@ -136,7 +179,7 @@ export function WYSIWYGCanvas() {
                 isSelected={selectedNodeId === node.id}
                 zoom={canvasZoom}
                 onPositionChange={update => handlePositionChange(node.id, update)}
-                onSelect={() => selectNode(node.id)}
+                onSelect={() => activateBlock(node.id)}
               />
             );
           })}

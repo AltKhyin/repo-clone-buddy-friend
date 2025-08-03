@@ -13,9 +13,32 @@ export interface TableOptions {
   View: any;
 }
 
+/**
+ * Rich content cell data
+ */
+export interface RichCellData {
+  /** Rich HTML content for the cell */
+  content: string;
+  /** Cell-specific styling overrides (optional) */
+  styling?: {
+    backgroundColor?: string;
+    textAlign?: 'left' | 'center' | 'right';
+    fontSize?: number;
+    fontWeight?: number;
+  };
+}
+
+/**
+ * Table data structure supporting both legacy string cells and rich content cells
+ */
 export interface TableData {
+  /** Table headers (plain text for backward compatibility) */
   headers: string[];
-  rows: string[][];
+  /** Table rows - can contain either strings (legacy) or rich content objects */
+  rows: (string | RichCellData)[][];
+  /** Whether this table uses rich content cells */
+  isRichContent?: boolean;
+  /** Table-wide styling configuration */
   styling: {
     borderStyle: 'none' | 'solid' | 'dashed' | 'dotted';
     borderWidth: number;
@@ -29,6 +52,7 @@ export interface TableData {
     striped: boolean;
     compact: boolean;
   };
+  /** Table behavior settings */
   settings: {
     sortable: boolean;
     resizable: boolean;
@@ -36,6 +60,16 @@ export interface TableData {
     minRows: number;
     maxRows: number;
   };
+}
+
+/**
+ * Legacy table data for backward compatibility
+ */
+export interface LegacyTableData {
+  headers: string[];
+  rows: string[][];
+  styling: TableData['styling'];
+  settings: TableData['settings'];
 }
 
 declare module '@tiptap/core' {
@@ -249,13 +283,29 @@ export const TableExtension = Node.create<TableOptions>({
       ...tableData.rows.map(row => [
         'tr',
         {},
-        ...row.map(cell => [
-          'td',
-          {
-            style: `padding: ${tableData.styling.cellPadding || 12}px; border: 1px solid ${tableData.styling.borderColor || '#e2e8f0'}; text-align: ${tableData.styling.textAlign || 'left'};`,
-          },
-          cell,
-        ]),
+        ...row.map(cell => {
+          // Handle both string cells (legacy) and RichCellData objects
+          const cellContent = typeof cell === 'string' ? cell : (cell as RichCellData).content || '';
+          const cellStyling = typeof cell === 'object' && cell !== null ? (cell as RichCellData).styling : undefined;
+          
+          // Merge table-level styling with cell-specific styling
+          const cellStyles = [
+            `padding: ${tableData.styling.cellPadding || 12}px`,
+            `border: 1px solid ${tableData.styling.borderColor || '#e2e8f0'}`,
+            `text-align: ${cellStyling?.textAlign || tableData.styling.textAlign || 'left'}`,
+            cellStyling?.backgroundColor ? `background-color: ${cellStyling.backgroundColor}` : '',
+            cellStyling?.fontSize ? `font-size: ${cellStyling.fontSize}px` : `font-size: ${tableData.styling.fontSize || 14}px`,
+            cellStyling?.fontWeight ? `font-weight: ${cellStyling.fontWeight}` : `font-weight: ${tableData.styling.fontWeight || 400}`,
+          ].filter(Boolean).join('; ');
+
+          return [
+            'td',
+            {
+              style: cellStyles,
+            },
+            cellContent,
+          ];
+        }),
       ]),
     ]);
 

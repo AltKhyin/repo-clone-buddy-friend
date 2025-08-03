@@ -170,6 +170,7 @@ export const useSelectionCoordination = (config: SelectionCoordinationConfig) =>
 
   /**
    * Handle clicks outside this component (global click handler)
+   * Enhanced to properly detect canvas area clicks vs UI element clicks
    */
   const handleOutsideClick = useCallback(
     (e: MouseEvent) => {
@@ -178,11 +179,14 @@ export const useSelectionCoordination = (config: SelectionCoordinationConfig) =>
       const target = e.target as HTMLElement;
       const blockElement = document.querySelector(`[data-block-id="${blockId}"]`);
 
-      // If click is outside this block, clear its selection
-      if (blockElement && !blockElement.contains(target)) {
-        if (isActive && !selectionState.preventMultiSelection) {
-          handleSelectionClear({ clearBlock: true });
-        }
+      // Enhanced canvas detection - look for wysiwyg-canvas class
+      const canvasElement = target.closest('.wysiwyg-canvas');
+      const isCanvasClick = canvasElement && !blockElement?.contains(target);
+      
+      // Only clear selection if clicking in canvas area but outside this block
+      // This prevents clearing when clicking inspector, toolbar, or other UI elements
+      if (isCanvasClick && isActive && !selectionState.preventMultiSelection) {
+        handleSelectionClear({ clearBlock: true });
       }
     },
     [blockId, isActive, selectionState.preventMultiSelection, handleSelectionClear]

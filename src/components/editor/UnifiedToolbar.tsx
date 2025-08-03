@@ -7,20 +7,20 @@ import { useTheme } from '@/components/providers/CustomThemeProvider';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
+import { Input } from '@/components/ui/input';
 import {
-  isBlockTypographySupported,
-  getBlockTypographyProperties,
-  getBlockTypographyContext,
-  hasBlockCaptionSupport,
-  hasBlockCellSupport,
-  hasBlockMultipleTextElements,
-  validateBlockTypographyProperties,
-  mergeBlockTypographyProperties,
-} from '@/utils/blockTypographyUtils';
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { cn } from '@/lib/utils';
+// Legacy block typography support removed - now using selection-based typography for all content
 import {
   Bold,
   Italic,
+  Highlighter,
   AlignLeft,
   AlignCenter,
   AlignRight,
@@ -42,9 +42,46 @@ import {
 } from 'lucide-react';
 import { KeyboardShortcutsPanel } from './KeyboardShortcutsPanel';
 import { ThemeSelector } from '@/components/header/ThemeSelector';
-import { TypographyDropdown } from './TypographyDropdown';
 import { useTextSelection } from '@/hooks/useTextSelection';
 import { PLACEHOLDER_IMAGES, PLACEHOLDER_DIMENSIONS } from './shared/mediaConstants';
+import { HighlightColorPicker } from './shared/HighlightColorPicker';
+import {
+  FONT_FAMILIES,
+  FONT_WEIGHTS,
+  TEXT_TRANSFORMS,
+  TEXT_DECORATIONS,
+} from './shared/typography-system';
+import { createTypographyCommands } from './shared/typography-commands';
+import { useTableSelectionCoordination } from './extensions/Table/selection/useTableSelectionCoordination';
+import { tableSelectionCoordinator } from './extensions/Table/selection/TableSelectionCoordinator';
+// Removed distracting visual selection feedback - keeping it simple like Google Docs
+
+// F1.1: Extract applied marks from table cell editor
+const getTableCellAppliedMarks = (editor: any) => {
+  try {
+    if (!editor || !editor.getAttributes) {
+      return {};
+    }
+
+    // Extract typography marks from the table cell editor
+    return {
+      fontFamily: editor.getAttributes('fontFamily')?.fontFamily || 'inherit',
+      fontSize: editor.getAttributes('fontSize')?.fontSize || 16,
+      fontWeight: editor.getAttributes('fontWeight')?.fontWeight || 400,
+      fontStyle: editor.isActive('italic') ? 'italic' : 'normal',
+      textColor: editor.getAttributes('textColor')?.color || '#000000',
+      backgroundColor: editor.getAttributes('highlight')?.color || editor.getAttributes('backgroundColor')?.backgroundColor || '',
+      textAlign: editor.getAttributes('textAlign')?.textAlign || 'left',
+      textTransform: editor.getAttributes('textTransform')?.textTransform || 'none',
+      letterSpacing: editor.getAttributes('letterSpacing')?.letterSpacing || 'normal',
+      textDecoration: editor.getAttributes('textDecoration')?.textDecoration || 'none',
+      lineHeight: editor.getAttributes('lineHeight')?.lineHeight || 1.4,
+    };
+  } catch (error) {
+    console.warn('Failed to extract table cell applied marks:', error);
+    return {};
+  }
+};
 
 interface UnifiedToolbarProps {
   className?: string;
@@ -56,7 +93,6 @@ export const UnifiedToolbar = React.memo(function UnifiedToolbar({
   const { reviewId } = useParams<{ reviewId: string }>();
   const {
     selectedNodeId,
-    textSelection,
     nodes,
     updateNode,
     deleteNode,
@@ -70,310 +106,371 @@ export const UnifiedToolbar = React.memo(function UnifiedToolbar({
     getEditor,
   } = useEditorStore();
 
-  // Text Selection Hook for unified typography editing
-  const { applyTypographyToSelection, extractTextProperties } = useTextSelection();
+  // Enhanced Text Selection Hook with TipTap integration
+  const { textSelection, applyTypographyToSelection, extractTextProperties } = useTextSelection();
+  
+  // Table Selection Coordination Hook
+  const {
+    hasTableCellSelection,
+    focusedCell,
+    selectionContext: tableSelectionContext,
+    canApplyTypography: canApplyTableTypography,
+    getActiveTypographyCommands: getTableTypographyCommands,
+    applyTypographyToSelection: applyTableTypography,
+  } = useTableSelectionCoordination();
+
 
   const selectedNode = selectedNodeId ? nodes.find(n => n.id === selectedNodeId) : null;
 
-  // Block Typography Context - memoized to prevent dependency changes
-  const blockTypographySupported = selectedNode
-    ? isBlockTypographySupported(selectedNode.type)
-    : false;
-  const blockTypographyProperties = useMemo(
-    () => (selectedNode ? getBlockTypographyProperties(selectedNode.type) : []),
-    [selectedNode]
+  // Selection-based typography state
+  const hasTextSelection = textSelection?.hasSelection ?? false;
+  const isTipTapSelection = textSelection?.isTipTapSelection ?? false;
+  const selectionEditor = textSelection?.editor;
+
+  // F1.1: Enhanced applied marks extraction with table cell support
+  const appliedMarks = useMemo(() => {
+    // Priority 1: Table cell selection marks
+    if (hasTableCellSelection && focusedCell?.editor) {
+      return getTableCellAppliedMarks(focusedCell.editor);
+    }
+    
+    // Priority 2: Regular text selection marks
+    return textSelection?.appliedMarks ?? {};
+  }, [hasTableCellSelection, focusedCell?.editor, textSelection?.appliedMarks]);
+
+  // Typography commands instance for current selection
+  const typographyCommands = useMemo(() => {
+    return selectionEditor ? createTypographyCommands(selectionEditor) : null;
+  }, [selectionEditor]);
+
+  // Modern selection-based typography handles all content types
+  // No need for block-level typography fallback
+
+  // Simplified typography system priority - selection-based only
+  // Priority 1: Table cell selection (highest priority)
+  const useTableCellTypography = hasTableCellSelection && canApplyTableTypography();
+  // Priority 2: Regular text selection (fallback)
+  const useSelectionTypography = !useTableCellTypography && hasTextSelection && isTipTapSelection && typographyCommands;
+
+  // Typography system active state
+  const typographyActive = useTableCellTypography || useSelectionTypography;
+
+  // 🎯 PHASE 2: Toolbar interaction preservation helpers
+  const handleToolbarMouseDown = React.useCallback((e: React.MouseEvent) => {
+    // Prevent table cell selection from being cleared during toolbar interactions
+    if (hasTableCellSelection) {
+      tableSelectionCoordinator.startToolbarInteraction();
+      console.log('[UnifiedToolbar] Toolbar interaction started - preserving table cell selection');
+    }
+  }, [hasTableCellSelection]);
+
+  const handleToolbarMouseUp = React.useCallback((e: React.MouseEvent) => {
+    // End toolbar interaction after operation completes
+    if (hasTableCellSelection) {
+      tableSelectionCoordinator.endToolbarInteraction();
+      console.log('[UnifiedToolbar] Toolbar interaction ended');
+    }
+  }, [hasTableCellSelection]);
+
+
+  // Enhanced Typography Handlers with coordinated table cell support
+  const handleSelectionTypography = React.useCallback(
+    (properties: Record<string, any>) => {
+      // Priority 1: Apply to table cell selection
+      if (useTableCellTypography) {
+        return applyTableTypography(properties);
+      }
+      
+      // Priority 2: Apply to regular text selection
+      if (typographyCommands) {
+        const result = typographyCommands.applyProperties(properties);
+        if (!result.success) {
+          console.warn('Typography application failed:', result.errors);
+        }
+        return result.success;
+      }
+      
+      return false;
+    },
+    [useTableCellTypography, applyTableTypography, typographyCommands]
   );
-  const blockTypographyContext = selectedNode ? getBlockTypographyContext(selectedNode.type) : null;
 
-  // Block Special Features
-  const hasCaption = selectedNode ? hasBlockCaptionSupport(selectedNode.type) : false;
-  const hasCells = selectedNode ? hasBlockCellSupport(selectedNode.type) : false;
-  const hasMultipleTextElements = selectedNode
-    ? hasBlockMultipleTextElements(selectedNode.type)
-    : false;
-
-  // Format Operations Handlers - Enhanced for text selection
   const handleTextAlign = React.useCallback(
     (align: 'left' | 'center' | 'right' | 'justify') => {
-      // Priority 1: Apply to selected text if available
-      if (textSelection?.hasSelection) {
+      // Apply to selected text in TipTap editor
+      if (useSelectionTypography) {
+        // Note: TipTap text alignment is typically handled at the node level, not mark level
+        // For now, we'll use the legacy approach for alignment but could be enhanced
         applyTypographyToSelection({ textAlign: align });
         return;
       }
 
-      // Priority 2: Fall back to block-level alignment
-      if (selectedNodeId && selectedNode && blockTypographySupported) {
-        if (blockTypographyProperties.includes('textAlign')) {
-          updateNode(selectedNodeId, {
-            data: { ...selectedNode.data, textAlign: align },
-          });
-        }
-      }
+      // Legacy block-level alignment removed in favor of selection-based typography
+      console.warn('Text alignment requires text selection - please select text within a block');
     },
     [
-      textSelection,
+      useSelectionTypography,
       applyTypographyToSelection,
-      selectedNodeId,
-      selectedNode,
-      updateNode,
-      blockTypographySupported,
-      blockTypographyProperties,
     ]
   );
 
   const handleTextFormat = React.useCallback(
     (property: string, value: any) => {
-      // Priority 1: Apply to selected text if available
-      if (textSelection?.hasSelection) {
-        applyTypographyToSelection({ [property]: value });
-        return;
+      // Apply to selected text using TipTap marks
+      if (useSelectionTypography) {
+        return handleSelectionTypography({ [property]: value });
       }
 
-      // Priority 2: Fall back to block-level formatting
-      if (selectedNodeId && selectedNode && blockTypographySupported) {
-        // Validate the property is supported by the current block type
-        if (blockTypographyProperties.includes(property as any)) {
-          updateNode(selectedNodeId, {
-            data: { ...selectedNode.data, [property]: value },
-          });
-        }
-      }
+      // Legacy block-level formatting removed in favor of selection-based typography
+      console.warn(`Text formatting requires text selection - please select text to apply ${property}`);
+      return false;
     },
     [
-      textSelection,
-      applyTypographyToSelection,
-      selectedNodeId,
-      selectedNode,
-      updateNode,
-      blockTypographySupported,
-      blockTypographyProperties,
+      useSelectionTypography,
+      handleSelectionTypography,
     ]
   );
 
-  // Typography handlers with text selection support
-  const handleTextDecoration = React.useCallback(
-    (textDecoration: string) => {
-      // Priority 1: Apply to selected text if available
-      if (textSelection?.hasSelection) {
-        applyTypographyToSelection({ textDecoration });
-        return;
-      }
-
-      // Priority 2: Fall back to block-level formatting
-      if (selectedNodeId && selectedNode && blockTypographySupported) {
-        if (blockTypographyProperties.includes('textDecoration')) {
-          updateNode(selectedNodeId, {
-            data: { ...selectedNode.data, textDecoration },
-          });
-        }
-      }
-    },
-    [
-      textSelection,
-      applyTypographyToSelection,
-      selectedNodeId,
-      selectedNode,
-      updateNode,
-      blockTypographySupported,
-      blockTypographyProperties,
-    ]
-  );
-
+  // Enhanced Typography handlers with TipTap mark integration
   const handleFontFamily = React.useCallback(
     (fontFamily: string) => {
-      // Priority 1: Apply to selected text if available
-      if (textSelection?.hasSelection) {
-        applyTypographyToSelection({ fontFamily });
-        return;
+      // Apply to selected text using TipTap marks
+      if (useSelectionTypography) {
+        return handleSelectionTypography({ fontFamily });
       }
 
-      // Priority 2: Fall back to block-level formatting
-      if (selectedNodeId && selectedNode && blockTypographySupported) {
-        if (blockTypographyProperties.includes('fontFamily')) {
-          updateNode(selectedNodeId, {
-            data: { ...selectedNode.data, fontFamily },
-          });
-        }
-      }
+      // Legacy block-level formatting removed in favor of selection-based typography
+      console.warn('Font family requires text selection - please select text to apply font family');
     },
     [
-      textSelection,
-      applyTypographyToSelection,
-      selectedNodeId,
-      selectedNode,
-      updateNode,
-      blockTypographySupported,
-      blockTypographyProperties,
+      useSelectionTypography,
+      handleSelectionTypography,
     ]
   );
 
   const handleFontSize = React.useCallback(
     (fontSize: number) => {
-      // Priority 1: Apply to selected text if available
-      if (textSelection?.hasSelection) {
-        applyTypographyToSelection({ fontSize: `${fontSize}px` });
-        return;
+      // Apply to selected text using TipTap marks
+      if (useSelectionTypography) {
+        return handleSelectionTypography({ fontSize });
       }
 
-      // Priority 2: Fall back to block-level formatting
-      if (selectedNodeId && selectedNode && blockTypographySupported) {
-        if (blockTypographyProperties.includes('fontSize')) {
-          updateNode(selectedNodeId, {
-            data: { ...selectedNode.data, fontSize },
-          });
-        }
-      }
+      // Legacy block-level formatting removed in favor of selection-based typography
+      console.warn('Font size requires text selection - please select text to apply font size');
     },
     [
-      textSelection,
-      applyTypographyToSelection,
-      selectedNodeId,
-      selectedNode,
-      updateNode,
-      blockTypographySupported,
-      blockTypographyProperties,
+      useSelectionTypography,
+      handleSelectionTypography,
     ]
   );
 
   const handleFontWeight = React.useCallback(
     (fontWeight: number) => {
-      // Priority 1: Apply to selected text if available
-      if (textSelection?.hasSelection) {
-        applyTypographyToSelection({ fontWeight: String(fontWeight) });
-        return;
+      // Apply to selected text using TipTap marks
+      if (useSelectionTypography) {
+        return handleSelectionTypography({ fontWeight });
       }
 
-      // Priority 2: Fall back to block-level formatting
-      if (selectedNodeId && selectedNode && blockTypographySupported) {
-        if (blockTypographyProperties.includes('fontWeight')) {
-          updateNode(selectedNodeId, {
-            data: { ...selectedNode.data, fontWeight },
-          });
-        }
-      }
+      // Legacy block-level formatting removed in favor of selection-based typography
+      console.warn('Font weight requires text selection - please select text to apply font weight');
     },
     [
-      textSelection,
-      applyTypographyToSelection,
-      selectedNodeId,
-      selectedNode,
-      updateNode,
-      blockTypographySupported,
-      blockTypographyProperties,
-    ]
-  );
-
-  const handleLineHeight = React.useCallback(
-    (lineHeight: number) => {
-      // Priority 1: Apply to selected text if available
-      if (textSelection?.hasSelection) {
-        applyTypographyToSelection({ lineHeight: String(lineHeight) });
-        return;
-      }
-
-      // Priority 2: Fall back to block-level formatting
-      if (selectedNodeId && selectedNode && blockTypographySupported) {
-        if (blockTypographyProperties.includes('lineHeight')) {
-          updateNode(selectedNodeId, {
-            data: { ...selectedNode.data, lineHeight },
-          });
-        }
-      }
-    },
-    [
-      textSelection,
-      applyTypographyToSelection,
-      selectedNodeId,
-      selectedNode,
-      updateNode,
-      blockTypographySupported,
-      blockTypographyProperties,
-    ]
-  );
-
-  const handleTextTransform = React.useCallback(
-    (textTransform: string) => {
-      // Priority 1: Apply to selected text if available
-      if (textSelection?.hasSelection) {
-        applyTypographyToSelection({ textTransform });
-        return;
-      }
-
-      // Priority 2: Fall back to block-level formatting
-      if (selectedNodeId && selectedNode && blockTypographySupported) {
-        if (blockTypographyProperties.includes('textTransform')) {
-          updateNode(selectedNodeId, {
-            data: { ...selectedNode.data, textTransform },
-          });
-        }
-      }
-    },
-    [
-      textSelection,
-      applyTypographyToSelection,
-      selectedNodeId,
-      selectedNode,
-      updateNode,
-      blockTypographySupported,
-      blockTypographyProperties,
+      useSelectionTypography,
+      handleSelectionTypography,
     ]
   );
 
   const handleTextColor = React.useCallback(
     (color: string) => {
-      // Priority 1: Apply to selected text if available
-      if (textSelection?.hasSelection) {
-        applyTypographyToSelection({ color });
-        return;
+      // Apply to selected text using TipTap marks
+      if (useSelectionTypography) {
+        return handleSelectionTypography({ textColor: color });
       }
 
-      // Priority 2: Fall back to block-level formatting
-      if (selectedNodeId && selectedNode && blockTypographySupported) {
-        if (blockTypographyProperties.includes('color')) {
-          updateNode(selectedNodeId, {
-            data: { ...selectedNode.data, color },
-          });
-        }
-      }
+      // Legacy block-level formatting removed in favor of selection-based typography
+      console.warn('Text color requires text selection - please select text to apply color');
     },
     [
-      textSelection,
-      applyTypographyToSelection,
-      selectedNodeId,
-      selectedNode,
-      updateNode,
-      blockTypographySupported,
-      blockTypographyProperties,
+      useSelectionTypography,
+      handleSelectionTypography,
+    ]
+  );
+
+  const handleBackgroundColor = React.useCallback(
+    (backgroundColor: string) => {
+      // Apply to selected text using TipTap marks
+      if (useSelectionTypography) {
+        return handleSelectionTypography({ backgroundColor });
+      }
+
+      // Legacy block-level formatting removed in favor of selection-based typography
+      console.warn('Background color requires text selection - please select text to apply background color');
+    },
+    [
+      useSelectionTypography,
+      handleSelectionTypography,
+    ]
+  );
+
+  const handleHighlight = React.useCallback(
+    () => {
+      // Priority 1: Table cell selection highlighting
+      if (useTableCellTypography) {
+        const commands = getTableTypographyCommands();
+        if (commands) {
+          const result = commands.toggleHighlight();
+          return result.success;
+        }
+      }
+
+      // Priority 2: Use TipTap toggleHighlight command for selection-based highlighting
+      if (useSelectionTypography && typographyCommands) {
+        const result = typographyCommands.toggleHighlight();
+        return result.success;
+      }
+
+      // Legacy block-level highlighting removed in favor of selection-based typography
+      console.warn('Highlighting requires text selection - please select text to apply highlight');
+      
+      return false;
+    },
+    [
+      useTableCellTypography,
+      getTableTypographyCommands,
+      useSelectionTypography,
+      typographyCommands,
+    ]
+  );
+
+  const handleItalic = React.useCallback(
+    () => {
+      // Priority 1: Table cell selection italic
+      if (useTableCellTypography) {
+        const commands = getTableTypographyCommands();
+        if (commands && commands.editor) {
+          return commands.editor.commands.toggleItalic();
+        }
+      }
+
+      // Priority 2: Use TipTap toggleItalic command for selection-based formatting
+      if (useSelectionTypography && typographyCommands && typographyCommands.editor) {
+        return typographyCommands.editor.commands.toggleItalic();
+      }
+
+      console.warn('Italic requires text selection - please select text to apply italic formatting');
+      return false;
+    },
+    [
+      useTableCellTypography,
+      getTableTypographyCommands,
+      useSelectionTypography,
+      typographyCommands,
+    ]
+  );
+
+  const handleStrikethrough = React.useCallback(
+    () => {
+      // Priority 1: Table cell selection strikethrough
+      if (useTableCellTypography) {
+        const commands = getTableTypographyCommands();
+        if (commands && commands.editor) {
+          return commands.editor.commands.toggleStrike();
+        }
+      }
+
+      // Priority 2: Use TipTap toggleStrike command for selection-based formatting
+      if (useSelectionTypography && typographyCommands && typographyCommands.editor) {
+        return typographyCommands.editor.commands.toggleStrike();
+      }
+
+      console.warn('Strikethrough requires text selection - please select text to apply strikethrough formatting');
+      return false;
+    },
+    [
+      useTableCellTypography,
+      getTableTypographyCommands,
+      useSelectionTypography,
+      typographyCommands,
+    ]
+  );
+
+  const handleUnderline = React.useCallback(
+    () => {
+      // Note: TipTap StarterKit doesn't include underline by default
+      // We would need to add the Underline extension to support this
+      console.warn('Underline mark not yet implemented - requires TipTap Underline extension');
+      return false;
+    },
+    []
+  );
+
+  const handleTextTransform = React.useCallback(
+    (textTransform: string) => {
+      // Apply to selected text using TipTap marks
+      if (useSelectionTypography) {
+        return handleSelectionTypography({ textTransform });
+      }
+
+      // Legacy block-level formatting removed in favor of selection-based typography
+      console.warn('Text transform requires text selection - please select text to apply text transform');
+    },
+    [
+      useSelectionTypography,
+      handleSelectionTypography,
     ]
   );
 
   const handleLetterSpacing = React.useCallback(
-    (letterSpacing: number) => {
-      // Priority 1: Apply to selected text if available
-      if (textSelection?.hasSelection) {
-        applyTypographyToSelection({ letterSpacing: `${letterSpacing}px` });
+    (letterSpacing: string | number) => {
+      // Apply to selected text using TipTap marks
+      if (useSelectionTypography) {
+        return handleSelectionTypography({ letterSpacing });
+      }
+
+      // Legacy block-level formatting removed in favor of selection-based typography
+      console.warn('Letter spacing requires text selection - please select text to apply letter spacing');
+    },
+    [
+      useSelectionTypography,
+      handleSelectionTypography,
+    ]
+  );
+
+  const handleTextDecoration = React.useCallback(
+    (textDecoration: string) => {
+      // Apply to selected text using TipTap marks
+      if (useSelectionTypography) {
+        return handleSelectionTypography({ textDecoration });
+      }
+
+      // Legacy block-level formatting removed in favor of selection-based typography
+      console.warn('Text decoration requires text selection - please select text to apply text decoration');
+    },
+    [
+      useSelectionTypography,
+      handleSelectionTypography,
+    ]
+  );
+
+  const handleLineHeight = React.useCallback(
+    (lineHeight: number) => {
+      // Apply to selected text using TipTap marks
+      if (useSelectionTypography) {
+        // Note: Line height is typically a node-level property in TipTap, not a mark
+        // For now, we'll use the legacy approach but this could be enhanced with custom marks
+        applyTypographyToSelection({ lineHeight: String(lineHeight) });
         return;
       }
 
-      // Priority 2: Fall back to block-level formatting
-      if (selectedNodeId && selectedNode && blockTypographySupported) {
-        if (blockTypographyProperties.includes('letterSpacing')) {
-          updateNode(selectedNodeId, {
-            data: { ...selectedNode.data, letterSpacing },
-          });
-        }
-      }
+      // Legacy block-level formatting removed in favor of selection-based typography
+      console.warn('Line height requires text selection - please select text to apply line height');
     },
     [
-      textSelection,
+      useSelectionTypography,
       applyTypographyToSelection,
-      selectedNodeId,
-      selectedNode,
-      updateNode,
-      blockTypographySupported,
-      blockTypographyProperties,
     ]
   );
+
 
   // Content Insertion Handlers
   const handleInsertRichBlock = React.useCallback(() => {
@@ -625,8 +722,9 @@ export const UnifiedToolbar = React.memo(function UnifiedToolbar({
         role="group"
         aria-label="Main toolbar actions"
       >
-        {/* Format Controls - Ultra-Compact (Typography-aware) */}
-        {blockTypographySupported && (
+
+        {/* Format Controls - Ultra-Compact (Selection Typography-aware + Table Cell support) */}
+        {(useSelectionTypography || useTableCellTypography) && (
           <div role="group" aria-label="Format controls" className="flex items-center gap-1">
             {/* Basic Text Formatting - Ultra-Compact Group */}
             <div
@@ -634,162 +732,412 @@ export const UnifiedToolbar = React.memo(function UnifiedToolbar({
               role="group"
               aria-label="Text formatting buttons"
             >
-              {blockTypographyProperties.includes('fontWeight') && (
+              {(useSelectionTypography || useTableCellTypography) && (
                 <Button
-                  variant={selectedNode?.data?.fontWeight === 700 ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() =>
-                    handleTextFormat(
-                      'fontWeight',
-                      selectedNode?.data?.fontWeight === 700 ? 400 : 700
-                    )
+                  variant={
+                    (useSelectionTypography || useTableCellTypography)
+                      ? (appliedMarks.fontWeight === 700 ? 'default' : 'ghost')
+                      : (selectedNode?.data?.fontWeight === 700 ? 'default' : 'ghost')
                   }
-                  disabled={!selectedNode}
+                  size="sm"
+                  onMouseDown={handleToolbarMouseDown}
+                  onMouseUp={handleToolbarMouseUp}
+                  onClick={() => {
+                    if (useSelectionTypography || useTableCellTypography) {
+                      // Use typography commands for selection-based formatting (including table cells)
+                      const currentWeight = appliedMarks.fontWeight;
+                      const isBold = currentWeight === 700;
+                      handleFontWeight(isBold ? 400 : 700);
+                    } else {
+                      // Use legacy block-based formatting
+                      handleTextFormat(
+                        'fontWeight',
+                        selectedNode?.data?.fontWeight === 700 ? 400 : 700
+                      );
+                    }
+                  }}
+                  disabled={!(useSelectionTypography || useTableCellTypography) && !selectedNode}
                   className="h-6 w-6 p-0"
                   title="Bold (Ctrl+B)"
-                  aria-label={`Make text bold${selectedNode?.data?.fontWeight === 700 ? ' (currently active)' : ''}`}
-                  aria-pressed={selectedNode?.data?.fontWeight === 700}
+                  aria-label={`Make text bold${
+                    (useSelectionTypography || useTableCellTypography)
+                      ? (appliedMarks.fontWeight === 700 ? ' (currently active)' : '')
+                      : (selectedNode?.data?.fontWeight === 700 ? ' (currently active)' : '')
+                  }`}
+                  aria-pressed={
+                    (useSelectionTypography || useTableCellTypography)
+                      ? appliedMarks.fontWeight === 700
+                      : selectedNode?.data?.fontWeight === 700
+                  }
                   aria-keyshortcuts="Ctrl+B"
                 >
                   <Bold size={10} />
                 </Button>
               )}
 
-              {blockTypographyProperties.includes('fontStyle') && (
+              {/* Highlight Button - Works with selection-based typography and table cells */}
+              {(useSelectionTypography || useTableCellTypography) && (
                 <Button
-                  variant={selectedNode?.data?.fontStyle === 'italic' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() =>
-                    handleTextFormat(
-                      'fontStyle',
-                      selectedNode?.data?.fontStyle === 'italic' ? 'normal' : 'italic'
-                    )
+                  variant={
+                    (useSelectionTypography || useTableCellTypography)
+                      ? (appliedMarks.backgroundColor ? 'default' : 'ghost')
+                      : (selectedNode?.data?.backgroundColor ? 'default' : 'ghost')
                   }
-                  disabled={!selectedNode}
+                  size="sm"
+                  onMouseDown={handleToolbarMouseDown}
+                  onMouseUp={handleToolbarMouseUp}
+                  onClick={() => {
+                    if (useSelectionTypography || useTableCellTypography) {
+                      // Use typography commands for selection-based highlighting (including table cells)
+                      handleHighlight();
+                    } else {
+                      // Use legacy block-based formatting
+                      const currentBackground = selectedNode?.data?.backgroundColor;
+                      const isHighlighted = Boolean(currentBackground);
+                      handleBackgroundColor(isHighlighted ? '' : '#ffeb3b');
+                    }
+                  }}
+                  disabled={!(useSelectionTypography || useTableCellTypography) && !selectedNode}
+                  className="h-6 w-6 p-0"
+                  title="Highlight text (Ctrl+Shift+H)"
+                  aria-label={`Highlight text${
+                    (useSelectionTypography || useTableCellTypography)
+                      ? (appliedMarks.backgroundColor ? ' (currently active)' : '')
+                      : (selectedNode?.data?.backgroundColor ? ' (currently active)' : '')
+                  }`}
+                  aria-pressed={
+                    (useSelectionTypography || useTableCellTypography)
+                      ? Boolean(appliedMarks.backgroundColor)
+                      : Boolean(selectedNode?.data?.backgroundColor)
+                  }
+                  aria-keyshortcuts="Ctrl+Shift+H"
+                >
+                  <Highlighter size={10} />
+                </Button>
+              )}
+
+              {/* Italic Button */}
+              {(useSelectionTypography || useTableCellTypography || selectedNode) && (
+                <Button
+                  variant={
+                    (useSelectionTypography || useTableCellTypography)
+                      ? (appliedMarks.fontStyle === 'italic' ? 'default' : 'ghost')
+                      : (selectedNode?.data?.fontStyle === 'italic' ? 'default' : 'ghost')
+                  }
+                  size="sm"
+                  onMouseDown={handleToolbarMouseDown}
+                  onMouseUp={handleToolbarMouseUp}
+                  onClick={() => {
+                    if (useSelectionTypography || useTableCellTypography) {
+                      handleItalic();
+                    } else {
+                      handleTextFormat('fontStyle', 
+                        selectedNode?.data?.fontStyle === 'italic' ? 'normal' : 'italic'
+                      );
+                    }
+                  }}
+                  disabled={!(useSelectionTypography || useTableCellTypography) && !selectedNode}
                   className="h-6 w-6 p-0"
                   title="Italic (Ctrl+I)"
+                  aria-label="Toggle italic formatting"
+                  aria-pressed={
+                    (useSelectionTypography || useTableCellTypography)
+                      ? appliedMarks.fontStyle === 'italic'
+                      : selectedNode?.data?.fontStyle === 'italic'
+                  }
+                  aria-keyshortcuts="Ctrl+I"
                 >
                   <Italic size={10} />
                 </Button>
               )}
 
-              {blockTypographyProperties.includes('textDecoration') && (
-                <>
-                  <Button
-                    variant={
-                      selectedNode?.data?.textDecoration === 'underline' ? 'default' : 'ghost'
+              {/* Strikethrough Button */}
+              {(useSelectionTypography || useTableCellTypography || selectedNode) && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    if (useSelectionTypography || useTableCellTypography) {
+                      handleStrikethrough();
+                    } else {
+                      console.warn('Strikethrough not supported for block-level formatting');
                     }
-                    size="sm"
-                    onClick={() =>
-                      handleTextDecoration(
-                        selectedNode?.data?.textDecoration === 'underline' ? 'none' : 'underline'
-                      )
-                    }
-                    disabled={!selectedNode}
-                    className="h-6 w-6 p-0"
-                    title="Underline (Ctrl+U)"
-                  >
-                    <Underline size={10} />
-                  </Button>
+                  }}
+                  disabled={!(useSelectionTypography || useTableCellTypography) && !selectedNode}
+                  className="h-6 w-6 p-0"
+                  title="Strikethrough (Ctrl+Shift+S)"
+                  aria-label="Toggle strikethrough formatting"
+                  aria-keyshortcuts="Ctrl+Shift+S"
+                >
+                  <Strikethrough size={10} />
+                </Button>
+              )}
 
-                  <Button
-                    variant={
-                      selectedNode?.data?.textDecoration === 'line-through' ? 'default' : 'ghost'
+              {/* Underline Button - Note: Requires TipTap Underline extension */}
+              {(useSelectionTypography || useTableCellTypography || selectedNode) && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    if (useSelectionTypography || useTableCellTypography) {
+                      handleUnderline();
+                    } else {
+                      console.warn('Underline not supported for block-level formatting');
                     }
-                    size="sm"
-                    onClick={() =>
-                      handleTextDecoration(
-                        selectedNode?.data?.textDecoration === 'line-through'
-                          ? 'none'
-                          : 'line-through'
-                      )
-                    }
-                    disabled={!selectedNode}
-                    className="h-6 w-6 p-0"
-                    title="Strikethrough"
-                  >
-                    <Strikethrough size={10} />
-                  </Button>
-                </>
+                  }}
+                  disabled={!(useSelectionTypography || useTableCellTypography) && !selectedNode}
+                  className="h-6 w-6 p-0 opacity-50"
+                  title="Underline (Not yet implemented)"
+                  aria-label="Toggle underline formatting (not yet implemented)"
+                >
+                  <Underline size={10} />
+                </Button>
               )}
             </div>
 
-            {/* Text Alignment - Ultra-Compact Group */}
-            {blockTypographyProperties.includes('textAlign') && (
-              <div
-                className="flex items-center gap-0.5 bg-muted/30 rounded p-0.5"
-                role="group"
-                aria-label="Text alignment buttons"
-              >
+            {/* Text Alignment Controls */}
+            {(useSelectionTypography || useTableCellTypography || selectedNode) && (
+              <div role="group" aria-label="Text alignment" className="flex items-center gap-1 bg-muted/20 rounded-md p-1">
+                {/* Align Left */}
                 <Button
-                  variant={selectedNode?.data?.textAlign === 'left' ? 'default' : 'ghost'}
+                  variant={
+                    (useSelectionTypography || useTableCellTypography)
+                      ? (appliedMarks.textAlign === 'left' || !appliedMarks.textAlign ? 'default' : 'ghost')
+                      : (selectedNode?.data?.textAlign === 'left' || !selectedNode?.data?.textAlign ? 'default' : 'ghost')
+                  }
                   size="sm"
-                  onClick={() => handleTextAlign('left')}
-                  disabled={!selectedNode}
+                  onMouseDown={handleToolbarMouseDown}
+                  onMouseUp={handleToolbarMouseUp}
+                  onClick={() => {
+                    if (useSelectionTypography || useTableCellTypography) {
+                      handleTextAlign('left');
+                    } else {
+                      handleTextFormat('textAlign', 'left');
+                    }
+                  }}
+                  disabled={!(useSelectionTypography || useTableCellTypography) && !selectedNode}
                   className="h-6 w-6 p-0"
-                  title="Align left (Ctrl+Shift+L)"
-                  aria-label={`Align text left${selectedNode?.data?.textAlign === 'left' ? ' (currently active)' : ''}`}
-                  aria-pressed={selectedNode?.data?.textAlign === 'left'}
+                  title="Align Left (Ctrl+Shift+L)"
+                  aria-label="Align text to the left"
+                  aria-pressed={
+                    (useSelectionTypography || useTableCellTypography)
+                      ? (appliedMarks.textAlign === 'left' || !appliedMarks.textAlign)
+                      : (selectedNode?.data?.textAlign === 'left' || !selectedNode?.data?.textAlign)
+                  }
                   aria-keyshortcuts="Ctrl+Shift+L"
                 >
                   <AlignLeft size={10} />
                 </Button>
 
+                {/* Align Center */}
                 <Button
-                  variant={selectedNode?.data?.textAlign === 'center' ? 'default' : 'ghost'}
+                  variant={
+                    (useSelectionTypography || useTableCellTypography)
+                      ? (appliedMarks.textAlign === 'center' ? 'default' : 'ghost')
+                      : (selectedNode?.data?.textAlign === 'center' ? 'default' : 'ghost')
+                  }
                   size="sm"
-                  onClick={() => handleTextAlign('center')}
-                  disabled={!selectedNode}
+                  onMouseDown={handleToolbarMouseDown}
+                  onMouseUp={handleToolbarMouseUp}
+                  onClick={() => {
+                    if (useSelectionTypography || useTableCellTypography) {
+                      handleTextAlign('center');
+                    } else {
+                      handleTextFormat('textAlign', 'center');
+                    }
+                  }}
+                  disabled={!(useSelectionTypography || useTableCellTypography) && !selectedNode}
                   className="h-6 w-6 p-0"
-                  title="Align center (Ctrl+Shift+E)"
+                  title="Center Align (Ctrl+Shift+E)"
+                  aria-label="Center align text"
+                  aria-pressed={
+                    (useSelectionTypography || useTableCellTypography)
+                      ? appliedMarks.textAlign === 'center'
+                      : selectedNode?.data?.textAlign === 'center'
+                  }
+                  aria-keyshortcuts="Ctrl+Shift+E"
                 >
                   <AlignCenter size={10} />
                 </Button>
 
+                {/* Align Right */}
                 <Button
-                  variant={selectedNode?.data?.textAlign === 'right' ? 'default' : 'ghost'}
+                  variant={
+                    (useSelectionTypography || useTableCellTypography)
+                      ? (appliedMarks.textAlign === 'right' ? 'default' : 'ghost')
+                      : (selectedNode?.data?.textAlign === 'right' ? 'default' : 'ghost')
+                  }
                   size="sm"
-                  onClick={() => handleTextAlign('right')}
-                  disabled={!selectedNode}
+                  onMouseDown={handleToolbarMouseDown}
+                  onMouseUp={handleToolbarMouseUp}
+                  onClick={() => {
+                    if (useSelectionTypography || useTableCellTypography) {
+                      handleTextAlign('right');
+                    } else {
+                      handleTextFormat('textAlign', 'right');
+                    }
+                  }}
+                  disabled={!(useSelectionTypography || useTableCellTypography) && !selectedNode}
                   className="h-6 w-6 p-0"
-                  title="Align right (Ctrl+Shift+R)"
+                  title="Align Right (Ctrl+Shift+R)"
+                  aria-label="Align text to the right"
+                  aria-pressed={
+                    (useSelectionTypography || useTableCellTypography)
+                      ? appliedMarks.textAlign === 'right'
+                      : selectedNode?.data?.textAlign === 'right'
+                  }
+                  aria-keyshortcuts="Ctrl+Shift+R"
                 >
                   <AlignRight size={10} />
                 </Button>
 
+                {/* Justify */}
                 <Button
-                  variant={selectedNode?.data?.textAlign === 'justify' ? 'default' : 'ghost'}
+                  variant={
+                    (useSelectionTypography || useTableCellTypography)
+                      ? (appliedMarks.textAlign === 'justify' ? 'default' : 'ghost')
+                      : (selectedNode?.data?.textAlign === 'justify' ? 'default' : 'ghost')
+                  }
                   size="sm"
-                  onClick={() => handleTextAlign('justify')}
-                  disabled={!selectedNode}
+                  onMouseDown={handleToolbarMouseDown}
+                  onMouseUp={handleToolbarMouseUp}
+                  onClick={() => {
+                    if (useSelectionTypography || useTableCellTypography) {
+                      handleTextAlign('justify');
+                    } else {
+                      handleTextFormat('textAlign', 'justify');
+                    }
+                  }}
+                  disabled={!(useSelectionTypography || useTableCellTypography) && !selectedNode}
                   className="h-6 w-6 p-0"
-                  title="Justify"
+                  title="Justify (Ctrl+Shift+J)"
+                  aria-label="Justify text alignment"
+                  aria-pressed={
+                    (useSelectionTypography || useTableCellTypography)
+                      ? appliedMarks.textAlign === 'justify'
+                      : selectedNode?.data?.textAlign === 'justify'
+                  }
+                  aria-keyshortcuts="Ctrl+Shift+J"
                 >
                   <AlignJustify size={10} />
                 </Button>
               </div>
             )}
 
-            {/* Typography Dropdown - Context-aware controls */}
-            {blockTypographyProperties.length > 0 && (
-              <TypographyDropdown
-                selectedNode={selectedNode}
-                onFontFamily={handleFontFamily}
-                onFontSize={handleFontSize}
-                onFontWeight={handleFontWeight}
-                onLineHeight={handleLineHeight}
-                onTextTransform={handleTextTransform}
-                onTextColor={handleTextColor}
-                onTextDecoration={handleTextDecoration}
-                onLetterSpacing={handleLetterSpacing}
-                disabled={!selectedNode}
-                // Pass block context to dropdown for enhanced filtering
-                blockType={selectedNode?.type}
-                availableProperties={blockTypographyProperties}
-              />
+            {/* Enhanced Typography Controls - Selection aware (includes table cells) */}
+            {(useSelectionTypography || useTableCellTypography) && (
+              <div role="group" aria-label="Typography controls" className="flex items-center gap-1">
+                {/* Row 1: Font Family, Size, Weight */}
+                <div className="flex items-center gap-1 bg-muted/20 rounded-md p-1">
+                    {(useSelectionTypography || useTableCellTypography) && (
+                    <Select
+                      value={appliedMarks.fontFamily || 'inherit'}
+                      onValueChange={handleFontFamily}
+                    >
+                      <SelectTrigger 
+                        className="w-32 h-6 text-xs border-0 bg-transparent"
+                        onMouseDown={handleToolbarMouseDown}
+                        onMouseUp={handleToolbarMouseUp}
+                      >
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {FONT_FAMILIES.map(font => (
+                          <SelectItem key={font.value} value={font.value}>
+                            <span style={{ fontFamily: font.value }}>{font.label}</span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                  
+                  {(useSelectionTypography || useTableCellTypography) && (
+                    <div className="flex items-center gap-1">
+                      <Input
+                        type="number"
+                        value={appliedMarks.fontSize || 16}
+                        onChange={e => handleFontSize(parseInt(e.target.value) || 16)}
+                        onMouseDown={handleToolbarMouseDown}
+                        onMouseUp={handleToolbarMouseUp}
+                        className="w-12 h-6 text-xs border-0 bg-transparent text-center"
+                        min={8}
+                        max={128}
+                      />
+                      <span className="text-xs text-muted-foreground">px</span>
+                    </div>
+                  )}
+                  
+                  {(useSelectionTypography || useTableCellTypography) && (
+                    <Select
+                      value={(appliedMarks.fontWeight || 400).toString()}
+                      onValueChange={value => handleFontWeight(parseInt(value))}
+                    >
+                      <SelectTrigger className="w-20 h-6 text-xs border-0 bg-transparent">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {FONT_WEIGHTS.map(weight => (
+                          <SelectItem key={weight.value} value={weight.value.toString()}>
+                            <span style={{ fontWeight: weight.value }} className="font-display">
+                              {weight.label} ({weight.value})
+                            </span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                  
+                  {(useSelectionTypography || useTableCellTypography) && (
+                    <div className="flex items-center gap-1">
+                      <Input
+                        type="number"
+                        value={appliedMarks.lineHeight || 1.4}
+                        onChange={e => handleLineHeight(parseFloat(e.target.value) || 1.4)}
+                        className="w-12 h-6 text-xs border-0 bg-transparent text-center"
+                        min={0.5}
+                        max={3}
+                        step={0.1}
+                        title="Line height"
+                      />
+                      <span className="text-xs text-muted-foreground">lh</span>
+                    </div>
+                  )}
+                  </div>
+
+                {/* Row 2: Text Color and Background Color Controls */}
+                <div className="flex items-center gap-1 bg-muted/20 rounded-md p-1">
+                  {(useSelectionTypography || useTableCellTypography) && (
+                    <div className="flex items-center gap-1">
+                      <label className="text-xs text-muted-foreground">Color:</label>
+                      <Input
+                        type="color"
+                        value={appliedMarks.textColor || '#000000'}
+                        onChange={e => handleTextColor(e.target.value)}
+                        onMouseDown={handleToolbarMouseDown}
+                        onMouseUp={handleToolbarMouseUp}
+                        className="w-8 h-6 border-0 bg-transparent cursor-pointer"
+                        title="Text color"
+                        aria-label="Choose text color"
+                      />
+                    </div>
+                  )}
+                  
+                  {(useSelectionTypography || useTableCellTypography) && (
+                    <HighlightColorPicker
+                      value={appliedMarks.backgroundColor}
+                      onColorSelect={handleBackgroundColor}
+                      onRemoveHighlight={() => handleBackgroundColor('')}
+                      isActive={Boolean(appliedMarks.backgroundColor)}
+                      variant="icon"
+                      size="sm"
+                    />
+                  )}
+                </div>
+              </div>
             )}
           </div>
         )}
+
 
         <Separator orientation="vertical" className="h-4" />
 
@@ -923,7 +1271,6 @@ export const UnifiedToolbar = React.memo(function UnifiedToolbar({
           </div>
         </div>
 
-        <Separator orientation="vertical" className="h-4" />
 
         {/* Help and Shortcuts - Ultra-Compact */}
         <div role="group" aria-label="Help and shortcuts" className="flex items-center gap-1">

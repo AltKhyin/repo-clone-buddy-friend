@@ -1,6 +1,6 @@
 // ABOUTME: Main Visual Composition Engine editor page with WYSIWYG constrained 2D canvas and three-panel workspace
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import {
   DndContext,
@@ -26,7 +26,6 @@ import { getDefaultDataForBlockType } from '@/types/editor';
 import { ArrowLeft } from 'lucide-react';
 import {
   useEditorSaveMutation,
-  useEditorLoadQuery,
 } from '../../packages/hooks/useEditorPersistence';
 import { supabase } from '@/integrations/supabase/client';
 import { validateStructuredContent } from '@/types/editor';
@@ -36,6 +35,7 @@ import {
   BlockPaletteErrorBoundary,
   EditorCanvasErrorBoundary,
 } from '@/components/editor/error-boundaries';
+// Performance optimizer removed - using simple resize system
 
 export default function EditorPage() {
   const { reviewId } = useParams<{ reviewId: string }>();
@@ -57,7 +57,6 @@ export default function EditorPage() {
   // Set up persistence hooks
   const queryClient = useQueryClient();
   const saveMutation = useEditorSaveMutation();
-  const { data: loadedData } = useEditorLoadQuery(reviewId);
 
   // Enhanced persistence system
   const currentContent = React.useMemo(() => {
@@ -183,6 +182,8 @@ export default function EditorPage() {
       setShowRecoveryDialog(true);
     }
   }, [recoveryState.hasBackup, showRecoveryDialog]);
+
+  // Performance optimizer cleanup removed - using simple resize system
 
   // Handle backup recovery
   const handleRecovery = (recoveredContent: any) => {

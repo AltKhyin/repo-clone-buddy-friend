@@ -1,7 +1,8 @@
-// ABOUTME: Enhanced DraggableBlock with improved resize system integration
+// ABOUTME: Enhanced DraggableBlock with unified resize system (legacy compatibility layer)
 
 import React, { useCallback, useRef, useState, useEffect } from 'react';
 import { NodeObject, BlockPosition } from '@/types/editor';
+// Legacy resize system only for non-unified blocks
 import { useResizeSystem, ResizeHandle, getResizeHandleClasses } from './ResizeSystem';
 
 // Unified Rich Block node import
@@ -17,7 +18,7 @@ interface DraggableBlockProps {
 }
 
 /**
- * Enhanced DraggableBlock with architectural resize system
+ * Enhanced DraggableBlock with unified resize system (legacy compatibility layer)
  */
 export const DraggableBlock: React.FC<DraggableBlockProps> = ({
   node,
@@ -27,12 +28,31 @@ export const DraggableBlock: React.FC<DraggableBlockProps> = ({
   onPositionChange,
   onSelect,
 }) => {
+  // For richBlock, return UnifiedBlockWrapper directly to avoid dual resize systems
+  if (node.type === 'richBlock') {
+    return (
+      <RichBlockNode
+        id={node.id}
+        data={node.data}
+        selected={isSelected}
+        width={position.width}
+        height={position.height}
+        x={position.x}
+        y={position.y}
+        onSelect={onSelect}
+        onMove={onPositionChange}
+        onResize={onPositionChange}
+      />
+    );
+  }
+
+  // Legacy block handling below (non-richBlock types only)
   const blockRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const operationLockRef = useRef(false);
 
-  // Initialize resize system
+  // Initialize legacy resize system only for non-richBlock types
   const { isResizing, resizeHandle, startResize, updateResize, endResize } = useResizeSystem(
     position,
     zoom,
@@ -123,40 +143,13 @@ export const DraggableBlock: React.FC<DraggableBlockProps> = ({
     }
   }, [isDragging, isResizing, handleMouseMove, handleMouseUp]);
 
-  // Render block content
+  // Render legacy block content (richBlock handled at component start)
   const renderBlockContent = () => {
-    const commonProps = {
-      id: node.id,
-      data: node.data,
-      selected: isSelected,
-    };
-
-    // Enhanced props for blocks that use UnifiedBlockWrapper
-    const unifiedProps = {
-      ...commonProps,
-      width: position.width,
-      height: position.height,
-      x: position.x,
-      y: position.y,
-      onSelect: () => {
-        onSelect(); // Pass selection callback to unified blocks
-      },
-      onMove: (newPosition: { x: number; y: number }) => {
-        onPositionChange(newPosition); // Pass movement callback to unified blocks
-      },
-    };
-
-    switch (node.type) {
-      case 'richBlock':
-        // RichBlock uses UnifiedBlockWrapper - return without DraggableBlock container
-        return <RichBlockNode {...unifiedProps} />;
-      default:
-        return (
-          <div className="p-4 bg-muted/50 border-2 border-dashed border-muted-foreground/25 rounded">
-            <p className="text-muted-foreground text-center">{node.type} block</p>
-          </div>
-        );
-    }
+    return (
+      <div className="p-4 bg-muted/50 border-2 border-dashed border-muted-foreground/25 rounded">
+        <p className="text-muted-foreground text-center">{node.type} block</p>
+      </div>
+    );
   };
 
   // Status message
@@ -170,12 +163,7 @@ export const DraggableBlock: React.FC<DraggableBlockProps> = ({
     return 'Selected - drag to move';
   };
 
-  // For Rich Block (uses UnifiedBlockWrapper), return it directly
-  if (node.type === 'richBlock') {
-    return renderBlockContent();
-  }
-
-  // For legacy blocks, use the original DraggableBlock container
+  // Legacy blocks use the original DraggableBlock container
   return (
     <div
       ref={blockRef}

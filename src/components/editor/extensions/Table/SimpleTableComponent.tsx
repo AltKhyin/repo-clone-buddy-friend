@@ -15,6 +15,20 @@ import { Plus, Minus, MoreVertical, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { TableData } from './TableExtension';
 import { tableComponentRegistry, TableComponentMethods } from './tableCommands';
+import { RichTableCell, RichTableCellRef } from './RichTableCell';
+import { 
+  convertPlainTextToRichContent, 
+  extractPlainTextFromRichContent,
+  isValidRichContent 
+} from './tableEditorConfig';
+import { 
+  ensureRichTableData,
+  getCellContentAsRich,
+  getCellContentAsString,
+  updateCellContent,
+  createRichCellData,
+  sanitizeTableData 
+} from './tableDataMigration';
 
 interface SimpleTableComponentProps extends NodeViewProps {
   // Inherited: node, updateAttributes, deleteNode, selected
@@ -25,6 +39,12 @@ interface CellPosition {
   col: number;
 }
 
+interface FocusedCell {
+  row: number;
+  col: number;
+  cellRef?: React.RefObject<RichTableCellRef>;
+}
+
 const TABLE_LIMITS = {
   MIN_ROWS: 1,
   MAX_ROWS: 50,
@@ -32,19 +52,19 @@ const TABLE_LIMITS = {
   MAX_COLUMNS: 20,
 };
 
-export const SimpleTableComponent: React.FC<SimpleTableComponentProps> = ({
+export const SimpleTableComponent = React.forwardRef<HTMLDivElement, SimpleTableComponentProps>(({
   node,
   updateAttributes,
   deleteNode,
   selected,
-}) => {
-  // Simple local editing state - no complex coordination needed
-  const [editingCell, setEditingCell] = useState<CellPosition | null>(null);
-  const [editValue, setEditValue] = useState('');
-  const inputRef = useRef<HTMLInputElement>(null);
+}, ref) => {
+  // Rich cell state management
+  const [focusedCell, setFocusedCell] = useState<FocusedCell | null>(null);
+  const [selectedCells, setSelectedCells] = useState<CellPosition[]>([]);
+  const cellRefs = useRef<Map<string, React.RefObject<RichTableCellRef>>>(new Map());
 
-  // Extract table data from TipTap node
-  const tableData: TableData = {
+  // Extract and migrate table data from TipTap node
+  const rawTableData = {
     headers: node.attrs.headers || ['Column 1', 'Column 2', 'Column 3'],
     rows: node.attrs.rows || [
       ['', '', ''],
@@ -73,90 +93,107 @@ export const SimpleTableComponent: React.FC<SimpleTableComponentProps> = ({
       maxRows: 50,
       ...node.attrs.settings,
     },
+    isRichContent: node.attrs.isRichContent,
   };
 
-  // Auto-focus input when editing starts
-  useEffect(() => {
-    if (editingCell && inputRef.current) {
-      inputRef.current.focus();
-      inputRef.current.select();
+  // Ensure table data is in rich format and properly sanitized
+  const tableData: TableData = sanitizeTableData(ensureRichTableData(rawTableData));
+
+  // Get or create cell ref
+  const getCellRef = useCallback((row: number, col: number): React.RefObject<RichTableCellRef> => {
+    const cellKey = `${row}-${col}`;
+    if (!cellRefs.current.has(cellKey)) {
+      cellRefs.current.set(cellKey, React.createRef<RichTableCellRef>());
     }
-  }, [editingCell]);
+    return cellRefs.current.get(cellKey)!;
+  }, []);
 
   // Extract table ID for registry
   const tableId = node.attrs.tableId || `table-${Date.now()}`;
 
-  // Start editing a cell (Reddit-style single-click)
-  const handleCellClick = useCallback((row: number, col: number, currentValue: string) => {
-    setEditingCell({ row, col });
-    setEditValue(currentValue);
+  // Handle cell focus
+  const handleCellFocus = useCallback((row: number, col: number) => {
+    const cellRef = getCellRef(row, col);
+    setFocusedCell({ row, col, cellRef });
+    setSelectedCells([{ row, col }]);
+  }, [getCellRef]);
+
+  // Handle content change for headers
+  const handleHeaderChange = useCallback((col: number, newContent: string) => {
+    const newHeaders = [...tableData.headers];
+    // Convert rich content to plain text for headers (backward compatibility)
+    newHeaders[col] = extractPlainTextFromRichContent(newContent);
+    updateAttributes({
+      ...node.attrs,
+      headers: newHeaders,
+    });
+  }, [tableData.headers, updateAttributes, node.attrs]);
+
+  // Handle content change for regular cells
+  const handleCellChange = useCallback((row: number, col: number, newContent: string) => {
+    const newRows = [...tableData.rows];
+    newRows[row] = [...newRows[row]];
+    
+    // Update cell with rich content, preserving existing styling
+    const currentCell = newRows[row][col];
+    newRows[row][col] = updateCellContent(currentCell, newContent);
+    
+    updateAttributes({
+      ...node.attrs,
+      rows: newRows,
+      isRichContent: true, // Mark as rich content
+    });
+  }, [tableData.rows, updateAttributes, node.attrs]);
+
+  // Handle cell blur
+  const handleCellBlur = useCallback(() => {
+    setFocusedCell(null);
+    setSelectedCells([]);
   }, []);
 
-  // Save cell edit
-  const handleSaveEdit = useCallback(() => {
-    if (!editingCell) return;
+  // Handle cell navigation
+  const handleCellNavigation = useCallback((row: number, col: number, direction: 'up' | 'down' | 'left' | 'right' | 'enter' | 'tab') => {
+    let newRow = row;
+    let newCol = col;
 
-    const { row, col } = editingCell;
-
-    if (row === -1) {
-      // Editing header
-      const newHeaders = [...tableData.headers];
-      newHeaders[col] = editValue;
-      updateAttributes({
-        ...node.attrs,
-        headers: newHeaders,
-      });
-    } else {
-      // Editing regular cell
-      const newRows = [...tableData.rows];
-      newRows[row] = [...newRows[row]];
-      newRows[row][col] = editValue;
-      updateAttributes({
-        ...node.attrs,
-        rows: newRows,
-      });
+    switch (direction) {
+      case 'up':
+        newRow = Math.max(-1, row - 1); // -1 for headers
+        break;
+      case 'down':
+        newRow = Math.min(tableData.rows.length - 1, row + 1);
+        break;
+      case 'left':
+        newCol = Math.max(0, col - 1);
+        break;
+      case 'right':
+      case 'tab':
+        newCol = Math.min(tableData.headers.length - 1, col + 1);
+        break;
+      case 'enter':
+        newRow = Math.min(tableData.rows.length - 1, row + 1);
+        break;
     }
 
-    setEditingCell(null);
-    setEditValue('');
-  }, [editingCell, editValue, tableData, updateAttributes, node.attrs]);
-
-  // Cancel editing
-  const handleCancelEdit = useCallback(() => {
-    setEditingCell(null);
-    setEditValue('');
-  }, []);
-
-  // Enhanced keyboard shortcuts (Reddit-style navigation)
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        handleSaveEdit();
-        // TODO: Navigate to next cell (Reddit-style)
-      } else if (e.key === 'Escape') {
-        e.preventDefault();
-        handleCancelEdit();
-      } else if (e.key === 'Tab') {
-        e.preventDefault();
-        handleSaveEdit();
-        // TODO: Navigate to next cell with Tab
-      }
-    },
-    [handleSaveEdit, handleCancelEdit]
-  );
+    // Focus the new cell
+    if (newRow !== row || newCol !== col) {
+      const targetCellRef = getCellRef(newRow, newCol);
+      targetCellRef.current?.focus();
+    }
+  }, [tableData.rows.length, tableData.headers.length, getCellRef]);
 
   // Add column
   const addColumn = useCallback(() => {
     if (tableData.headers.length >= TABLE_LIMITS.MAX_COLUMNS) return;
 
     const newHeaders = [...tableData.headers, `Column ${tableData.headers.length + 1}`];
-    const newRows = tableData.rows.map(row => [...row, '']);
+    const newRows = tableData.rows.map(row => [...row, createRichCellData('')]);
 
     updateAttributes({
       ...node.attrs,
       headers: newHeaders,
       rows: newRows,
+      isRichContent: true,
     });
   }, [tableData, updateAttributes, node.attrs]);
 
@@ -172,6 +209,7 @@ export const SimpleTableComponent: React.FC<SimpleTableComponentProps> = ({
         ...node.attrs,
         headers: newHeaders,
         rows: newRows,
+        isRichContent: true,
       });
     },
     [tableData, updateAttributes, node.attrs]
@@ -181,12 +219,13 @@ export const SimpleTableComponent: React.FC<SimpleTableComponentProps> = ({
   const addRow = useCallback(() => {
     if (tableData.rows.length >= TABLE_LIMITS.MAX_ROWS) return;
 
-    const newRow = Array(tableData.headers.length).fill('');
+    const newRow = Array(tableData.headers.length).fill(null).map(() => createRichCellData(''));
     const newRows = [...tableData.rows, newRow];
 
     updateAttributes({
       ...node.attrs,
       rows: newRows,
+      isRichContent: true,
     });
   }, [tableData, updateAttributes, node.attrs]);
 
@@ -200,6 +239,7 @@ export const SimpleTableComponent: React.FC<SimpleTableComponentProps> = ({
       updateAttributes({
         ...node.attrs,
         rows: newRows,
+        isRichContent: true,
       });
     },
     [tableData, updateAttributes, node.attrs]
@@ -218,7 +258,9 @@ export const SimpleTableComponent: React.FC<SimpleTableComponentProps> = ({
           ...updates,
         });
       },
-      getCurrentCellPosition: () => editingCell,
+      getCurrentCellPosition: () => focusedCell ? { row: focusedCell.row, col: focusedCell.col } : null,
+      getFocusedCellEditor: () => focusedCell?.cellRef?.current?.getEditor() || null,
+      getFocusedCellTypographyCommands: () => focusedCell?.cellRef?.current?.getTypographyCommands() || null,
     };
 
     tableComponentRegistry.register(tableId, componentMethods);
@@ -234,54 +276,50 @@ export const SimpleTableComponent: React.FC<SimpleTableComponentProps> = ({
     removeRow,
     updateAttributes,
     node.attrs,
-    editingCell,
+    focusedCell,
+    handleCellNavigation,
   ]);
 
-  // Render cell content (either input or display)
-  const renderCell = (content: string, row: number, col: number, isHeader = false) => {
-    const isEditing = editingCell?.row === row && editingCell?.col === col;
+  // Render rich table cell
+  const renderRichCell = (cellData: any, row: number, col: number, isHeader = false) => {
+    const cellId = `${tableId}-${row}-${col}`;
+    const cellRef = getCellRef(row, col);
+    const isSelected = selectedCells.some(cell => cell.row === row && cell.col === col);
+    const isFocused = focusedCell?.row === row && focusedCell?.col === col;
 
-    if (isEditing) {
-      return (
-        <Input
-          ref={inputRef}
-          value={editValue}
-          onChange={e => setEditValue(e.target.value)}
-          onKeyDown={handleKeyDown}
-          onBlur={handleSaveEdit}
-          className="border-0 shadow-none p-0 h-auto bg-transparent focus-visible:ring-1 focus-visible:ring-primary"
-          style={{
-            fontSize: `${tableData.styling.fontSize}px`,
-            fontWeight: isHeader ? 600 : tableData.styling.fontWeight,
-            textAlign: tableData.styling.textAlign,
-            minWidth: '60px', // Ensure minimum editing width
-          }}
-          placeholder={isHeader ? 'Header name' : 'Enter text'}
-        />
-      );
-    }
+    // Get appropriate content format for headers vs cells
+    const cellContent = isHeader 
+      ? getCellContentAsString(cellData) // Headers remain plain text
+      : getCellContentAsRich(cellData);   // Cells use rich content
 
     return (
-      <div
-        className="cursor-pointer min-h-[1.5rem] w-full hover:bg-muted/50 rounded px-1 py-0.5 transition-colors"
-        onClick={() => handleCellClick(row, col, content)}
-        style={{
-          fontSize: `${tableData.styling.fontSize}px`,
-          fontWeight: isHeader ? 600 : tableData.styling.fontWeight,
-          textAlign: tableData.styling.textAlign,
+      <RichTableCell
+        key={cellId}
+        ref={cellRef}
+        content={cellContent}
+        isHeader={isHeader}
+        position={{ row, col }}
+        styling={tableData.styling}
+        isSelected={isSelected}
+        isTableSelected={selected}
+        cellId={cellId}
+        onContentChange={(newContent) => {
+          if (isHeader) {
+            handleHeaderChange(col, newContent);
+          } else {
+            handleCellChange(row, col, newContent);
+          }
         }}
-      >
-        {content || (
-          <span className="text-muted-foreground italic text-sm">
-            {isHeader ? 'Header' : 'Empty'}
-          </span>
-        )}
-      </div>
+        onFocus={() => handleCellFocus(row, col)}
+        onBlur={handleCellBlur}
+        onNavigate={(direction) => handleCellNavigation(row, col, direction)}
+      />
     );
   };
 
   return (
     <NodeViewWrapper
+      ref={ref}
       className={cn(
         'group relative rounded-md transition-all duration-200',
         selected && 'ring-2 ring-primary ring-offset-2 shadow-lg'
@@ -335,47 +373,9 @@ export const SimpleTableComponent: React.FC<SimpleTableComponentProps> = ({
           {tableData.settings.showHeaders && (
             <thead>
               <tr>
-                {tableData.headers.map((header, colIndex) => (
-                  <th
-                    key={colIndex}
-                    className="relative group/cell"
-                    style={{
-                      padding: `${tableData.styling.cellPadding}px`,
-                      border: `1px solid ${tableData.styling.borderColor}`,
-                      backgroundColor: tableData.styling.headerBackgroundColor,
-                    }}
-                  >
-                    {renderCell(header, -1, colIndex, true)}
-
-                    {/* Column controls (on hover) */}
-                    {selected && (
-                      <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 opacity-0 group-hover/cell:opacity-100 transition-opacity">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button size="sm" variant="outline" className="h-5 w-5 p-0">
-                              <MoreVertical className="h-3 w-3" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent>
-                            <DropdownMenuItem onClick={addColumn}>
-                              <Plus className="h-3 w-3 mr-2" />
-                              Add Column
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              onClick={() => removeColumn(colIndex)}
-                              disabled={tableData.headers.length <= TABLE_LIMITS.MIN_COLUMNS}
-                              className="text-destructive"
-                            >
-                              <Minus className="h-3 w-3 mr-2" />
-                              Remove Column
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    )}
-                  </th>
-                ))}
+                {tableData.headers.map((header, colIndex) => 
+                  renderRichCell(header, -1, colIndex, true)
+                )}
               </tr>
             </thead>
           )}
@@ -385,18 +385,7 @@ export const SimpleTableComponent: React.FC<SimpleTableComponentProps> = ({
             {tableData.rows.map((row, rowIndex) => (
               <tr key={rowIndex} className="group/row">
                 {row.map((cell, colIndex) => (
-                  <td
-                    key={colIndex}
-                    className="relative group/cell"
-                    style={{
-                      padding: `${tableData.styling.cellPadding}px`,
-                      border: `1px solid ${tableData.styling.borderColor}`,
-                      backgroundColor:
-                        tableData.styling.striped && rowIndex % 2 === 1 ? '#f9fafb' : 'transparent',
-                    }}
-                  >
-                    {renderCell(cell, rowIndex, colIndex)}
-                  </td>
+                  renderRichCell(cell, rowIndex, colIndex, false)
                 ))}
 
                 {/* Row controls (on hover) */}
@@ -435,4 +424,6 @@ export const SimpleTableComponent: React.FC<SimpleTableComponentProps> = ({
       </div>
     </NodeViewWrapper>
   );
-};
+});
+
+SimpleTableComponent.displayName = 'SimpleTableComponent';

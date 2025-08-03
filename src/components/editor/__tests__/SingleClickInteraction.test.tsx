@@ -3,8 +3,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { TableComponent } from '@/components/editor/extensions/Table/TableComponent';
-import { PollComponent } from '@/components/editor/extensions/Poll/PollComponent';
+import { SimpleTableComponent } from '@/components/editor/extensions/Table/SimpleTableComponent';
+// Poll component removed - polls moved to community-only features
 
 // Mock dependencies
 vi.mock('@/hooks/useSelectionCoordination', () => ({
@@ -112,7 +112,7 @@ describe('🎯 Single-Click Interaction System', () => {
         activeContentType: 'none',
       } as any);
 
-      render(<TableComponent {...mockNodeViewProps} />);
+      render(<SimpleTableComponent {...mockNodeViewProps} />);
 
       const cell = screen.getByText('Cell 1');
 
@@ -141,7 +141,7 @@ describe('🎯 Single-Click Interaction System', () => {
         activeContentType: 'table_cell',
       } as any);
 
-      render(<TableComponent {...mockNodeViewProps} />);
+      render(<SimpleTableComponent {...mockNodeViewProps} />);
 
       const cell = screen.getByText('Cell 1');
 
@@ -154,33 +154,9 @@ describe('🎯 Single-Click Interaction System', () => {
       });
     });
 
-    it('should identify multi-click pattern in poll options (CURRENT STATE)', async () => {
-      const { useSelectionCoordination } = await import('@/hooks/useSelectionCoordination');
-      const mockCoordination = vi.mocked(useSelectionCoordination);
-
-      mockCoordination.mockReturnValue({
-        isActive: true,
-        handlePollOptionClick: vi.fn(),
-        isPollOptionSelected: vi.fn(() => false),
-        activeContentType: 'none',
-      } as any);
-
-      render(<PollComponent {...mockPollNodeViewProps} />);
-
-      const option = screen.getByText('Red');
-
-      // First click should only select, not edit (current behavior)
-      await userEvent.click(option);
-
-      // Verify selection was called but editing didn't start
-      expect(mockCoordination().handlePollOptionClick).toHaveBeenCalledWith(
-        'test-poll-1',
-        'option-1',
-        false // isEditing = false on first click
-      );
-
-      // No input field should be visible after first click
-      expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+    it.skip('should identify multi-click pattern in poll options (DISABLED: Poll component removed)', async () => {
+      // Poll component removed - polls moved to community-only features
+      // This test is disabled until poll functionality is reimplemented
     });
   });
 

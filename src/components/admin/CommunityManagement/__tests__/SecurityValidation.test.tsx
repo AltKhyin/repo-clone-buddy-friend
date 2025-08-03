@@ -11,7 +11,7 @@ import { CustomThemeProvider } from '../../../theme/CustomThemeProvider';
 import { Toaster } from '@/components/ui/toaster';
 
 // Mock the community management query
-vi.mock('../../../../../packages/hooks/useCommunityManagementQuery', () => ({
+vi.mock('@packages/hooks/useCommunityManagementQuery', () => ({
   useCommunitySidebarDataQuery: vi.fn(),
   useCreateCategoryMutation: vi.fn(),
   useUpdateCategoryMutation: vi.fn(),
@@ -84,7 +84,7 @@ describe('Security Validation - Admin Community Management', () => {
       useCreateAnnouncementMutation,
       useUpdateAnnouncementMutation,
       useDeleteAnnouncementMutation,
-    } = require('../../../../../packages/hooks/useCommunityManagementQuery');
+    } = require('@packages/hooks/useCommunityManagementQuery');
 
     mockQueries = {
       useCommunitySidebarDataQuery,

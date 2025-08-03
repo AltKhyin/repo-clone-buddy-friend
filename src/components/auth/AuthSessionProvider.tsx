@@ -7,12 +7,9 @@ const AuthSessionProvider = ({ children }: { children: React.ReactNode }) => {
   const initialize = useAuthStore((state) => state.initialize);
 
   useEffect(() => {
-    console.log('AuthSessionProvider: Initializing auth...');
     try {
       const unsubscribe = initialize();
-      console.log('AuthSessionProvider: Auth initialized successfully');
       return () => {
-        console.log('AuthSessionProvider: Cleaning up auth listener');
         unsubscribe();
       };
     } catch (error) {

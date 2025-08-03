@@ -27,12 +27,12 @@ interface InlineImageComponentProps extends NodeViewProps {
   // Inherited from NodeViewProps: node, updateAttributes, deleteNode, etc.
 }
 
-export const InlineImageComponent: React.FC<InlineImageComponentProps> = ({
+export const InlineImageComponent = React.forwardRef<HTMLDivElement, InlineImageComponentProps>(({
   node,
   updateAttributes,
   deleteNode,
   selected,
-}) => {
+}, ref) => {
   const [isEditing, setIsEditing] = useState(!node.attrs.src || node.attrs.placeholder);
   const [imageUrl, setImageUrl] = useState(node.attrs.src || '');
   const [altText, setAltText] = useState(node.attrs.alt || '');
@@ -163,7 +163,7 @@ export const InlineImageComponent: React.FC<InlineImageComponentProps> = ({
   // Render editing interface
   if (isEditing) {
     return (
-      <NodeViewWrapper className="inline-image-wrapper">
+      <NodeViewWrapper ref={ref} className="inline-image-wrapper">
         <div
           className="inline-block p-3 border-2 border-dashed border-muted-foreground/25 rounded-lg bg-muted/10 max-w-md"
           onDrop={handleDrop}
@@ -271,7 +271,7 @@ export const InlineImageComponent: React.FC<InlineImageComponentProps> = ({
   // Render placeholder display
   if (node.attrs.placeholder && !isEditing) {
     return (
-      <NodeViewWrapper className="inline-image-wrapper">
+      <NodeViewWrapper ref={ref} className="inline-image-wrapper">
         <div
           className={`inline-block cursor-pointer ${selected ? 'ring-2 ring-blue-500 ring-offset-1' : ''}`}
           onClick={() => setIsEditing(true)}
@@ -303,7 +303,7 @@ export const InlineImageComponent: React.FC<InlineImageComponentProps> = ({
 
   // Render image display
   return (
-    <NodeViewWrapper className="inline-image-wrapper">
+    <NodeViewWrapper ref={ref} className="inline-image-wrapper">
       <div className={`inline-block group ${selected ? 'ring-2 ring-blue-500 ring-offset-1' : ''}`}>
         <div className="relative">
           {/* Image */}
@@ -391,4 +391,6 @@ export const InlineImageComponent: React.FC<InlineImageComponentProps> = ({
       </div>
     </NodeViewWrapper>
   );
-};
+});
+
+InlineImageComponent.displayName = 'InlineImageComponent';

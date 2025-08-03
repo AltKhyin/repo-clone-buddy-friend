@@ -1,6 +1,6 @@
-// ABOUTME: Content-aware inspector panel for RichBlock with dynamic controls based on TipTap selection
+// ABOUTME: Content-aware inspector panel for RichBlock with simple resize system integration
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,6 +12,7 @@ import { ColorControl } from './shared/ColorControl';
 import { SpacingControls } from './shared/SpacingControls';
 import { BorderControls } from './shared/BorderControls';
 import { MediaTransformSection } from './sections/MediaTransformSection';
+import { useSimpleResize } from '@/components/editor/unified-resize';
 import {
   Edit3,
   Palette,
@@ -39,82 +40,161 @@ export const RichBlockInspector: React.FC<RichBlockInspectorProps> = ({ nodeId }
   const node = nodes.find(n => n.id === nodeId);
   const data = node?.type === 'richBlock' ? (node.data as RichBlockData) : null;
 
-  // CRITICAL FIX P3: Use unified selection system instead of separate TipTap editor
+  // Get current content selection type for context-aware controls
   const currentSelectionType =
     contentSelection?.blockId === nodeId ? contentSelection.type : 'none';
 
+  // Simple resize system integration - no constraints
+  const resizeHandlers = useSimpleResize({
+    nodeId,
+    onUpdate: useCallback((position) => {
+      if (position.height !== undefined) {
+        updateNode(nodeId, {
+          height: position.height,
+        });
+        console.log('📏 Inspector: Height adjusted to', position.height, 'px');
+      }
+    }, [nodeId, updateNode]),
+  });
+
   // Height adjustment state - MUST be before early return
   const [showHeightAdjustment, setShowHeightAdjustment] = useState(false);
+  const [isAdjusting, setIsAdjusting] = useState(false);
 
-  // Height adjustment functionality - MUST be before early return
-  const handleAdjustHeight = useCallback(() => {
+  // Simple height adjustment - direct DOM measurement and update
+  const handleAdjustHeight = useCallback(async () => {
     if (!node || !data) return;
 
-    // Find the block element in the DOM
-    const blockElement = document.querySelector(`[data-block-id="${nodeId}"]`);
-    if (!blockElement) return;
+    setIsAdjusting(true);
 
-    // Find the content wrapper with the measurement ref
-    const contentWrapper = blockElement.querySelector('.rich-block-content-wrapper') as HTMLElement;
-    if (!contentWrapper) return;
+    try {
+      // Robust DOM element query with validation
+      const blockElement = document.querySelector(`[data-block-id="${CSS.escape(nodeId)}"]`) as HTMLElement;
+      if (!blockElement || !document.contains(blockElement)) {
+        throw new Error(`Block element not found or not attached to DOM: ${nodeId}`);
+      }
 
-    // Calculate optimal height based on content
-    const paddingY = data.paddingY || 16;
-    const borderWidth = data.borderWidth || 0;
-    const minHeight = 120;
-    const maxHeight = 800;
+      // Try multiple selector strategies for content wrapper
+      let contentWrapper: HTMLElement | null = null;
+      const selectors = ['.rich-block-content-wrapper', '.unified-content-area', '[data-content-boundary="true"]'];
+      
+      for (const selector of selectors) {
+        contentWrapper = blockElement.querySelector(selector) as HTMLElement;
+        if (contentWrapper && document.contains(contentWrapper)) break;
+      }
+      
+      if (!contentWrapper) {
+        throw new Error(`Content wrapper not found in block ${nodeId}. Tried selectors: ${selectors.join(', ')}`);
+      }
 
-    // Measure actual content height
-    const contentRect = contentWrapper.getBoundingClientRect();
-    const contentHeight = contentRect.height;
+      // Measure the actual content height with validation
+      const contentRect = contentWrapper.getBoundingClientRect();
+      const contentHeight = contentRect.height;
+      
+      if (contentHeight <= 0) {
+        throw new Error(`Invalid content height: ${contentHeight}px. Element may be hidden or empty.`);
+      }
 
-    // Calculate additional spacing
-    const additionalSpacing = paddingY * 2 + borderWidth * 2;
+      // Add padding and border spacing
+      const paddingY = (data.paddingY || 16) * 2;
+      const borderWidth = (data.borderWidth || 0) * 2;
+      const additionalSpacing = paddingY + borderWidth + 8; // Small buffer
 
-    // Calculate optimal height with constraints
-    const optimalHeight = Math.max(
-      minHeight,
-      Math.min(maxHeight, contentHeight + additionalSpacing)
-    );
+      // Calculate optimal height - no constraints, complete freedom
+      const optimalHeight = Math.max(60, contentHeight + additionalSpacing);
 
-    // Update the node height
-    updateNode(nodeId, {
-      height: optimalHeight,
-    });
+      console.log('📏 Inspector: Adjusting height', {
+        contentHeight,
+        additionalSpacing,
+        optimalHeight,
+        currentHeight: node.height
+      });
+
+      // Update height directly - no constraint checking
+      updateNode(nodeId, {
+        height: optimalHeight,
+      });
+
+      // Brief delay to show feedback
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+    } catch (error) {
+      console.error('❌ Inspector: Height adjustment failed', error);
+    } finally {
+      setIsAdjusting(false);
+    }
   }, [nodeId, node, data, updateNode]);
 
-  // Check if height adjustment is beneficial - MUST be before early return
+  // Debounced logging to prevent spam
+  const debouncedHeightLogRef = useRef<NodeJS.Timeout>();
+  const debouncedHeightLog = useCallback((currentHeight: number, optimalHeight: number, difference: number) => {
+    if (debouncedHeightLogRef.current) {
+      clearTimeout(debouncedHeightLogRef.current);
+    }
+    debouncedHeightLogRef.current = setTimeout(() => {
+      // Only log significant differences to reduce noise
+      if (difference > 50) { // Increased threshold for logging
+        console.log('📏 Inspector: Height adjustment available', {
+          current: currentHeight,
+          optimal: optimalHeight,
+          difference
+        });
+      }
+    }, 500); // 500ms debounce
+  }, []);
+
+  // Simple height adjustment detection - direct DOM measurement
   const shouldShowHeightAdjustment = useCallback(() => {
     if (!node || !data) return false;
 
-    const blockElement = document.querySelector(`[data-block-id="${nodeId}"]`);
-    if (!blockElement) return false;
+    try {
+      // Get current height from node
+      const currentHeight = node.height || 200;
+      
+      // Check DOM for content measurement
+      const blockElement = document.querySelector(`[data-block-id="${nodeId}"]`);
+      if (!blockElement) return false;
 
-    const contentWrapper = blockElement.querySelector('.rich-block-content-wrapper') as HTMLElement;
-    if (!contentWrapper) return false;
+      const contentWrapper = blockElement.querySelector('.rich-block-content-wrapper, .unified-content-area') as HTMLElement;
+      if (!contentWrapper) return false;
 
-    const currentHeight = node.height || 200;
-    const contentRect = contentWrapper.getBoundingClientRect();
-    const contentHeight = contentRect.height;
-    const paddingY = data.paddingY || 16;
-    const borderWidth = data.borderWidth || 0;
-    const additionalSpacing = paddingY * 2 + borderWidth * 2;
-    const optimalHeight = contentHeight + additionalSpacing;
+      const contentRect = contentWrapper.getBoundingClientRect();
+      const contentHeight = contentRect.height;
+      const paddingY = (data.paddingY || 16) * 2;
+      const borderWidth = (data.borderWidth || 0) * 2;
+      const additionalSpacing = paddingY + borderWidth + 8;
+      const optimalHeight = Math.max(60, contentHeight + additionalSpacing);
 
-    // Show if content is overflowing or if there's significant height waste (>50px)
-    const heightDifference = Math.abs(currentHeight - optimalHeight);
-    return heightDifference > 50;
-  }, [node, data, nodeId]);
+      // Show if there's significant height difference (>30px) - no complex constraints
+      const heightDifference = Math.abs(currentHeight - optimalHeight);
+      const shouldShow = heightDifference > 30;
+      
+      if (shouldShow) {
+        debouncedHeightLog(currentHeight, optimalHeight, heightDifference);
+      }
+      
+      return shouldShow;
+    } catch (error) {
+      console.warn('📏 Inspector: Height check failed', error);
+      return false;
+    }
+  }, [node, data, nodeId, debouncedHeightLog]);
 
-  // Check height adjustment on mount and when data changes - MUST be before early return
+  // Check height adjustment - simple approach
   useEffect(() => {
-    const checkHeight = () => setShowHeightAdjustment(shouldShowHeightAdjustment());
+    if (!node) return;
+    
+    const checkHeight = () => {
+      const shouldShow = shouldShowHeightAdjustment();
+      setShowHeightAdjustment(shouldShow);
+    };
+    
     checkHeight();
 
-    // Recheck after a brief delay to allow DOM to settle
+    // Recheck after DOM settles and when node data changes
     const timeout = setTimeout(checkHeight, 100);
     return () => clearTimeout(timeout);
-  }, [shouldShowHeightAdjustment, data?.paddingY, data?.borderWidth]);
+  }, [shouldShowHeightAdjustment, node?.height, data?.paddingY, data?.borderWidth]);
 
   // Early return after ALL hooks are called
   if (!node || node.type !== 'richBlock' || !data) return null;
@@ -359,22 +439,59 @@ export const RichBlockInspector: React.FC<RichBlockInspectorProps> = ({ nodeId }
           />
         </InspectorSection>
 
-        {/* Height Adjustment Section - only show when beneficial */}
+        {/* Simple Height Adjustment Section - no constraints */}
         {showHeightAdjustment && (
           <InspectorSection title="Height Adjustment" icon={ChevronsUpDown} compact={false}>
             <div className="space-y-3">
               <div className="text-sm text-muted-foreground">
-                Automatically adjust block height to fit content without hiding text.
+                Automatically adjust block height to fit content. Complete resize freedom.
               </div>
+              
+              {/* Simple debug info in development */}
+              {process.env.NODE_ENV === 'development' && (
+                <div className="text-xs text-muted-foreground bg-muted p-2 rounded">
+                  <div>Current Height: {node?.height}px</div>
+                  <div>Simple Resize: No constraints ✅</div>
+                </div>
+              )}
+              
               <Button
                 size="sm"
                 variant="outline"
                 onClick={handleAdjustHeight}
+                disabled={isAdjusting}
                 className="w-full justify-center"
               >
-                <ChevronsUpDown size={16} className="mr-2" />
-                Adjust Height to Content
+                <ChevronsUpDown 
+                  size={16} 
+                  className={`mr-2 ${isAdjusting ? 'animate-pulse' : ''}`} 
+                />
+                {isAdjusting 
+                  ? 'Adjusting Height...' 
+                  : 'Adjust Height to Content'
+                }
               </Button>
+              
+              {isAdjusting && (
+                <div className="text-xs text-center text-muted-foreground">
+                  Measuring content and adjusting...
+                </div>
+              )}
+            </div>
+          </InspectorSection>
+        )}
+
+        {/* Simple debug info for height adjustment */}
+        {process.env.NODE_ENV === 'development' && !showHeightAdjustment && (
+          <InspectorSection title="Height Debug" icon={ChevronsUpDown} compact={true}>
+            <div className="text-xs text-muted-foreground space-y-1">
+              <div>Node: {node ? '✅' : '❌'}</div>
+              <div>Data: {data ? '✅' : '❌'}</div>
+              <div>Simple Resize: {resizeHandlers ? '✅' : '❌'}</div>
+              {node && (
+                <div>Current Size: {node.width}×{node.height}px</div>
+              )}
+              <div>Height adjustment hidden (difference &lt; 30px)</div>
             </div>
           </InspectorSection>
         )}

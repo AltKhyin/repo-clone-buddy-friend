@@ -36,12 +36,12 @@ interface VideoEmbedComponentProps extends NodeViewProps {
   // Inherited from NodeViewProps: node, updateAttributes, deleteNode, etc.
 }
 
-export const VideoEmbedComponent: React.FC<VideoEmbedComponentProps> = ({
+export const VideoEmbedComponent = React.forwardRef<HTMLDivElement, VideoEmbedComponentProps>(({
   node,
   updateAttributes,
   deleteNode,
   selected,
-}) => {
+}, ref) => {
   const [isEditing, setIsEditing] = useState(!node.attrs.src || node.attrs.placeholder);
   const [videoUrl, setVideoUrl] = useState(node.attrs.src || '');
   const [isLoading, setIsLoading] = useState(node.attrs.loading || false);
@@ -128,7 +128,7 @@ export const VideoEmbedComponent: React.FC<VideoEmbedComponentProps> = ({
   // Render editing interface
   if (isEditing) {
     return (
-      <NodeViewWrapper className="video-embed-wrapper">
+      <NodeViewWrapper ref={ref} className="video-embed-wrapper">
         <div className="inline-block p-4 border-2 border-dashed border-muted-foreground/25 rounded-lg bg-muted/10 max-w-2xl">
           <div className="space-y-4">
             <div className="flex items-center gap-2 text-sm font-medium">
@@ -232,7 +232,7 @@ export const VideoEmbedComponent: React.FC<VideoEmbedComponentProps> = ({
   // Render placeholder display
   if (node.attrs.placeholder && !isEditing) {
     return (
-      <NodeViewWrapper className="video-embed-wrapper">
+      <NodeViewWrapper ref={ref} className="video-embed-wrapper">
         <div
           className={`inline-block cursor-pointer ${selected ? 'ring-2 ring-blue-500 ring-offset-2' : ''}`}
           onClick={() => setIsEditing(true)}
@@ -266,7 +266,7 @@ export const VideoEmbedComponent: React.FC<VideoEmbedComponentProps> = ({
 
   // Render video display
   return (
-    <NodeViewWrapper className="video-embed-wrapper">
+    <NodeViewWrapper ref={ref} className="video-embed-wrapper">
       <div className={`inline-block group ${selected ? 'ring-2 ring-blue-500 ring-offset-2' : ''}`}>
         <div
           className="relative bg-black rounded-lg overflow-hidden"
@@ -431,4 +431,6 @@ export const VideoEmbedComponent: React.FC<VideoEmbedComponentProps> = ({
       </div>
     </NodeViewWrapper>
   );
-};
+});
+
+VideoEmbedComponent.displayName = 'VideoEmbedComponent';

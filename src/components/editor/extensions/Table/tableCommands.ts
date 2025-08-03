@@ -14,6 +14,10 @@ export interface TableComponentMethods {
   removeRow: (rowIndex: number) => void;
   updateTableData: (updates: Partial<TableData>) => void;
   getCurrentCellPosition: () => { row: number; col: number } | null;
+  /** Get the TipTap editor instance for the currently focused cell */
+  getFocusedCellEditor: () => any | null;
+  /** Get typography commands for the currently focused cell */
+  getFocusedCellTypographyCommands: () => any | null;
 }
 
 /**

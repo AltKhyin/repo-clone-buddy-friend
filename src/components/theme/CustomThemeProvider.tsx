@@ -30,10 +30,8 @@ export function CustomThemeProvider({
     try {
       const savedTheme = localStorage.getItem(storageKey) as Theme;
       if (savedTheme && ['dark', 'light', 'black'].includes(savedTheme)) {
-        console.log('CustomThemeProvider: Loading saved theme:', savedTheme);
         setThemeState(savedTheme);
       } else {
-        console.log('CustomThemeProvider: No saved theme, using default:', defaultTheme);
         setThemeState(defaultTheme);
         localStorage.setItem(storageKey, defaultTheme);
       }
@@ -45,7 +43,6 @@ export function CustomThemeProvider({
 
   // Apply theme to document
   useEffect(() => {
-    console.log('CustomThemeProvider: Using explicit theme:', theme);
     setActualTheme(theme);
     updateDocumentTheme(theme);
   }, [theme]);
@@ -67,16 +64,13 @@ export function CustomThemeProvider({
       body.style.backgroundColor = 'hsl(48 33.3% 97.1%)'; // --background light (formerly anthropic)
     }
 
-    console.log('CustomThemeProvider: Applied theme to document:', newTheme);
   };
 
   const setTheme = (newTheme: Theme) => {
-    console.log('CustomThemeProvider: Setting theme to:', newTheme);
     setThemeState(newTheme);
 
     try {
       localStorage.setItem(storageKey, newTheme);
-      console.log('CustomThemeProvider: Saved theme to localStorage:', newTheme);
     } catch (error) {
       console.warn('CustomThemeProvider: Failed to save theme to localStorage:', error);
     }

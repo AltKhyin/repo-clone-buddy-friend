@@ -6,7 +6,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { useEditorStore } from '@/store/editorStore';
 import { UnifiedToolbar } from '../UnifiedToolbar';
 
-// Mock lucide-react icons using importOriginal for better compatibility
+// Mock lucide-react icons using comprehensive list for all UnifiedToolbar needs
 vi.mock('lucide-react', async importOriginal => {
   const MockIcon = ({ size, className, ...props }: any) =>
     React.createElement('div', {
@@ -21,26 +21,78 @@ vi.mock('lucide-react', async importOriginal => {
 
   return {
     ...actual,
+    // Basic formatting
     Plus: MockIcon,
     Minus: MockIcon,
     Bold: MockIcon,
     Italic: MockIcon,
     Underline: MockIcon,
     Strikethrough: MockIcon,
+    Highlighter: MockIcon,
+    // Alignment
     AlignLeft: MockIcon,
     AlignCenter: MockIcon,
     AlignRight: MockIcon,
     AlignJustify: MockIcon,
+    // Media and content
+    Image: MockIcon,
+    Video: MockIcon,
+    Table: MockIcon,
+    Type: MockIcon,
+    Hash: MockIcon,
+    Quote: MockIcon,
+    // View and navigation
     Monitor: MockIcon,
     Smartphone: MockIcon,
+    Tablet: MockIcon,
+    Eye: MockIcon,
+    // Actions
     HelpCircle: MockIcon,
     Trash2: MockIcon,
     Copy: MockIcon,
+    Save: MockIcon,
+    Download: MockIcon,
+    ExternalLink: MockIcon,
+    Undo2: MockIcon,
+    Redo2: MockIcon,
+    History: MockIcon,
+    // Tools and settings
     Ruler: MockIcon,
+    Settings: MockIcon,
+    Settings2: MockIcon,
+    Keyboard: MockIcon,
+    Palette: MockIcon,
+    Grid: MockIcon,
+    // Zoom and layout
     ZoomIn: MockIcon,
     ZoomOut: MockIcon,
-    Table: MockIcon,
+    Move: MockIcon,
+    RotateCcw: MockIcon,
+    // Charts and data
     BarChart3: MockIcon,
+    Lightbulb: MockIcon,
+    Clock: MockIcon,
+    FileText: MockIcon,
+    // UI elements
+    CheckCircle: MockIcon,
+    Check: MockIcon,
+    ChevronDown: MockIcon,
+    ChevronUp: MockIcon,
+    ChevronRight: MockIcon,
+    Square: MockIcon,
+    MoreHorizontal: MockIcon,
+    // Headings
+    Heading1: MockIcon,
+    Heading2: MockIcon,
+    Heading3: MockIcon,
+    Heading4: MockIcon,
+    // Links and arrows
+    Link: MockIcon,
+    Unlink: MockIcon,
+    ArrowLeftRight: MockIcon,
+    ArrowUpDown: MockIcon,
+    // Missing icon that was causing test failures
+    Zap: MockIcon,
   };
 });
 
@@ -65,18 +117,7 @@ vi.mock('../KeyboardShortcutsPanel', () => ({
   KeyboardShortcutsPanel: () => <button>Shortcuts</button>,
 }));
 
-vi.mock('../TypographyDropdown', () => ({
-  TypographyDropdown: ({ selectedNode, disabled }: any) => (
-    <button
-      disabled={disabled}
-      title="Typography controls (click for options)"
-      aria-label="Typography controls (click for options)"
-    >
-      <div data-testid="type-icon" />
-      {selectedNode && <span>Type</span>}
-    </button>
-  ),
-}));
+// TypographyDropdown has been removed - typography controls are now inline in UnifiedToolbar
 
 vi.mock('../HistoryIndicator', () => ({
   HistoryIndicator: ({ compact }: { compact?: boolean }) => (
@@ -159,64 +200,6 @@ vi.mock('../Inspector/shared/BorderControls', () => ({
   ),
 }));
 
-// Mock Lucide icons
-vi.mock('lucide-react', () => ({
-  Save: () => <div data-testid="save-icon" />,
-  Download: () => <div data-testid="download-icon" />,
-  ExternalLink: () => <div data-testid="external-link-icon" />,
-  Undo2: () => <div data-testid="undo-icon" />,
-  Redo2: () => <div data-testid="redo-icon" />,
-  History: () => <div data-testid="history-icon" />,
-  Bold: () => <div data-testid="bold-icon" />,
-  Italic: () => <div data-testid="italic-icon" />,
-  AlignLeft: () => <div data-testid="align-left-icon" />,
-  AlignCenter: () => <div data-testid="align-center-icon" />,
-  AlignRight: () => <div data-testid="align-right-icon" />,
-  Type: () => <div data-testid="text-icon" />,
-  Hash: () => <div data-testid="hash-icon" />,
-  Image: () => <div data-testid="image-icon" />,
-  Minus: () => <div data-testid="separator-icon" />,
-  BarChart3: () => <div data-testid="bar-chart-icon" />,
-  Lightbulb: () => <div data-testid="lightbulb-icon" />,
-  Quote: () => <div data-testid="quote-icon" />,
-  Eye: () => <div data-testid="preview-icon" />,
-  Monitor: () => <div data-testid="desktop-icon" />,
-  Smartphone: () => <div data-testid="mobile-icon" />,
-  Tablet: () => <div data-testid="tablet-icon" />,
-  Settings: () => <div data-testid="settings-icon" />,
-  Keyboard: () => <div data-testid="keyboard-icon" />,
-  HelpCircle: () => <div data-testid="help-icon" />,
-  Trash2: () => <div data-testid="trash-icon" />,
-  Copy: () => <div data-testid="copy-icon" />,
-  Grid: () => <div data-testid="grid-icon" />,
-  Ruler: () => <div data-testid="ruler-icon" />,
-  Palette: () => <div data-testid="palette-icon" />,
-  Clock: () => <div data-testid="clock-icon" />,
-  FileText: () => <div data-testid="file-text-icon" />,
-  CheckCircle: () => <div data-testid="check-circle-icon" />,
-  ChevronDown: () => <div data-testid="chevron-down-icon" />,
-  ChevronUp: () => <div data-testid="chevron-up-icon" />,
-  Underline: () => <div data-testid="underline-icon" />,
-  Strikethrough: () => <div data-testid="strikethrough-icon" />,
-  AlignJustify: () => <div data-testid="align-justify-icon" />,
-  Check: () => <div data-testid="check-icon" />,
-  Settings2: () => <div data-testid="settings2-icon" />,
-  RotateCcw: () => <div data-testid="rotate-ccw-icon" />,
-  Move: () => <div data-testid="move-icon" />,
-  ArrowLeftRight: () => <div data-testid="arrow-left-right-icon" />,
-  ArrowUpDown: () => <div data-testid="arrow-up-down-icon" />,
-  Link: () => <div data-testid="link-icon" />,
-  Unlink: () => <div data-testid="unlink-icon" />,
-  ChevronRight: () => <div data-testid="chevron-right-icon" />,
-  Square: () => <div data-testid="square-icon" />,
-  MoreHorizontal: () => <div data-testid="more-horizontal-icon" />,
-  Heading1: () => <div data-testid="heading1-icon" />,
-  Heading2: () => <div data-testid="heading2-icon" />,
-  Heading3: () => <div data-testid="heading3-icon" />,
-  Heading4: () => <div data-testid="heading4-icon" />,
-  ZoomIn: () => <div data-testid="zoom-in-icon" />,
-  ZoomOut: () => <div data-testid="zoom-out-icon" />,
-}));
 
 const mockEditorStore = {
   selectedNodeId: null,
@@ -240,6 +223,15 @@ const mockEditorStore = {
   toggleSnapGuides: vi.fn(),
   canvasZoom: 1.0,
   updateCanvasZoom: vi.fn(),
+  // Required by useTableSelectionCoordination hook
+  setTextSelection: vi.fn(),
+  // Required by UnifiedToolbar for media insertion
+  getEditor: vi.fn(() => ({
+    commands: {
+      setInlineImage: vi.fn(),
+      setVideoEmbed: vi.fn(),
+    },
+  })),
 };
 
 describe('UnifiedToolbar', () => {

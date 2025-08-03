@@ -310,7 +310,7 @@ export const RichBlockDataSchema = z.object({
 export const NodeSchema = z.discriminatedUnion('type', [
   z.object({ id: z.string().uuid(), type: z.literal('textBlock'), data: TextBlockDataSchema }),
   z.object({ id: z.string().uuid(), type: z.literal('imageBlock'), data: ImageBlockDataSchema }),
-  z.object({ id: z.string().uuid(), type: z.literal('tableBlock'), data: TableBlockDataSchema }), // DEPRECATED
+  z.object({ id: z.string().uuid(), type: z.literal('tableBlock'), data: TableBlockDataSchema }), // DEPRECATED: Use richBlock with TipTap table extension
   // REMOVED: pollBlock support - polls moved to community-only features
   z.object({
     id: z.string().uuid(),

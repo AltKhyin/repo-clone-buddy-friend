@@ -22,6 +22,7 @@ interface RichBlockNodeProps {
   // Interaction callbacks
   onSelect?: () => void;
   onMove?: (position: { x: number; y: number }) => void;
+  onResize?: (dimensions: { width: number; height: number }) => void;
   onHeightAdjust?: (newHeight: number) => void;
 }
 
@@ -36,6 +37,7 @@ export const RichBlockNode = memo<RichBlockNodeProps>(
     y = 0,
     onSelect,
     onMove,
+    onResize,
     onHeightAdjust,
   }) => {
     const { updateNode, registerEditor, unregisterEditor } = useEditorStore();
@@ -296,6 +298,7 @@ export const RichBlockNode = memo<RichBlockNodeProps>(
           maxDimensions={{ width: 1200, height: 800 }}
           onSelect={onSelect}
           onMove={onMove}
+          onResize={onResize}
         >
           <div
             data-node-id={id}

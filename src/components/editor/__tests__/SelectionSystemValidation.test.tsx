@@ -68,18 +68,17 @@ describe('🔥 Selection System Validation', () => {
   });
 
   describe('📊 Component Integration Tests', () => {
-    it('should import TableComponent without errors', async () => {
-      const { TableComponent } = await import(
-        '@/components/editor/extensions/Table/TableComponent'
+    it('should import SimpleTableComponent without errors', async () => {
+      const { SimpleTableComponent } = await import(
+        '@/components/editor/extensions/Table/SimpleTableComponent'
       );
-      expect(TableComponent).toBeDefined();
-      expect(typeof TableComponent).toBe('function');
+      expect(SimpleTableComponent).toBeDefined();
+      expect(typeof SimpleTableComponent).toBe('function');
     });
 
-    it('should import PollComponent without errors', async () => {
-      const { PollComponent } = await import('@/components/editor/extensions/Poll/PollComponent');
-      expect(PollComponent).toBeDefined();
-      expect(typeof PollComponent).toBe('function');
+    it.skip('should import PollComponent (DISABLED: Poll component removed)', async () => {
+      // Poll component removed - polls moved to community-only features
+      // This test is disabled until poll functionality is reimplemented
     });
 
     it('should import RichBlockNode without errors', async () => {
@@ -162,11 +161,11 @@ describe('🔥 Selection System Validation', () => {
 
   describe('⚡ Performance Crisis Elimination Validation', () => {
     it('should not use performance monitoring hooks in new components', async () => {
-      // Read the TableComponent source to ensure it doesn't use performance monitoring
+      // Read the SimpleTableComponent source to ensure it doesn't use performance monitoring
       const tableComponentModule = await import(
-        '@/components/editor/extensions/Table/TableComponent'
+        '@/components/editor/extensions/Table/SimpleTableComponent'
       );
-      const tableComponentSource = tableComponentModule.TableComponent.toString();
+      const tableComponentSource = tableComponentModule.SimpleTableComponent.toString();
 
       // These hooks were causing the 426k+ render crisis
       expect(tableComponentSource).not.toContain('useOptimizedCallback');
@@ -175,16 +174,9 @@ describe('🔥 Selection System Validation', () => {
       expect(tableComponentSource).not.toContain('useRenderTracker');
     });
 
-    it('should not use performance monitoring hooks in poll component', async () => {
-      // Read the PollComponent source to ensure it doesn't use performance monitoring
-      const pollComponentModule = await import('@/components/editor/extensions/Poll/PollComponent');
-      const pollComponentSource = pollComponentModule.PollComponent.toString();
-
-      // These hooks were causing the 426k+ render crisis
-      expect(pollComponentSource).not.toContain('useOptimizedCallback');
-      expect(pollComponentSource).not.toContain('usePerformanceMonitor');
-      expect(pollComponentSource).not.toContain('useMemoWithDeps');
-      expect(pollComponentSource).not.toContain('useRenderTracker');
+    it.skip('should not use performance monitoring hooks in poll component (DISABLED: Poll removed)', async () => {
+      // Poll component removed - polls moved to community-only features
+      // This test is disabled until poll functionality is reimplemented
     });
   });
 
