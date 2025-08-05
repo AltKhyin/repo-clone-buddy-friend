@@ -259,44 +259,6 @@ export function SpacingControls({
         </Collapsible>
       )}
 
-      {/* Enhanced Visual Preview */}
-      {!compact && (
-        <div className="p-3 bg-muted/30 rounded-lg">
-          <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2 block">
-            Preview
-          </Label>
-          <div className="space-y-2">
-            {/* Container with padding only */}
-            <div className="bg-red-100 border border-red-200 rounded p-0.5">
-              {/* Content with padding */}
-              <div
-                className="bg-primary/10 border-2 border-dashed border-primary/30 rounded flex items-center justify-center"
-                style={{
-                  paddingLeft: `${data.paddingX || 0}px`,
-                  paddingRight: `${data.paddingX || 0}px`,
-                  paddingTop: `${data.paddingY || 0}px`,
-                  paddingBottom: `${data.paddingY || 0}px`,
-                  borderRadius: `${data.borderRadius || 0}px`,
-                  borderWidth: `${data.borderWidth || 0}px`,
-                  borderColor: data.borderColor || '#e5e7eb',
-                  minHeight: '40px',
-                }}
-              >
-                <div className="bg-primary/20 px-2 py-1 rounded text-xs text-primary font-medium">
-                  Content
-                </div>
-              </div>
-            </div>
-            {/* Legend */}
-            <div className="flex gap-4 text-xs">
-              <div className="flex items-center gap-1">
-                <div className="w-3 h-3 bg-primary/10 border-2 border-dashed border-primary/30 rounded"></div>
-                <span>Padding</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

@@ -1,6 +1,7 @@
-// ABOUTME: TipTap mark extension for background color (text highlighting) with validation
+// ABOUTME: TipTap mark extension for background color (text highlighting) with theme-aware defaults and validation
 
 import { Mark, mergeAttributes } from '@tiptap/core';
+import { isThemeToken, validateColorValue } from '@/utils/color-tokens';
 
 export interface BackgroundColorOptions {
   HTMLAttributes: Record<string, any>;
@@ -67,7 +68,7 @@ export const BackgroundColorMark = Mark.create<BackgroundColorOptions>({
       {
         tag: 'mark',
         getAttrs: element => {
-          const backgroundColor = (element as HTMLElement).style.backgroundColor || '#ffeb3b'; // Default yellow
+          const backgroundColor = (element as HTMLElement).style.backgroundColor || 'hsl(var(--accent))'; // Theme-aware default
           return { backgroundColor };
         },
       },
@@ -83,15 +84,15 @@ export const BackgroundColorMark = Mark.create<BackgroundColorOptions>({
       setBackgroundColor:
         (color: string) =>
         ({ commands }) => {
-          // Basic color validation
+          // Enhanced color validation with theme token support
           if (!color || typeof color !== 'string') {
             console.warn(`Invalid background color: ${color}`);
             return false;
           }
 
-          // Trim and validate color format
+          // Trim and validate color format (including theme tokens)
           const trimmedColor = color.trim();
-          const isValidColor = /^(#[0-9A-Fa-f]{3,8}|rgb\(|rgba\(|hsl\(|hsla\(|\w+)/.test(trimmedColor);
+          const isValidColor = isThemeToken(trimmedColor) || validateColorValue(trimmedColor);
           
           if (!isValidColor) {
             console.warn(`Invalid background color format: ${trimmedColor}`);
@@ -114,8 +115,8 @@ export const BackgroundColorMark = Mark.create<BackgroundColorOptions>({
           if (isHighlighted) {
             return commands.unsetMark(this.name);
           } else {
-            // Default yellow highlight
-            return commands.setMark(this.name, { backgroundColor: '#ffeb3b' });
+            // Theme-aware default highlight
+            return commands.setMark(this.name, { backgroundColor: 'hsl(var(--accent))' });
           }
         },
     };
@@ -125,10 +126,10 @@ export const BackgroundColorMark = Mark.create<BackgroundColorOptions>({
     return {
       // Common highlight shortcut
       'Mod-Shift-h': () => this.editor.commands.toggleHighlight(),
-      // Optional: Different highlight colors
-      // 'Mod-Shift-y': () => this.editor.commands.setBackgroundColor('#ffeb3b'), // Yellow
-      // 'Mod-Shift-p': () => this.editor.commands.setBackgroundColor('#e1bee7'), // Purple
-      // 'Mod-Shift-g': () => this.editor.commands.setBackgroundColor('#c8e6c9'), // Green
+      // Theme-aware highlight colors
+      // 'Mod-Shift-a': () => this.editor.commands.setBackgroundColor('hsl(var(--accent))'), // Accent
+      // 'Mod-Shift-s': () => this.editor.commands.setBackgroundColor('hsl(var(--success-muted))'), // Success
+      // 'Mod-Shift-e': () => this.editor.commands.setBackgroundColor('hsl(var(--error-muted))'), // Error
     };
   },
 });

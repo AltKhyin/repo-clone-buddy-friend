@@ -1,215 +1,183 @@
-// ABOUTME: Reusable color control component with presets, transparency support, and accessibility features
+// ABOUTME: Reusable color control component with theme-aware tokens, transparency support, and accessibility features
 
-import React, { useState } from 'react';
+import React from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { X, Palette, Pipette } from 'lucide-react';
-
-interface ColorPreset {
-  name: string;
-  value: string;
-  category?: string;
-}
+import { X } from 'lucide-react';
+import { UnifiedColorPicker } from '@/components/editor/shared/UnifiedColorPicker';
+import { useColorTokens } from '@/hooks/useColorTokens';
+import type { ColorToken } from '@/components/editor/shared/types/color-types';
 
 interface ColorControlProps {
   label: string;
   value?: string;
   onChange: (color: string | undefined) => void;
-  presets?: ColorPreset[];
   allowTransparent?: boolean;
   allowCustom?: boolean;
   compact?: boolean;
   className?: string;
+  /** Use case specific tokens (e.g., 'text', 'background', 'highlight') */
+  useCase?: 'text' | 'background' | 'highlight';
 }
 
-// Default color presets organized by category
-const DEFAULT_PRESETS: ColorPreset[] = [
-  // Grays
-  { name: 'Black', value: '#000000', category: 'grays' },
-  { name: 'Dark Gray', value: '#374151', category: 'grays' },
-  { name: 'Gray', value: '#6b7280', category: 'grays' },
-  { name: 'Light Gray', value: '#d1d5db', category: 'grays' },
-  { name: 'White', value: '#ffffff', category: 'grays' },
-
-  // Primary Colors
-  { name: 'Blue', value: '#3b82f6', category: 'primary' },
-  { name: 'Indigo', value: '#6366f1', category: 'primary' },
-  { name: 'Purple', value: '#8b5cf6', category: 'primary' },
-  { name: 'Pink', value: '#ec4899', category: 'primary' },
-  { name: 'Red', value: '#ef4444', category: 'primary' },
-
-  // Secondary Colors
-  { name: 'Orange', value: '#f97316', category: 'secondary' },
-  { name: 'Yellow', value: '#eab308', category: 'secondary' },
-  { name: 'Green', value: '#22c55e', category: 'secondary' },
-  { name: 'Teal', value: '#14b8a6', category: 'secondary' },
-  { name: 'Cyan', value: '#06b6d4', category: 'secondary' },
+// OPTIMIZATION: Memoized theme-aware presets that replace hardcoded colors
+const INSPECTOR_COLOR_TOKENS: ColorToken[] = [
+  // Primary theme colors
+  {
+    id: 'foreground',
+    name: 'Text',
+    value: 'hsl(var(--foreground))',
+    category: 'primary',
+    description: 'Primary text color',
+    preview: '#1a1a1a',
+  },
+  {
+    id: 'primary',
+    name: 'Primary',
+    value: 'hsl(var(--primary))',
+    category: 'primary',
+    description: 'Primary brand color',
+    preview: '#1a1a1a',
+  },
+  {
+    id: 'accent',
+    name: 'Accent',
+    value: 'hsl(var(--accent))',
+    category: 'primary',
+    description: 'Accent color for highlights',
+    preview: '#d97706',
+  },
+  
+  // Semantic colors
+  {
+    id: 'success',
+    name: 'Success',
+    value: 'hsl(var(--success))',
+    category: 'semantic',
+    description: 'Success color',
+    preview: '#22c55e',
+  },
+  {
+    id: 'destructive',
+    name: 'Error',
+    value: 'hsl(var(--destructive))',
+    category: 'semantic',
+    description: 'Error color',
+    preview: '#ef4444',
+  },
+  
+  // Neutral colors
+  {
+    id: 'muted',
+    name: 'Muted',
+    value: 'hsl(var(--muted))',
+    category: 'neutral',
+    description: 'Muted background',
+    preview: '#f3f4f6',
+  },
+  {
+    id: 'muted-foreground',
+    name: 'Muted Text',
+    value: 'hsl(var(--muted-foreground))',
+    category: 'neutral',
+    description: 'Muted text color',
+    preview: '#9ca3af',
+  },
+  {
+    id: 'border',
+    name: 'Border',
+    value: 'hsl(var(--border))',
+    category: 'neutral',
+    description: 'Border color',
+    preview: '#e5e7eb',
+  },
 ];
 
-export function ColorControl({
+// OPTIMIZATION: Memoized ColorControl component for better performance
+const ColorControlComponent = React.memo(function ColorControl({
   label,
   value,
   onChange,
-  presets = DEFAULT_PRESETS,
   allowTransparent = false,
   allowCustom = true,
   compact = false,
   className,
+  useCase,
 }: ColorControlProps) {
-  const [customColor, setCustomColor] = useState(
-    value && value !== 'transparent' ? value : '#000000'
-  );
-  const [isPickerOpen, setIsPickerOpen] = useState(false);
+  const { getTokensForUseCase } = useColorTokens();
 
-  const handlePresetSelect = (presetValue: string) => {
-    onChange(presetValue);
-    setCustomColor(presetValue);
-  };
+  // Get appropriate tokens based on use case or use inspector defaults
+  const availableTokens = useCase ? getTokensForUseCase(useCase) : INSPECTOR_COLOR_TOKENS;
 
-  const handleCustomColorChange = (color: string) => {
-    setCustomColor(color);
-    onChange(color);
-  };
+  // Handle color selection
+  const handleColorSelect = React.useCallback((color: string) => {
+    onChange(color || undefined);
+  }, [onChange]);
 
-  const handleClear = () => {
+  // Handle color clear
+  const handleColorClear = React.useCallback(() => {
     onChange(undefined);
-    setIsPickerOpen(false);
-  };
+  }, [onChange]);
 
-  const renderColorSwatch = (color: string, size: 'sm' | 'md' = 'md') => (
-    <div
-      className={cn(
-        'rounded border-2 border-gray-200 shadow-sm',
-        size === 'sm' ? 'w-4 h-4' : 'w-6 h-6'
-      )}
-      style={{ backgroundColor: color }}
-    />
-  );
+  // Handle transparency selection
+  const handleTransparentSelect = React.useCallback(() => {
+    onChange('transparent');
+  }, [onChange]);
 
   return (
     <div className={cn('space-y-2', className)}>
       <div className="flex items-center justify-between">
-        <Label className={cn('font-medium', compact ? 'text-xs' : 'text-sm')}>{label}</Label>
+        <Label className={cn('font-medium', compact ? 'text-xs' : 'text-sm')}>
+          {label}
+        </Label>
 
         {value && (
           <Button
             variant="ghost"
             size="sm"
-            onClick={handleClear}
+            onClick={handleColorClear}
             className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+            title="Clear color"
+            aria-label="Clear color selection"
           >
             <X size={12} />
           </Button>
         )}
       </div>
 
-      <div className="flex items-center gap-2">
-        {/* Current Color Display */}
-        <Popover open={isPickerOpen} onOpenChange={setIsPickerOpen}>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              className={cn('flex items-center gap-2 h-8', compact ? 'px-2' : 'px-3')}
-            >
-              {value ? (
-                renderColorSwatch(value, 'sm')
-              ) : (
-                <div className="w-4 h-4 border-2 border-dashed border-gray-300 rounded" />
-              )}
-              <Palette size={12} />
-            </Button>
-          </PopoverTrigger>
-
-          <PopoverContent className="w-64 p-3" align="start">
-            <div className="space-y-3">
-              {/* Transparency Option */}
-              {allowTransparent && (
-                <div className="space-y-2">
-                  <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                    Transparency
-                  </Label>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => onChange('transparent')}
-                    className="w-full justify-start"
-                  >
-                    <div className="w-4 h-4 border-2 border-dashed border-gray-300 rounded mr-2" />
-                    Transparent
-                  </Button>
-                </div>
-              )}
-
-              {/* Color Presets by Category */}
-              {['grays', 'primary', 'secondary'].map(category => {
-                const categoryPresets = presets.filter(p => p.category === category);
-                if (categoryPresets.length === 0) return null;
-
-                return (
-                  <div key={category} className="space-y-2">
-                    <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                      {category}
-                    </Label>
-                    <div className="grid grid-cols-5 gap-1">
-                      {categoryPresets.map(preset => (
-                        <Button
-                          key={preset.value}
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handlePresetSelect(preset.value)}
-                          className={cn(
-                            'h-8 w-8 p-0 border-2',
-                            value === preset.value && 'ring-2 ring-primary ring-offset-1'
-                          )}
-                          title={preset.name}
-                        >
-                          {renderColorSwatch(preset.value, 'sm')}
-                        </Button>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
-
-              {/* Custom Color Input */}
-              {allowCustom && (
-                <div className="space-y-2">
-                  <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                    Custom Color
-                  </Label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="color"
-                      value={customColor !== 'transparent' ? customColor : '#000000'}
-                      onChange={e => handleCustomColorChange(e.target.value)}
-                      className="w-8 h-8 rounded border border-gray-200 cursor-pointer"
-                    />
-                    <Input
-                      value={customColor}
-                      onChange={e => handleCustomColorChange(e.target.value)}
-                      placeholder="#000000"
-                      className="h-8 text-xs font-mono"
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-          </PopoverContent>
-        </Popover>
-
-        {/* Quick Text Input */}
-        {allowCustom && (
-          <Input
-            value={value || ''}
-            onChange={e => onChange(e.target.value || undefined)}
-            placeholder="Color value"
-            className={cn('font-mono', compact ? 'h-8 text-xs' : 'h-8 text-sm')}
-          />
+      <div className="space-y-2">
+        {/* Transparency option */}
+        {allowTransparent && (
+          <Button
+            variant={value === 'transparent' ? 'default' : 'outline'}
+            size="sm"
+            onClick={handleTransparentSelect}
+            className="w-full justify-start"
+          >
+            <div className="w-4 h-4 border-2 border-dashed border-gray-300 rounded mr-2" />
+            Transparent
+          </Button>
         )}
+
+        {/* Unified color picker */}
+        <UnifiedColorPicker
+          value={value && value !== 'transparent' ? value : undefined}
+          onColorSelect={handleColorSelect}
+          onColorClear={handleColorClear}
+          mode={allowCustom ? 'both' : 'tokens'}
+          variant="input"
+          size={compact ? 'sm' : 'default'}
+          label={`Choose ${label.toLowerCase()}`}
+          allowClear={true}
+          customTokens={availableTokens}
+          placeholder="#000000"
+          className="w-full"
+        />
       </div>
     </div>
   );
-}
+});
+
+// OPTIMIZATION: Export the memoized component
+export { ColorControlComponent as ColorControl };

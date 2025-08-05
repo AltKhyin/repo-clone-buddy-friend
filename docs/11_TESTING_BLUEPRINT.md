@@ -17,6 +17,7 @@
 6. [Error Scenarios](#error-scenarios)
 7. [Performance Testing](#performance-testing)
 8. [Accessibility Testing](#accessibility-testing)
+9. [Color System Testing](#color-system-testing)
 
 ---
 
@@ -820,6 +821,369 @@ This testing blueprint provides concrete implementation patterns for maintaining
 - Mock at the appropriate level (unit vs integration)
 - Test error scenarios comprehensively
 - Validate accessibility and performance
+
+---
+
+## Color System Testing
+
+### 9.1 Overview
+
+The EVIDENS color system requires comprehensive testing to ensure security, performance, and integration reliability. Testing coverage includes:
+
+- **Security Testing**: CSS injection prevention and input sanitization
+- **Component Testing**: UnifiedColorPicker and related components
+- **Token Testing**: Theme token validation and resolution
+- **Integration Testing**: Cross-component color consistency
+- **Performance Testing**: Validation speed and memory usage
+
+### 9.2 Security Testing Patterns
+
+**File Pattern**: `/src/utils/__tests__/color-sanitization.test.ts`
+
+```typescript
+// ABOUTME: Security tests for color input sanitization preventing CSS injection attacks
+
+import { describe, it, expect } from 'vitest'
+import { sanitizeColorForStyle, sanitizeStyleColors } from '../color-sanitization'
+
+describe('Color Sanitization Security', () => {
+  describe('CSS Injection Prevention', () => {
+    it('should block JavaScript injection attempts', () => {
+      const dangerousInputs = [
+        'javascript:alert(1)',
+        'JAVASCRIPT:alert(1)',
+        'expression(alert(1))',
+        'Expression(alert(1))',
+        'url(javascript:alert(1))',
+        'data:text/html,<script>alert(1)</script>',
+      ]
+
+      dangerousInputs.forEach(input => {
+        expect(sanitizeColorForStyle(input)).toBe('transparent')
+      })
+    })
+
+    it('should block CSS import and behavior injections', () => {
+      const dangerousInputs = [
+        '@import url(malicious.css)',
+        'behavior:url(malicious.htc)',
+        'binding:url(malicious.xml)',
+      ]
+
+      dangerousInputs.forEach(input => {
+        expect(sanitizeColorForStyle(input)).toBe('transparent')
+      })
+    })
+
+    it('should allow valid color formats', () => {
+      const validColors = [
+        '#ff0000',
+        '#FF0000',
+        'rgb(255, 0, 0)',
+        'hsl(0, 100%, 50%)',
+        'hsl(var(--primary))',
+        'transparent',
+        'red',
+      ]
+
+      validColors.forEach(color => {
+        expect(sanitizeColorForStyle(color)).toBe(color)
+      })
+    })
+  })
+
+  describe('Style Object Sanitization', () => {
+    it('should sanitize multiple style properties', () => {
+      const result = sanitizeStyleColors({
+        color: 'javascript:alert(1)',
+        backgroundColor: '#ff0000',
+        borderColor: 'hsl(var(--border))',
+      })
+
+      expect(result).toEqual({
+        color: 'transparent',
+        backgroundColor: '#ff0000',
+        borderColor: 'hsl(var(--border))',
+      })
+    })
+  })
+})
+```
+
+### 9.3 Component Testing Patterns
+
+**File Pattern**: `/src/components/editor/shared/__tests__/UnifiedColorPicker.test.tsx`
+
+```typescript
+// ABOUTME: Tests for UnifiedColorPicker ensuring secure color selection and theme integration
+
+import { describe, it, expect, vi } from 'vitest'
+import { screen, fireEvent, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { renderWithProviders } from '../../../__tests__/test-utils'
+import { UnifiedColorPicker } from '../UnifiedColorPicker'
+
+describe('UnifiedColorPicker', () => {
+  const mockOnColorSelect = vi.fn()
+  const mockOnColorClear = vi.fn()
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  describe('Token Selection Mode', () => {
+    it('should display theme tokens correctly', () => {
+      renderWithProviders(
+        <UnifiedColorPicker
+          onColorSelect={mockOnColorSelect}
+          mode="tokens"
+        />
+      )
+
+      expect(screen.getByLabelText('Select Primary color')).toBeInTheDocument()
+      expect(screen.getByLabelText('Select Success color')).toBeInTheDocument()
+    })
+
+    it('should handle token selection', async () => {
+      const user = userEvent.setup()
+      renderWithProviders(
+        <UnifiedColorPicker
+          onColorSelect={mockOnColorSelect}
+          mode="tokens"
+        />
+      )
+
+      const primaryToken = screen.getByLabelText('Select Primary color')
+      await user.click(primaryToken)
+
+      expect(mockOnColorSelect).toHaveBeenCalledWith('hsl(var(--primary))')
+    })
+  })
+
+  describe('Custom Color Mode', () => {
+    it('should validate custom color input', async () => {
+      const user = userEvent.setup()
+      renderWithProviders(
+        <UnifiedColorPicker
+          onColorSelect={mockOnColorSelect}
+          mode="custom"
+        />
+      )
+
+      const input = screen.getByLabelText('Custom color input')
+      await user.type(input, '#invalid')
+
+      expect(screen.getByText(/Invalid color format/)).toBeInTheDocument()
+    })
+
+    it('should accept valid hex colors', async () => {
+      const user = userEvent.setup()
+      renderWithProviders(
+        <UnifiedColorPicker
+          onColorSelect={mockOnColorSelect}
+          mode="custom"
+        />
+      )
+
+      const input = screen.getByLabelText('Custom color input')
+      await user.type(input, '#ff0000')
+
+      expect(mockOnColorSelect).toHaveBeenCalledWith('#ff0000')
+    })
+  })
+
+  describe('Security Integration', () => {
+    it('should sanitize malicious color inputs', async () => {
+      const user = userEvent.setup()
+      renderWithProviders(
+        <UnifiedColorPicker
+          onColorSelect={mockOnColorSelect}
+          mode="custom"
+        />
+      )
+
+      const input = screen.getByLabelText('Custom color input')
+      await user.type(input, 'javascript:alert(1)')
+
+      expect(mockOnColorSelect).not.toHaveBeenCalledWith('javascript:alert(1)')
+      expect(screen.getByText(/Invalid color format/)).toBeInTheDocument()
+    })
+  })
+})
+```
+
+### 9.4 Token System Testing
+
+**File Pattern**: `/src/utils/__tests__/color-tokens.test.ts`
+
+```typescript
+// ABOUTME: Tests for color token management system ensuring data integrity and performance
+
+import { describe, it, expect } from 'vitest'
+import {
+  ALL_COLOR_TOKENS,
+  COLOR_TOKEN_MAP,
+  isThemeToken,
+  getTokenByValue,
+  validateColorValue,
+} from '../color-tokens'
+
+describe('Color Token System', () => {
+  describe('Token Data Integrity', () => {
+    it('should have consistent token structure', () => {
+      ALL_COLOR_TOKENS.forEach(token => {
+        expect(token).toHaveProperty('id')
+        expect(token).toHaveProperty('name')
+        expect(token).toHaveProperty('value')
+        expect(token).toHaveProperty('category')
+        expect(typeof token.id).toBe('string')
+        expect(typeof token.name).toBe('string')
+        expect(typeof token.value).toBe('string')
+      })
+    })
+
+    it('should have unique token IDs', () => {
+      const ids = ALL_COLOR_TOKENS.map(token => token.id)
+      const uniqueIds = [...new Set(ids)]
+      expect(ids).toHaveLength(uniqueIds.length)
+    })
+  })
+
+  describe('Token Resolution Performance', () => {
+    it('should resolve tokens quickly', () => {
+      const start = performance.now()
+      
+      for (let i = 0; i < 1000; i++) {
+        COLOR_TOKEN_MAP.get('primary')
+      }
+      
+      const end = performance.now()
+      expect(end - start).toBeLessThan(10) // Should complete in under 10ms
+    })
+  })
+
+  describe('Token Validation', () => {
+    it('should identify theme tokens correctly', () => {
+      expect(isThemeToken('hsl(var(--primary))')).toBe(true)
+      expect(isThemeToken('#ff0000')).toBe(false)
+      expect(isThemeToken('rgb(255, 0, 0)')).toBe(false)
+    })
+
+    it('should validate color formats', () => {
+      expect(validateColorValue('#ff0000')).toBe(true)
+      expect(validateColorValue('rgb(255, 0, 0)')).toBe(true)
+      expect(validateColorValue('hsl(0, 100%, 50%)')).toBe(true)
+      expect(validateColorValue('invalid')).toBe(false)
+    })
+  })
+})
+```
+
+### 9.5 Integration Testing Patterns
+
+**File Pattern**: `/src/__tests__/theme-integration.validation.test.tsx`
+
+```typescript
+// ABOUTME: Integration tests ensuring color system works correctly across components
+
+import { describe, it, expect } from 'vitest'
+import { screen } from '@testing-library/react'
+import { renderWithProviders } from './test-utils'
+import { useColorTokens } from '../hooks/useColorTokens'
+
+describe('Color System Integration', () => {
+  describe('Cross-Component Consistency', () => {
+    it('should maintain color consistency across components', () => {
+      const TestComponent = () => {
+        const { resolveColor } = useColorTokens()
+        
+        const primaryColor = resolveColor('hsl(var(--primary))')
+        const resolvedAgain = resolveColor('hsl(var(--primary))')
+        
+        return (
+          <div>
+            <span data-testid="color1">{primaryColor}</span>
+            <span data-testid="color2">{resolvedAgain}</span>
+          </div>
+        )
+      }
+
+      renderWithProviders(<TestComponent />)
+      
+      expect(screen.getByTestId('color1')).toHaveTextContent(
+        screen.getByTestId('color2').textContent || ''
+      )
+    })
+  })
+
+  describe('Theme Switching', () => {
+    it('should handle theme changes gracefully', () => {
+      // Test theme switching functionality
+      const TestComponent = () => {
+        const { isDarkMode } = useColorTokens()
+        return <div data-testid="theme">{isDarkMode ? 'dark' : 'light'}</div>
+      }
+
+      renderWithProviders(<TestComponent />)
+      
+      expect(screen.getByTestId('theme')).toBeInTheDocument()
+    })
+  })
+})
+```
+
+### 9.6 Performance Testing Requirements
+
+**Performance Benchmarks**:
+
+```typescript
+// ABOUTME: Performance tests ensuring color system meets speed requirements
+
+describe('Color System Performance', () => {
+  it('should validate colors in under 1ms', () => {
+    const start = performance.now()
+    validateColorValue('#ff0000')
+    const end = performance.now()
+    
+    expect(end - start).toBeLessThan(1)
+  })
+
+  it('should handle batch token lookups efficiently', () => {
+    const tokenIds = ['primary', 'secondary', 'success', 'error']
+    
+    const start = performance.now()
+    tokenIds.forEach(id => COLOR_TOKEN_MAP.get(id))
+    const end = performance.now()
+    
+    expect(end - start).toBeLessThan(5)
+  })
+})
+```
+
+### 9.7 Testing Checklist for Color Components
+
+When creating tests for color-related components, ensure:
+
+1. **Security Testing**
+   - [ ] CSS injection prevention
+   - [ ] Input sanitization validation
+   - [ ] Safe DOM injection patterns
+
+2. **Component Testing**
+   - [ ] Token selection functionality
+   - [ ] Custom color input validation
+   - [ ] Accessibility compliance
+   - [ ] Error state handling
+
+3. **Integration Testing**
+   - [ ] Cross-component consistency
+   - [ ] Theme switching behavior
+   - [ ] Hook integration patterns
+
+4. **Performance Testing**
+   - [ ] Validation speed benchmarks
+   - [ ] Memory usage validation
+   - [ ] Batch operation efficiency
 
 **Next Steps:**
 

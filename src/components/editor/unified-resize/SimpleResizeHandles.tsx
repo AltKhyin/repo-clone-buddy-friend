@@ -142,11 +142,11 @@ export const SimpleResizeHandles = memo<SimpleResizeHandlesProps>(({
     borderRadius: '50%',
     border: '2px solid white',
     backgroundColor: resizeHandlers.isResizing 
-      ? 'rgb(16, 185, 129)' // Green when resizing
-      : 'rgb(59, 130, 246)', // Blue default - always available
+      ? 'hsl(var(--success))' // Success color when resizing
+      : 'hsl(var(--primary))', // Primary color default - always available
     boxShadow: resizeHandlers.isResizing
-      ? '0 0 0 4px rgba(16, 185, 129, 0.2)'
-      : '0 2px 4px rgba(0, 0, 0, 0.1)',
+      ? '0 0 0 4px hsl(var(--success) / 0.2)'
+      : '0 2px 4px hsl(var(--foreground) / 0.1)',
     zIndex: 30,
     transition: 'all 0.15s ease-out',
     opacity: 1, // Full opacity for better click detection

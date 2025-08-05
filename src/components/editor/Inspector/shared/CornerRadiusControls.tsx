@@ -91,24 +91,6 @@ export function CornerRadiusControls({
         </div>
       </div>
 
-      {/* Corner Radius Preview */}
-      {!compact && (
-        <div className="p-3 bg-muted/30 rounded-lg">
-          <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2 block">
-            Corner Radius Preview
-          </Label>
-          <div
-            className="bg-background border-2 border-dashed border-muted-foreground/30 flex items-center justify-center min-h-[60px]"
-            style={{
-              borderRadius: `${borderRadius}px`,
-            }}
-          >
-            <div className="text-xs text-muted-foreground font-medium">
-              {borderRadius}px corner radius
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

@@ -7,6 +7,8 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { UnifiedColorPicker } from '@/components/editor/shared/UnifiedColorPicker';
+import { validateColorOrToken } from '@/utils/color-tokens';
 import { Switch } from '@/components/ui/switch';
 import {
   Dialog,
@@ -35,7 +37,7 @@ import {
   GripVertical,
   AlertTriangle,
 } from 'lucide-react';
-import { DndContext, closestCenter, useSensor, useSensors, PointerSensor } from '@dnd-kit/core';
+import { DndContext, closestCenter, useSensor, useSensors, PointerSensor, type DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -47,7 +49,7 @@ import {
   useReorderCategoriesMutation,
   useToggleCategoryVisibilityMutation,
   type CommunityCategory,
-} from '../../../../packages/hooks/useCommunityManagementQuery';
+} from '@packages/hooks/useCommunityManagementQuery';
 import { useToast } from '@/hooks/use-toast';
 
 interface CategoryFormData {
@@ -161,24 +163,48 @@ const CategoryFormDialog = ({
     name: category?.name || '',
     label: category?.label || '',
     description: category?.description || '',
-    text_color: category?.text_color || '#1f2937',
-    border_color: category?.border_color || '#3b82f6',
-    background_color: category?.background_color || '#dbeafe',
+    text_color: category?.text_color || 'hsl(var(--foreground))',
+    border_color: category?.border_color || 'hsl(var(--border))',
+    background_color: category?.background_color || 'hsl(var(--muted))',
     icon_name: category?.icon_name || '',
   });
 
+  const validateForm = () => {
+    // Basic validation - ensure required fields are filled
+    if (!formData.name.trim() || !formData.label.trim()) {
+      return false;
+    }
+
+    // Validate color formats (accept both hex colors and theme tokens)
+    const isValidTextColor = validateColorOrToken(formData.text_color);
+    const isValidBorderColor = validateColorOrToken(formData.border_color);
+    const isValidBgColor = validateColorOrToken(formData.background_color);
+
+    return isValidTextColor && isValidBorderColor && isValidBgColor;
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!validateForm()) {
+      return;
+    }
+    
     onSave(formData);
   };
 
+  const handleColorChange = (field: string, value: string) => {
+    // Accept any valid color format - don't force conversions
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
   const presetColors = [
-    { name: 'Azul', text: '#1f2937', border: '#3b82f6', bg: '#dbeafe' },
-    { name: 'Verde', text: '#1f2937', border: '#16a34a', bg: '#dcfce7' },
-    { name: 'Amarelo', text: '#1f2937', border: '#fbbf24', bg: '#fef3c7' },
-    { name: 'Rosa', text: '#1f2937', border: '#ec4899', bg: '#fdf2f8' },
-    { name: 'Roxo', text: '#1f2937', border: '#6366f1', bg: '#e0e7ff' },
-    { name: 'Vermelho', text: '#1f2937', border: '#dc2626', bg: '#fee2e2' },
+    { name: 'Padrão', text: 'hsl(var(--foreground))', border: 'hsl(var(--border))', bg: 'hsl(var(--muted))' },
+    { name: 'Principal', text: 'hsl(var(--primary-foreground))', border: 'hsl(var(--primary))', bg: 'hsl(var(--primary))' },
+    { name: 'Sucesso', text: 'hsl(var(--success))', border: 'hsl(var(--success))', bg: 'hsl(var(--success-muted))' },
+    { name: 'Atenção', text: 'hsl(var(--destructive))', border: 'hsl(var(--destructive))', bg: 'hsl(var(--error-muted))' },
+    { name: 'Destaque', text: 'hsl(var(--accent-foreground))', border: 'hsl(var(--accent))', bg: 'hsl(var(--accent))' },
+    { name: 'Neutro', text: 'hsl(var(--muted-foreground))', border: 'hsl(var(--muted-foreground))', bg: 'hsl(var(--card))' },
   ];
 
   return (
@@ -288,56 +314,64 @@ const CategoryFormDialog = ({
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="text_color">Cor do Texto</Label>
-                <div className="flex items-center space-x-2">
-                  <Input
-                    id="text_color"
-                    type="color"
-                    value={formData.text_color}
-                    onChange={e => setFormData({ ...formData, text_color: e.target.value })}
-                    className="w-12 h-10 p-1 border rounded"
-                  />
-                  <Input
-                    value={formData.text_color}
-                    onChange={e => setFormData({ ...formData, text_color: e.target.value })}
-                    className="flex-1 font-mono text-sm"
-                  />
-                </div>
+                <UnifiedColorPicker
+                  value={formData.text_color || 'hsl(var(--foreground))'}
+                  onColorSelect={(color) => handleColorChange('text_color', color)}
+                  mode="both"
+                  variant="input"
+                  label="Text Color"
+                  allowClear={true}
+                  customTokens={[
+                    { id: 'foreground', name: 'Default Text', value: 'hsl(var(--foreground))', category: 'primary', description: 'Default text color' },
+                    { id: 'primary', name: 'Primary', value: 'hsl(var(--primary))', category: 'primary', description: 'Primary brand color' },
+                    { id: 'accent', name: 'Accent', value: 'hsl(var(--accent))', category: 'primary', description: 'Accent color' },
+                    { id: 'muted-foreground', name: 'Muted Text', value: 'hsl(var(--muted-foreground))', category: 'neutral', description: 'Muted text color' },
+                  ]}
+                  placeholder="#000000"
+                  className="w-full"
+                />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="border_color">Cor da Borda</Label>
-                <div className="flex items-center space-x-2">
-                  <Input
-                    id="border_color"
-                    type="color"
-                    value={formData.border_color}
-                    onChange={e => setFormData({ ...formData, border_color: e.target.value })}
-                    className="w-12 h-10 p-1 border rounded"
-                  />
-                  <Input
-                    value={formData.border_color}
-                    onChange={e => setFormData({ ...formData, border_color: e.target.value })}
-                    className="flex-1 font-mono text-sm"
-                  />
-                </div>
+                <UnifiedColorPicker
+                  value={formData.border_color || 'hsl(var(--border))'}
+                  onColorSelect={(color) => handleColorChange('border_color', color)}
+                  mode="both"
+                  variant="input"
+                  label="Border Color"
+                  allowClear={true}
+                  customTokens={[
+                    { id: 'border', name: 'Default Border', value: 'hsl(var(--border))', category: 'neutral', description: 'Default border color' },
+                    { id: 'accent', name: 'Accent', value: 'hsl(var(--accent))', category: 'primary', description: 'Accent border' },
+                    { id: 'muted-foreground', name: 'Muted', value: 'hsl(var(--muted-foreground))', category: 'neutral', description: 'Muted border' },
+                    { id: 'primary', name: 'Primary', value: 'hsl(var(--primary))', category: 'primary', description: 'Primary border' },
+                  ]}
+                  placeholder="#000000"
+                  className="w-full"
+                />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="background_color">Cor de Fundo</Label>
-                <div className="flex items-center space-x-2">
-                  <Input
-                    id="background_color"
-                    type="color"
-                    value={formData.background_color}
-                    onChange={e => setFormData({ ...formData, background_color: e.target.value })}
-                    className="w-12 h-10 p-1 border rounded"
-                  />
-                  <Input
-                    value={formData.background_color}
-                    onChange={e => setFormData({ ...formData, background_color: e.target.value })}
-                    className="flex-1 font-mono text-sm"
-                  />
-                </div>
+                <UnifiedColorPicker
+                  value={formData.background_color || 'hsl(var(--muted))'}
+                  onColorSelect={(color) => handleColorChange('background_color', color)}
+                  mode="both"
+                  variant="input"
+                  label="Background Color"
+                  allowClear={true}
+                  customTokens={[
+                    { id: 'background', name: 'Default Background', value: 'hsl(var(--background))', category: 'neutral', description: 'Default background color' },
+                    { id: 'muted', name: 'Muted', value: 'hsl(var(--muted))', category: 'neutral', description: 'Muted background' },
+                    { id: 'card', name: 'Card', value: 'hsl(var(--card))', category: 'neutral', description: 'Card background' },
+                    { id: 'accent', name: 'Accent', value: 'hsl(var(--accent))', category: 'primary', description: 'Accent background' },
+                    { id: 'success-muted', name: 'Success', value: 'hsl(var(--success-muted))', category: 'semantic', description: 'Success background' },
+                    { id: 'error-muted', name: 'Warning', value: 'hsl(var(--error-muted))', category: 'semantic', description: 'Warning background' },
+                  ]}
+                  placeholder="#000000"
+                  className="w-full"
+                />
               </div>
             </div>
           </div>
@@ -381,7 +415,7 @@ export const CategoryManagement = () => {
     }
   }, [sidebarData?.categories]);
 
-  const handleDragEnd = (event: any) => {
+  const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
 
     if (active.id !== over.id) {
@@ -418,7 +452,7 @@ export const CategoryManagement = () => {
         });
         setDialogOpen(false);
       },
-      onError: (error: any) => {
+      onError: (error: Error) => {
         toast({
           title: 'Erro ao criar categoria',
           description: error.message || 'Ocorreu um erro inesperado.',
@@ -442,7 +476,7 @@ export const CategoryManagement = () => {
           setDialogOpen(false);
           setEditingCategory(undefined);
         },
-        onError: (error: any) => {
+        onError: (error: Error) => {
           toast({
             title: 'Erro ao atualizar categoria',
             description: error.message || 'Ocorreu um erro inesperado.',
@@ -467,7 +501,7 @@ export const CategoryManagement = () => {
           description: 'A categoria foi removida com sucesso.',
         });
       },
-      onError: (error: any) => {
+      onError: (error: Error) => {
         toast({
           title: 'Erro ao excluir categoria',
           description: error.message || 'Ocorreu um erro inesperado.',
@@ -479,7 +513,7 @@ export const CategoryManagement = () => {
 
   const handleToggleVisibility = (id: number) => {
     toggleVisibilityMutation.mutate(id, {
-      onError: (error: any) => {
+      onError: (error: Error) => {
         toast({
           title: 'Erro ao alterar visibilidade',
           description: error.message || 'Ocorreu um erro inesperado.',

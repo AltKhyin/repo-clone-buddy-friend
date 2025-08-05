@@ -125,14 +125,8 @@
     --inspector-control-border: 50 20.7% 88.6%; /* Control borders */
     --inspector-control-focus: 15 63.1% 59.6%; /* Control focus state */
 
-    /* Editor canvas tokens */
-    --editor-canvas-background: 48 33.3% 97.1%; /* Editor canvas background */
-    --block-border-default: 50 20.7% 88.6%; /* Default block borders */
+    /* Additional editor tokens */
     --block-border-active: 60 2.6% 7.6%; /* Active/selected block borders */
-
-    /* Quote block tokens */
-    --quote-background: 53 28.6% 94.5%; /* Quote background */
-    --quote-accent: 60 2.6% 7.6%; /* Quote accent line */
     --quote-citation-text: 51 3.1% 43.7%; /* Citation text */
 
     /* Poll block tokens */
@@ -313,9 +307,20 @@
     --input: 210 6% 25%; /* Input backgrounds */
     --ring: 196 73% 52%; /* Focus rings with blue accent */
 
+    /* Vote colors for upvote/downvote functionality - Black Theme */
+    --success: 140 60% 45%; /* Green for upvotes */
+    --success-foreground: 0 0% 98%;
+    --success-muted: 140 40% 15%; /* Dark green background */
+    --success-muted-hover: 140 40% 18%; /* Hover state */
+
+    --error: 0 62.8% 50%; /* Red for downvotes */
+    --error-foreground: 0 0% 98%;
+    --error-muted: 0 40% 15%; /* Dark red background */
+    --error-muted-hover: 0 40% 18%; /* Hover state */
+
     /* Reddit Design Tokens - Black Theme */
     --reddit-sidebar-background: 0 0% 0%; /* #000000 - Pure black for high contrast */
-    --reddit-background-main: 0 0% 7%; /* #0e1113 - Main background */
+    --reddit-background-main: 0 0% 0%; /* #000000 - Pure black main background for consistency */
     --reddit-divider: 210 6% 20%; /* Subtle divider between sections */
     --reddit-text-primary: 0 0% 90%; /* Primary text */
     --reddit-text-secondary: 0 0% 70%; /* Secondary/muted text */

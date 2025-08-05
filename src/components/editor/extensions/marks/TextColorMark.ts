@@ -1,6 +1,7 @@
-// ABOUTME: TipTap mark extension for text color with validation and color reset functionality
+// ABOUTME: TipTap mark extension for text color with theme-aware defaults and validation
 
 import { Mark, mergeAttributes } from '@tiptap/core';
+import { isThemeToken, validateColorValue } from '@/utils/color-tokens';
 
 export interface TextColorOptions {
   HTMLAttributes: Record<string, any>;
@@ -33,7 +34,7 @@ export const TextColorMark = Mark.create<TextColorOptions>({
   addAttributes() {
     return {
       color: {
-        default: null,
+        default: 'hsl(var(--foreground))', // Theme-aware default text color
         parseHTML: element => {
           const color = element.style.color;
           return color || null;
@@ -79,15 +80,15 @@ export const TextColorMark = Mark.create<TextColorOptions>({
       setTextColor:
         (color: string) =>
         ({ commands }) => {
-          // Basic color validation
+          // Enhanced color validation with theme token support
           if (!color || typeof color !== 'string') {
             console.warn(`Invalid color: ${color}`);
             return false;
           }
 
-          // Trim and validate color format
+          // Trim and validate color format (including theme tokens)
           const trimmedColor = color.trim();
-          const isValidColor = /^(#[0-9A-Fa-f]{3,8}|rgb\(|rgba\(|hsl\(|hsla\(|\w+)/.test(trimmedColor);
+          const isValidColor = isThemeToken(trimmedColor) || validateColorValue(trimmedColor);
           
           if (!isValidColor) {
             console.warn(`Invalid color format: ${trimmedColor}`);
@@ -106,10 +107,10 @@ export const TextColorMark = Mark.create<TextColorOptions>({
 
   addKeyboardShortcuts() {
     return {
-      // Optional: Add keyboard shortcuts for common colors
-      // 'Mod-Shift-r': () => this.editor.commands.setTextColor('#ef4444'), // Red
-      // 'Mod-Shift-g': () => this.editor.commands.setTextColor('#22c55e'), // Green
-      // 'Mod-Shift-b': () => this.editor.commands.setTextColor('#3b82f6'), // Blue
+      // Theme-aware keyboard shortcuts for common text colors
+      // 'Mod-Shift-d': () => this.editor.commands.setTextColor('hsl(var(--foreground))'), // Default text
+      // 'Mod-Shift-p': () => this.editor.commands.setTextColor('hsl(var(--primary))'), // Primary
+      // 'Mod-Shift-e': () => this.editor.commands.setTextColor('hsl(var(--destructive))'), // Error
     };
   },
 });

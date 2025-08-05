@@ -17,27 +17,34 @@ Purpose: This document defines the canonical and complete visual design system f
 2.0. Color System (v3.1 - Light & Enhanced Dark Themes)
 ================================================================================
 
-2.1. Color Tokens (CSS Variables)
-RULE: The following CSS variables must be defined in the global stylesheet. The `.light` class defines the default theme. A `.dark` class will be added to the `<html>` or `<body>` tag to activate the enhanced dark theme.
+2.1. Color Tokens (CSS Variables) - UPDATED v3.2
+RULE: The following CSS variables are defined in `/src/index.css`. The `.light` class defines the default theme with sophisticated monochromatic palette.
 
-/* /styles/globals.css */
+/* /src/index.css - ACTUAL IMPLEMENTATION */
 .light {
-  /* Light Theme Tokens (The "Manus" Reference) */
-  --background: 220 20% 98%;   /* Very light, soft off-white */
-  --foreground: 220 10% 15%;  /* Dark charcoal, not pure black */
+  /* Light Theme Tokens - Sophisticated monochromatic palette with warm undertones */
+  --background: 48 33.3% 97.1%; /* #f0efea - Warm off-white background */
+  --foreground: 60 2.6% 7.6%; /* Very dark charcoal text */
 
-  --surface: 220 20% 94%;      /* Subtle gray for cards, secondary backgrounds */
-  --surface-muted: 220 20% 88%; /* Gray for input fields, disabled states */
+  --surface: 53 28.6% 94.5%; /* Subtle warm gray surfaces */
+  --surface-muted: 48 25% 92.2%; /* Slightly darker for input fields */
 
-  --border: 220 10% 85%;      /* Light gray border */
-  --border-hover: 220 10% 75%; /* Slightly darker border on hover */
+  --border: 50 20.7% 88.6%; /* Light warm gray borders */
+  --border-hover: 51 16.5% 84.5%; /* Slightly darker border on hover */
 
-  /* Primary action color is high-contrast black */
-  --primary: 220 10% 10%;
-  --primary-foreground: 210 40% 98%;
+  /* Primary action color - Near black for monochromatic feel */
+  --primary: 60 2.6% 7.6%; /* Very dark charcoal matching text */
+  --primary-foreground: 48 33.3% 97.1%; /* Warm off-white */
 
-  --text-primary: 220 10% 15%;
-  --text-secondary: 220 10% 35%;
+  --text-primary: 60 2.6% 7.6%; /* Very dark charcoal */
+  --text-secondary: 60 2.5% 23.3%; /* Medium dark gray */
+
+  /* Enhanced hierarchy tokens for sophisticated monochromatic design */
+  --text-tertiary: 51 3.1% 43.7%; /* Medium gray for metadata */
+  --surface-hover: 50 20.7% 88.6%; /* Subtle hover backgrounds */
+  --border-strong: 51 16.5% 84.5%; /* Emphasized separators */
+  --comment-thread: 50 11.5% 79.6%; /* Threading lines */
+  --action-hover: 50 20.7% 88.6%; /* Action button hovers */
 }
 
 .dark {

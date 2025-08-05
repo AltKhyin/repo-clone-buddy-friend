@@ -88,8 +88,8 @@ export const RichBlockNode = memo<RichBlockNodeProps>(
     }, [data.content.tiptapJSON, data.content.htmlContent]);
 
     // Calculate styling properties EARLY - needed for height calculator
-    const paddingX = data.paddingX || 16;
-    const paddingY = data.paddingY || 16;
+    const paddingX = data.paddingX ?? 16;
+    const paddingY = data.paddingY ?? 16;
 
     // Initialize enhanced rich text editor for Rich Block
     const editorInstance = useRichTextEditor({

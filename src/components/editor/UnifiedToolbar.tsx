@@ -6,7 +6,6 @@ import { useEditorStore } from '@/store/editorStore';
 import { useTheme } from '@/components/providers/CustomThemeProvider';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -27,7 +26,6 @@ import {
   AlignJustify,
   Monitor,
   Smartphone,
-  HelpCircle,
   Trash2,
   Copy,
   Ruler,
@@ -46,11 +44,11 @@ import {
   Quote,
   Link,
 } from 'lucide-react';
-import { KeyboardShortcutsPanel } from './KeyboardShortcutsPanel';
 import { ThemeSelector } from '@/components/header/ThemeSelector';
 import { useUnifiedSelection, useToolbarInteraction } from '@/hooks/useUnifiedSelection';
 import { PLACEHOLDER_IMAGES, PLACEHOLDER_DIMENSIONS } from './shared/mediaConstants';
 import { HighlightColorPicker } from './shared/HighlightColorPicker';
+import { UnifiedColorPicker } from './shared/UnifiedColorPicker';
 import { HeadingSelector } from './shared/HeadingSelector';
 import {
   FONT_FAMILIES,
@@ -335,7 +333,7 @@ export const UnifiedToolbar = React.memo(function UnifiedToolbar({
   const handleHighlight = React.useCallback(() => {
     // Toggle highlight by setting/clearing background color
     const isHighlighted = Boolean(appliedMarks.backgroundColor);
-    return handleTypography({ backgroundColor: isHighlighted ? '' : '#ffeb3b' });
+    return handleTypography({ backgroundColor: isHighlighted ? '' : 'hsl(var(--accent))' });
   }, [appliedMarks.backgroundColor, handleTypography]);
 
   const handleItalic = React.useCallback(() => {
@@ -1235,59 +1233,10 @@ export const UnifiedToolbar = React.memo(function UnifiedToolbar({
         {/* Canvas zoom controls moved to Row 2 */}
 
 
-        {/* Help and Shortcuts - Ultra-Compact */}
-        <div role="group" aria-label="Help and shortcuts" className="flex items-center gap-1">
-          <KeyboardShortcutsPanel />
 
-          <Button
-            variant="ghost"
-            size="sm"
-            className="flex items-center gap-1 h-6 px-1.5"
-            title="Help and documentation"
-          >
-            <HelpCircle size={10} />
-            <span className="hidden lg:inline text-xs">Help</span>
-          </Button>
-        </div>
-
-        {/* Block Actions - Always visible with smart disabled states */}
-        <>
-          <Separator orientation="vertical" className="h-4 hidden sm:block" />
-          <div
-            className="flex items-center gap-1"
-            role="group"
-            aria-label="Block controls"
-          >
-            <Badge
-              variant="secondary"
-              className={cn("text-xs px-1.5 py-0.5 h-6 flex items-center", !selectedNode && "opacity-50")}
-              role="status"
-              aria-live="polite"
-              aria-label={selectedNode ? `Currently selected: ${selectedNode.type.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}` : "No block selected"}
-            >
-              {selectedNode
-                ? selectedNode.type.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())
-                : "No Selection"}
-            </Badge>
-
-            {/* Block actions moved to Row 2 */}
-          </div>
-        </>
 
         {/* Enhanced Status Message - Always visible with smart context */}
         <div className="flex items-center gap-2 ml-auto">
-          {/* Context Help Element */}
-          <div 
-            id="toolbar-help" 
-            className="sr-only" 
-            aria-live="polite"
-            role="status"
-          >
-            {getDisabledReason() === 'no-selection' && "Select a block to enable formatting controls"}
-            {getDisabledReason() === 'no-text-selection' && "Select text to enable typography controls"}
-            {getDisabledReason() === 'no-typography-context' && "Select text or a Rich Block to enable formatting"}
-            {getDisabledReason() === 'no-editor' && "Select a Rich Block to enable text editing"}
-          </div>
           
           {/* Visual Status Message */}
           <span className="text-xs text-muted-foreground flex items-center gap-1">
@@ -1394,29 +1343,38 @@ export const UnifiedToolbar = React.memo(function UnifiedToolbar({
           {/* Color Controls Group */}
           <div className="flex items-center gap-1 bg-muted/30 rounded-md p-1 border border-border/10">
             <div className="flex items-center gap-1">
-              <label className="text-xs text-muted-foreground hidden sm:inline">Color:</label>
-              <Input
-                type="color"
-                value={appliedMarks.textColor || '#000000'}
-                onChange={e => handleTextColor(e.target.value)}
-                onMouseDown={handleToolbarMouseDown}
-                onMouseUp={handleToolbarMouseUp}
-                className="w-8 h-6 border-0 bg-transparent cursor-pointer"
-                title="Text color"
-                aria-label="Choose text color"
+              <label className="text-xs text-muted-foreground hidden sm:inline">Text:</label>
+              <UnifiedColorPicker
+                value={appliedMarks.textColor || 'hsl(var(--foreground))'}
+                onColorSelect={handleTextColor}
+                mode="both"
+                variant="icon"
+                size="sm"
+                label="Text Color"
+                allowClear={true}
+                customTokens={[
+                  { id: 'foreground', name: 'Default', value: 'hsl(var(--foreground))', category: 'primary', description: 'Default text color' },
+                  { id: 'text-secondary', name: 'Secondary', value: 'hsl(var(--text-secondary))', category: 'primary', description: 'Secondary text color' },
+                  { id: 'primary', name: 'Primary', value: 'hsl(var(--primary))', category: 'primary', description: 'Primary brand color' },
+                  { id: 'accent', name: 'Accent', value: 'hsl(var(--accent))', category: 'primary', description: 'Accent color' },
+                  { id: 'destructive', name: 'Error', value: 'hsl(var(--destructive))', category: 'semantic', description: 'Error color' },
+                  { id: 'success', name: 'Success', value: 'hsl(var(--success))', category: 'semantic', description: 'Success color' },
+                ]}
                 disabled={!typographyActive && !selectedNode}
               />
             </div>
             
-            <HighlightColorPicker
-              value={appliedMarks.backgroundColor}
-              onColorSelect={handleBackgroundColor}
-              onRemoveHighlight={() => handleBackgroundColor('')}
-              isActive={Boolean(appliedMarks.backgroundColor)}
-              variant="icon"
-              size="sm"
-              disabled={!typographyActive && !selectedNode}
-            />
+            <div className="flex items-center gap-1">
+              <label className="text-xs text-muted-foreground hidden sm:inline">Highlight:</label>
+              <HighlightColorPicker
+                value={appliedMarks.backgroundColor}
+                onColorSelect={handleBackgroundColor}
+                onRemoveHighlight={() => handleBackgroundColor('')}
+                isActive={Boolean(appliedMarks.backgroundColor)}
+                variant="icon"
+                size="sm"
+              />
+            </div>
           </div>
         </div>
 

@@ -13,7 +13,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { useContentTypeOperationMutation, getDefaultContentTypeColors } from '../../../../packages/hooks/useContentTypeManagement';
+import { UnifiedColorPicker } from '@/components/editor/shared/UnifiedColorPicker';
+import { validateColorOrToken } from '@/utils/color-tokens';
+import { sanitizeStyleColors } from '@/utils/color-sanitization';
+import { useContentTypeOperationMutation, getDefaultContentTypeColors } from '@packages/hooks/useContentTypeManagement';
+import { useColorHandling } from '@/hooks/useColorHandling';
+import { TEXT_COLOR_TOKENS, BORDER_COLOR_TOKENS, BACKGROUND_COLOR_TOKENS, STANDARD_COLOR_PICKER_PROPS } from '@/constants/color-picker-tokens';
 
 interface ContentTypeCreateModalProps {
   isOpen: boolean;
@@ -30,6 +35,7 @@ export const ContentTypeCreateModal = ({ isOpen, onClose }: ContentTypeCreateMod
   }));
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const { handleColorChange } = useColorHandling(setFormData);
 
   // Reset form when modal opens/closes
   useEffect(() => {
@@ -50,16 +56,15 @@ export const ContentTypeCreateModal = ({ isOpen, onClose }: ContentTypeCreateMod
       newErrors.label = 'Nome do tipo é obrigatório';
     }
 
-    // Validate hex colors
-    const hexColorRegex = /^#[0-9A-F]{6}$/i;
-    if (!hexColorRegex.test(formData.text_color)) {
-      newErrors.text_color = 'Cor deve estar no formato #000000';
+    // Validate color formats (accept both hex colors and theme tokens)
+    if (!validateColorOrToken(formData.text_color)) {
+      newErrors.text_color = 'Formato de cor inválido';
     }
-    if (!hexColorRegex.test(formData.border_color)) {
-      newErrors.border_color = 'Cor deve estar no formato #000000';
+    if (!validateColorOrToken(formData.border_color)) {
+      newErrors.border_color = 'Formato de cor inválido';
     }
-    if (!hexColorRegex.test(formData.background_color)) {
-      newErrors.background_color = 'Cor deve estar no formato #000000';
+    if (!validateColorOrToken(formData.background_color)) {
+      newErrors.background_color = 'Formato de cor inválido';
     }
 
     setErrors(newErrors);
@@ -92,16 +97,6 @@ export const ContentTypeCreateModal = ({ isOpen, onClose }: ContentTypeCreateMod
     }
   };
 
-  const handleColorChange = (field: string, value: string) => {
-    // Ensure the value starts with # and is 7 characters max
-    let formattedValue = value;
-    if (!value.startsWith('#')) {
-      formattedValue = '#' + value;
-    }
-    formattedValue = formattedValue.slice(0, 7);
-    
-    setFormData(prev => ({ ...prev, [field]: formattedValue }));
-  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -145,20 +140,13 @@ export const ContentTypeCreateModal = ({ isOpen, onClose }: ContentTypeCreateMod
             {/* Text Color */}
             <div className="space-y-2">
               <Label>Cor do Texto</Label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="color"
-                  value={formData.text_color}
-                  onChange={(e) => handleColorChange('text_color', e.target.value)}
-                  className="w-8 h-8 rounded border border-border cursor-pointer"
-                />
-                <Input
-                  value={formData.text_color}
-                  onChange={(e) => handleColorChange('text_color', e.target.value)}
-                  className="font-mono text-sm"
-                  placeholder="#000000"
-                />
-              </div>
+              <UnifiedColorPicker
+                {...STANDARD_COLOR_PICKER_PROPS}
+                value={formData.text_color || 'hsl(var(--foreground))'}
+                onColorSelect={(color) => handleColorChange('text_color', color)}
+                label="Text Color"
+                customTokens={TEXT_COLOR_TOKENS}
+              />
               {errors.text_color && (
                 <p className="text-sm text-red-600 dark:text-red-400">{errors.text_color}</p>
               )}
@@ -167,20 +155,13 @@ export const ContentTypeCreateModal = ({ isOpen, onClose }: ContentTypeCreateMod
             {/* Border Color */}
             <div className="space-y-2">
               <Label>Cor da Borda</Label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="color"
-                  value={formData.border_color}
-                  onChange={(e) => handleColorChange('border_color', e.target.value)}
-                  className="w-8 h-8 rounded border border-border cursor-pointer"
-                />
-                <Input
-                  value={formData.border_color}
-                  onChange={(e) => handleColorChange('border_color', e.target.value)}
-                  className="font-mono text-sm"
-                  placeholder="#000000"
-                />
-              </div>
+              <UnifiedColorPicker
+                {...STANDARD_COLOR_PICKER_PROPS}
+                value={formData.border_color || 'hsl(var(--border))'}
+                onColorSelect={(color) => handleColorChange('border_color', color)}
+                label="Border Color"
+                customTokens={BORDER_COLOR_TOKENS}
+              />
               {errors.border_color && (
                 <p className="text-sm text-red-600 dark:text-red-400">{errors.border_color}</p>
               )}
@@ -189,20 +170,13 @@ export const ContentTypeCreateModal = ({ isOpen, onClose }: ContentTypeCreateMod
             {/* Background Color */}
             <div className="space-y-2">
               <Label>Cor de Fundo</Label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="color"
-                  value={formData.background_color}
-                  onChange={(e) => handleColorChange('background_color', e.target.value)}
-                  className="w-8 h-8 rounded border border-border cursor-pointer"
-                />
-                <Input
-                  value={formData.background_color}
-                  onChange={(e) => handleColorChange('background_color', e.target.value)}
-                  className="font-mono text-sm"
-                  placeholder="#000000"
-                />
-              </div>
+              <UnifiedColorPicker
+                {...STANDARD_COLOR_PICKER_PROPS}
+                value={formData.background_color || 'hsl(var(--muted))'}
+                onColorSelect={(color) => handleColorChange('background_color', color)}
+                label="Background Color"
+                customTokens={BACKGROUND_COLOR_TOKENS}
+              />
               {errors.background_color && (
                 <p className="text-sm text-red-600 dark:text-red-400">{errors.background_color}</p>
               )}
@@ -213,17 +187,24 @@ export const ContentTypeCreateModal = ({ isOpen, onClose }: ContentTypeCreateMod
           <div className="space-y-2">
             <Label>Pré-visualização</Label>
             <div>
-              <Badge
-                style={{
+              {(() => {
+                const sanitizedColors = sanitizeStyleColors({
                   color: formData.text_color,
                   borderColor: formData.border_color,
                   backgroundColor: formData.background_color,
-                  border: `1px solid ${formData.border_color}`
-                }}
-                className="text-sm"
-              >
-                {formData.label || 'Nome do Tipo'}
-              </Badge>
+                });
+                return (
+                  <Badge
+                    style={{
+                      ...sanitizedColors,
+                      border: `1px solid ${sanitizedColors.borderColor}`
+                    }}
+                    className="text-sm"
+                  >
+                    {formData.label || 'Nome do Tipo'}
+                  </Badge>
+                );
+              })()}
             </div>
           </div>
 

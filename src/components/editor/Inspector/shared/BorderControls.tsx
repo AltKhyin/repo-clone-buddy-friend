@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Square, Palette, MoreHorizontal } from 'lucide-react';
+import { UnifiedColorPicker } from '../../shared/UnifiedColorPicker';
 
 interface BorderControlsProps {
   data: Record<string, any>;
@@ -53,7 +54,7 @@ export function BorderControls({
   colorKey = 'borderColor',
   styleKey = 'borderStyle',
   defaultWidth = 1,
-  defaultColor = '#e5e7eb',
+  defaultColor = 'hsl(var(--border))',
   defaultStyle = 'solid',
   maxWidth = 8,
 }: BorderControlsProps) {
@@ -161,41 +162,62 @@ export function BorderControls({
 
           {/* Border Color */}
           <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Palette size={compact ? 12 : 14} className="text-muted-foreground" />
-                <Label className={cn('font-medium', compact ? 'text-xs' : 'text-sm')}>
-                  Border Color
-                </Label>
-              </div>
+            <div className="flex items-center gap-2">
+              <Palette size={compact ? 12 : 14} className="text-muted-foreground" />
+              <Label className={cn('font-medium', compact ? 'text-xs' : 'text-sm')}>
+                Border Color
+              </Label>
             </div>
 
-            <div className="flex items-center gap-2">
-              <Input
-                type="color"
-                value={borderColor === 'transparent' ? '#e5e7eb' : borderColor}
-                onChange={e => handleColorChange(e.target.value)}
-                className={cn(
-                  'p-1 border rounded cursor-pointer',
-                  compact ? 'w-8 h-6' : 'w-12 h-8'
-                )}
-              />
-              <Input
-                type="text"
-                value={borderColor}
-                onChange={e => handleColorChange(e.target.value)}
-                placeholder="transparent"
-                className={cn('flex-1 font-mono', compact ? 'h-6 text-xs' : 'h-8 text-sm')}
-              />
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={handleColorClear}
-                className={cn('text-xs', compact ? 'h-6 px-2' : 'h-8 px-3')}
-              >
-                Clear
-              </Button>
-            </div>
+            <UnifiedColorPicker
+              value={borderColor !== 'transparent' ? borderColor : undefined}
+              onColorSelect={handleColorChange}
+              onColorClear={handleColorClear}
+              mode="both"
+              variant="input"
+              size={compact ? 'sm' : 'default'}
+              label="Border Color"
+              allowClear={true}
+              customTokens={[
+                {
+                  id: 'border',
+                  name: 'Default',
+                  value: 'hsl(var(--border))',
+                  category: 'neutral',
+                  description: 'Default border color that adapts to theme',
+                },
+                {
+                  id: 'muted-foreground',
+                  name: 'Muted',
+                  value: 'hsl(var(--muted-foreground))',
+                  category: 'neutral',
+                  description: 'Muted border color',
+                },
+                {
+                  id: 'accent',
+                  name: 'Accent',
+                  value: 'hsl(var(--accent))',
+                  category: 'primary',
+                  description: 'Accent border for highlights',
+                },
+                {
+                  id: 'destructive',
+                  name: 'Error',
+                  value: 'hsl(var(--destructive))',
+                  category: 'semantic',
+                  description: 'Error border color',
+                },
+                {
+                  id: 'success',
+                  name: 'Success',
+                  value: 'hsl(var(--success))',
+                  category: 'semantic',
+                  description: 'Success border color',
+                },
+              ]}
+              placeholder="transparent"
+              className="w-full"
+            />
           </div>
 
           {/* Border Style */}
@@ -225,26 +247,6 @@ export function BorderControls({
         </div>
       )}
 
-      {/* Border Preview */}
-      {!compact && (hasBorder || !enableToggle) && (
-        <div className="p-3 bg-muted/30 rounded-lg">
-          <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2 block">
-            Border Preview
-          </Label>
-          <div
-            className="bg-background flex items-center justify-center min-h-[60px]"
-            style={{
-              borderWidth: `${borderWidth}px`,
-              borderColor: borderColor,
-              borderStyle: borderStyle,
-            }}
-          >
-            <div className="text-xs text-muted-foreground font-medium">
-              {borderWidth}px {borderStyle} border
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

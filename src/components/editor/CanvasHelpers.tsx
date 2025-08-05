@@ -90,9 +90,10 @@ export function CanvasHelpers({ width, height, zoom, offset }: CanvasHelpersProp
     };
   }, [isDraggingGuide, addGuideline, removeGuideline, zoom, offset, toCanvasPosition]);
 
-  const rulerColor = canvasTheme === 'dark' ? '#52525b' : '#9ca3af';
-  const rulerTextColor = canvasTheme === 'dark' ? '#a1a1aa' : '#6b7280';
-  const guidelineColor = canvasTheme === 'dark' ? '#3b82f6' : '#2563eb';
+  // Use CSS custom properties for theme-aware colors
+  const rulerColor = 'hsl(var(--muted-foreground))';
+  const rulerTextColor = 'hsl(var(--muted-foreground))';
+  const guidelineColor = 'hsl(var(--primary))';
 
   return (
     <svg 

@@ -120,17 +120,17 @@ export const UnifiedResizeHandles = memo<UnifiedResizeHandlesProps>(({
     let boxShadow: string;
     
     if (constraintState.isConstrained) {
-      // Handle is constrained - use red
-      backgroundColor = 'rgb(239, 68, 68)'; // Red for constrained handles
-      boxShadow = '0 0 0 4px rgba(239, 68, 68, 0.2)';
+      // Handle is constrained - use semantic error color
+      backgroundColor = 'hsl(var(--destructive))';
+      boxShadow = '0 0 0 4px hsl(var(--destructive) / 0.2)';
     } else if (resizeHandlers.isResizing) {
-      // Handle is active and not constrained - use green
-      backgroundColor = 'rgb(16, 185, 129)'; // Green when resizing
-      boxShadow = '0 0 0 4px rgba(16, 185, 129, 0.2)';
+      // Handle is active and not constrained - use semantic success color
+      backgroundColor = 'hsl(var(--success))';
+      boxShadow = '0 0 0 4px hsl(var(--success) / 0.2)';
     } else {
-      // Handle is available - use blue
-      backgroundColor = 'rgb(59, 130, 246)'; // Blue default
-      boxShadow = '0 2px 4px rgba(0, 0, 0, 0.1)';
+      // Handle is available - use primary accent color
+      backgroundColor = 'hsl(var(--primary))';
+      boxShadow = '0 2px 4px hsl(var(--foreground) / 0.1)';
     }
 
     return {

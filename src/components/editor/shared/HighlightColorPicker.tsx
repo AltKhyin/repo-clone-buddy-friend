@@ -1,74 +1,55 @@
-// ABOUTME: Color picker dropdown for text highlights with preset color palette and custom color option
+// ABOUTME: Color picker dropdown for text highlights with theme-aware tokens and custom color option
 
-import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-} from '@/components/ui/dropdown-menu';
-import { Input } from '@/components/ui/input';
-import { Highlighter, Palette, X } from 'lucide-react';
+import React from 'react';
+import { Highlighter } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { UnifiedColorPicker } from './UnifiedColorPicker';
+import { useColorTokens } from '@/hooks/useColorTokens';
+import type { ColorToken } from './types/color-types';
 
-// Highlight color palette with accessibility-friendly colors
-export const HIGHLIGHT_COLORS = [
-  // Traditional highlights
-  { 
-    name: 'Yellow', 
-    value: '#ffeb3b', 
-    className: 'bg-yellow-200 hover:bg-yellow-300',
-    description: 'Classic yellow highlight'
+// Theme-aware highlight color tokens that adapt to the current theme
+const HIGHLIGHT_TOKENS: ColorToken[] = [
+  {
+    id: 'accent',
+    name: 'Accent',
+    value: 'hsl(var(--accent))',
+    category: 'primary',
+    description: 'Primary accent highlight that adapts to theme',
+    preview: '#d97706',
   },
-  { 
-    name: 'Orange', 
-    value: '#ffcc80', 
-    className: 'bg-orange-200 hover:bg-orange-300',
-    description: 'Orange highlight'
+  {
+    id: 'success-muted',
+    name: 'Success',
+    value: 'hsl(var(--success-muted))',
+    category: 'semantic',
+    description: 'Success highlight for positive emphasis',
+    preview: '#dcfce7',
   },
-  { 
-    name: 'Green', 
-    value: '#c8e6c9', 
-    className: 'bg-green-200 hover:bg-green-300',
-    description: 'Green highlight'
+  {
+    id: 'error-muted',
+    name: 'Warning',
+    value: 'hsl(var(--error-muted))',
+    category: 'semantic',
+    description: 'Warning highlight for important information',
+    preview: '#fecaca',
   },
-  
-  // Modern highlights
-  { 
-    name: 'Blue', 
-    value: '#bbdefb', 
-    className: 'bg-blue-200 hover:bg-blue-300',
-    description: 'Blue highlight'
+  {
+    id: 'muted',
+    name: 'Neutral',
+    value: 'hsl(var(--muted))',
+    category: 'neutral',
+    description: 'Neutral highlight for subtle emphasis',
+    preview: '#f3f4f6',
   },
-  { 
-    name: 'Purple', 
-    value: '#e1bee7', 
-    className: 'bg-purple-200 hover:bg-purple-300',
-    description: 'Purple highlight'
+  {
+    id: 'secondary',
+    name: 'Secondary',
+    value: 'hsl(var(--secondary))',
+    category: 'neutral',
+    description: 'Secondary background for subtle highlighting',
+    preview: '#f1f5f9',
   },
-  { 
-    name: 'Pink', 
-    value: '#f8bbd9', 
-    className: 'bg-pink-200 hover:bg-pink-300',
-    description: 'Pink highlight'
-  },
-  
-  // Neutral highlights
-  { 
-    name: 'Gray', 
-    value: '#e0e0e0', 
-    className: 'bg-gray-200 hover:bg-gray-300',
-    description: 'Gray highlight'
-  },
-  { 
-    name: 'Light Blue', 
-    value: '#e3f2fd', 
-    className: 'bg-sky-100 hover:bg-sky-200',
-    description: 'Light blue highlight'
-  },
-] as const;
+];
 
 export interface HighlightColorPickerProps {
   /** Current selected color */
@@ -88,7 +69,7 @@ export interface HighlightColorPickerProps {
 }
 
 export const HighlightColorPicker: React.FC<HighlightColorPickerProps> = ({
-  value = '#ffeb3b',
+  value,
   onColorSelect,
   onRemoveHighlight,
   isActive = false,
@@ -96,130 +77,48 @@ export const HighlightColorPicker: React.FC<HighlightColorPickerProps> = ({
   variant = 'icon',
   size = 'sm',
 }) => {
-  const [customColor, setCustomColor] = useState('#ffeb3b');
-  const [isOpen, setIsOpen] = useState(false);
+  // Get theme-aware default for highlights
+  const defaultHighlight = 'hsl(var(--accent))';
+  const currentValue = value || defaultHighlight;
 
-  // Find current color in palette
-  const currentColor = HIGHLIGHT_COLORS.find(color => color.value === value);
+  // Handle color selection with theme token integration
+  const handleColorSelect = React.useCallback((color: string) => {
+    onColorSelect(color || defaultHighlight);
+  }, [onColorSelect, defaultHighlight]);
 
-  const handlePresetColorSelect = (colorValue: string) => {
-    onColorSelect(colorValue);
-    setIsOpen(false);
-  };
-
-  const handleCustomColorSelect = () => {
-    onColorSelect(customColor);
-    setIsOpen(false);
-  };
-
-  const handleRemoveHighlight = () => {
-    onRemoveHighlight();
-    setIsOpen(false);
-  };
+  // Handle clear functionality
+  const handleColorClear = React.useCallback(() => {
+    if (onRemoveHighlight) {
+      onRemoveHighlight();
+    } else {
+      onColorSelect('');
+    }
+  }, [onRemoveHighlight, onColorSelect]);
 
   return (
-    <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant={isActive ? 'default' : 'ghost'}
-          size={size}
-          className={cn(
-            variant === 'icon' ? 'h-6 w-6 p-0' : 'h-6 px-2',
-            className
-          )}
-          title="Highlight color"
-          aria-label="Choose highlight color"
-          aria-pressed={isActive}
-        >
-          {variant === 'icon' ? (
-            <div className="relative">
-              <Highlighter size={10} />
-              {/* Color indicator */}
-              {isActive && (
-                <div 
-                  className="absolute -bottom-0.5 left-0 right-0 h-0.5 rounded"
-                  style={{ backgroundColor: value }}
-                />
-              )}
-            </div>
-          ) : (
-            <div className="flex items-center gap-1">
-              <Highlighter size={12} />
-              <span className="text-xs">Highlight</span>
-            </div>
-          )}
-        </Button>
-      </DropdownMenuTrigger>
+    <div className="relative">
+      <UnifiedColorPicker
+        value={currentValue}
+        onColorSelect={handleColorSelect}
+        onColorClear={handleColorClear}
+        mode="both"
+        variant={variant}
+        size={size}
+        label="Highlight Colors"
+        allowClear={true}
+        customTokens={HIGHLIGHT_TOKENS}
+        placeholder="#ffeb3b"
+        className={className}
+      />
       
-      <DropdownMenuContent className="w-56 p-2" align="start">
-        <DropdownMenuLabel className="flex items-center gap-1 text-xs">
-          <Palette size={12} />
-          Highlight Colors
-        </DropdownMenuLabel>
-        
-        <DropdownMenuSeparator />
-        
-        {/* Preset Colors Grid */}
-        <div className="grid grid-cols-4 gap-1 mb-3">
-          {HIGHLIGHT_COLORS.map((color) => (
-            <Button
-              key={color.value}
-              variant="ghost"
-              size="sm"
-              className={cn(
-                'h-8 w-8 p-0 rounded border-2 transition-all',
-                color.className,
-                value === color.value 
-                  ? 'border-primary ring-2 ring-primary/20' 
-                  : 'border-transparent hover:border-primary/50'
-              )}
-              onClick={() => handlePresetColorSelect(color.value)}
-              title={color.description}
-              aria-label={`Select ${color.name} highlight`}
-            >
-              <span className="sr-only">{color.name}</span>
-            </Button>
-          ))}
-        </div>
-        
-        <DropdownMenuSeparator />
-        
-        {/* Custom Color Section */}
-        <div className="space-y-2">
-          <label className="text-xs text-muted-foreground">Custom Color:</label>
-          <div className="flex items-center gap-2">
-            <Input
-              type="color"
-              value={customColor}
-              onChange={(e) => setCustomColor(e.target.value)}
-              className="w-8 h-6 p-0 border-0 bg-transparent cursor-pointer"
-              title="Custom highlight color"
-            />
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleCustomColorSelect}
-              className="h-6 px-2 text-xs"
-            >
-              Apply
-            </Button>
-          </div>
-        </div>
-        
-        <DropdownMenuSeparator />
-        
-        {/* Remove Highlight */}
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleRemoveHighlight}
-          className="w-full h-6 text-xs text-muted-foreground hover:text-destructive"
-        >
-          <X size={12} className="mr-1" />
-          Remove Highlight
-        </Button>
-      </DropdownMenuContent>
-    </DropdownMenu>
+      {/* Custom highlight indicator overlay for icon variant */}
+      {variant === 'icon' && isActive && (
+        <div 
+          className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-4 h-0.5 rounded pointer-events-none"
+          style={{ backgroundColor: currentValue }}
+        />
+      )}
+    </div>
   );
 };
 
