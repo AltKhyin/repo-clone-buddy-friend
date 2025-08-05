@@ -10,6 +10,7 @@ import Link from '@tiptap/extension-link';
 import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
 import Mention from '@tiptap/extension-mention';
+import Underline from '@tiptap/extension-underline';
 import { useCallback, useRef, useState, useEffect } from 'react';
 import { debounce } from 'lodash-es';
 import { useEditorStore } from '@/store/editorStore';
@@ -33,6 +34,104 @@ import { BackgroundColorMark } from '@/components/editor/extensions/marks/Backgr
 import { TextTransformMark } from '@/components/editor/extensions/marks/TextTransformMark';
 import { LetterSpacingMark } from '@/components/editor/extensions/marks/LetterSpacingMark';
 import { TextAlignNode } from '@/components/editor/extensions/nodes/TextAlignNode';
+
+// 🎯 TABLE CELL SELECTION PERSISTENCE FIX
+// Helper functions for click context detection to solve table cell selection loss issue
+// Problem: Table cell selections were being cleared on ANY click outside the cell (including toolbar)
+// Solution: Intelligent click detection to distinguish between toolbar clicks and content clicks
+const isToolbarElement = (element: HTMLElement | null): boolean => {
+  if (!element) return false;
+  
+  // Check for toolbar-related classes and data attributes
+  const toolbarSelectors = [
+    '.unified-toolbar',
+    '.toolbar-button',
+    '.dropdown-trigger',
+    '.typography-controls',
+    '[data-toolbar]',
+    '[role="toolbar"]',
+    'button',
+    '[data-radix-popper-content-wrapper]', // Radix popover/dropdown content
+    '[data-radix-dropdown-content]',
+    '[role="menu"]',
+    '[role="menuitem"]',
+    '.lucide', // Icon elements
+  ];
+  
+  // Check element and its ancestors for toolbar indicators
+  let currentElement: HTMLElement | null = element;
+  while (currentElement && currentElement !== document.body) {
+    // Check if element matches any toolbar selector
+    for (const selector of toolbarSelectors) {
+      if (currentElement.matches?.(selector)) {
+        return true;
+      }
+    }
+    
+    // Check for toolbar-related class names
+    const className = currentElement.className;
+    if (typeof className === 'string' && (
+      className.includes('toolbar') ||
+      className.includes('dropdown') ||
+      className.includes('popover') ||
+      className.includes('menu') ||
+      className.includes('button')
+    )) {
+      return true;
+    }
+    
+    currentElement = currentElement.parentElement;
+  }
+  
+  return false;
+};
+
+const isEditorContent = (element: HTMLElement | null): boolean => {
+  if (!element) return false;
+  
+  // Check if element is within editor content
+  const editorSelectors = [
+    '.tiptap',
+    '.ProseMirror',
+    '.rich-block-content',
+    '.editor-content',
+    '[contenteditable="true"]',
+  ];
+  
+  let currentElement: HTMLElement | null = element;
+  while (currentElement && currentElement !== document.body) {
+    for (const selector of editorSelectors) {
+      if (currentElement.matches?.(selector)) {
+        return true;
+      }
+    }
+    currentElement = currentElement.parentElement;
+  }
+  
+  return false;
+};
+
+const shouldClearTableCellSelection = (targetElement: HTMLElement | null): boolean => {
+  // Don't clear table cell selection if:
+  // 1. Click is on toolbar/UI elements
+  // 2. Click is outside editor content entirely
+  // 3. targetElement is null (safety)
+  
+  if (!targetElement) {
+    return false; // Conservative approach - don't clear on null target
+  }
+  
+  if (isToolbarElement(targetElement)) {
+    return false; // Preserve selection when clicking toolbar
+  }
+  
+  if (!isEditorContent(targetElement)) {
+    return false; // Preserve selection when clicking outside editor
+  }
+  
+  // Only clear when clicking on actual editor content that should take precedence
+  return true;
+};
 
 // Helper functions for table selection detection
 const findParentTable = (state: any, pos: number) => {
@@ -395,6 +494,9 @@ export const useRichTextEditor = ({
         linkOnPaste: true,
       }),
 
+      // Underline formatting (always enabled)
+      Underline,
+
       // Task lists (always enabled)
       TaskList.configure({
         HTMLAttributes: {
@@ -717,10 +819,26 @@ export const useRichTextEditor = ({
             savings: 'Eliminated 3+ ProseMirror state accesses'
           });
           
-          // Clear any existing table cell selection since this is normal text
+          // 🎯 SMART SELECTION CLEARING: Only clear table cell selection for appropriate interactions
           const { currentSelection } = useEditorStore.getState();
           if (currentSelection?.type === ContentSelectionType.TABLE_CELL && currentSelection.blockId === nodeId) {
-            setContentSelection(null);
+            // Use intelligent click detection to determine if we should clear the selection
+            if (shouldClearTableCellSelection(targetElement)) {
+              setContentSelection(null);
+              globalMonitor.recordProseMirrorCall('table-cell-selection-cleared', {
+                reason: 'Editor content interaction',
+                elementType: targetElement?.tagName.toLowerCase(),
+                note: 'Table cell selection cleared due to editor content click'
+              });
+            } else {
+              globalMonitor.recordProseMirrorCall('table-cell-selection-preserved', {
+                reason: 'Non-content interaction (toolbar/external)',
+                elementType: targetElement?.tagName.toLowerCase(),
+                isToolbar: isToolbarElement(targetElement),
+                isEditorContent: isEditorContent(targetElement),
+                note: 'Table cell selection preserved - click was on toolbar or outside editor'
+              });
+            }
           }
           
           // 🎯 UNIFIED SELECTION INTEGRATION: Route text selections to unified system

@@ -265,20 +265,32 @@ export const RichTableCell = React.memo(React.forwardRef<RichTableCellRef, RichT
           <EditorContent
             editor={editorRef.current}
             className={cn(
-              'prose prose-sm max-w-none',
+              // 🎯 FIX #2: Replace prose classes with controlled typography that doesn't expand row height
+              'table-cell-typography max-w-none',
               'focus-within:outline-none',
               '[&_.ProseMirror]:outline-none',
               '[&_.ProseMirror]:min-h-[1.2rem]',
+              '[&_.ProseMirror]:max-h-[1.2rem]', // Constrain maximum height
               '[&_.ProseMirror]:p-0',
               '[&_.ProseMirror]:m-0',
-              '[&_.ProseMirror]:leading-relaxed',
+              '[&_.ProseMirror]:leading-none', // Tight line height to prevent expansion
+              '[&_.ProseMirror]:overflow-hidden', // Prevent content from expanding cell
+              // Ensure typography marks still work properly
+              '[&_.ProseMirror_p]:m-0',
+              '[&_.ProseMirror_p]:p-0',
+              '[&_.ProseMirror_p]:leading-none',
             )}
           />
         </div>
       ) : (
         /* Display mode for better performance */
         <div 
-          className="cell-display-content min-h-[1.2rem] w-full cursor-text"
+          className={cn(
+            "cell-display-content min-h-[1.2rem] max-h-[1.2rem] w-full cursor-text",
+            // 🎯 FIX #2: Consistent height control for display mode
+            "overflow-hidden leading-none",
+            "table-cell-typography"
+          )}
           style={{
             fontSize: `${styling.fontSize}px`,
             fontWeight: isHeader ? 600 : styling.fontWeight,

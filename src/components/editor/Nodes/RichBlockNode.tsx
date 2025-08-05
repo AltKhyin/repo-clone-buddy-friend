@@ -298,7 +298,7 @@ export const RichBlockNode = memo<RichBlockNodeProps>(
           height={height}
           x={x}
           y={y}
-          selected={isActive}
+          selected={selected || isActive}
           blockType="richBlock"
           contentStyles={contentStyles}
           minDimensions={{ width: 200, height: 120 }}
@@ -306,6 +306,8 @@ export const RichBlockNode = memo<RichBlockNodeProps>(
           onSelect={onSelect}
           onMove={onMove}
           onResize={onResize}
+          dragSensitivity={16} // Enhanced drag area
+          showDragHandle={true} // 🎯 DRAG HANDLE: Enable visible drag handle for rich blocks
         >
           <div
             data-node-id={id}

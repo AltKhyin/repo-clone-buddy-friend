@@ -49,6 +49,9 @@ const MARKDOWN_SHORTCUTS = [
       { syntax: '# Heading 1', description: 'Large heading', icon: Hash, action: 'heading1' },
       { syntax: '## Heading 2', description: 'Medium heading', icon: Hash, action: 'heading2' },
       { syntax: '### Heading 3', description: 'Small heading', icon: Hash, action: 'heading3' },
+      { syntax: '#### Heading 4', description: 'Extra small heading', icon: Hash, action: 'heading4' },
+      { syntax: '##### Heading 5', description: 'Tiny heading', icon: Hash, action: 'heading5' },
+      { syntax: '###### Heading 6', description: 'Minimal heading', icon: Hash, action: 'heading6' },
       { syntax: '> Quote', description: 'Block quote', icon: Quote, action: 'blockquote' },
     ],
   },
@@ -102,6 +105,15 @@ export const MarkdownShortcuts: React.FC<MarkdownShortcutsProps> = ({ editor, cl
           break;
         case 'heading3':
           editor.setHeading?.(3);
+          break;
+        case 'heading4':
+          editor.setHeading?.(4);
+          break;
+        case 'heading5':
+          editor.setHeading?.(5);
+          break;
+        case 'heading6':
+          editor.setHeading?.(6);
           break;
         case 'blockquote':
           editor.toggleBlockquote();

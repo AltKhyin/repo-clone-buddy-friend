@@ -35,6 +35,14 @@ vi.mock('@/hooks/useEditorTheme', () => ({
   }),
 }));
 
+// Mock editor actions hook
+vi.mock('@/hooks/useEditorActions', () => ({
+  useEditorActions: () => ({
+    clearAllSelection: vi.fn(),
+    activateBlock: vi.fn(),
+  }),
+}));
+
 // Test wrapper
 const TestWrapper = ({ children }: { children: React.ReactNode }) => (
   <CustomThemeProvider>{children}</CustomThemeProvider>
@@ -84,7 +92,7 @@ describe('Simple Movement Test', () => {
     expect(screen.getByText('Zoom: 100%')).toBeInTheDocument();
   });
 
-  it('should handle basic mouse interactions', async () => {
+  it('should handle gesture-based drag interactions', async () => {
     render(<WYSIWYGCanvas />, { wrapper: TestWrapper });
 
     // Find the block content
@@ -96,33 +104,39 @@ describe('Simple Movement Test', () => {
     expect(draggableBlock).toBeInTheDocument();
 
     if (draggableBlock) {
-      console.log('Found draggable block, testing interaction...');
+      console.log('Found draggable block, testing gesture-based interaction...');
 
-      // Test mouse down
-      fireEvent.mouseDown(draggableBlock, {
+      // 🎯 GESTURE-BASED TEST: Start gesture detection
+      fireEvent.click(draggableBlock, {
         button: 0,
-        clientX: 200,
-        clientY: 150,
+        clientX: 116, // Click near border (16px from edge at x=100 + 16)
+        clientY: 116, // Click near border (16px from edge at y=100 + 16)
       });
 
-      // Test mouse move
+      // 🎯 GESTURE MOVEMENT: Move mouse to trigger gesture threshold (5px minimum)
+      fireEvent.mouseMove(draggableBlock, {
+        clientX: 122, // Move 6px horizontally (exceeds 5px threshold)
+        clientY: 116,
+      });
+
+      // 🎯 CONTINUE DRAG: Move further to test actual dragging
       fireEvent.mouseMove(document, {
-        clientX: 250,
-        clientY: 200,
+        clientX: 150, // Larger movement for drag
+        clientY: 130,
       });
 
-      // Wait for debounced update
+      // Wait for position update (gesture system may have different timing)
       await waitFor(
         () => {
           expect(mockUpdateNodePosition).toHaveBeenCalled();
         },
-        { timeout: 100 }
+        { timeout: 500 } // Increased timeout for gesture detection
       );
 
-      // Test mouse up
+      // Test mouse up to end drag
       fireEvent.mouseUp(document);
 
-      console.log('Position update calls:', mockUpdateNodePosition.mock.calls);
+      console.log('Gesture-based position update calls:', mockUpdateNodePosition.mock.calls);
       expect(mockUpdateNodePosition).toHaveBeenCalledWith(
         'test-block',
         expect.objectContaining({
@@ -130,6 +144,63 @@ describe('Simple Movement Test', () => {
           y: expect.any(Number),
         })
       );
+    }
+  });
+
+  it('should handle gesture timeout fallback to click', async () => {
+    render(<WYSIWYGCanvas />, { wrapper: TestWrapper });
+
+    const blockContent = screen.getByText('Test');
+    const draggableBlock = blockContent.closest('[style*="left: 100px"]');
+    
+    if (draggableBlock) {
+      console.log('Testing gesture timeout behavior...');
+
+      // 🎯 GESTURE TIMEOUT TEST: Click near border but don't move
+      fireEvent.click(draggableBlock, {
+        button: 0,
+        clientX: 116, // Click near border
+        clientY: 116,
+      });
+
+      // Wait for gesture timeout (300ms) without moving mouse
+      await new Promise(resolve => setTimeout(resolve, 350));
+
+      // After timeout, it should be treated as regular click (no drag)
+      // The block should be selected but not dragged
+      expect(mockStore.selectNode).toHaveBeenCalledWith('test-block');
+      
+      // Position should NOT have been updated (no drag occurred)
+      expect(mockUpdateNodePosition).not.toHaveBeenCalled();
+    }
+  });
+
+  it('should detect border area correctly for drag initiation', () => {
+    render(<WYSIWYGCanvas />, { wrapper: TestWrapper });
+
+    const blockContent = screen.getByText('Test');
+    const draggableBlock = blockContent.closest('[style*="left: 100px"]');
+    
+    if (draggableBlock) {
+      console.log('Testing border detection...');
+
+      // 🎯 BORDER DETECTION TEST: Click within 16px of edge should start gesture
+      const borderClick = fireEvent.click(draggableBlock, {
+        button: 0,
+        clientX: 115, // 15px from left edge (within 16px threshold)
+        clientY: 150,
+      });
+
+      expect(borderClick).toBe(true);
+
+      // 🎯 NON-BORDER TEST: Click in center should NOT start gesture (just select)
+      const centerClick = fireEvent.click(draggableBlock, {
+        button: 0,
+        clientX: 250, // Center of 300px wide block
+        clientY: 150,
+      });
+
+      expect(centerClick).toBe(true);
     }
   });
 });

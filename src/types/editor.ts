@@ -78,10 +78,6 @@ export const BlockPositionsSchema = z.record(z.string(), BlockPositionSchema);
 
 export const TextBlockDataSchema = z.object({
   htmlContent: z.string(),
-  // Unified text/heading functionality
-  headingLevel: z
-    .union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.null()])
-    .optional(),
   // Typography
   fontSize: z.number().optional(),
   textAlign: z.enum(['left', 'center', 'right', 'justify']).optional(),
@@ -300,6 +296,16 @@ export const RichBlockDataSchema = z.object({
   textTransform: z.enum(['none', 'uppercase', 'lowercase', 'capitalize']).optional(),
   textDecoration: z.enum(['none', 'underline', 'line-through']).optional(),
   fontStyle: z.enum(['normal', 'italic']).optional(),
+  // Future collapsible functionality: Heading structure metadata
+  headingStructure: z.object({
+    headingNodes: z.array(z.object({
+      level: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5), z.literal(6)]),
+      text: z.string(),
+      position: z.number(), // Position in TipTap document
+      id: z.string(), // Unique ID for collapsible grouping
+    })),
+    lastAnalyzed: z.string().optional(), // ISO string timestamp
+  }).optional(),
 });
 
 // ===== MASTER NODE SCHEMA =====
@@ -545,6 +551,8 @@ export interface ContentBoundaryProps {
   minDimensions?: { width: number; height: number };
   /** Maximum content dimensions */
   maxDimensions?: { width: number; height: number };
+  /** Whether to show drag handle for better discoverability */
+  showDragHandle?: boolean;
   /** Whether to enable resize constraints (default: true) */
   enableConstraints?: boolean;
 }
@@ -905,7 +913,6 @@ export const getDefaultDataForBlockType = (blockType: string): any => {
     case 'textBlock':
       return {
         htmlContent: '<p>Enter your text here...</p>',
-        headingLevel: null, // Default to text mode
         // Typography defaults
         fontSize: undefined, // Use component defaults
         textAlign: 'left',

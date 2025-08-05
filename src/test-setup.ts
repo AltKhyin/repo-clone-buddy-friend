@@ -274,6 +274,28 @@ vi.mock('lucide-react', () => {
     'Ruler',
     'LogOut',
     'LucideIcon',
+    // H1-H6 Heading icons
+    'Heading1',
+    'Heading2',
+    'Heading3',
+    'Heading4',
+    'Heading5',
+    'Heading6',
+    // Additional toolbar icons
+    'Undo',
+    'Redo',
+    'Bold',
+    'Italic',
+    'Underline',
+    'Strikethrough',
+    'Quote',
+    'Hash',
+    'ListOrdered',
+    'Highlighter',
+    'AlignLeft',
+    'AlignCenter',
+    'AlignRight',
+    'AlignJustify',
   ];
 
   const mockIcons: Record<string, any> = {};

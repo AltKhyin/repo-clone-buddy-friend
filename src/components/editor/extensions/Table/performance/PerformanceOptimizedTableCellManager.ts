@@ -28,6 +28,8 @@ interface EditorMetadata {
   memoryEstimateMB: number;
   isActive: boolean;
   creationTime: number;
+  // 🎯 FIX #1: Track pending debounced updates for cancellation
+  pendingUpdateTimeout?: NodeJS.Timeout;
 }
 
 /**
@@ -154,11 +156,11 @@ export class PerformanceOptimizedTableCellManager {
   private createOptimizedEditor(options: TableCellEditorOptions): Editor {
     const editor = createTableCellEditorConfig(options.content);
 
-    // Set up optimized event handlers with debouncing
+    // Set up optimized event handlers with safe debouncing
     if (options.onUpdate) {
-      const debouncedUpdate = this.debounce(options.onUpdate, 150);
+      // 🎯 FIX #1: Use cell-aware debounced update that prevents stale updates
       editor.on('update', ({ editor }) => {
-        debouncedUpdate(editor.getHTML());
+        this.safelyUpdateCellContent(editor, options.onUpdate!);
       });
     }
 
@@ -169,11 +171,18 @@ export class PerformanceOptimizedTableCellManager {
     if (options.onBlur) {
       const optimizedBlur = () => {
         options.onBlur?.();
-        // Mark as inactive for potential cleanup
+        
+        // 🎯 FIX #1: Cancel pending updates and mark as inactive
         const cellId = this.findCellIdByEditor(editor);
         if (cellId) {
           const metadata = this.editors.get(cellId);
           if (metadata) {
+            // Cancel any pending debounced updates to prevent stale updates
+            if (metadata.pendingUpdateTimeout) {
+              clearTimeout(metadata.pendingUpdateTimeout);
+              metadata.pendingUpdateTimeout = undefined;
+              console.log(`[TableCellManager] 🚫 Cancelled pending update for cell ${cellId} on blur`);
+            }
             metadata.isActive = false;
           }
         }
@@ -195,6 +204,48 @@ export class PerformanceOptimizedTableCellManager {
   }
 
   /**
+   * 🎯 FIX #1: Safely update cell content with activity checking
+   * Prevents stale updates when cells have lost focus
+   */
+  private safelyUpdateCellContent(editor: Editor, updateCallback: (content: string) => void): void {
+    const cellId = this.findCellIdByEditor(editor);
+    if (!cellId) {
+      console.warn('[TableCellManager] Cannot update cell content - cell ID not found');
+      return;
+    }
+
+    const metadata = this.editors.get(cellId);
+    if (!metadata) {
+      console.warn(`[TableCellManager] Cannot update cell content - metadata not found for cell ${cellId}`);
+      return;
+    }
+
+    // Cancel any existing pending update
+    if (metadata.pendingUpdateTimeout) {
+      clearTimeout(metadata.pendingUpdateTimeout);
+    }
+
+    // Set up new debounced update with activity check
+    metadata.pendingUpdateTimeout = setTimeout(() => {
+      // Only proceed if the cell is still active
+      if (metadata.isActive) {
+        try {
+          const content = editor.getHTML();
+          updateCallback(content);
+          console.log(`[TableCellManager] ✅ Updated content for active cell ${cellId}`);
+        } catch (error) {
+          console.error(`[TableCellManager] Error updating cell ${cellId}:`, error);
+        }
+      } else {
+        console.log(`[TableCellManager] 🚫 Skipped update for inactive cell ${cellId}`);
+      }
+      
+      // Clear the timeout reference
+      metadata.pendingUpdateTimeout = undefined;
+    }, 150); // Keep same 150ms debounce timing
+  }
+
+  /**
    * Remove and destroy an editor instance with cleanup
    */
   removeEditor(cellId: string): boolean {
@@ -202,6 +253,13 @@ export class PerformanceOptimizedTableCellManager {
     if (!metadata) return false;
 
     try {
+      // 🎯 FIX #1: Cancel any pending updates before destroying
+      if (metadata.pendingUpdateTimeout) {
+        clearTimeout(metadata.pendingUpdateTimeout);
+        metadata.pendingUpdateTimeout = undefined;
+        console.log(`[TableCellManager] 🚫 Cancelled pending update for removed cell ${cellId}`);
+      }
+
       metadata.editor.destroy();
       this.editors.delete(cellId);
       
@@ -451,9 +509,13 @@ export class PerformanceOptimizedTableCellManager {
       this.cleanupTimer = null;
     }
 
-    // Destroy all editors
+    // 🎯 FIX #1: Cancel all pending updates and destroy all editors
     for (const metadata of this.editors.values()) {
       try {
+        // Cancel any pending debounced updates
+        if (metadata.pendingUpdateTimeout) {
+          clearTimeout(metadata.pendingUpdateTimeout);
+        }
         metadata.editor.destroy();
       } catch (error) {
         console.warn('Error destroying editor during cleanup:', error);

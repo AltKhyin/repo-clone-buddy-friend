@@ -74,7 +74,7 @@ export const ContextAwareInspector = React.memo(function ContextAwareInspector({
       viewport: currentViewport,
       neighborBlocks,
       contentAnalysis: {
-        hasText: ['textBlock', 'headingBlock', 'quoteBlock'].includes(node.type),
+        hasText: ['textBlock', 'quoteBlock'].includes(node.type),
         hasMedia: ['imageBlock', 'videoEmbedBlock'].includes(node.type),
         complexity: node.type === 'tableBlock' || node.type === 'pollBlock' ? 'complex' : 'simple',
       },

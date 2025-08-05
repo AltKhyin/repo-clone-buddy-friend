@@ -5,6 +5,7 @@ import { ContentBoundaryProps } from '@/types/editor';
 import { useEditorStore } from '@/store/editorStore';
 import { useSelectionCoordination } from '@/hooks/useSelectionCoordination';
 import { cn } from '@/lib/utils';
+import { Move } from 'lucide-react';
 // Content measurement removed - no constraints needed
 import { useSimpleResize, SimpleResizeHandles, ResizeHandle } from '@/components/editor/unified-resize';
 
@@ -27,13 +28,14 @@ export const UnifiedBlockWrapper = React.memo<ContentBoundaryProps>(
     onMove,
     onSelect,
     showResizeHandles = true,
+    showDragHandle = false,
     // Constraint-related props removed - complete resize freedom
   }) => {
     const contentRef = useRef<HTMLDivElement>(null);
     const { updateNodePosition } = useEditorStore();
 
-    // Unified selection coordination system
-    const { isActive, handleBlockActivation } = useSelectionCoordination({
+    // Unified selection coordination system with content editing awareness
+    const { isActive, hasContentSelection, handleBlockActivation } = useSelectionCoordination({
       blockId: id,
       componentType: 'generic',
       enableContentSelection: false, // Block wrapper doesn't handle content selection
@@ -71,23 +73,23 @@ export const UnifiedBlockWrapper = React.memo<ContentBoundaryProps>(
       },
     });
 
-    // Visual feedback state
+    // 🎯 DRAG-HANDLE-ONLY STATE: Simplified drag state for handle-only movement
     const [isDragging, setIsDragging] = useState(false);
     const [dragStart, setDragStart] = useState({ x: 0, y: 0, mouseX: 0, mouseY: 0 });
     const [hoverHandle, setHoverHandle] = useState<ResizeHandle | null>(null);
-    const [showSnapLines, setShowSnapLines] = useState(false);
-    const [borderHover, setBorderHover] = useState(false);
+    
+    // 🎯 HOVER STATE: Block hover detection for full UI display
+    const [isBlockHovered, setIsBlockHovered] = useState(false);
 
-    // Visual feedback callbacks for simple resize system
+    // 🎯 FIX: Visual feedback callbacks for simple resize system
     const handleHandleHover = useCallback((handle: ResizeHandle | null) => {
       setHoverHandle(handle);
-      setShowSnapLines(handle !== null);
     }, []);
 
     // Get current resize state from simple resize system
     const isResizing = resizeHandlers.isResizing;
 
-    // Dedicated drag handler - only triggered from zone detection
+    // 🎯 DRAG-HANDLE-ONLY: Dedicated drag handler - only triggered from drag handle
     const handleDragStart = useCallback(
       (e: React.MouseEvent) => {
         if (e.button !== 0 || isResizing) return; // Only left click, don't interfere with resize
@@ -97,7 +99,7 @@ export const UnifiedBlockWrapper = React.memo<ContentBoundaryProps>(
           onSelect();
         }
 
-        // Initialize drag operation
+        // 🎯 SIMPLIFIED DRAG START: Initialize drag operation with position only
         setIsDragging(true);
         setDragStart({
           x: x,
@@ -111,74 +113,50 @@ export const UnifiedBlockWrapper = React.memo<ContentBoundaryProps>(
       [onSelect, x, y, isResizing]
     );
 
-    // Border drag detection - 8px threshold from edges
-    const isBorderClick = useCallback((e: React.MouseEvent, element: HTMLElement): boolean => {
-      const rect = element.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-      const threshold = 8;
-
-      // Check if click is within 8px of any border edge
-      const nearLeft = x <= threshold;
-      const nearRight = x >= rect.width - threshold;
-      const nearTop = y <= threshold;
-      const nearBottom = y >= rect.height - threshold;
-
-      return nearLeft || nearRight || nearTop || nearBottom;
-    }, []);
-
-    // Check if click is on a resize handle to avoid conflicts
+    // 🎯 RESIZE-ONLY: Keep resize handle detection for proper event handling
     const isResizeHandleClick = useCallback((e: React.MouseEvent): boolean => {
       const target = e.target as HTMLElement;
       return target.closest('[data-resize-handle]') !== null;
     }, []);
 
-    // Border hover detection for visual feedback
+    // 🎯 REMOVED: Border hover detection eliminated - hover state managed by onMouseEnter/onMouseLeave
     const handleMouseMove = useCallback((e: React.MouseEvent) => {
-      if (isResizing || isDragging) return;
-
-      const element = e.currentTarget as HTMLElement;
-      const shouldHover = isBorderClick(e, element) && !isResizeHandleClick(e);
-      setBorderHover(shouldHover);
-    }, [isBorderClick, isResizeHandleClick, isResizing, isDragging]);
-
-    const handleMouseLeave = useCallback(() => {
-      setBorderHover(false);
+      // Only handle resize-related mouse movement if needed by SimpleResizeHandles
+      // Block hover state is now managed by onMouseEnter/onMouseLeave events
+      return;
     }, []);
 
-    // Enhanced block activation with border drag detection
+    const handleMouseLeave = useCallback(() => {
+      setIsBlockHovered(false);
+    }, []);
+
+    // 🎯 HOVER STATE: Block hover detection for structure visibility
+    const handleMouseEnter = useCallback(() => {
+      setIsBlockHovered(true);
+    }, []);
+
+    // 🎯 DRAG-HANDLE-ONLY: Block activation only - no border drag initiation
     const handleBlockClick = useCallback(
       (e: React.MouseEvent) => {
         if (e.button !== 0 || isResizing) return; // Only left click, don't interfere with resize
 
         // Check if click is on resize handle - give priority to resize
         if (isResizeHandleClick(e)) {
-          // Let resize handle take over
           return;
         }
 
-        // Check if this is a border drag attempt
-        const element = e.currentTarget as HTMLElement;
-        if (isBorderClick(e, element)) {
-          // Start border-based drag operation
-          handleDragStart(e);
-          return;
-        }
-
-        // Use coordinated activation system for regular clicks
+        // Only block activation - drag is now handle-only
         handleBlockActivation(e);
 
         // Also call legacy onSelect for backward compatibility
         if (onSelect) {
           onSelect();
         }
-
-        // Don't preventDefault - let TipTap and content editing work naturally
       },
-      [handleBlockActivation, onSelect, isResizing, isBorderClick, isResizeHandleClick, handleDragStart]
+      [handleBlockActivation, onSelect, isResizing, isResizeHandleClick]
     );
 
-    // Drag movement handler
+    // 🎯 SIMPLIFIED DRAG MOVEMENT: Direct position updates only - no animations or calculations
     const handleDragMove = useCallback(
       (moveEvent: MouseEvent) => {
         if (!isDragging || isResizing) return;
@@ -189,25 +167,21 @@ export const UnifiedBlockWrapper = React.memo<ContentBoundaryProps>(
         const newX = dragStart.x + deltaX;
         const newY = dragStart.y + deltaY;
 
-        // Apply canvas boundary constraints - get dynamic canvas width
-        const canvasElement = document.querySelector('.editor-canvas, .wysiwyg-canvas, [data-testid*="canvas"]') as HTMLElement;
-        const canvasWidth = canvasElement ? canvasElement.offsetWidth : window.innerWidth - 300; // Fallback with sidebar space
-        
-        const constrainedX = Math.max(0, Math.min(canvasWidth - width, newX));
+        // Apply basic boundary constraints - no DOM queries
+        const constrainedX = Math.max(0, newX);
         const constrainedY = Math.max(0, newY);
 
-        // Update position through onMove callback and store
+        // Direct position updates only
         if (onMove) {
           onMove({ x: constrainedX, y: constrainedY });
         }
 
-        // Also update directly in store for immediate feedback
         updateNodePosition(id, { x: constrainedX, y: constrainedY });
       },
-      [isDragging, isResizing, dragStart, width, onMove, updateNodePosition, id]
+      [isDragging, isResizing, dragStart, onMove, updateNodePosition, id]
     );
 
-    // Drag end handler
+    // 🎯 SIMPLIFIED DRAG END: Clean drag state reset only
     const handleDragEnd = useCallback(() => {
       setIsDragging(false);
     }, []);
@@ -225,7 +199,9 @@ export const UnifiedBlockWrapper = React.memo<ContentBoundaryProps>(
       }
     }, [isDragging, handleDragMove, handleDragEnd]);
 
-    // Unified container styles with enhanced visual feedback
+    // 🎯 REMOVED: Complex gesture detection system eliminated for performance
+
+    // 🎯 SIMPLIFIED CONTAINER STYLES: No animations, direct positioning only
     const containerStyles = useMemo(
       (): React.CSSProperties => ({
         position: 'absolute',
@@ -238,36 +214,20 @@ export const UnifiedBlockWrapper = React.memo<ContentBoundaryProps>(
         border: 'none',
         outline: 'none',
         boxSizing: 'border-box',
-        // Ensure content fills container exactly
         display: 'flex',
         flexDirection: 'column',
-        // Enhanced visual feedback - updated for border dragging
-        transition: isResizing || isDragging ? 'none' : 'all 0.15s ease-out',
-        transform: isResizing || isDragging ? 'scale(1.001)' : 'scale(1)', // Subtle scale during interaction
-        zIndex: isResizing || isDragging ? 1000 : isActive ? 100 : 1,
+        // No transitions during drag - instant positioning with visual feedback
+        transition: 'none',
+        // 🎯 INTERACTION HIERARCHY: editing > selected > hovered > default
+        zIndex: isResizing || isDragging ? 1000 : isActive ? 100 : isBlockHovered ? 50 : 1,
         cursor: isDragging 
           ? 'grabbing' 
-          : isResizing 
-            ? 'default' 
-            : borderHover 
-              ? 'grab' 
-              : 'default',
-        // Border hover visual feedback
-        ...(borderHover && isActive && {
-          boxShadow: 'inset 0 0 0 2px rgba(59, 130, 246, 0.4)',
-        }),
-        // Development feedback (can be removed in production)
-        ...(process.env.NODE_ENV === 'development' &&
-          isActive && {
-            outline: isResizing
-              ? '2px dashed rgba(16, 185, 129, 0.6)'
-              : borderHover
-                ? '2px dashed rgba(59, 130, 246, 0.6)'
-                : '1px dashed rgba(59, 130, 246, 0.3)',
-            outlineOffset: '-1px',
-          }),
+          : 'default',
+        // 🎯 IMPROVED DRAG FEEDBACK: Better visual feedback during drag
+        opacity: isDragging ? 0.8 : 1,
+        transform: isDragging ? 'scale(1.02)' : 'none',
       }),
-      [x, y, width, height, isResizing, isActive, isDragging, borderHover]
+      [x, y, width, height, isResizing, isActive, isDragging, isBlockHovered]
     );
 
     // Content area styles (fills container exactly)
@@ -288,8 +248,18 @@ export const UnifiedBlockWrapper = React.memo<ContentBoundaryProps>(
       [contentStyles, blockType]
     );
 
-    // Selection classes for visual feedback
-    const selectionClasses = selected ? 'ring-2 ring-primary ring-offset-0' : '';
+    // 🎯 ENHANCED SELECTION: Selection ring with hover state for structure visibility
+    const selectionClasses = useMemo(() => {
+      if (selected) {
+        return 'ring-2 ring-primary ring-offset-1'; // Full opacity when selected
+      }
+      
+      if (isBlockHovered && !isDragging && !isResizing) {
+        return 'ring-2 ring-primary ring-offset-1 opacity-50'; // 50% opacity on hover
+      }
+      
+      return ''; // No ring when not selected or hovered
+    }, [selected, isBlockHovered, isDragging, isResizing]);
 
     return (
       <div
@@ -300,6 +270,7 @@ export const UnifiedBlockWrapper = React.memo<ContentBoundaryProps>(
         data-testid={`unified-block-${id}`}
         onClick={handleBlockClick}
         onMouseMove={handleMouseMove}
+        onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
       >
         {/* Content Area - fills container exactly */}
@@ -312,8 +283,8 @@ export const UnifiedBlockWrapper = React.memo<ContentBoundaryProps>(
           {children}
         </div>
 
-        {/* Simple Resize Handles - no constraints, complete freedom */}
-        {showResizeHandles && (
+        {/* 🎯 INTERACTION PRIORITY: Resize Handles - show on selection OR hover (but not during operations) */}
+        {showResizeHandles && (selected || (isBlockHovered && !isDragging && !isResizing && !hasContentSelection)) && (
           <SimpleResizeHandles
             width={width}
             height={height}
@@ -322,21 +293,42 @@ export const UnifiedBlockWrapper = React.memo<ContentBoundaryProps>(
             resizeHandlers={resizeHandlers}
             isActive={isActive}
             onHandleHover={handleHandleHover}
+            // 🎯 HOVER OPACITY: 70% opacity when only hovering, 100% when selected
+            opacity={selected ? 1.0 : 0.7}
           />
         )}
 
 
-        {/* Enhanced Selection Indicator with real-time dimensions and status */}
+        {/* 🎯 INTERACTION PRIORITY: Drag Handle - show on activation OR hover (but not during operations) */}
+        {showDragHandle && (isActive || (isBlockHovered && !isDragging && !isResizing && !hasContentSelection)) && (
+          <div 
+            className={cn(
+              "absolute top-2 right-2 w-8 h-8 rounded-md cursor-grab z-30 flex items-center justify-center",
+              "bg-primary/10 border border-primary/20 shadow-sm transition-all duration-200",
+              // 🎯 HOVER OPACITY: Different opacity levels for selected vs hovered
+              isActive ? "opacity-100" : "opacity-70",
+              "hover:opacity-100 hover:scale-105 hover:bg-primary/20",
+              "active:scale-95 active:bg-primary/30",
+              isDragging && "bg-primary/30 scale-95"
+            )}
+            onMouseDown={handleDragStart}
+            title="Drag to move block"
+          >
+            <Move className="w-5 h-5 text-muted-foreground hover:text-primary transition-colors duration-200" />
+          </div>
+        )}
+
+        {/* 🎨 SIMPLIFIED SELECTION INDICATOR: Clean visual feedback without animations */}
         {isActive && (
-          <div className="absolute -top-6 left-0 flex gap-2 text-xs z-20">
+          <div className="absolute -top-7 left-0 flex gap-2 text-xs z-20">
             <div
               className={cn(
-                'px-2 py-1 rounded transition-colors',
+                'px-3 py-1.5 rounded-md shadow-sm font-medium border border-white/20 backdrop-blur-sm',
                 isResizing
-                  ? 'bg-green-600 text-white'
+                  ? 'bg-green-600/90 text-white shadow-green-500/25'
                   : isDragging
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-primary text-primary-foreground'
+                    ? 'bg-blue-600/90 text-white shadow-blue-500/25'
+                    : 'bg-primary/90 text-primary-foreground shadow-primary/25'
               )}
             >
               {isResizing
@@ -347,20 +339,24 @@ export const UnifiedBlockWrapper = React.memo<ContentBoundaryProps>(
             </div>
             <div
               className={cn(
-                'px-2 py-1 rounded transition-colors',
-                isResizing ? 'bg-green-700 text-white font-mono' : 'bg-slate-700 text-white'
+                'px-3 py-1.5 rounded-md shadow-sm font-mono text-xs border border-white/20 backdrop-blur-sm',
+                isResizing 
+                  ? 'bg-green-700/90 text-white shadow-green-500/25' 
+                  : 'bg-slate-800/90 text-white shadow-slate-800/25'
               )}
             >
               {Math.round(width)} × {Math.round(height)}px
             </div>
             {hoverHandle && !isResizing && (
-              <div className="bg-blue-600 text-white px-2 py-1 rounded">{hoverHandle} handle</div>
+              <div className="px-3 py-1.5 rounded-md shadow-sm font-medium text-xs border border-white/20 backdrop-blur-sm bg-blue-600/90 text-white shadow-blue-500/25">
+                {hoverHandle} handle
+              </div>
             )}
           </div>
         )}
 
-        {/* Snap lines and alignment guides - now handled by SimpleResizeHandles */}
-        {showSnapLines && isResizing && (
+        {/* Snap lines overlay - only show during resize */}
+        {isResizing && (
           <SnapLinesOverlay x={x} y={y} width={width} height={height} />
         )}
       </div>

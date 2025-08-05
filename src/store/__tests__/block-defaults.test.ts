@@ -35,8 +35,8 @@ describe('Block Creation Defaults', () => {
     // Add first block
     useEditorStore.getState().addNode({ type: 'textBlock' });
 
-    // Add second block (text block with heading level)
-    useEditorStore.getState().addNode({ type: 'textBlock', data: { headingLevel: 1 } });
+    // Add second block (text block)
+    useEditorStore.getState().addNode({ type: 'textBlock' });
 
     const state = useEditorStore.getState();
     const blocks = state.nodes;
@@ -64,7 +64,7 @@ describe('Block Creation Defaults', () => {
     // Add three blocks
     useEditorStore.getState().addNode({ type: 'textBlock' });
     useEditorStore.getState().addNode({ type: 'imageBlock' });
-    useEditorStore.getState().addNode({ type: 'textBlock', data: { headingLevel: 2 } });
+    useEditorStore.getState().addNode({ type: 'textBlock' });
 
     const state = useEditorStore.getState();
     const blocks = state.nodes;

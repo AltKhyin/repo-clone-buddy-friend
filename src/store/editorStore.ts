@@ -16,7 +16,6 @@ import {
   getDefaultDataForBlockType,
   validateStructuredContent,
 } from '@/types/editor';
-import { migrateAllHeadingBlocks } from '@/utils/headingBlockMigration';
 import { autoMigrateNodeData } from '@/utils/schemaMigration';
 const AUTOSAVE_DELAY = 30000; // 30 seconds as per user requirements
 
@@ -824,14 +823,11 @@ export const useEditorStore = create<EditorState>((set, get) => {
                 canvasConfig: content.canvas,
               });
 
-              // Migrate any legacy heading blocks to unified text blocks
-              const migratedNodes = migrateAllHeadingBlocks(content.nodes);
-
               // Initialize positions for nodes that don't have them
               const positions = content.positions || {};
               const missingPositions: any = {};
 
-              migratedNodes.forEach(node => {
+              content.nodes.forEach(node => {
                 if (!positions[node.id]) {
                   const existingPositions = Object.values(positions);
                   const newPosition = findAvailablePosition(existingPositions);
@@ -841,7 +837,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
               });
 
               set({
-                nodes: migratedNodes,
+                nodes: content.nodes,
                 positions: { ...positions, ...missingPositions },
                 canvas: content.canvas || initialWYSIWYGCanvas,
                 selectedNodeId: null,
@@ -858,12 +854,9 @@ export const useEditorStore = create<EditorState>((set, get) => {
                 nodeCount: content.nodes.length,
               });
 
-              // Migrate any legacy heading blocks to unified text blocks
-              const migratedNodes = migrateAllHeadingBlocks(content.nodes);
-
               // Create default Rich Block positions for all legacy content
               const positions: any = {};
-              migratedNodes.forEach((node, index) => {
+              content.nodes.forEach((node, index) => {
                 const existingPositions = Object.values(positions);
                 const newPosition = findAvailablePosition(existingPositions);
                 newPosition.id = node.id;
@@ -871,7 +864,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
               });
 
               set({
-                nodes: migratedNodes,
+                nodes: content.nodes,
                 positions,
                 canvas: initialWYSIWYGCanvas,
                 selectedNodeId: null,

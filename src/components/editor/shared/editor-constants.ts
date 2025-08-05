@@ -241,16 +241,6 @@ export const BLOCK_TYPES: Record<string, BlockTypeDefinition> = {
     resizable: true,
     hasInspector: true,
   },
-  headingBlock: {
-    type: 'headingBlock',
-    name: 'Heading',
-    icon: Type,
-    category: 'content',
-    defaultWidth: 300,
-    defaultHeight: 60,
-    resizable: true,
-    hasInspector: true,
-  },
   // Add more block types as needed
 } as const;
 

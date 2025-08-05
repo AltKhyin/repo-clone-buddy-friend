@@ -18,9 +18,9 @@ interface DraggableBlockProps {
 }
 
 /**
- * Enhanced DraggableBlock with unified resize system (legacy compatibility layer)
+ * Legacy DraggableBlock component for non-richBlock types only
  */
-export const DraggableBlock: React.FC<DraggableBlockProps> = ({
+const LegacyDraggableBlock: React.FC<DraggableBlockProps> = ({
   node,
   position,
   isSelected,
@@ -28,31 +28,12 @@ export const DraggableBlock: React.FC<DraggableBlockProps> = ({
   onPositionChange,
   onSelect,
 }) => {
-  // For richBlock, return UnifiedBlockWrapper directly to avoid dual resize systems
-  if (node.type === 'richBlock') {
-    return (
-      <RichBlockNode
-        id={node.id}
-        data={node.data}
-        selected={isSelected}
-        width={position.width}
-        height={position.height}
-        x={position.x}
-        y={position.y}
-        onSelect={onSelect}
-        onMove={onPositionChange}
-        onResize={onPositionChange}
-      />
-    );
-  }
-
-  // Legacy block handling below (non-richBlock types only)
   const blockRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const operationLockRef = useRef(false);
 
-  // Initialize legacy resize system only for non-richBlock types
+  // Initialize legacy resize system for non-richBlock types
   const { isResizing, resizeHandle, startResize, updateResize, endResize } = useResizeSystem(
     position,
     zoom,
@@ -262,4 +243,30 @@ export const DraggableBlock: React.FC<DraggableBlockProps> = ({
       </div>
     </div>
   );
+};
+
+/**
+ * Enhanced DraggableBlock with unified resize system (routing component)
+ */
+export const DraggableBlock: React.FC<DraggableBlockProps> = (props) => {
+  // Route richBlock to UnifiedBlockWrapper system
+  if (props.node.type === 'richBlock') {
+    return (
+      <RichBlockNode
+        id={props.node.id}
+        data={props.node.data}
+        selected={props.isSelected}
+        width={props.position.width}
+        height={props.position.height}
+        x={props.position.x}
+        y={props.position.y}
+        onSelect={props.onSelect}
+        onMove={props.onPositionChange}
+        onResize={props.onPositionChange}
+      />
+    );
+  }
+
+  // Route legacy blocks to legacy system
+  return <LegacyDraggableBlock {...props} />;
 };

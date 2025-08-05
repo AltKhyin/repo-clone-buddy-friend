@@ -563,4 +563,41 @@
       @apply text-sm leading-relaxed;
     }
   }
+
+  /* 🎯 FIX #2: Table cell typography that prevents row height expansion */
+  .table-cell-typography {
+    /* Base typography settings for consistent table cell appearance */
+    @apply text-sm font-normal;
+    
+    /* Prevent height expansion with controlled line spacing */
+    line-height: 1.2; /* Fixed line height instead of leading-relaxed */
+    
+    /* Ensure all typography marks work without affecting layout */
+    & * {
+      line-height: inherit !important;
+      margin: 0 !important;
+      padding: 0 !important;
+    }
+    
+    /* Specific ProseMirror paragraph handling */
+    & p {
+      margin: 0 !important;
+      padding: 0 !important;
+      line-height: inherit !important;
+    }
+    
+    /* Maintain text formatting capabilities */
+    & strong, & b {
+      font-weight: 600;
+    }
+    
+    & em, & i {
+      font-style: italic;
+    }
+    
+    /* Prevent any content from expanding beyond cell bounds */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 }

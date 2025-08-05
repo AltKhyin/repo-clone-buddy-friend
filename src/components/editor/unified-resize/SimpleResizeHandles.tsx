@@ -13,6 +13,7 @@ export interface SimpleResizeHandlesProps {
   resizeHandlers: SimpleResizeHandlers;
   isActive: boolean;
   onHandleHover?: (handle: ResizeHandle | null) => void;
+  opacity?: number;
 }
 
 /**
@@ -30,6 +31,7 @@ export const SimpleResizeHandles = memo<SimpleResizeHandlesProps>(({
   resizeHandlers,
   isActive,
   onHandleHover,
+  opacity = 1.0,
 }) => {
   // Handle positioning - simple absolute positioning
   const getHandlePosition = useCallback((handle: ResizeHandle): React.CSSProperties => {
@@ -182,6 +184,7 @@ export const SimpleResizeHandles = memo<SimpleResizeHandlesProps>(({
           style={{
             ...handleStyle,
             ...getHandlePosition(handle),
+            opacity,
           }}
           onMouseDown={createHandleMouseDown(handle)}
           onMouseEnter={() => handleMouseEnter(handle)}
