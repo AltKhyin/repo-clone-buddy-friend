@@ -63,6 +63,120 @@ Object.defineProperty(window, 'sessionStorage', {
 // Mock fetch for API calls
 global.fetch = vi.fn();
 
+// Mock CustomThemeProvider with proper context structure
+vi.mock('@/components/theme/CustomThemeProvider', () => ({
+  CustomThemeProvider: ({ children }: { children: React.ReactNode }) => children,
+  useTheme: () => ({
+    theme: 'light',
+    setTheme: vi.fn(),
+    actualTheme: 'light',
+  }),
+}));
+
+// Mock useColorTokens with all required functions
+vi.mock('@/hooks/useColorTokens', () => ({
+  useColorTokens: () => ({
+    getColorValue: vi.fn((color) => color),
+    getTokenInfo: vi.fn((value) => null),
+    getPreviewColor: vi.fn((value) => value),
+    resolveColor: vi.fn((value) => value),
+    validateColor: vi.fn((value) => ({ isValid: true })),
+    isToken: vi.fn(() => false),
+    theme: 'light',
+    isDarkMode: false,
+    allTokens: [],
+    tokenCategories: [],
+  }),
+}));
+
+// Mock useUnifiedSelection with all required exports
+vi.mock('@/hooks/useUnifiedSelection', () => ({
+  useUnifiedSelection: () => ({
+    currentSelection: { type: 'none' },
+    hasSelection: false,
+    canApplyTypography: false,
+    appliedMarks: {},
+    selectBlock: vi.fn(),
+    selectText: vi.fn(),
+    selectTable: vi.fn(),
+    selectTableCell: vi.fn(),
+    clearSelection: vi.fn(),
+    applyTypography: vi.fn(),
+    canApplyProperty: vi.fn(),
+    preserveDuringToolbarInteraction: vi.fn((op) => op()),
+    isBlockSelected: vi.fn(() => false),
+    isTableCellSelected: vi.fn(() => false),
+    getSelectedBlockId: vi.fn(() => null),
+    getSelectedTableCell: vi.fn(() => null),
+    enableDebugMode: vi.fn(),
+    disableDebugMode: vi.fn(),
+  }),
+  useToolbarInteraction: () => ({
+    preserveDuringOperation: vi.fn((op) => op()),
+  }),
+  useSelectionState: () => ({
+    currentSelection: { type: 'none' },
+    hasSelection: false,
+    canApplyTypography: false,
+    appliedMarks: {},
+    selectionType: 'none',
+  }),
+  useTypographyActions: () => ({
+    applyTypography: vi.fn(),
+    canApplyProperty: vi.fn(),
+    canApplyTypography: false,
+    appliedMarks: {},
+  }),
+  useTableCellSelection: () => ({
+    selectCell: vi.fn(),
+    clearSelection: vi.fn(),
+    isCellSelected: vi.fn(() => false),
+    hasAnyCellSelected: false,
+    getSelectedPosition: vi.fn(() => null),
+  }),
+}));
+
+// Mock editorStore
+vi.mock('@/store/editorStore', () => ({
+  useEditorStore: () => ({
+    nodes: [],
+    selectedNode: null,
+    selectedNodeId: null,
+    getEditor: () => null,
+    updateNode: vi.fn(),
+    deleteNode: vi.fn(),
+    duplicateNode: vi.fn(),
+    selectNode: vi.fn(),
+    addNode: vi.fn(),
+    undo: vi.fn(),
+    redo: vi.fn(),
+    canUndo: false,
+    canRedo: false,
+    saveToDatabase: vi.fn(),
+    exportToJSON: vi.fn(),
+    isDirty: false,
+    isSaving: false,
+    lastSaved: null,
+    showGrid: true,
+    showSnapGuides: false,
+    toggleSnapGuides: vi.fn(),
+    canvasZoom: 1.0,
+    updateCanvasZoom: vi.fn(),
+    setTextSelection: vi.fn(),
+  }),
+}));
+
+// Mock typography migration hook 
+vi.mock('@/hooks/useTypographyMigration', () => ({
+  useTypographyMigration: () => ({
+    blocksNeedingMigration: [],
+    hasPendingMigrations: false,
+    isProcessing: false,
+    migrateBlock: vi.fn(),
+    migrateAllBlocks: vi.fn(),
+  }),
+}));
+
 // Mock all lucide-react icons with a generic component
 vi.mock('lucide-react', () => {
   const MockIcon = ({ size, className, ...props }: any) =>
@@ -269,6 +383,7 @@ vi.mock('lucide-react', () => {
     'MousePointer',
     'Hand',
     'Table',
+    'Table2',
     'ZoomIn',
     'ZoomOut',
     'Ruler',

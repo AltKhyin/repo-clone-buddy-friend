@@ -46,14 +46,8 @@ vi.mock('../performance/PerformanceOptimizedTableCellManager', () => ({
   EMPTY_RICH_CELL_CONTENT: '<p></p>',
 }));
 
-// Mock the table selection coordinator
-vi.mock('../selection/TableSelectionCoordinator', () => ({
-  tableSelectionCoordinator: {
-    focusCell: vi.fn(),
-    navigateCell: vi.fn(),
-    clearSelection: vi.fn(),
-  },
-}));
+// Old table selection coordinator has been replaced with unified selection system
+// The unified selection mocks are handled globally in test-setup.ts
 
 // Mock TipTap React components
 vi.mock('@tiptap/react', () => ({

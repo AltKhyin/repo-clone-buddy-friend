@@ -96,8 +96,19 @@ vi.mock('lucide-react', async importOriginal => {
   };
 });
 
-// Mock the editor store
-vi.mock('@/store/editorStore');
+// Mock the editor store with canvas state hooks
+vi.mock('@/store/editorStore', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/store/editorStore')>();
+  return {
+    ...actual,
+    useCanvasState: () => ({
+      canvasBackgroundColor: 'hsl(var(--background))',
+      setCanvasBackgroundColor: vi.fn(),
+      showGrid: true,
+      toggleGrid: vi.fn(),
+    }),
+  };
+});
 
 // Mock the custom theme provider
 vi.mock('@/components/providers/CustomThemeProvider', () => ({

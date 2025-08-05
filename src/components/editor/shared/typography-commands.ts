@@ -55,7 +55,9 @@ export class TypographyCommands {
         if (propertyResult.success) {
           result.appliedProperties[key as keyof TypographyProperties] = value;
         } else {
-          result.errors.push(...propertyResult.errors);
+          // Prefix error messages with property name for better debugging
+          const prefixedErrors = propertyResult.errors.map(error => `${key}: ${error}`);
+          result.errors.push(...prefixedErrors);
           result.success = false;
         }
       } catch (error) {
@@ -165,15 +167,13 @@ export class TypographyCommands {
       return result;
     }
 
-    // Apply constraints
-    const constrainedSize = Math.max(
-      TYPOGRAPHY_CONSTRAINTS.fontSize.min,
-      Math.min(TYPOGRAPHY_CONSTRAINTS.fontSize.max, numericSize)
-    );
-
-    if (constrainedSize !== numericSize) {
-      console.info(`Font size constrained from ${numericSize}px to ${constrainedSize}px`);
+    // Validate constraints (fail if outside bounds rather than constraining)
+    if (numericSize < TYPOGRAPHY_CONSTRAINTS.fontSize.min || numericSize > TYPOGRAPHY_CONSTRAINTS.fontSize.max) {
+      result.errors.push(`Invalid font size: ${fontSize}. Must be between ${TYPOGRAPHY_CONSTRAINTS.fontSize.min} and ${TYPOGRAPHY_CONSTRAINTS.fontSize.max}.`);
+      return result;
     }
+
+    const constrainedSize = numericSize; // No automatic constraining
 
     try {
       const success = this.editor.commands.setFontSize(constrainedSize);
@@ -209,7 +209,7 @@ export class TypographyCommands {
     // Validate against allowed weights
     const validWeights = FONT_WEIGHTS.map(w => w.value);
     if (!validWeights.includes(numericWeight)) {
-      result.errors.push(`Invalid font weight: ${fontWeight}. Valid weights: ${validWeights.join(', ')}`);
+      result.errors.push(`Invalid font weight: ${fontWeight}. Must be one of: ${validWeights.join(', ')}.`);
       return result;
     }
 
@@ -272,12 +272,10 @@ export class TypographyCommands {
       errors: [],
     };
 
-    // Basic color validation
+    // Basic color validation - allow any non-empty string (CSS can handle validation)
     const trimmedColor = String(color).trim();
-    const isValidColor = /^(#[0-9A-Fa-f]{3,8}|rgb\(|rgba\(|hsl\(|hsla\(|\w+)/.test(trimmedColor);
-    
-    if (!isValidColor) {
-      result.errors.push(`Invalid color format: ${trimmedColor}`);
+    if (!trimmedColor) {
+      result.errors.push(`Invalid color format: empty color value`);
       return result;
     }
 
@@ -306,18 +304,16 @@ export class TypographyCommands {
       errors: [],
     };
 
-    // Basic color validation
+    // Basic color validation - allow any non-empty string (CSS can handle validation)
     const trimmedColor = String(color).trim();
-    const isValidColor = /^(#[0-9A-Fa-f]{3,8}|rgb\(|rgba\(|hsl\(|hsla\(|\w+)/.test(trimmedColor);
-    
-    if (!isValidColor) {
-      result.errors.push(`Invalid background color format: ${trimmedColor}`);
+    if (!trimmedColor) {
+      result.errors.push(`Invalid background color format: empty color value`);
       return result;
     }
 
     try {
-      // Use TipTap's setHighlight for background colors (highlighting)
-      const success = this.editor.commands.setHighlight({ color: trimmedColor });
+      // Use BackgroundColorMark's setBackgroundColor command
+      const success = this.editor.commands.setBackgroundColor(trimmedColor);
       if (success) {
         result.success = true;
         result.appliedProperties.backgroundColor = trimmedColor;
@@ -346,7 +342,7 @@ export class TypographyCommands {
     const trimmedTransform = String(transform).trim().toLowerCase();
     
     if (!validTransforms.includes(trimmedTransform)) {
-      result.errors.push(`Invalid text transform: ${transform}. Valid transforms: ${validTransforms.join(', ')}`);
+      result.errors.push(`Invalid text transform: ${transform}`);
       return result;
     }
 
@@ -380,11 +376,24 @@ export class TypographyCommands {
       errors: [],
     };
 
+    // Validate letter spacing value
+    const numericSpacing = Number(spacing);
+    if (isNaN(numericSpacing)) {
+      result.errors.push(`Invalid letter spacing: ${spacing}. Must be a number.`);
+      return result;
+    }
+
+    // Apply constraints
+    if (numericSpacing < TYPOGRAPHY_CONSTRAINTS.letterSpacing.min || numericSpacing > TYPOGRAPHY_CONSTRAINTS.letterSpacing.max) {
+      result.errors.push(`Invalid letter spacing: ${spacing}. Must be between ${TYPOGRAPHY_CONSTRAINTS.letterSpacing.min} and ${TYPOGRAPHY_CONSTRAINTS.letterSpacing.max}.`);
+      return result;
+    }
+
     try {
-      const success = this.editor.commands.setLetterSpacing(spacing);
+      const success = this.editor.commands.setLetterSpacing(numericSpacing);
       if (success) {
         result.success = true;
-        result.appliedProperties.letterSpacing = spacing;
+        result.appliedProperties.letterSpacing = numericSpacing;
       } else {
         result.errors.push('Failed to apply letter spacing command');
       }
@@ -513,7 +522,7 @@ export class TypographyCommands {
         fontFamily: this.editor.getAttributes('fontFamily').fontFamily,
         fontSize: this.editor.getAttributes('fontSize').fontSize,
         fontWeight: this.editor.getAttributes('fontWeight').fontWeight,
-        textColor: this.editor.getAttributes('textColor').color,
+        textColor: this.editor.getAttributes('textColor').color || this.editor.getAttributes('textColor').textColor, // Handle both attribute names
         backgroundColor: this.editor.getAttributes('backgroundColor').backgroundColor,
         textTransform: this.editor.getAttributes('textTransform').textTransform,
         letterSpacing: this.editor.getAttributes('letterSpacing').letterSpacing,
@@ -571,6 +580,70 @@ export class TypographyCommands {
         textAlign: false,
       };
     }
+  }
+
+  /**
+   * Check if typography marks are currently active
+   * @param marks Optional array of specific marks to check. If not provided, returns true if ANY marks are active
+   */
+  hasActiveMarks(marks?: (keyof TypographyProperties)[]): boolean {
+    const activeMarks = this.getActiveMarks();
+    
+    if (!marks) {
+      // Return true if ANY typography marks are active
+      return Object.values(activeMarks).some(isActive => isActive);
+    }
+    
+    // Return true if ANY of the specified marks are active
+    return marks.some(mark => activeMarks[mark]);
+  }
+
+  /**
+   * Clear all typography marks from the current selection
+   */
+  clearAllMarks(): TypographyCommandResult {
+    const result: TypographyCommandResult = {
+      success: true,
+      appliedProperties: {},
+      errors: [],
+    };
+
+    if (!this.editor) {
+      result.errors.push('Editor not available');
+      result.success = false;
+      return result;
+    }
+
+    try {
+      const properties: (keyof TypographyProperties)[] = [
+        'fontFamily',
+        'fontSize', 
+        'fontWeight',
+        'textColor',
+        'backgroundColor',
+        'textTransform',
+        'letterSpacing',
+      ];
+
+      let hasErrors = false;
+      
+      properties.forEach(property => {
+        const unsetResult = this.unsetProperty(property);
+        if (!unsetResult.success) {
+          result.errors.push(...unsetResult.errors);
+          hasErrors = true;
+        } else {
+          result.appliedProperties[property] = undefined as any;
+        }
+      });
+
+      result.success = !hasErrors;
+    } catch (error) {
+      result.errors.push(`Error clearing typography marks: ${error}`);
+      result.success = false;
+    }
+
+    return result;
   }
 
   /**

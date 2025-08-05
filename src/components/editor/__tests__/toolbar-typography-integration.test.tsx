@@ -66,27 +66,10 @@ const mockBlockProperties = {
   color: '#000000',
 };
 
-// Mock hooks and stores
-vi.mock('../../hooks/useTextSelection', () => ({
-  useTextSelection: () => mockTextSelection,
-}));
+// Mock hooks and stores - using actual paths that exist  
+// Note: useUnifiedSelection is mocked globally in test-setup.ts
 
-vi.mock('../../hooks/useTypographyMigration', () => ({
-  useTypographyMigration: () => ({
-    blocksNeedingMigration: [],
-    hasPendingMigrations: false,
-    isProcessing: false,
-  }),
-}));
-
-vi.mock('../../store/editorStore', () => ({
-  useEditorStore: () => ({
-    nodes: [],
-    selectedNode: { id: 'test-node', type: 'paragraph', data: {} },
-    getEditor: () => mockEditor,
-    updateNode: vi.fn(),
-  }),
-}));
+// Note: useTypographyMigration and useEditorStore are mocked globally in test-setup.ts
 
 vi.mock('../../shared/typography-system', () => ({
   FONT_FAMILIES: [
@@ -117,6 +100,8 @@ vi.mock('../../shared/typography-system', () => ({
     letterSpacing: { min: -2, max: 4, step: 0.1 },
   },
 }));
+
+// Note: CustomThemeProvider and useColorTokens are mocked globally in test-setup.ts
 
 // Mock UI components
 vi.mock('@/components/ui/select', () => ({
@@ -177,7 +162,7 @@ describe('Toolbar Typography Integration Tests', () => {
         appliedMarks: { fontFamily: 'Arial' },
       };
 
-      vi.mocked(require('../../hooks/useTextSelection').useTextSelection)
+      vi.mocked(require('@/hooks/useUnifiedSelection').useUnifiedSelection)
         .mockReturnValue(selectionWithFont);
 
       render(
@@ -202,7 +187,7 @@ describe('Toolbar Typography Integration Tests', () => {
         appliedMarks: {},
       };
 
-      vi.mocked(require('../../hooks/useTextSelection').useTextSelection)
+      vi.mocked(require('@/hooks/useUnifiedSelection').useUnifiedSelection)
         .mockReturnValue(selectionWithFont);
 
       render(
@@ -630,7 +615,7 @@ describe('Toolbar Typography Integration Tests', () => {
 
   describe('Migration Integration', () => {
     it('should show migration prompt when needed', () => {
-      vi.mocked(require('../../hooks/useTypographyMigration').useTypographyMigration)
+      vi.mocked(require('@/hooks/useTypographyMigration').useTypographyMigration)
         .mockReturnValue({
           blocksNeedingMigration: [
             { id: 'block1', type: 'paragraph', data: { fontFamily: 'Arial' } },
@@ -654,7 +639,7 @@ describe('Toolbar Typography Integration Tests', () => {
 
   describe('Error Handling and Edge Cases', () => {
     it('should handle missing editor gracefully', () => {
-      vi.mocked(require('../../store/editorStore').useEditorStore)
+      vi.mocked(require('@/store/editorStore').useEditorStore)
         .mockReturnValue({
           nodes: [],
           selectedNode: null,
@@ -714,7 +699,7 @@ describe('Toolbar Typography Integration Tests', () => {
         appliedMarks: { fontSize: 16 },
       };
 
-      vi.mocked(require('../../hooks/useTextSelection').useTextSelection)
+      vi.mocked(require('@/hooks/useUnifiedSelection').useUnifiedSelection)
         .mockReturnValue(selectionWithFont);
 
       render(

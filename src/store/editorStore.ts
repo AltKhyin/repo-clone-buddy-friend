@@ -189,6 +189,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
     // UI State - Rich Block Architecture
     isInspectorVisible: true,
     canvasTheme: 'light',
+    canvasBackgroundColor: 'hsl(var(--background))', // Default background token
     showRulers: false,
     showGuidelines: false,
     guidelines: { horizontal: [], vertical: [] },
@@ -562,6 +563,10 @@ export const useEditorStore = create<EditorState>((set, get) => {
 
     setCanvasTheme: theme => {
       set({ canvasTheme: theme });
+    },
+
+    setCanvasBackgroundColor: (color: string) => {
+      set({ canvasBackgroundColor: color });
     },
 
     toggleGrid: () => {
@@ -1024,6 +1029,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
         // UI State
         isInspectorVisible: true,
         canvasTheme: 'light',
+        canvasBackgroundColor: 'hsl(var(--background))',
         showRulers: false,
         showGuidelines: false,
         guidelines: { horizontal: [], vertical: [] },
@@ -1065,6 +1071,7 @@ export const useCanvasState = () =>
   useEditorStore(state => ({
     canvasTransform: state.canvasTransform,
     canvasTheme: state.canvasTheme,
+    canvasBackgroundColor: state.canvasBackgroundColor,
     showGrid: state.showGrid,
     showRulers: state.showRulers,
     showGuidelines: state.showGuidelines,
@@ -1138,5 +1145,6 @@ export const useCanvasActions = () =>
     toggleGuidelines: state.toggleGuidelines,
     toggleFullscreen: state.toggleFullscreen,
     setCanvasTheme: state.setCanvasTheme,
+    setCanvasBackgroundColor: state.setCanvasBackgroundColor,
     clearGuidelines: state.clearGuidelines,
   }));

@@ -12,12 +12,8 @@ vi.mock('../performance/PerformanceOptimizedTableCellManager', () => ({
   }
 }));
 
-// Mock tableSelectionCoordinator
-vi.mock('../selection/TableSelectionCoordinator', () => ({
-  tableSelectionCoordinator: {
-    focusCell: vi.fn()
-  }
-}));
+// Old table selection coordinator has been replaced with unified selection system
+// The unified selection mocks are handled globally in test-setup.ts
 
 // Helper to render table cell with proper table structure
 const renderTableCell = (props: any) => {
@@ -123,7 +119,7 @@ describe('RichTableCell - Display Formatting Preservation', () => {
     renderTableCell(defaultProps);
     
     // Initially should show display content
-    let cellElement = screen.getByRole('gridcell');
+    const cellElement = screen.getByRole('gridcell');
     expect(cellElement.querySelector('.rich-cell-editor')).toBeNull();
     
     // Mock that editor becomes available when cell is clicked

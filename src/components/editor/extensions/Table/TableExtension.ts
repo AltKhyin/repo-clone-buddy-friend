@@ -29,34 +29,46 @@ export interface RichCellData {
 }
 
 /**
+ * Header layout options for table display
+ */
+export type HeaderLayout = 'column-only' | 'row-only' | 'both' | 'none';
+
+/**
  * Table data structure supporting both legacy string cells and rich content cells
  */
 export interface TableData {
-  /** Table headers (plain text for backward compatibility) */
+  /** Table column headers (plain text for backward compatibility) */
   headers: string[];
+  /** Table row headers (plain text) */
+  rowHeaders: string[];
   /** Table rows - can contain either strings (legacy) or rich content objects */
   rows: (string | RichCellData)[][];
   /** Whether this table uses rich content cells */
   isRichContent?: boolean;
+  /** Header layout configuration */
+  headerLayout: HeaderLayout;
   /** Table-wide styling configuration */
   styling: {
     borderStyle: 'none' | 'solid' | 'dashed' | 'dotted';
     borderWidth: number;
     borderColor: string;
+    gridLineColor: string;
     backgroundColor: string;
     headerBackgroundColor: string;
+    alternatingRowColor: string;
+    enableAlternatingRows: boolean;
     cellPadding: number;
     textAlign: 'left' | 'center' | 'right';
     fontSize: number;
     fontWeight: number;
-    striped: boolean;
+    striped: boolean; // Legacy - use enableAlternatingRows instead
     compact: boolean;
   };
   /** Table behavior settings */
   settings: {
     sortable: boolean;
     resizable: boolean;
-    showHeaders: boolean;
+    showHeaders: boolean; // Legacy - use headerLayout instead
     minRows: number;
     maxRows: number;
   };
@@ -68,7 +80,7 @@ export interface TableData {
 export interface LegacyTableData {
   headers: string[];
   rows: string[][];
-  styling: TableData['styling'];
+  styling: Omit<TableData['styling'], 'gridLineColor' | 'alternatingRowColor' | 'enableAlternatingRows'>;
   settings: TableData['settings'];
 }
 
@@ -157,6 +169,38 @@ export const TableExtension = Node.create<TableOptions>({
         },
         renderHTML: () => null,
       },
+      rowHeaders: {
+        default: [],
+        parseHTML: element => {
+          const data = element.getAttribute('data-table');
+          if (data) {
+            try {
+              const parsed = JSON.parse(data);
+              return parsed.rowHeaders || [];
+            } catch {
+              return [];
+            }
+          }
+          return [];
+        },
+        renderHTML: () => null,
+      },
+      headerLayout: {
+        default: 'column-only',
+        parseHTML: element => {
+          const data = element.getAttribute('data-table');
+          if (data) {
+            try {
+              const parsed = JSON.parse(data);
+              return parsed.headerLayout || 'column-only';
+            } catch {
+              return 'column-only';
+            }
+          }
+          return 'column-only';
+        },
+        renderHTML: () => null,
+      },
       rows: {
         default: [],
         parseHTML: element => {
@@ -178,13 +222,16 @@ export const TableExtension = Node.create<TableOptions>({
           borderStyle: 'solid',
           borderWidth: 1,
           borderColor: '#e2e8f0',
+          gridLineColor: '#e2e8f0',
           backgroundColor: 'transparent',
           headerBackgroundColor: '#f8fafc',
+          alternatingRowColor: '#f8fafc',
+          enableAlternatingRows: false,
           cellPadding: 12,
           textAlign: 'left',
           fontSize: 14,
           fontWeight: 400,
-          striped: false,
+          striped: false, // Legacy
           compact: false,
         },
         parseHTML: element => {
@@ -249,26 +296,37 @@ export const TableExtension = Node.create<TableOptions>({
   renderHTML({ HTMLAttributes, node }) {
     const tableData: TableData = {
       headers: node.attrs.headers || [],
+      rowHeaders: node.attrs.rowHeaders || [],
       rows: node.attrs.rows || [],
+      headerLayout: node.attrs.headerLayout || 'column-only',
       styling: node.attrs.styling || {},
       settings: node.attrs.settings || {},
     };
 
     // Build table children array without conditional spreads
     const tableChildren: any[] = [];
+    const showColumnHeaders = tableData.headerLayout === 'column-only' || tableData.headerLayout === 'both';
+    const showRowHeaders = tableData.headerLayout === 'row-only' || tableData.headerLayout === 'both';
 
-    // Add thead if headers should be shown
-    if (tableData.settings.showHeaders && tableData.headers.length > 0) {
+    // Add thead if column headers should be shown
+    if (showColumnHeaders && tableData.headers.length > 0) {
+      const headerCells = [...tableData.headers];
+      
+      // Add empty cell for row header column if both headers are shown
+      if (showRowHeaders) {
+        headerCells.unshift('');
+      }
+      
       tableChildren.push([
         'thead',
         {},
         [
           'tr',
           {},
-          ...tableData.headers.map(header => [
+          ...headerCells.map(header => [
             'th',
             {
-              style: `padding: ${tableData.styling.cellPadding || 12}px; border: 1px solid ${tableData.styling.borderColor || '#e2e8f0'}; background-color: ${tableData.styling.headerBackgroundColor || '#f8fafc'}; text-align: ${tableData.styling.textAlign || 'left'};`,
+              style: `padding: ${tableData.styling.cellPadding || 12}px; border: 1px solid ${tableData.styling.gridLineColor || tableData.styling.borderColor || '#e2e8f0'}; background-color: ${tableData.styling.headerBackgroundColor || '#f8fafc'}; text-align: ${tableData.styling.textAlign || 'left'};`,
             },
             header,
           ]),
@@ -280,33 +338,54 @@ export const TableExtension = Node.create<TableOptions>({
     tableChildren.push([
       'tbody',
       {},
-      ...tableData.rows.map(row => [
-        'tr',
-        {},
-        ...row.map(cell => {
-          // Handle both string cells (legacy) and RichCellData objects
-          const cellContent = typeof cell === 'string' ? cell : (cell as RichCellData).content || '';
-          const cellStyling = typeof cell === 'object' && cell !== null ? (cell as RichCellData).styling : undefined;
-          
-          // Merge table-level styling with cell-specific styling
-          const cellStyles = [
-            `padding: ${tableData.styling.cellPadding || 12}px`,
-            `border: 1px solid ${tableData.styling.borderColor || '#e2e8f0'}`,
-            `text-align: ${cellStyling?.textAlign || tableData.styling.textAlign || 'left'}`,
-            cellStyling?.backgroundColor ? `background-color: ${cellStyling.backgroundColor}` : '',
-            cellStyling?.fontSize ? `font-size: ${cellStyling.fontSize}px` : `font-size: ${tableData.styling.fontSize || 14}px`,
-            cellStyling?.fontWeight ? `font-weight: ${cellStyling.fontWeight}` : `font-weight: ${tableData.styling.fontWeight || 400}`,
-          ].filter(Boolean).join('; ');
+      ...tableData.rows.map((row, rowIndex) => {
+        const isAlternatingRow = tableData.styling.enableAlternatingRows && rowIndex % 2 === 1;
+        const rowBackgroundColor = isAlternatingRow ? tableData.styling.alternatingRowColor : tableData.styling.backgroundColor;
+        
+        const rowCells = [...row];
+        
+        // Add row header if row headers should be shown
+        if (showRowHeaders) {
+          const rowHeaderContent = tableData.rowHeaders[rowIndex] || `Row ${rowIndex + 1}`;
+          rowCells.unshift(rowHeaderContent);
+        }
+        
+        return [
+          'tr',
+          {},
+          ...rowCells.map((cell, cellIndex) => {
+            const isRowHeader = showRowHeaders && cellIndex === 0;
+            
+            // Handle both string cells (legacy) and RichCellData objects
+            const cellContent = typeof cell === 'string' ? cell : (cell as RichCellData).content || '';
+            const cellStyling = typeof cell === 'object' && cell !== null ? (cell as RichCellData).styling : undefined;
+            
+            // Determine cell background color
+            let cellBackgroundColor = cellStyling?.backgroundColor || rowBackgroundColor || 'transparent';
+            if (isRowHeader) {
+              cellBackgroundColor = tableData.styling.headerBackgroundColor;
+            }
+            
+            // Merge table-level styling with cell-specific styling
+            const cellStyles = [
+              `padding: ${tableData.styling.cellPadding || 12}px`,
+              `border: 1px solid ${tableData.styling.gridLineColor || tableData.styling.borderColor || '#e2e8f0'}`,
+              `background-color: ${cellBackgroundColor}`,
+              `text-align: ${cellStyling?.textAlign || tableData.styling.textAlign || 'left'}`,
+              cellStyling?.fontSize ? `font-size: ${cellStyling.fontSize}px` : `font-size: ${tableData.styling.fontSize || 14}px`,
+              cellStyling?.fontWeight ? `font-weight: ${cellStyling.fontWeight}` : `font-weight: ${tableData.styling.fontWeight || 400}`,
+            ].filter(Boolean).join('; ');
 
-          return [
-            'td',
-            {
-              style: cellStyles,
-            },
-            cellContent,
-          ];
-        }),
-      ]),
+            return [
+              isRowHeader ? 'th' : 'td',
+              {
+                style: cellStyles,
+              },
+              cellContent,
+            ];
+          }),
+        ];
+      }),
     ]);
 
     return [
@@ -324,7 +403,7 @@ export const TableExtension = Node.create<TableOptions>({
       [
         'table',
         {
-          style: `border-collapse: collapse; width: 100%; border: ${tableData.styling.borderWidth || 1}px ${tableData.styling.borderStyle || 'solid'} ${tableData.styling.borderColor || '#e2e8f0'};`,
+          style: `border-collapse: collapse; width: 100%; border: ${tableData.styling.borderWidth || 1}px ${tableData.styling.borderStyle || 'solid'} ${tableData.styling.gridLineColor || tableData.styling.borderColor || '#e2e8f0'}; background-color: ${tableData.styling.backgroundColor || 'transparent'};`,
         },
         ...tableChildren,
       ],
@@ -367,24 +446,29 @@ export const TableExtension = Node.create<TableOptions>({
             attrs: {
               tableId,
               headers: withHeaderRow ? finalHeaders : [],
+              rowHeaders: [], // Initially empty
+              headerLayout: withHeaderRow ? 'column-only' : 'none',
               rows: emptyRows,
               styling: {
                 borderStyle: 'solid',
                 borderWidth: 1,
                 borderColor: '#e2e8f0',
+                gridLineColor: '#e2e8f0',
                 backgroundColor: 'transparent',
                 headerBackgroundColor: '#f8fafc',
+                alternatingRowColor: '#f8fafc',
+                enableAlternatingRows: false,
                 cellPadding: 12,
                 textAlign: 'left',
                 fontSize: 14,
                 fontWeight: 400,
-                striped: false,
+                striped: false, // Legacy
                 compact: false,
               },
               settings: {
                 sortable: false,
                 resizable: true,
-                showHeaders: withHeaderRow,
+                showHeaders: withHeaderRow, // Legacy
                 minRows: 1,
                 maxRows: 50,
               },

@@ -2,7 +2,7 @@
 
 import React, { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
-import { useEditorStore } from '@/store/editorStore';
+import { useEditorStore, useCanvasState, useCanvasActions } from '@/store/editorStore';
 import { useTheme } from '@/components/providers/CustomThemeProvider';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -76,8 +76,7 @@ export const UnifiedToolbar = React.memo(function UnifiedToolbar({
     duplicateNode,
     selectNode,
     showGrid,
-    showSnapGuides,
-    toggleSnapGuides,
+    toggleGrid,
     canvasZoom,
     updateCanvasZoom,
     getEditor,
@@ -94,6 +93,10 @@ export const UnifiedToolbar = React.memo(function UnifiedToolbar({
   
   // 🎯 TOOLBAR INTERACTION: Preserve selections during toolbar operations - SIMPLIFIED
   const { preserveDuringOperation } = useToolbarInteraction();
+
+  // 🎨 CANVAS STATE: Background color and actions
+  const { canvasBackgroundColor } = useCanvasState();
+  const { setCanvasBackgroundColor } = useCanvasActions();
 
 
   const selectedNode = selectedNodeId ? nodes.find(n => n.id === selectedNodeId) : null;
@@ -1216,14 +1219,26 @@ export const UnifiedToolbar = React.memo(function UnifiedToolbar({
 
           {/* View Aids - Ultra-Compact */}
           <Button
-            variant={showSnapGuides ? 'default' : 'ghost'}
+            variant={showGrid ? 'default' : 'ghost'}
             size="sm"
-            onClick={toggleSnapGuides}
+            onClick={toggleGrid}
             className="h-6 w-6 p-0"
-            title={showSnapGuides ? 'Hide snap guides' : 'Show snap guides'}
+            title={showGrid ? 'Hide grid' : 'Show grid'}
           >
             <Ruler size={10} />
           </Button>
+
+          {/* Canvas Background Color */}
+          <UnifiedColorPicker
+            value={canvasBackgroundColor}
+            onColorSelect={setCanvasBackgroundColor}
+            mode="both"
+            variant="icon"
+            size="sm"
+            label="Canvas Background"
+            allowClear={false}
+            placeholder="hsl(var(--background))"
+          />
 
           <ThemeSelector />
         </div>

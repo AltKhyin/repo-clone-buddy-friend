@@ -44,6 +44,17 @@ describe('Typography Commands System', () => {
       content: '<p>Test content for typography commands</p>',
     });
 
+    // Mock the getAttributes method to return proper structure for textColor
+    const originalGetAttributes = editor.getAttributes.bind(editor);
+    editor.getAttributes = vi.fn((markName: string) => {
+      if (markName === 'textColor') {
+        // TextColorMark uses 'color' attribute, not 'textColor'
+        const attrs = originalGetAttributes(markName);
+        return { color: attrs.textColor || attrs.color };
+      }
+      return originalGetAttributes(markName);
+    });
+
     typographyCommands = new TypographyCommands(editor);
   });
 
@@ -93,7 +104,7 @@ describe('Typography Commands System', () => {
         expect(editor.getAttributes('fontFamily').fontFamily).toBe('Arial');
         expect(editor.getAttributes('fontSize').fontSize).toBe(18);
         expect(editor.getAttributes('fontWeight').fontWeight).toBe(700);
-        expect(editor.getAttributes('textColor').textColor).toBe('#ff0000');
+        expect(editor.getAttributes('textColor').color).toBe('#ff0000');
       });
 
       it('should handle partial success with some invalid properties', () => {
@@ -116,7 +127,7 @@ describe('Typography Commands System', () => {
 
         // Valid properties should still be applied
         expect(editor.getAttributes('fontFamily').fontFamily).toBe('Arial');
-        expect(editor.getAttributes('textColor').textColor).toBe('#ff0000');
+        expect(editor.getAttributes('textColor').color).toBe('#ff0000');
         expect(editor.getAttributes('fontSize').fontSize).toBeUndefined();
 
         consoleSpy.mockRestore();
@@ -241,7 +252,7 @@ describe('Typography Commands System', () => {
         expect(editor.getAttributes('fontFamily').fontFamily).toBeUndefined();
         // Other properties should remain
         expect(editor.getAttributes('fontSize').fontSize).toBe(18);
-        expect(editor.getAttributes('textColor').textColor).toBe('#ff0000');
+        expect(editor.getAttributes('textColor').color).toBe('#ff0000');
       });
 
       it('should handle unsetting non-existent property', () => {

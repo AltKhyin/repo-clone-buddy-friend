@@ -606,6 +606,7 @@ export interface EditorState {
   currentViewport?: Viewport; // Optional for backward compatibility
   canvasTransform?: CanvasTransform; // Optional for backward compatibility
   canvasTheme?: 'light' | 'dark'; // Optional for backward compatibility
+  canvasBackgroundColor?: string; // Canvas background color using theme tokens
   showRulers?: boolean; // Optional for backward compatibility
   showGuidelines?: boolean; // Optional for backward compatibility
   guidelines?: {
@@ -681,6 +682,7 @@ export interface EditorState {
   resetMobileLayout: () => void;
   updateCanvasTransform: (transform: Partial<CanvasTransform>) => void;
   setCanvasTheme: (theme: 'light' | 'dark') => void;
+  setCanvasBackgroundColor: (color: string) => void;
   toggleGrid: () => void;
   toggleRulers: () => void;
   toggleGuidelines: () => void;

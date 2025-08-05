@@ -2,7 +2,7 @@
 
 import React, { useCallback, useMemo, useRef } from 'react';
 import { useDroppable } from '@dnd-kit/core';
-import { useEditorStore, useEditorActions } from '@/store/editorStore';
+import { useEditorStore, useEditorActions, useCanvasState } from '@/store/editorStore';
 import { DraggableBlock } from './DraggableBlock';
 import { useEditorTheme } from '@/hooks/useEditorTheme';
 import { BlockPosition } from '@/types/editor';
@@ -35,6 +35,7 @@ export function WYSIWYGCanvas() {
   const { clearAllSelection, activateBlock } = useEditorActions();
 
   const { colors } = useEditorTheme();
+  const { canvasBackgroundColor, showGrid } = useCanvasState();
   const canvasRef = useRef<HTMLDivElement>(null);
 
   // Set up drop zone for new blocks from palette
@@ -134,30 +135,32 @@ export function WYSIWYGCanvas() {
           style={{
             width: CANVAS_CONFIG.width,
             height: canvasHeight,
-            backgroundColor: colors.canvas || 'hsl(var(--background))',
+            backgroundColor: canvasBackgroundColor || 'hsl(var(--background))',
           }}
           onClick={handleCanvasClick}
         >
           {/* Grid overlay for alignment */}
-          <div
-            className="absolute inset-0 pointer-events-none opacity-20"
-            style={{
-              backgroundImage: `
-                repeating-linear-gradient(
-                  90deg,
-                  transparent,
-                  transparent ${CANVAS_CONFIG.width / CANVAS_CONFIG.gridColumns - 1}px,
-                  ${colors.grid || 'hsl(var(--border))'} ${CANVAS_CONFIG.width / CANVAS_CONFIG.gridColumns}px
-                ),
-                repeating-linear-gradient(
-                  0deg,
-                  transparent,
-                  transparent 19px,
-                  ${colors.grid || 'hsl(var(--border))'} 20px
-                )
-              `,
-            }}
-          />
+          {showGrid && (
+            <div
+              className="absolute inset-0 pointer-events-none opacity-20"
+              style={{
+                backgroundImage: `
+                  repeating-linear-gradient(
+                    90deg,
+                    transparent,
+                    transparent ${CANVAS_CONFIG.width / CANVAS_CONFIG.gridColumns - 1}px,
+                    ${colors.grid || 'hsl(var(--border))'} ${CANVAS_CONFIG.width / CANVAS_CONFIG.gridColumns}px
+                  ),
+                  repeating-linear-gradient(
+                    0deg,
+                    transparent,
+                    transparent 19px,
+                    ${colors.grid || 'hsl(var(--border))'} 20px
+                  )
+                `,
+              }}
+            />
+          )}
 
           {/* Drop zone overlay */}
           {isOver && (
