@@ -16,7 +16,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { useUpdateReviewMetadataMutation } from '../../../../packages/hooks/useUpdateReviewMetadataMutation';
 import { ReviewManagementData } from '../../../../packages/hooks/useAdminReviewManagement';
-import { useSaveContext } from '@/hooks/useSaveContext';
+import { useSaveContext } from '../../../hooks/useSaveContext';
 import { Save, Upload, X } from 'lucide-react';
 import { TagSelector } from './TagSelector';
 import { CoverImageUpload } from './CoverImageUpload';

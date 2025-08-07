@@ -1,6 +1,6 @@
 // ABOUTME: Validation utilities for Rich Block editor components with comprehensive error handling
 
-import { TableData } from '../extensions/Table/TableExtension';
+import { BasicTableData } from '../extensions/BasicTable/types';
 import { PollData, PollOption } from '../extensions/Poll/PollExtension';
 
 /**
@@ -39,7 +39,7 @@ export const POLL_LIMITS = {
 /**
  * Sanitize and validate table data
  */
-export function validateTableData(data: Partial<TableData>): ValidationResult {
+export function validateTableData(data: Partial<BasicTableData>): ValidationResult {
   const result: ValidationResult = {
     isValid: true,
     errors: [],

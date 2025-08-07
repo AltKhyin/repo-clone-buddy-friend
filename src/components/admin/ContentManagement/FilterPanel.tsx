@@ -15,7 +15,7 @@ import { Settings, Plus, Edit, Trash2 } from 'lucide-react';
 import { useContentTypeManagement, useContentTypeOperationMutation } from '../../../../packages/hooks/useContentTypeManagement';
 import { ContentTypeCreateModal } from '../ReviewManagement/ContentTypeCreateModal';
 import { ContentTypeEditModal } from '../ReviewManagement/ContentTypeEditModal';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from '../../../hooks/use-toast';
 
 interface FilterPanelProps {
   filters: {

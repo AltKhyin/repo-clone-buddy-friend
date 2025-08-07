@@ -3,11 +3,11 @@
 import React, { memo, useCallback, useMemo, useEffect, useRef } from 'react';
 import { EditorContent } from '@tiptap/react';
 import { useEditorStore } from '@/store/editorStore';
-import { useEditorTheme } from '@/hooks/useEditorTheme';
-import { useRichTextEditor } from '@/hooks/useRichTextEditor';
-import { useSelectionCoordination } from '@/hooks/useSelectionCoordination';
+import { useEditorTheme } from '../../../hooks/useEditorTheme';
+import { useRichTextEditor } from '../../../hooks/useRichTextEditor';
+import { useSelectionCoordination } from '../../../hooks/useSelectionCoordination';
 import { useSelectionStore } from '@/store/selectionStore';
-import { useContentHeightCalculator } from '@/hooks/useContentHeightCalculator';
+import { useContentHeightCalculator } from '../../../hooks/useContentHeightCalculator';
 import { UnifiedBlockWrapper } from '@/components/editor/shared/UnifiedBlockWrapper';
 import { RichBlockData, ContentSelectionType } from '@/types/editor';
 

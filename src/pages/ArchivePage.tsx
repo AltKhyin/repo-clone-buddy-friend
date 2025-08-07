@@ -1,9 +1,9 @@
 // ABOUTME: Archive page component for displaying historical reviews and content collections
 
 import React, { useState, useMemo } from 'react';
-import { useIsMobile } from '@/hooks/use-mobile';
+import { useIsMobile } from '../hooks/use-mobile';
 import { useAcervoDataQuery } from '../../packages/hooks/useAcervoDataQuery';
-import { useContentAccessFilter } from '@/hooks/useContentAccessFilter';
+import { useContentAccessFilter } from '../hooks/useContentAccessFilter';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AccessUpgradePrompt } from '@/components/ui/AccessUpgradePrompt';
 import TagsPanel from '@/components/acervo/TagsPanel';

@@ -15,8 +15,8 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuthStore } from '@/store/auth';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
-import { useUserProfileQuery } from '../../../packages/hooks/useUserProfileQuery';
+import { useToast } from '../../hooks/use-toast';
+import { useUserProfileQuery } from '@packages/hooks/useUserProfileQuery';
 
 interface MobileUserMenuProps {
   className?: string;

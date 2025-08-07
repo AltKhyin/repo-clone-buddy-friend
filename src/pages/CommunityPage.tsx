@@ -5,7 +5,7 @@ import { CommunityFeedWithSidebar } from '../components/community/CommunityFeedW
 import { CommunityErrorBoundary } from '../components/community/CommunityErrorBoundary';
 import { CommunityLoadingState } from '../components/community/CommunityLoadingState';
 import NetworkAwareFallback from '../components/community/NetworkAwareFallback';
-import { useNetworkStatus } from '@/hooks/useNetworkStatus';
+import { useNetworkStatus } from '../hooks/useNetworkStatus';
 import { useCommunityPageQuery } from '@packages/hooks/useCommunityPageQuery';
 import { CategoryFilterProvider, useCategoryFilter } from '../contexts/CategoryFilterContext';
 import { Alert, AlertDescription } from '../components/ui/alert';

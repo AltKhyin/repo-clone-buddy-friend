@@ -569,26 +569,50 @@
     }
   }
 
-  /* 🎯 FIX #2: Table cell typography that prevents row height expansion */
+  /* 🎯 FIX #2: Table cell typography that allows typography marks while preventing row height expansion */
   .table-cell-typography {
-    /* Base typography settings for consistent table cell appearance */
-    @apply text-sm font-normal;
+    /* Base typography settings - allow inline styles to override */
+    font-size: 0.875rem; /* 14px default, but allow inline font-size to override */
+    font-weight: 400; /* Normal default, but allow inline font-weight to override */
     
     /* Prevent height expansion with controlled line spacing */
-    line-height: 1.2; /* Fixed line height instead of leading-relaxed */
+    line-height: 1.2; /* Fixed line height for layout stability */
     
-    /* Ensure all typography marks work without affecting layout */
+    /* Layout control without overriding typography marks */
     & * {
-      line-height: inherit !important;
-      margin: 0 !important;
-      padding: 0 !important;
+      /* CRITICAL FIX: Remove !important from line-height to allow typography control */
+      line-height: inherit;
+      margin: 0 !important; /* Keep margin override for layout */
+      padding: 0 !important; /* Keep padding override for layout */
     }
     
     /* Specific ProseMirror paragraph handling */
     & p {
-      margin: 0 !important;
-      padding: 0 !important;
-      line-height: inherit !important;
+      margin: 0 !important; /* Keep margin override for layout */
+      padding: 0 !important; /* Keep padding override for layout */
+      /* CRITICAL FIX: Remove line-height !important to allow typography control */
+      line-height: inherit;
+    }
+    
+    /* 🎯 TYPOGRAPHY MARK SUPPORT: Ensure inline styles take precedence */
+    & span[style*="color"] {
+      /* Text color marks should override default */
+    }
+    
+    & span[style*="background-color"] {
+      /* Background color marks should override default */
+    }
+    
+    & span[style*="font-family"] {
+      /* Font family marks should override default */
+    }
+    
+    & span[style*="font-size"] {
+      /* Font size marks should override default */
+    }
+    
+    & span[style*="font-weight"] {
+      /* Font weight marks should override default */
     }
     
     /* Maintain text formatting capabilities */

@@ -30,7 +30,7 @@ export {
 
 // Common editor store imports
 export { useEditorStore } from '@/store/editorStore';
-export { useEditorTheme } from '@/hooks/useEditorTheme';
+export { useEditorTheme } from '../../hooks/useEditorTheme';
 
 // Common utility functions
 export { cn } from '@/lib/utils';

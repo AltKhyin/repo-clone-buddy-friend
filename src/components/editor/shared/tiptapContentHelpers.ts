@@ -36,7 +36,7 @@ export function createTableContent(
     type: 'doc',
     content: [
       {
-        type: 'customTable',
+        type: 'basicTable',
         attrs: {
           tableId,
           headers: withHeaderRow ? finalHeaders : [],
@@ -105,9 +105,9 @@ export function tiptapJsonToHtml(json: any): string {
   // Handle single nodes in content array
   const firstNode = json.content[0];
 
-  if (firstNode.type === 'customTable') {
+  if (firstNode.type === 'basicTable') {
     // For tables, we'll use a special data attribute to preserve the full JSON
-    return `<div data-tiptap-node="customTable" data-tiptap-attrs="${encodeURIComponent(JSON.stringify(firstNode.attrs))}"><table><tbody><tr><th>Table Loading...</th></tr></tbody></table></div>`;
+    return `<div data-tiptap-node="basicTable" data-tiptap-attrs="${encodeURIComponent(JSON.stringify(firstNode.attrs))}"><table><tbody><tr><th>Table Loading...</th></tr></tbody></table></div>`;
   }
 
   // REMOVED: customPoll handling - polls moved to community-only features
@@ -127,7 +127,7 @@ export function htmlToTiptapJson(html: string): any {
   // This handles the special case where we embedded TipTap node data in HTML
 
   // Check for table node
-  const tableMatch = html.match(/data-tiptap-node="customTable".*?data-tiptap-attrs="([^"]+)"/);
+  const tableMatch = html.match(/data-tiptap-node="basicTable".*?data-tiptap-attrs="([^"]+)"/);
   if (tableMatch) {
     try {
       const attrs = JSON.parse(decodeURIComponent(tableMatch[1]));

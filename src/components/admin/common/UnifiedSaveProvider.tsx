@@ -5,7 +5,7 @@ import { SaveState, UnifiedSaveContextValue } from '@/types/admin';
 import { UnifiedSaveContext } from '@/contexts/UnifiedSaveContext';
 import { usePublicationActionMutation } from '../../../../packages/hooks/usePublicationActionMutation';
 import { useUpdateReviewMetadataMutation } from '../../../../packages/hooks/useUpdateReviewMetadataMutation';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from '../../../hooks/use-toast';
 
 interface UnifiedSaveProviderProps {
   children: ReactNode;

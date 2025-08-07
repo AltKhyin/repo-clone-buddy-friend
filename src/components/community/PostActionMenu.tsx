@@ -15,10 +15,10 @@ import { toast } from 'sonner';
 import type { CommunityPost } from '../../types/community';
 import { useAuthStore } from '../../store/auth';
 import { cn } from '../../lib/utils';
-import { useUserProfileQuery } from '../../../packages/hooks/useUserProfileQuery';
-import { usePostModerationMutation } from '../../../packages/hooks/usePostModerationMutation';
-import { useDeletePostMutation } from '../../../packages/hooks/useDeletePostMutation';
-import { useSavePostMutation } from '../../../packages/hooks/useSavePostMutation';
+import { useUserProfileQuery } from '@packages/hooks/useUserProfileQuery';
+import { usePostModerationMutation } from '@packages/hooks/usePostModerationMutation';
+import { useDeletePostMutation } from '@packages/hooks/useDeletePostMutation';
+import { useSavePostMutation } from '@packages/hooks/useSavePostMutation';
 import { useTheme } from '../theme/CustomThemeProvider';
 
 interface PostActionMenuProps {

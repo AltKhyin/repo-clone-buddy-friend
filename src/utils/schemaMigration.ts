@@ -269,7 +269,7 @@ export const migrateTableBlockToRichBlock = (legacyData: LegacyTableBlockData): 
     type: 'doc',
     content: [
       {
-        type: 'customTable',
+        type: 'basicTable',
         attrs: {
           tableId,
           headers,
@@ -1238,7 +1238,7 @@ export const validateMigration = (
       } else {
         // Map node types to expected TipTap node types
         const expectedNodeTypes = {
-          table: 'customTable',
+          table: 'basicTable',
           poll: 'customPoll',
           text: ['paragraph', 'heading'],
           image: 'image',

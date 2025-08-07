@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Button } from '../ui/button';
-import { AcervoTag } from '../../../packages/hooks/useAcervoDataQuery';
+import { AcervoTag } from '@packages/hooks/useAcervoDataQuery';
 
 interface TagsPanelProps {
   allTags: AcervoTag[];

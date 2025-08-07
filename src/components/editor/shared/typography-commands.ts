@@ -16,6 +16,8 @@ export interface TypographyProperties {
   textTransform?: string;
   letterSpacing?: string | number;
   textAlign?: 'left' | 'center' | 'right' | 'justify';
+  lineHeight?: number;
+  textDecoration?: string;
 }
 
 /**
@@ -109,6 +111,10 @@ export class TypographyCommands {
           return this.setLetterSpacing(value);
         case 'textAlign':
           return this.setTextAlign(value);
+        case 'lineHeight':
+          return this.setLineHeight(value);
+        case 'textDecoration':
+          return this.setTextDecoration(value);
         default:
           result.errors.push(`Unknown typography property: ${property}`);
           return result;
@@ -445,6 +451,83 @@ export class TypographyCommands {
   }
 
   /**
+   * Set line height with validation
+   */
+  setLineHeight(lineHeight: number): TypographyCommandResult {
+    const result: TypographyCommandResult = {
+      success: false,
+      appliedProperties: {},
+      errors: [],
+    };
+
+    const numericLineHeight = Number(lineHeight);
+    if (isNaN(numericLineHeight)) {
+      result.errors.push(`Invalid line height: ${lineHeight}`);
+      return result;
+    }
+
+    // Validate line height constraints (typical range 0.5-3.0)
+    if (numericLineHeight < 0.5 || numericLineHeight > 3.0) {
+      result.errors.push(`Invalid line height: ${lineHeight}. Must be between 0.5 and 3.0.`);
+      return result;
+    }
+
+    try {
+      // Use TipTap's TextStyle extension for line height
+      const success = this.editor.commands.setMark('textStyle', { lineHeight: numericLineHeight });
+      if (success) {
+        result.success = true;
+        result.appliedProperties.lineHeight = numericLineHeight;
+      } else {
+        result.errors.push('Failed to apply line height command');
+      }
+    } catch (error) {
+      result.errors.push(`Line height command error: ${error}`);
+    }
+
+    return result;
+  }
+
+  /**
+   * Set text decoration with validation
+   */
+  setTextDecoration(textDecoration: string): TypographyCommandResult {
+    const result: TypographyCommandResult = {
+      success: false,
+      appliedProperties: {},
+      errors: [],
+    };
+
+    // Validate text decoration
+    const validDecorations = ['none', 'underline', 'overline', 'line-through', 'underline overline'];
+    if (!textDecoration || typeof textDecoration !== 'string') {
+      result.errors.push(`Invalid text decoration: ${textDecoration}`);
+      return result;
+    }
+
+    const trimmedDecoration = textDecoration.trim();
+    if (!validDecorations.includes(trimmedDecoration)) {
+      result.errors.push(`Invalid text decoration: ${textDecoration}. Valid decorations: ${validDecorations.join(', ')}`);
+      return result;
+    }
+
+    try {
+      // Use TipTap's TextStyle extension for text decoration
+      const success = this.editor.commands.setMark('textStyle', { textDecoration: trimmedDecoration });
+      if (success) {
+        result.success = true;
+        result.appliedProperties.textDecoration = trimmedDecoration;
+      } else {
+        result.errors.push('Failed to apply text decoration command');
+      }
+    } catch (error) {
+      result.errors.push(`Text decoration command error: ${error}`);
+    }
+
+    return result;
+  }
+
+  /**
    * Unset a typography property
    */
   unsetProperty(property: keyof TypographyProperties): TypographyCommandResult {
@@ -486,6 +569,12 @@ export class TypographyCommands {
           break;
         case 'textAlign':
           success = this.editor.commands.unsetTextAlign();
+          break;
+        case 'lineHeight':
+          success = this.editor.commands.unsetMark('textStyle');
+          break;
+        case 'textDecoration':
+          success = this.editor.commands.unsetMark('textStyle');
           break;
         default:
           result.errors.push(`Cannot unset unknown property: ${property}`);

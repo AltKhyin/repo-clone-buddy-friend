@@ -1,7 +1,7 @@
 // ABOUTME: Comprehensive keyboard shortcuts help panel with searchable commands and categories
 
 import React from 'react';
-import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
+import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';

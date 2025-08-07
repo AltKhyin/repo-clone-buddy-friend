@@ -21,7 +21,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { User, Shield, Calendar, Award, Settings, Save, Loader2 } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from '../../../hooks/use-toast';
 
 interface UserDetailModalProps {
   userId: string;

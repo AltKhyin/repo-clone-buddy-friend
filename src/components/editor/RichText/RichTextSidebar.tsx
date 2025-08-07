@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { RichTextEditorInstance } from '@/hooks/useRichTextEditor';
+import { RichTextEditorInstance } from '../../../hooks/useRichTextEditor';
 import { MarkdownShortcuts } from './MarkdownShortcuts';
 import { ContentStructurePanel } from './ContentStructurePanel';
 import {

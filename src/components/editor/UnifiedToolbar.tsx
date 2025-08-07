@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
+import { AccessibleNumberInput } from './shared/AccessibleNumberInput';
 // Legacy block typography support removed - now using selection-based typography for all content
 import {
   Bold,
@@ -45,7 +46,7 @@ import {
   Link,
 } from 'lucide-react';
 import { ThemeSelector } from '@/components/header/ThemeSelector';
-import { useUnifiedSelection, useToolbarInteraction } from '@/hooks/useUnifiedSelection';
+import { useUnifiedSelection, useToolbarInteraction } from '../../hooks/useUnifiedSelection';
 import { PLACEHOLDER_IMAGES, PLACEHOLDER_DIMENSIONS } from './shared/mediaConstants';
 import { HighlightColorPicker } from './shared/HighlightColorPicker';
 import { UnifiedColorPicker } from './shared/UnifiedColorPicker';
@@ -83,6 +84,7 @@ export const UnifiedToolbar = React.memo(function UnifiedToolbar({
   } = useEditorStore();
 
   // 🎯 UNIFIED SELECTION SYSTEM: Single source of truth for all selection types
+  // SIMPLIFIED: BasicTable system with single-cell selection only
   const {
     currentSelection,
     hasSelection,
@@ -101,41 +103,64 @@ export const UnifiedToolbar = React.memo(function UnifiedToolbar({
 
   const selectedNode = selectedNodeId ? nodes.find(n => n.id === selectedNodeId) : null;
 
-  // 🎯 UNIFIED TYPOGRAPHY STATE: Single source of truth
-  const typographyActive = canApplyTypography;
+  // SIMPLIFIED: BasicTable selection state (single-cell only)
+  const tableSelectionState = useMemo(() => ({
+    // Only single-cell selection for BasicTable system
+    isSingleCellActive: currentSelection.type === 'table-cell',
+    hasTableSelection: currentSelection.type === 'table-cell',
+    canApplyTableTypography: currentSelection.type === 'table-cell' && currentSelection.cellSelection?.editor,
+  }), [currentSelection]);
+
+  // BATCH 1: Enhanced typography state with BasicTable support
+  const typographyActive = canApplyTypography || tableSelectionState.canApplyTableTypography;
   const currentSelectionType = currentSelection.type;
 
 
   // 🎯 TIPTAP EDITOR STATE: For Rich Block editing features
   const currentEditor = useMemo(() => {
-    console.log('[UnifiedToolbar] Resolving currentEditor:', {
-      currentSelectionType: currentSelection.type,
-      hasContentSelection: !!currentSelection.contentSelection?.editor,
-      selectedNodeId,
-      hasGetEditor: typeof getEditor === 'function'
-    });
+    // Throttled debug logging to reduce spam
+    const hasEditor = !!(
+      (currentSelection.type === 'table-cell' && currentSelection.cellSelection?.editor) ||
+      (currentSelection.type === 'content' && currentSelection.contentSelection?.editor) ||
+      (selectedNodeId && getEditor(selectedNodeId))
+    );
     
-    // Priority 1: Active content selection with editor
+    // Only log editor resolution issues for critical operations (reduced noise)
+    const shouldHaveEditor = currentSelection.type === 'content' || currentSelection.type === 'table-cell';
+    if (!hasEditor && shouldHaveEditor) {
+      // Only warn for critical editor resolution failures that affect table insertion
+      console.warn('[UnifiedToolbar] Critical editor resolution issue:', {
+        currentSelectionType: currentSelection.type,
+        selectedNodeId,
+        hasTableCellEditor: !!(currentSelection.type === 'table-cell' && currentSelection.cellSelection?.editor),
+        hasContentEditor: !!(currentSelection.type === 'content' && currentSelection.contentSelection?.editor),
+        hasSelectedNodeEditor: !!(selectedNodeId && getEditor(selectedNodeId)),
+        note: 'Table insertion may fail - editor instance not available'
+      });
+    }
+    
+    // Priority 1: Table cell editor (CRITICAL FIX for table content loss)
+    if (currentSelection.type === 'table-cell' && currentSelection.cellSelection?.editor) {
+      return currentSelection.cellSelection.editor;
+    }
+    
+    // Priority 2: Active content selection with editor
     if (currentSelection.type === 'content' && currentSelection.contentSelection?.editor) {
-      console.log('[UnifiedToolbar] Using content selection editor');
       return currentSelection.contentSelection.editor;
     }
     
-    // Priority 2: Selected Rich Block editor
+    // Priority 3: Selected Rich Block editor
     if (selectedNodeId) {
       const editor = getEditor(selectedNodeId);
-      console.log('[UnifiedToolbar] Using selected node editor:', !!editor);
       return editor;
     }
     
-    console.log('[UnifiedToolbar] No editor available');
     return null;
   }, [currentSelection, selectedNodeId, getEditor]);
 
   // 🎯 TIPTAP TOOLBAR STATE: For history and structure controls
   const tiptapState = useMemo(() => {
     if (!currentEditor) {
-      console.log('[UnifiedToolbar] No currentEditor available');
       return null;
     }
     
@@ -271,23 +296,70 @@ export const UnifiedToolbar = React.memo(function UnifiedToolbar({
 
   // 🎯 UNIFIED TYPOGRAPHY HANDLER: Works with any selection type
   const handleTypography = React.useCallback(
-    (properties: Record<string, any>) => {
+    async (properties: Record<string, any>) => {
       if (!canApplyTypography) {
         console.log('[UnifiedToolbar] Typography cannot be applied - no valid selection with editor');
         return false;
       }
       
-      return preserveDuringOperation(() => {
-        const success = applyTypography(properties);
-        if (success) {
-          console.log('[UnifiedToolbar] Typography applied successfully:', properties);
-        } else {
-          console.warn('[UnifiedToolbar] Typography application failed:', properties);
+      // M4: Enhanced typography with state synchronization validation
+      if (currentSelectionType === 'table-cell') {
+        try {
+          // Get current session state for validation
+          // Apply typography directly (performance manager removed with legacy table system)
+          const success = preserveDuringOperation(() => {
+            return applyTypography(properties);
+          });
+          
+          if (success) {
+            // Typography applied successfully to table cell
+            
+            console.log('[UnifiedToolbar] Typography applied successfully:', properties);
+          } else {
+            console.warn('[UnifiedToolbar] Typography application failed:', properties);
+          }
+          
+          return success;
+          
+        } catch (error) {
+          console.error('[UnifiedToolbar] Typography application error:', error);
+          return false;
         }
-        return success;
-      });
+      } else if (tableSelectionState.isSingleCellActive) {
+        // SIMPLIFIED: Single-cell typography application for BasicTable
+        try {
+          console.log(`[UnifiedToolbar] Applying typography to selected table cell:`, properties);
+          
+          const success = preserveDuringOperation(() => {
+            return applyTypography(properties);
+          });
+          
+          if (success) {
+            console.log(`[UnifiedToolbar] ✅ Typography applied to table cell successfully:`, properties);
+          } else {
+            console.warn(`[UnifiedToolbar] ❌ Failed to apply typography to table cell:`, properties);
+          }
+          
+          return success;
+          
+        } catch (error) {
+          console.error('[UnifiedToolbar] Multi-cell typography application error:', error);
+          return false;
+        }
+      } else {
+        // Regular typography application for non-table selections
+        return preserveDuringOperation(() => {
+          const success = applyTypography(properties);
+          if (success) {
+            console.log('[UnifiedToolbar] Typography applied successfully:', properties);
+          } else {
+            console.warn('[UnifiedToolbar] Typography application failed:', properties);
+          }
+          return success;
+        });
+      }
     },
-    [canApplyTypography, applyTypography, preserveDuringOperation]
+    [canApplyTypography, applyTypography, preserveDuringOperation, currentSelectionType, tableSelectionState]
   );
 
   // 🎯 SIMPLIFIED TYPOGRAPHY HANDLERS: All use unified system
@@ -445,40 +517,18 @@ export const UnifiedToolbar = React.memo(function UnifiedToolbar({
 
   // Heading Selector - Unified Heading Control
   const getCurrentHeadingLevel = React.useCallback((): 1 | 2 | 3 | 4 | 5 | 6 | null => {
-    console.log('[UnifiedToolbar] getCurrentHeadingLevel called with tiptapState:', tiptapState);
-    
     if (!tiptapState) {
-      console.log('[UnifiedToolbar] No tiptapState available, returning null (paragraph)');
       return null;
     }
     
     // Check each heading level in priority order
-    if (tiptapState.isHeading1) {
-      console.log('[UnifiedToolbar] Detected Heading 1');
-      return 1;
-    }
-    if (tiptapState.isHeading2) {
-      console.log('[UnifiedToolbar] Detected Heading 2');
-      return 2;
-    }
-    if (tiptapState.isHeading3) {
-      console.log('[UnifiedToolbar] Detected Heading 3');
-      return 3;
-    }
-    if (tiptapState.isHeading4) {
-      console.log('[UnifiedToolbar] Detected Heading 4');
-      return 4;
-    }
-    if (tiptapState.isHeading5) {
-      console.log('[UnifiedToolbar] Detected Heading 5');
-      return 5;
-    }
-    if (tiptapState.isHeading6) {
-      console.log('[UnifiedToolbar] Detected Heading 6');
-      return 6;
-    }
+    if (tiptapState.isHeading1) return 1;
+    if (tiptapState.isHeading2) return 2;
+    if (tiptapState.isHeading3) return 3;
+    if (tiptapState.isHeading4) return 4;
+    if (tiptapState.isHeading5) return 5;
+    if (tiptapState.isHeading6) return 6;
     
-    console.log('[UnifiedToolbar] No heading detected, returning null (paragraph)');
     return null; // Paragraph mode
   }, [tiptapState]);
 
@@ -528,12 +578,14 @@ export const UnifiedToolbar = React.memo(function UnifiedToolbar({
     // Smart content insertion: Insert into existing Rich Block if selected, otherwise create new block
     const selectedNode = selectedNodeId ? nodes.find(n => n.id === selectedNodeId) : null;
     const isRichBlockSelected = selectedNode?.type === 'richBlock';
+    
+    // Check if we have a reliable editor instance for direct insertion
+    const hasWorkingEditor = !!(currentEditor && currentEditor.chain && typeof currentEditor.chain === 'function');
 
-    // Import the helper function inline to avoid circular dependencies
+    // Create BasicTable content using simplified Reddit-style structure
     const createTableContent = () => {
       const rows = 3;
       const cols = 3;
-      const withHeaderRow = true;
 
       // Generate default headers
       const headers = Array.from({ length: cols }, (_, i) => `Column ${i + 1}`);
@@ -544,36 +596,18 @@ export const UnifiedToolbar = React.memo(function UnifiedToolbar({
       // Generate unique table ID
       const tableId = `table-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
-      // Create TipTap JSON document with table node
+      // Create TipTap JSON document with BasicTable node (Reddit-inspired simple structure)
       return {
         type: 'doc',
         content: [
           {
-            type: 'customTable',
+            type: 'basicTable',
             attrs: {
-              tableId,
-              headers: withHeaderRow ? headers : [],
-              rows: emptyRows,
-              styling: {
-                borderStyle: 'solid',
-                borderWidth: 1,
-                borderColor: '#e2e8f0',
-                backgroundColor: 'transparent',
-                headerBackgroundColor: '#f8fafc',
-                cellPadding: 12,
-                textAlign: 'left',
-                fontSize: 14,
-                fontWeight: 400,
-                striped: false,
-                compact: false,
-              },
-              settings: {
-                sortable: false,
-                resizable: true,
-                showHeaders: withHeaderRow,
-                minRows: 1,
-                maxRows: 50,
-              },
+              tableData: {
+                id: tableId,
+                headers,
+                rows: emptyRows
+              }
             },
           },
         ],
@@ -582,14 +616,24 @@ export const UnifiedToolbar = React.memo(function UnifiedToolbar({
 
     const tiptapJSON = createTableContent();
 
-    if (isRichBlockSelected && currentEditor?.chain) {
-      // Insert table directly into the Rich Block using TipTap commands
-      currentEditor.chain().focus().insertTable({ 
-        rows: 3, 
-        cols: 3, 
-        withHeaderRow: true 
-      }).run();
-      return; // Early return - table inserted into existing Rich Block
+    // Try direct insertion into existing RichBlock if we have a working editor
+    if (isRichBlockSelected && hasWorkingEditor) {
+      const tableData = {
+        headers: ['Column 1', 'Column 2', 'Column 3'],
+        rows: [['', '', ''], ['', '', ''], ['', '', '']],
+        id: `table-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+      };
+      
+      try {
+        currentEditor.chain().focus().insertBasicTable(tableData).run();
+        console.log('[UnifiedToolbar] BasicTable inserted successfully into existing RichBlock');
+        return; // Early return - table inserted into existing Rich Block
+      } catch (error) {
+        console.warn('[UnifiedToolbar] BasicTable direct insertion failed, falling back to node creation:', error);
+        // Continue to fallback method below
+      }
+    } else if (isRichBlockSelected && !hasWorkingEditor) {
+      console.warn('[UnifiedToolbar] RichBlock selected but editor not available, creating new block');
     }
 
     // Fallback: Create new Rich Block with table content
@@ -901,7 +945,9 @@ export const UnifiedToolbar = React.memo(function UnifiedToolbar({
                   !typographyActive && !selectedNode,
                   typographyActive ? appliedMarks.fontWeight === 700 : selectedNode?.data?.fontWeight === 700
                 )}
-                aria-label="Make text bold"
+                aria-label={tableSelectionState.isSingleCellActive
+                  ? "Make selected cell bold"
+                  : "Make text bold"}
                 aria-pressed={
                   typographyActive
                     ? appliedMarks.fontWeight === 700
@@ -975,7 +1021,9 @@ export const UnifiedToolbar = React.memo(function UnifiedToolbar({
                   !typographyActive && !selectedNode,
                   typographyActive ? appliedMarks.fontStyle === 'italic' : selectedNode?.data?.fontStyle === 'italic'
                 )}
-                aria-label="Toggle italic formatting"
+                aria-label={tableSelectionState.isSingleCellActive
+                  ? "Toggle italic for selected cell"
+                  : "Toggle italic formatting"}
                 aria-pressed={
                   typographyActive
                     ? appliedMarks.fontStyle === 'italic'
@@ -1260,7 +1308,15 @@ export const UnifiedToolbar = React.memo(function UnifiedToolbar({
                 <span className="w-2 h-2 bg-green-500 rounded-full opacity-60"></span>
                 <span className="hidden sm:inline">Editing: {selectedNode.type.replace(/([A-Z])/g, ' $1').toLowerCase()}</span>
                 <span className="sm:hidden">Editing</span>
-                {typographyActive && <span className="text-green-600 hidden md:inline">• Text selected</span>}
+                {/* BATCH 1: Enhanced status display with table awareness */}
+                {typographyActive && (
+                  <span className="text-green-600 hidden md:inline">
+                    • {tableSelectionState.isSingleCellActive
+                        ? 'Table cell selected'
+                        : 'Text selected'
+                      }
+                  </span>
+                )}
               </>
             ) : (
               <>
@@ -1279,6 +1335,16 @@ export const UnifiedToolbar = React.memo(function UnifiedToolbar({
         role="group"
         aria-label="Typography and advanced controls"
       >
+
+        {/* BATCH 1: Table Selection Status Indicator */}
+        {tableSelectionState.hasTableSelection && (
+          <div className="flex items-center gap-1 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-md px-2 py-1">
+            <Table className="h-3 w-3 text-blue-600 dark:text-blue-400" />
+            <span className="text-xs font-medium text-blue-700 dark:text-blue-300">
+              Table cell
+            </span>
+          </div>
+        )}
 
         {/* Enhanced Typography Controls - Selection aware (includes table cells) */}
         <div role="group" aria-label="Typography controls" className="flex items-center gap-1">
@@ -1306,18 +1372,20 @@ export const UnifiedToolbar = React.memo(function UnifiedToolbar({
             </Select>
           
             <div className="flex items-center gap-1">
-              <Input
-                type="number"
+              <AccessibleNumberInput
                 value={appliedMarks.fontSize || 16}
-                onChange={e => handleFontSize(parseInt(e.target.value) || 16)}
+                onChange={handleFontSize}
                 onMouseDown={handleToolbarMouseDown}
                 onMouseUp={handleToolbarMouseUp}
-                className="w-12 h-6 text-xs border-0 bg-transparent text-center"
+                className="w-16 h-6"
                 min={8}
                 max={128}
+                step={1}
                 disabled={!typographyActive && !selectedNode}
+                aria-label="Font size"
+                title="Font size (8-128px)"
+                suffix="px"
               />
-              <span className="text-xs text-muted-foreground hidden sm:inline">px</span>
             </div>
             
             <Select
@@ -1340,18 +1408,18 @@ export const UnifiedToolbar = React.memo(function UnifiedToolbar({
             </Select>
             
             <div className="flex items-center gap-1">
-              <Input
-                type="number"
+              <AccessibleNumberInput
                 value={appliedMarks.lineHeight || 1.4}
-                onChange={e => handleLineHeight(parseFloat(e.target.value) || 1.4)}
-                className="w-12 h-6 text-xs border-0 bg-transparent text-center"
+                onChange={handleLineHeight}
+                className="w-14 h-6"
                 min={0.5}
-                max={3}
+                max={3.0}
                 step={0.1}
-                title="Line height"
+                precision={1}
                 disabled={!typographyActive && !selectedNode}
+                aria-label="Line height"
+                title="Line height (0.5-3.0)"
               />
-              <span className="text-xs text-muted-foreground hidden sm:inline">lh</span>
             </div>
           </div>
 

@@ -12,7 +12,7 @@ import { PostActionMenu } from './PostActionMenu';
 import { PollDisplay } from './PollDisplay';
 import { cn } from '../../lib/utils';
 import type { CommunityPost } from '../../types/community';
-import { useSavePostMutation } from '../../../packages/hooks/useSavePostMutation';
+import { useSavePostMutation } from '@packages/hooks/useSavePostMutation';
 import { useAuthStore } from '../../store/auth';
 import { toast } from 'sonner';
 import { processVideoUrl, getVideoType } from '../../lib/video-utils';

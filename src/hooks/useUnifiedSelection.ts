@@ -15,6 +15,7 @@ import {
   TypographyProperties,
   TextSelectionInfo,
   CellSelectionInfo,
+  MultiCellSelectionInfo, // 🎯 M3.1.1: Multi-cell selection support
   CellPosition,
   SelectionEventHandlers,
 } from '@/types/selection';
@@ -34,6 +35,9 @@ export interface UnifiedSelectionAPI {
   selectText: (blockId: string, selection: TextSelectionInfo) => void;
   selectTable: (tableId: string, isTableLevel?: boolean) => void;
   selectTableCell: (tableId: string, cell: CellSelectionInfo) => void;
+  // 🎯 M3.1.1: Multi-cell selection actions
+  selectMultipleCells: (selection: MultiCellSelectionInfo) => void;
+  extendMultiCellSelection: (cellId: string, cellEditor: Editor, position: CellPosition) => void;
   clearSelection: () => void;
   
   // Typography actions
@@ -46,6 +50,10 @@ export interface UnifiedSelectionAPI {
   // Convenience methods
   isBlockSelected: (blockId: string) => boolean;
   isTableCellSelected: (tableId: string, position: CellPosition) => boolean;
+  // 🎯 M3.1.1: Multi-cell selection convenience methods
+  isMultiCellSelectionActive: () => boolean;
+  getMultiCellSelection: () => MultiCellSelectionInfo | null;
+  isCellInMultiSelection: (cellId: string) => boolean;
   getSelectedBlockId: () => string | null;
   getSelectedTableCell: () => { tableId: string; position: CellPosition } | null;
   
@@ -114,6 +122,15 @@ export function useUnifiedSelection(eventHandlers?: SelectionEventHandlers): Uni
     dispatch({ type: 'SELECT_TABLE_CELL', tableId, cell });
   }, [dispatch]);
   
+  // 🎯 M3.1.1: Multi-cell selection action implementations
+  const selectMultipleCells = useCallback((selection: MultiCellSelectionInfo) => {
+    dispatch({ type: 'SELECT_MULTI_CELLS', selection });
+  }, [dispatch]);
+  
+  const extendMultiCellSelection = useCallback((cellId: string, cellEditor: Editor, position: CellPosition) => {
+    dispatch({ type: 'EXTEND_MULTI_CELL_SELECTION', cellId, cellEditor, position });
+  }, [dispatch]);
+  
   const clearSelection = useCallback(() => {
     dispatch({ type: 'CLEAR_SELECTION' });
   }, [dispatch]);
@@ -148,6 +165,22 @@ export function useUnifiedSelection(eventHandlers?: SelectionEventHandlers): Uni
     return null;
   }, [currentSelection]);
   
+  // 🎯 M3.1.1: Multi-cell selection convenience method implementations
+  const isMultiCellSelectionActive = useCallback((): boolean => {
+    return currentSelection.type === 'multi-cell' && !!currentSelection.multiCellSelection;
+  }, [currentSelection]);
+  
+  const getMultiCellSelection = useCallback((): MultiCellSelectionInfo | null => {
+    return currentSelection.type === 'multi-cell' ? currentSelection.multiCellSelection || null : null;
+  }, [currentSelection]);
+  
+  const isCellInMultiSelection = useCallback((cellId: string): boolean => {
+    if (currentSelection.type === 'multi-cell' && currentSelection.multiCellSelection) {
+      return currentSelection.multiCellSelection.selectedCellIds.includes(cellId);
+    }
+    return false;
+  }, [currentSelection]);
+  
   // Configuration methods
   const enableDebugMode = useCallback(() => {
     setConfig({ debugMode: true });
@@ -169,6 +202,9 @@ export function useUnifiedSelection(eventHandlers?: SelectionEventHandlers): Uni
     selectText,
     selectTable,
     selectTableCell,
+    // 🎯 M3.1.1: Multi-cell selection actions
+    selectMultipleCells,
+    extendMultiCellSelection,
     clearSelection,
     
     // Typography
@@ -181,6 +217,10 @@ export function useUnifiedSelection(eventHandlers?: SelectionEventHandlers): Uni
     // Convenience
     isBlockSelected,
     isTableCellSelected,
+    // 🎯 M3.1.1: Multi-cell selection convenience methods
+    isMultiCellSelectionActive,
+    getMultiCellSelection,
+    isCellInMultiSelection,
     getSelectedBlockId,
     getSelectedTableCell,
     

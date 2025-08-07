@@ -23,7 +23,7 @@ import {
   WifiOff,
   RefreshCw
 } from 'lucide-react';
-import { PersistenceState, PersistenceActions } from '@/hooks/useEnhancedPersistence';
+import { PersistenceState, PersistenceActions } from '../../hooks/useEnhancedPersistence';
 
 interface PersistenceIndicatorProps {
   state: PersistenceState;

@@ -2,7 +2,7 @@
 // ABOUTME: Enhanced core rendering engine for structured content v2.0 with improved responsive layouts and performance optimization per Blueprint 05.
 
 import React from 'react';
-import { useIsMobile } from '@/hooks/use-mobile';
+import { useIsMobile } from '../../hooks/use-mobile';
 import BlockRenderer from './BlockRenderer';
 
 interface LayoutObject {

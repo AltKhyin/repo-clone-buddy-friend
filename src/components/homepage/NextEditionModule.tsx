@@ -7,8 +7,8 @@ import { Input } from '../ui/input';
 import { Progress } from '../ui/progress';
 import { Clock } from 'lucide-react';
 import SuggestionPollItem from './SuggestionPollItem';
-import { useSubmitSuggestionMutation } from '../../../packages/hooks/useSubmitSuggestionMutation';
-import { useIsMobile } from '@/hooks/use-mobile';
+import { useSubmitSuggestionMutation } from '@packages/hooks/useSubmitSuggestionMutation';
+import { useIsMobile } from '../../hooks/use-mobile';
 
 export interface Suggestion {
   id: number;

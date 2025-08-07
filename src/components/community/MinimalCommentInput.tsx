@@ -4,7 +4,7 @@ import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Image, FileText, Type } from 'lucide-react';
-import { useCreateCommentMutation } from '../../../packages/hooks/useCreateCommentMutation';
+import { useCreateCommentMutation } from '@packages/hooks/useCreateCommentMutation';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 

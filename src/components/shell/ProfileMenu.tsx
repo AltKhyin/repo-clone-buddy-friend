@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { UserProfileBlock } from './UserProfileBlock';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from '../../hooks/use-toast';
 
 interface ProfileMenuProps {
   isCollapsed: boolean;

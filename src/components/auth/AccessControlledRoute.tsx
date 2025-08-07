@@ -2,7 +2,7 @@
 
 import React, { useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { usePageAccessControl } from '../../../packages/hooks/usePageAccessControl';
+import { usePageAccessControl } from '@packages/hooks/usePageAccessControl';
 import type { AccessLevel } from '../../lib/accessControl';
 
 interface AccessControlledRouteProps {

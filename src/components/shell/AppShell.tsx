@@ -3,7 +3,7 @@
 
 import React, { useState } from 'react';
 import { Outlet } from 'react-router-dom';
-import { useIsMobile } from '@/hooks/use-mobile';
+import { useIsMobile } from '../../hooks/use-mobile';
 import { ErrorBoundary } from '../ErrorBoundary';
 import DesktopShell from './DesktopShell';
 import MobileShell from './MobileShell';

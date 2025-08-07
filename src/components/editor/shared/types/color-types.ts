@@ -67,6 +67,8 @@ export interface UnifiedColorPickerProps {
   customTokens?: ColorToken[];
   /** Placeholder text for custom color input */
   placeholder?: string;
+  /** Custom z-index for popover content - useful for complex stacking contexts */
+  zIndex?: number;
 }
 
 /**

@@ -11,23 +11,19 @@ import {
   TABLE_LIMITS,
   POLL_LIMITS,
 } from '../validation';
-import { TableData } from '../../extensions/Table/TableExtension';
+import { BasicTableData } from '../../extensions/BasicTable/types';
 import { PollData } from '../../extensions/Poll/PollExtension';
 
 describe('Table Validation', () => {
   describe('validateTableData', () => {
     it('should validate valid table data', () => {
-      const validData: Partial<TableData> = {
+      const validData: Partial<BasicTableData> = {
         headers: ['Name', 'Age', 'City'],
         rows: [
           ['John', '25', 'NYC'],
           ['Jane', '30', 'LA'],
         ],
-        styling: {
-          fontSize: 14,
-          cellPadding: 12,
-          borderWidth: 1,
-        },
+        id: 'test-table-1'
       };
 
       const result = validateTableData(validData);

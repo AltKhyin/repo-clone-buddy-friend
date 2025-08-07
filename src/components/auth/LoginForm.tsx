@@ -6,7 +6,7 @@ import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
-import { useLoginMutation, loginSchema } from '@/hooks/mutations/useLoginMutation';
+import { useLoginMutation, loginSchema } from '../../hooks/mutations/useLoginMutation';
 import { toast } from 'sonner';
 import { useNavigate, Link } from 'react-router-dom';
 import { Checkbox } from '@/components/ui/checkbox';

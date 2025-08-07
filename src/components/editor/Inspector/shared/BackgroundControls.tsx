@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Palette, Image, RotateCcw, Sparkles } from 'lucide-react';
 import { useTheme } from '@/components/theme/CustomThemeProvider';
 import { UnifiedColorPicker } from '../../shared/UnifiedColorPicker';
-import { useColorTokens } from '@/hooks/useColorTokens';
+import { useColorTokens } from '../../../../hooks/useColorTokens';
 
 interface BackgroundControlsProps {
   data: Record<string, any>;

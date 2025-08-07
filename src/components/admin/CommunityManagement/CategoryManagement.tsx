@@ -50,7 +50,7 @@ import {
   useToggleCategoryVisibilityMutation,
   type CommunityCategory,
 } from '@packages/hooks/useCommunityManagementQuery';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from '../../../hooks/use-toast';
 
 interface CategoryFormData {
   name: string;

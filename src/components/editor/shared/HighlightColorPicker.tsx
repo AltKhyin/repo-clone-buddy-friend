@@ -4,7 +4,7 @@ import React from 'react';
 import { Highlighter } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { UnifiedColorPicker } from './UnifiedColorPicker';
-import { useColorTokens } from '@/hooks/useColorTokens';
+import { useColorTokens } from '../../hooks/useColorTokens';
 import type { ColorToken } from './types/color-types';
 
 // Theme-aware highlight color tokens that adapt to the current theme

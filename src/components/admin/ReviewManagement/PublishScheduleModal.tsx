@@ -16,7 +16,7 @@ import {
 import { Calendar as CalendarIcon, Clock, AlertCircle } from 'lucide-react';
 import { format, isAfter, isBefore, add } from 'date-fns';
 import { usePublicationActionMutation } from '@packages/hooks/usePublicationActionMutation';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from '../../../hooks/use-toast';
 import { cn } from '@/lib/utils';
 
 interface PublishScheduleModalProps {

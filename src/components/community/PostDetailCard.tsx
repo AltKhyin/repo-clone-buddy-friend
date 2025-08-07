@@ -12,7 +12,7 @@ import { cn } from '../../lib/utils';
 import type { CommunityPost } from '@/types';
 import { PostActionMenu } from './PostActionMenu';
 import { PollDisplay } from './PollDisplay';
-import { useSavePostMutation } from '../../../packages/hooks/useSavePostMutation';
+import { useSavePostMutation } from '@packages/hooks/useSavePostMutation';
 import { useAuthStore } from '../../store/auth';
 import { processVideoUrl, getVideoType } from '../../lib/video-utils';
 import { VoteButton } from '../ui/VoteButton';

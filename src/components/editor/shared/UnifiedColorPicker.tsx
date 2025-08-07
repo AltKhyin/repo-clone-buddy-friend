@@ -8,7 +8,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { Palette, X, Check } from 'lucide-react';
-import { useColorTokens } from '@/hooks/useColorTokens';
+import { useColorTokens } from '../../../hooks/useColorTokens';
 import { isThemeToken } from '@/utils/color-tokens';
 import type { UnifiedColorPickerProps, ColorToken, ColorTokenCategory } from './types/color-types';
 
@@ -31,6 +31,7 @@ const UnifiedColorPickerComponent: React.FC<UnifiedColorPickerProps> = ({
   allowClear = true,
   customTokens,
   placeholder = '#000000',
+  zIndex,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [customColor, setCustomColor] = useState(value && !isThemeToken(value) ? value : '#000000');
@@ -190,7 +191,13 @@ const UnifiedColorPickerComponent: React.FC<UnifiedColorPickerProps> = ({
         {renderTrigger()}
       </PopoverTrigger>
 
-      <PopoverContent className="w-90 p-0" align="start" side="bottom">
+      <PopoverContent 
+        className={cn("w-90 p-0", zIndex && `z-[${zIndex}]`)} 
+        align="start" 
+        side="bottom"
+        onOpenAutoFocus={(e) => e.preventDefault()} // Prevent auto-focus issues
+        onClick={(e) => e.stopPropagation()} // Prevent event bubbling to parent dropdowns
+      >
         <div className="max-h-96 overflow-hidden flex flex-col">
           {/* Header */}
           <div className="flex items-center justify-between p-3 border-b">
@@ -362,6 +369,7 @@ export const UnifiedColorPicker = React.memo(UnifiedColorPickerComponent, (prevP
     prevProps.label === nextProps.label &&
     prevProps.placeholder === nextProps.placeholder &&
     prevProps.className === nextProps.className &&
+    prevProps.zIndex === nextProps.zIndex &&
     // Deep comparison for customTokens array
     JSON.stringify(prevProps.customTokens) === JSON.stringify(nextProps.customTokens)
   );

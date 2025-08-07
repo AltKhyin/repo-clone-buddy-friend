@@ -6,7 +6,7 @@ import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
 import { Upload, Image, X, FileImage } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from '../../../hooks/use-toast';
 
 interface CoverImageUploadProps {
   reviewId: number;

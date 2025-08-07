@@ -3,8 +3,8 @@
 import React, { useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import ReviewCard from './ReviewCard';
-import { HomepageReview } from '../../../packages/hooks/useHomepageFeedQuery';
-import { useIsMobile } from '@/hooks/use-mobile';
+import { HomepageReview } from '@packages/hooks/useHomepageFeedQuery';
+import { useIsMobile } from '../../hooks/use-mobile';
 
 interface ReviewCarouselProps {
   title: string;

@@ -9,7 +9,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Search, Tag, Save, X } from 'lucide-react';
 import { useTagsQuery } from '@packages/hooks/useTagsQuery';
 import { useUpdateReviewTagsMutation } from '@packages/hooks/useUpdateReviewTagsMutation';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from '../../../hooks/use-toast';
 import type { Tag as TagType } from '@packages/hooks/useTagsQuery';
 
 interface TagSelectorProps {

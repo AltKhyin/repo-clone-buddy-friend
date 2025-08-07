@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect } from 'react';
 import { useEditorStore } from '@/store/editorStore';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from './use-toast';
 
 export interface KeyboardShortcut {
   id: string;

@@ -4,7 +4,7 @@ import React, { useCallback, useMemo, useRef } from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { useEditorStore, useEditorActions, useCanvasState } from '@/store/editorStore';
 import { DraggableBlock } from './DraggableBlock';
-import { useEditorTheme } from '@/hooks/useEditorTheme';
+import { useEditorTheme } from '../../hooks/useEditorTheme';
 import { BlockPosition } from '@/types/editor';
 
 // Canvas configuration constants

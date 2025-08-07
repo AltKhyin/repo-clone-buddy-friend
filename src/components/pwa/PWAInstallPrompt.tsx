@@ -2,11 +2,11 @@
 // ABOUTME: PWA installation prompt component with iOS and Android support.
 
 import React from 'react';
-import { usePWA } from '@/hooks/usePWA';
+import { usePWA } from '../../hooks/usePWA';
 import { Download, Share, X, Plus, Smartphone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useIsMobile } from '@/hooks/use-mobile';
+import { useIsMobile } from '../../hooks/use-mobile';
 
 interface PWAInstallPromptProps {
   onDismiss?: () => void;

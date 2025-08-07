@@ -62,7 +62,7 @@ import {
   useDeleteSidebarSectionMutation,
   type CommunitySidebarSection,
 } from '../../../../packages/hooks/useCommunityManagementQuery';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from '../../../hooks/use-toast';
 
 const getSectionIcon = (sectionType: string) => {
   const icons = {

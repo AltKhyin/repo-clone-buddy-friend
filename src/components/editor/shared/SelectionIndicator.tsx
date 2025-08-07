@@ -4,7 +4,7 @@ import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { Type, Palette, Bold, Italic, Underline, Strikethrough } from 'lucide-react';
-import { useUnifiedSelection } from '@/hooks/useUnifiedSelection';
+import { useUnifiedSelection } from '@packages/hooks/useUnifiedSelection';
 
 interface SelectionIndicatorProps {
   className?: string;

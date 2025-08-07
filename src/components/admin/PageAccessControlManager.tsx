@@ -40,15 +40,15 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Plus, Edit, Trash2, Loader2 } from 'lucide-react';
-import { usePageAccessControlQuery } from '../../../packages/hooks/usePageAccessQuery';
+import { usePageAccessControlQuery } from '@packages/hooks/usePageAccessQuery';
 import {
   useCreatePageAccessControlMutation,
   useUpdatePageAccessControlMutation,
   useDeletePageAccessControlMutation,
-} from '../../../packages/hooks/usePageAccessControlMutations';
+} from '@packages/hooks/usePageAccessControlMutations';
 import { useAuthStore } from '@/store/auth';
 import { getUserAccessLevel, hasAccessLevel } from '@/lib/accessControl';
-import type { PageAccessControl } from '../../../packages/hooks/usePageAccessQuery';
+import type { PageAccessControl } from '@packages/hooks/usePageAccessQuery';
 
 interface AccessRuleFormData {
   page_path: string;

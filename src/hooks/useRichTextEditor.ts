@@ -23,7 +23,7 @@ import { globalMonitor, instrumentFindParentCell } from '@/utils/performance-mon
 import { detectTableContext } from '@/utils/table-detection';
 import { InlineImage } from '@/components/editor/extensions/InlineImage';
 import { VideoEmbed, VideoUtils } from '@/components/editor/extensions/VideoEmbed';
-import { TableExtension } from '@/components/editor/extensions/Table';
+import { BasicTableExtension, createEmptyTable } from '@/components/editor/extensions/BasicTable';
 import { useMediaDropHandler } from './useMediaDropHandler';
 // Typography marks for selection-based formatting
 import { FontFamilyMark } from '@/components/editor/extensions/marks/FontFamilyMark';
@@ -173,7 +173,7 @@ const findParentTable = (state: any, pos: number) => {
       return null;
     }
     
-    return findParentNode(node => node.type.name === 'customTable')(resolved);
+    return findParentNode(node => node.type.name === 'basicTable')(resolved);
   } catch (error) {
     // Only log in development to reduce noise
     if (process.env.NODE_ENV === 'development') {
@@ -538,11 +538,10 @@ export const useRichTextEditor = ({
         },
       }),
 
-      // Tables (always enabled)
-      TableExtension.configure({
-        resizable: true,
+      // Basic Tables (always enabled) - simple Reddit-style tables
+      BasicTableExtension.configure({
         HTMLAttributes: {
-          class: 'table-extension',
+          class: 'basic-table-extension',
         },
       }),
 
@@ -1162,14 +1161,11 @@ export const useRichTextEditor = ({
   );
 
   const insertTable = useCallback(
-    (rows: number = 3, cols: number = 3, withHeaders: boolean = true) => {
+    (rows: number = 2, cols: number = 2) => {
       if (!editor) return;
 
-      editor.commands.insertTable({
-        rows,
-        cols,
-        withHeaderRow: withHeaders,
-      });
+      const tableData = createEmptyTable(rows, cols);
+      editor.commands.insertBasicTable(tableData);
     },
     [editor]
   );
@@ -1332,7 +1328,7 @@ export const useRichTextEditor = ({
       blockquote: editor?.isActive('blockquote') ?? false,
       codeBlock: editor?.isActive('codeBlock') ?? false,
       heading: (level: number) => editor?.isActive('heading', { level }) ?? false,
-      table: editor?.isActive('customTable') ?? false,
+      table: editor?.isActive('basicTable') ?? false,
       
       // Typography marks state checks
       fontFamily: editor?.isActive('fontFamily') ?? false,

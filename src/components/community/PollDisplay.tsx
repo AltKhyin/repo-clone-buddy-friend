@@ -8,7 +8,7 @@ import { CheckCircle, Circle, Users, Clock, BarChart3 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { toast } from 'sonner';
 import { useAuthStore } from '../../store/auth';
-import { usePollVoteMutation } from '../../../packages/hooks/usePollVoteMutation';
+import { usePollVoteMutation } from '@packages/hooks/usePollVoteMutation';
 import { formatDistanceToNow, isValid, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 

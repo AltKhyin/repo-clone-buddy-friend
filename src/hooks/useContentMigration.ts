@@ -3,7 +3,7 @@
 import React, { useCallback } from 'react';
 import { z } from 'zod';
 import { StructuredContentV2, validateStructuredContent, generateNodeId } from '@/types/editor';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from './use-toast';
 
 // Legacy content schemas for migration
 const LegacyContentV1Schema = z.object({

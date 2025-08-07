@@ -3,7 +3,7 @@
 import React, { useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/auth';
-import { usePageAccessControl } from '../../../packages/hooks/usePageAccessControl';
+import { usePageAccessControl } from '@packages/hooks/usePageAccessControl';
 import type { AccessLevel } from '../../lib/accessControl';
 
 type LegacyRole = 'admin' | 'editor' | 'moderator' | 'practitioner';

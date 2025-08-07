@@ -15,7 +15,7 @@ import {
   AlertTriangle,
   Eye,
 } from 'lucide-react';
-import { useTypographyMigration } from '@/hooks/useTypographyMigration';
+import { useTypographyMigration } from '../../hooks/useTypographyMigration';
 import { MigrationDialog } from './shared/MigrationDialog';
 
 interface MigrationPromptProps {

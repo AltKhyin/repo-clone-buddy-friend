@@ -1,7 +1,7 @@
 // ABOUTME: Unified hook for block styling that consolidates styling patterns across all block types
 
 import { useMemo } from 'react';
-import { useEditorTheme } from '@/hooks/useEditorTheme';
+import { useEditorTheme } from './useEditorTheme';
 import { cn } from '@/lib/utils';
 
 interface BaseBlockData {

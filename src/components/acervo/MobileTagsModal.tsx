@@ -4,7 +4,7 @@ import React, { useMemo } from 'react';
 import { Button } from '../ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '../ui/sheet';
 import { Filter } from 'lucide-react';
-import { AcervoTag } from '../../../packages/hooks/useAcervoDataQuery';
+import { AcervoTag } from '@packages/hooks/useAcervoDataQuery';
 
 interface MobileTagsModalProps {
   allTags: AcervoTag[];

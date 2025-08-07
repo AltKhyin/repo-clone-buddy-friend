@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { StructuredContentV2, validateStructuredContent } from '@/types/editor';
 import { useEditorSaveMutation } from '../../packages/hooks/useEditorPersistence';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from './use-toast';
 
 export interface PersistenceState {
   isSaving: boolean;

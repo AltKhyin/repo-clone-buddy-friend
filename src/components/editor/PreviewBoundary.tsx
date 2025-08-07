@@ -1,7 +1,7 @@
 // ABOUTME: Preview boundary component showing final review page dimensions in the editor canvas
 
 import React, { useState } from 'react';
-import { useIsMobile } from '@/hooks/use-mobile';
+import { useIsMobile } from '../../hooks/use-mobile';
 import { Button } from '@/components/ui/button';
 import { Eye, EyeOff, Ruler } from 'lucide-react';
 

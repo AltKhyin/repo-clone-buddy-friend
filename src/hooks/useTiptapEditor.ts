@@ -5,7 +5,7 @@ import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
 import { useCallback, useRef } from 'react';
 import { debounce } from 'lodash-es';
-import { TableExtension } from '@/components/editor/extensions/Table';
+import { BasicTableExtension, createEmptyTable } from '@/components/editor/extensions/BasicTable';
 // REMOVED: PollExtension import - polls moved to community-only features
 
 // Field type configurations for different text editing needs
@@ -122,11 +122,10 @@ export const useTiptapEditor = ({
         placeholder,
         showOnlyWhenEditable: true,
       }),
-      // Advanced Rich Block extensions - always enabled for Rich Block compatibility
-      TableExtension.configure({
-        resizable: true,
+      // Simple Table extension - Reddit-style basic tables
+      BasicTableExtension.configure({
         HTMLAttributes: {
-          class: 'table-extension',
+          class: 'basic-table-extension',
         },
       }),
       // REMOVED: PollExtension configuration - polls moved to community-only features
@@ -235,18 +234,13 @@ export const useTiptapEditor = ({
     editor?.chain().focus().setParagraph().run();
   }, [editor]);
 
-  // Rich Block extension commands
+  // Basic Table extension commands  
   const insertTable = useCallback(
-    (rows: number = 3, cols: number = 3, withHeaders: boolean = true) => {
-      editor
-        ?.chain()
-        .focus()
-        .insertTable({
-          rows,
-          cols,
-          withHeaderRow: withHeaders,
-        })
-        .run();
+    (rows: number = 2, cols: number = 2) => {
+      if (!editor) return;
+      
+      const tableData = createEmptyTable(rows, cols);
+      editor.chain().focus().insertBasicTable(tableData).run();
     },
     [editor]
   );
@@ -293,8 +287,8 @@ export const useTiptapEditor = ({
       heading: resolvedConfig.enableHeadings
         ? (level: number) => editor?.isActive('heading', { level }) ?? false
         : () => false,
-      // Rich Block extension states (always available)
-      table: editor?.isActive('customTable') ?? false,
+      // Basic Table extension states (always available)
+      table: editor?.isActive('basicTable') ?? false,
       // REMOVED: poll state - polls moved to community-only features
     },
   };

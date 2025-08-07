@@ -3,7 +3,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { useEditorStore } from '@/store/editorStore';
-import { useSelectionCoordination } from '@/hooks/useSelectionCoordination';
+import { useSelectionCoordination } from '../../../hooks/useSelectionCoordination';
 import { ContentSelectionType } from '@/types/editor';
 
 // Mock the editor store

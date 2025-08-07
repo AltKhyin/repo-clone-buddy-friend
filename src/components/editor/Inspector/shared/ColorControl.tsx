@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { X } from 'lucide-react';
 import { UnifiedColorPicker } from '@/components/editor/shared/UnifiedColorPicker';
-import { useColorTokens } from '@/hooks/useColorTokens';
+import { useColorTokens } from '../../../../hooks/useColorTokens';
 import type { ColorToken } from '@/components/editor/shared/types/color-types';
 
 interface ColorControlProps {

@@ -14,7 +14,7 @@ export interface ComponentMethods {
  * Configuration for a TipTap extension's command bridge
  */
 export interface ExtensionBridgeConfig {
-  /** The TipTap node type name (e.g., 'customTable', 'customPoll') */
+  /** The TipTap node type name (e.g., 'basicTable', 'customPoll') */
   nodeTypeName: string;
   /** The attribute name that stores the unique ID (e.g., 'tableId', 'pollId') */
   idAttributeName: string;

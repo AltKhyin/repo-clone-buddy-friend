@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect } from 'react';
 import { StructuredContentV2, validateStructuredContent } from '@/types/editor';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from './use-toast';
 
 export interface CrashRecoveryState {
   hasBackup: boolean;

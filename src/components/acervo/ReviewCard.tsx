@@ -6,7 +6,7 @@ import { Link } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Calendar, Eye } from 'lucide-react';
-import type { AcervoReview } from '../../../packages/hooks/useAcervoDataQuery';
+import type { AcervoReview } from '@packages/hooks/useAcervoDataQuery';
 
 interface ReviewCardProps {
   review: AcervoReview;

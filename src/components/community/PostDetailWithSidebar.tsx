@@ -9,11 +9,11 @@ import { CommunityErrorBoundary } from './CommunityErrorBoundary';
 import { CommunityLoadingState } from './CommunityLoadingState';
 import { PostDetailContent } from './PostDetailContent';
 import NetworkAwareFallback from './NetworkAwareFallback';
-import { useNetworkStatus } from '@/hooks/useNetworkStatus';
+import { useNetworkStatus } from '../../hooks/useNetworkStatus';
 import { useIsMobile } from '../../hooks/use-mobile';
 import { ContentGrid } from '@/components/layout/ContentGrid';
-import { usePostWithCommentsQuery } from '../../../packages/hooks/usePostWithCommentsQuery';
-import { useCommunityPageQuery } from '../../../packages/hooks/useCommunityPageQuery';
+import { usePostWithCommentsQuery } from '@packages/hooks/usePostWithCommentsQuery';
+import { useCommunityPageQuery } from '@packages/hooks/useCommunityPageQuery';
 
 interface PostDetailWithSidebarProps {
   postId: string;

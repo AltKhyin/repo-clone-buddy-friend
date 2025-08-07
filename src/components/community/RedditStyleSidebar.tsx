@@ -1,7 +1,7 @@
 // ABOUTME: Reddit-style sidebar redesign with exact visual styling and 8 specific sections for community management
 
 import React from 'react';
-import { useCommunitySidebarDataQuery } from '../../../packages/hooks/useCommunityManagementQuery';
+import { useCommunitySidebarDataQuery } from '@packages/hooks/useCommunityManagementQuery';
 import { AboutSection } from './reddit-sidebar/AboutSection';
 import { UsefulLinksSection } from './reddit-sidebar/UsefulLinksSection';
 import { RulesSection } from './reddit-sidebar/RulesSection';

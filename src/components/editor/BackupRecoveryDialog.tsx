@@ -18,7 +18,7 @@ import {
   X,
   RefreshCw
 } from 'lucide-react';
-import { CrashRecoveryState, CrashRecoveryActions } from '@/hooks/useCrashRecovery';
+import { CrashRecoveryState, CrashRecoveryActions } from '../../hooks/useCrashRecovery';
 
 interface BackupRecoveryDialogProps {
   open: boolean;

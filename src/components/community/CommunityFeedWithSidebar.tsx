@@ -9,7 +9,7 @@ import { RedditStyleSidebar } from './RedditStyleSidebar';
 import { CommunityErrorBoundary } from './CommunityErrorBoundary';
 import { CommunityLoadingState } from './CommunityLoadingState';
 import NetworkAwareFallback from './NetworkAwareFallback';
-import { useNetworkStatus } from '@/hooks/useNetworkStatus';
+import { useNetworkStatus } from '../../hooks/useNetworkStatus';
 import { useIsMobile } from '../../hooks/use-mobile';
 import { ContentGrid } from '@/components/layout/ContentGrid';
 import { useCategoryFilter } from '../../contexts/CategoryFilterContext';

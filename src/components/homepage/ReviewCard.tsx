@@ -6,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Calendar, Eye, Clock, ChevronDown } from 'lucide-react';
-import { HomepageReview } from '../../../packages/hooks/useHomepageFeedQuery';
+import { HomepageReview } from '@packages/hooks/useHomepageFeedQuery';
 
 interface ReviewCardProps {
   review: HomepageReview;

@@ -98,6 +98,7 @@ const extractAppliedMarks = (state: UnifiedSelectionState): AppliedMarks => {
     }
   }
   
+  
   // BACKWARD COMPATIBILITY: Legacy table cell selection handling
   if (isTableCellSelection(state) && state.cellSelection?.editor) {
     const editor = state.cellSelection.editor;
@@ -205,6 +206,8 @@ const selectionReducer = (
       };
     }
     
+    
+
     // BACKWARD COMPATIBILITY: Legacy SELECT_TABLE_CELL action
     case 'SELECT_TABLE_CELL': {
       const newState: UnifiedSelectionState = {
@@ -268,10 +271,33 @@ const applyTypographyToSelection = (
     }
     
     if (isTableCellSelection(state) && state.cellSelection?.editor) {
+      // M4: Enhanced table cell typography with session coordination
       const commands = createTypographyCommands(state.cellSelection.editor);
-      const result = commands.applyProperties(properties);
-      debugLog('[SelectionStore] Applied typography to table cell selection', { properties, success: result.success });
-      return result.success;
+      
+      try {
+        // Apply typography to the editor
+        const result = commands.applyProperties(properties);
+        
+        if (result.success) {
+          // Typography applied successfully to table cell
+          const formattedContent = state.cellSelection.editor.getHTML();
+          debugLog('[SelectionStore] ✅ Typography applied to table cell', { 
+            properties,
+            contentLength: formattedContent.length
+          });
+          return { success: true, properties };
+        }
+        
+        debugLog('[SelectionStore] Applied typography to table cell selection', { 
+          properties, 
+          success: result.success
+        });
+        
+        return result.success;
+      } catch (error) {
+        debugLog('[SelectionStore] Table cell typography application failed', { error: error.message, properties });
+        return false;
+      }
     }
   } catch (error) {
     debugLog('[SelectionStore] Typography application failed', { error: error.message, properties });

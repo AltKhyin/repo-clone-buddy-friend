@@ -285,7 +285,7 @@ export class TipTapStateSynchronizer extends EditorStateSynchronizer {
     attributes: Record<string, any>
   ): JSONContent {
     const baseContent: JSONContent = {
-      type: componentType === 'table' ? 'customTable' : 'customPoll',
+      type: componentType === 'table' ? 'basicTable' : 'customPoll',
       attrs: attributes,
     };
 

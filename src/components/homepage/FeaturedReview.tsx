@@ -1,8 +1,8 @@
 // ABOUTME: Module component for displaying the featured review hero section with mobile optimization.
 
 import React from 'react';
-import { HomepageReview } from '../../../packages/hooks/useHomepageFeedQuery';
-import { useIsMobile } from '@/hooks/use-mobile';
+import { HomepageReview } from '@packages/hooks/useHomepageFeedQuery';
+import { useIsMobile } from '../../hooks/use-mobile';
 
 interface FeaturedReviewProps {
   review: HomepageReview | null;

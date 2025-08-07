@@ -26,8 +26,8 @@ import {
   Award,
   Settings,
 } from 'lucide-react';
-import { useUpdateProfileMutation } from '../../../packages/hooks/useUpdateProfileMutation';
-import { useToast } from '@/hooks/use-toast';
+import { useUpdateProfileMutation } from '@packages/hooks/useUpdateProfileMutation';
+import { useToast } from '../../hooks/use-toast';
 import { useAuthStore } from '@/store/auth';
 import { supabase } from '@/integrations/supabase/client';
 import type { ExtendedUserProfile, ProfileUpdateData } from '@/types';

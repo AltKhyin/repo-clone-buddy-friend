@@ -2,7 +2,7 @@
 
 import { describe, it, expect, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { useColorHandling } from '@/hooks/useColorHandling';
+import { useColorHandling } from '../../useColorHandling';
 
 describe('useColorHandling', () => {
   it('should create a handleColorChange function', () => {

@@ -3,7 +3,7 @@
 import React, { useRef, useCallback, useMemo, useState, useEffect } from 'react';
 import { ContentBoundaryProps } from '@/types/editor';
 import { useEditorStore } from '@/store/editorStore';
-import { useSelectionCoordination } from '@/hooks/useSelectionCoordination';
+import { useSelectionCoordination } from '../../../hooks/useSelectionCoordination';
 import { cn } from '@/lib/utils';
 import { Move } from 'lucide-react';
 // Content measurement removed - no constraints needed

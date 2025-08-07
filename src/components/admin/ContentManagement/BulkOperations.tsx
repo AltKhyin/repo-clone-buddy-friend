@@ -6,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { X, Archive, Calendar, CheckCircle, Loader2 } from 'lucide-react';
 import { useAdminBulkOperations } from '../../../../packages/hooks/useAdminBulkOperations';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from '../../../hooks/use-toast';
 
 interface BulkOperationsProps {
   selectedReviews: number[];

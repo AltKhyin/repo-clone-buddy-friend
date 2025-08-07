@@ -53,7 +53,7 @@ import {
   useDeleteAnnouncementMutation,
   type CommunityAnnouncement,
 } from '../../../../packages/hooks/useCommunityManagementQuery';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from '../../../hooks/use-toast';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 

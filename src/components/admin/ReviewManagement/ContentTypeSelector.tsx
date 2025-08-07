@@ -10,7 +10,7 @@ import { X, Plus, Settings, Edit, Trash2 } from 'lucide-react';
 import { useContentTypeManagement, useContentTypeOperationMutation } from '../../../../packages/hooks/useContentTypeManagement';
 import { ContentTypeCreateModal } from './ContentTypeCreateModal';
 import { ContentTypeEditModal } from './ContentTypeEditModal';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from '../../../hooks/use-toast';
 
 interface ContentTypeSelectorProps {
   selectedContentTypes: number[];

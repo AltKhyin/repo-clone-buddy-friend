@@ -25,7 +25,7 @@ import {
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Users, Shield, UserCheck, UserX, Loader2, AlertTriangle, CheckCircle } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from '../../../hooks/use-toast';
 import { Progress } from '@/components/ui/progress';
 
 interface BulkOperationsPanelProps {

@@ -2,7 +2,7 @@
 
 import React, { useMemo } from 'react';
 import type { Tag } from '@/types';
-import type { AcervoReview } from '../../../packages/hooks/useAcervoDataQuery';
+import type { AcervoReview } from '@packages/hooks/useAcervoDataQuery';
 
 interface ClientSideSorterProps {
   reviews: AcervoReview[];

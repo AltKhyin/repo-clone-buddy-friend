@@ -5,7 +5,7 @@ import { Button } from './button';
 import { VoteArrowUp } from './icons/VoteArrowUp';
 import { VoteArrowDown } from './icons/VoteArrowDown';
 import { cn } from '../../lib/utils';
-import { useCastVoteMutation } from '../../../packages/hooks/useCastVoteMutation';
+import { useCastVoteMutation } from '@packages/hooks/useCastVoteMutation';
 import { useAuthStore } from '../../store/auth';
 import { useTheme } from '../theme/CustomThemeProvider';
 import { toast } from 'sonner';

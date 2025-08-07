@@ -9,7 +9,7 @@ import { usePublicationActionMutation } from '../../../../packages/hooks/usePubl
 import { PublishScheduleModal } from './PublishScheduleModal';
 import { PublicationHistoryPanel } from './PublicationHistoryPanel';
 import { Send, Calendar, Archive, Eye, AlertTriangle, CheckCircle, Loader2 } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from '../../../hooks/use-toast';
 
 interface PublicationControlPanelProps {
   review: ReviewManagementData;

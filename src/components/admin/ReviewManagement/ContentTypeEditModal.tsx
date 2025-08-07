@@ -17,7 +17,7 @@ import { UnifiedColorPicker } from '@/components/editor/shared/UnifiedColorPicke
 import { validateColorOrToken } from '@/utils/color-tokens';
 import { sanitizeStyleColors } from '@/utils/color-sanitization';
 import { useContentTypeOperationMutation } from '@packages/hooks/useContentTypeManagement';
-import { useColorHandling } from '@/hooks/useColorHandling';
+import { useColorHandling } from '../../../hooks/useColorHandling';
 import { TEXT_COLOR_TOKENS, BORDER_COLOR_TOKENS, BACKGROUND_COLOR_TOKENS, STANDARD_COLOR_PICKER_PROPS } from '@/constants/color-picker-tokens';
 import type { ContentType } from '@/types';
 

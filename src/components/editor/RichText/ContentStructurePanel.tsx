@@ -16,7 +16,7 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { RichTextEditorInstance } from '@/hooks/useRichTextEditor';
+import { RichTextEditorInstance } from '../../../hooks/useRichTextEditor';
 import {
   List,
   ListOrdered,

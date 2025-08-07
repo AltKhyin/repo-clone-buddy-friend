@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { PWAContext, PWAContextType } from '@/contexts/PWAContext';
-import { usePWA } from '@/hooks/usePWA';
+import { usePWA } from '../../hooks/usePWA';
 import PWAInstallPrompt from './PWAInstallPrompt';
 
 interface PWAProviderProps {

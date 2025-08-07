@@ -53,6 +53,25 @@ export interface CellSelectionInfo {
 }
 
 /**
+ * Multi-cell selection range for table editing
+ * 🎯 M3.1.1: Extended support for table multi-cell selections
+ */
+export interface MultiCellSelectionInfo {
+  /** Table identifier */
+  tableId: string;
+  /** Start position of selection range */
+  startPosition: CellPosition;
+  /** End position of selection range */
+  endPosition: CellPosition;
+  /** List of selected cell IDs for batch operations */
+  selectedCellIds: string[];
+  /** Map of cell editors for each selected cell */
+  cellEditors: Map<string, Editor>;
+  /** Whether selection includes header cells */
+  includesHeaders: boolean;
+}
+
+/**
  * Unified content selection information (text or table cell)
  * Merges TextSelectionInfo and CellSelectionInfo for simplified architecture
  */
@@ -125,12 +144,13 @@ export interface AppliedMarks {
 
 /**
  * Unified selection state representing all possible selection types
- * SIMPLIFIED: Reduced from 5 types to 3 for better maintainability
+ * SIMPLIFIED: Reduced from 5 types to 4 for better maintainability
+ * 🎯 M3.1.1: Added multi-cell selection support for table editing
  * BACKWARD COMPATIBILITY: Temporarily includes deprecated types for migration
  */
 export interface UnifiedSelectionState {
   /** Current selection type - simplified architecture with backward compatibility */
-  type: 'none' | 'block' | 'content' | 'text' | 'table-cell';
+  type: 'none' | 'block' | 'content' | 'text' | 'table-cell' | 'multi-cell';
   
   /** Block selection (when entire block is selected) */
   blockSelection?: {
@@ -142,6 +162,9 @@ export interface UnifiedSelectionState {
   
   /** Table-level selection (kept separate as it's different from content) */
   tableSelection?: TableSelectionInfo;
+  
+  /** Multi-cell selection for table batch operations - 🎯 M3.1.1 */
+  multiCellSelection?: MultiCellSelectionInfo;
   
   /** Whether typography can be applied to current selection */
   canApplyTypography: boolean;
@@ -165,11 +188,14 @@ export interface UnifiedSelectionState {
 /**
  * Actions that can be dispatched to change selection state
  * SIMPLIFIED: Unified content selection actions
+ * 🎯 M3.1.1: Added multi-cell selection actions for table editing
  */
 export type SelectionAction =
   | { type: 'SELECT_BLOCK'; blockId: string }
   | { type: 'SELECT_CONTENT'; selection: ContentSelectionInfo }
   | { type: 'SELECT_TABLE'; tableId: string; isTableLevel?: boolean }
+  | { type: 'SELECT_MULTI_CELLS'; selection: MultiCellSelectionInfo }
+  | { type: 'EXTEND_MULTI_CELL_SELECTION'; cellId: string; cellEditor: Editor; position: CellPosition }
   | { type: 'CLEAR_SELECTION' }
   | { type: 'UPDATE_APPLIED_MARKS'; marks: Partial<AppliedMarks> }
   // REMOVED: START_TOOLBAR_INTERACTION and END_TOOLBAR_INTERACTION no longer needed for always-visible toolbar
@@ -256,6 +282,11 @@ export const isTableSelection = (state: UnifiedSelectionState): state is Unified
   return state.type === 'table' && !!state.tableSelection;
 };
 
+/** 🎯 M3.1.1: Type guard for multi-cell selection */
+export const isMultiCellSelection = (state: UnifiedSelectionState): state is UnifiedSelectionState & { multiCellSelection: NonNullable<UnifiedSelectionState['multiCellSelection']> } => {
+  return state.type === 'multi-cell' && !!state.multiCellSelection;
+};
+
 // BACKWARD COMPATIBILITY: Deprecated type guards for gradual migration
 /** @deprecated Use isContentSelection with contentType check instead */
 export const isTextSelection = (state: UnifiedSelectionState): state is UnifiedSelectionState & { textSelection: NonNullable<UnifiedSelectionState['textSelection']> } => {
@@ -274,6 +305,7 @@ export const isTableCellSelection = (state: UnifiedSelectionState): state is Uni
 export const hasTypographyCapability = (state: UnifiedSelectionState): boolean => {
   return state.canApplyTypography && (
     isContentSelection(state) || 
+    isMultiCellSelection(state) ||  // 🎯 M3.1.1: Multi-cell selections support typography
     // BACKWARD COMPATIBILITY: Support deprecated patterns
     isTextSelection(state) || 
     isTableCellSelection(state)
