@@ -208,10 +208,11 @@ describe('TableContextMenu', () => {
       render(<TableContextMenu {...defaultProps} />);
       
       const deleteTableButton = screen.getByText('Delete table');
-      expect(deleteTableButton).toHaveClass('text-red-600', 'hover:bg-red-50');
+      // Now using theme-based inline styles instead of hardcoded classes
+      expect(deleteTableButton).toHaveStyle({ color: 'hsl(var(--destructive))' });
       
       const deleteRowButton = screen.getByText('Delete row');
-      expect(deleteRowButton).toHaveClass('text-red-600', 'hover:bg-red-50');
+      expect(deleteRowButton).toHaveStyle({ color: 'hsl(var(--destructive))' });
     });
 
     it('renders separators between menu sections', () => {

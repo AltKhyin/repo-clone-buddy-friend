@@ -120,7 +120,12 @@ export const insertColumnBefore = (data: BasicTableData, colIndex: number): Tabl
       ...row.slice(0, colIndex),
       '',
       ...row.slice(colIndex)
-    ])
+    ]),
+    columnAlignments: [
+      ...(data.columnAlignments?.slice(0, colIndex) || []),
+      'left',
+      ...(data.columnAlignments?.slice(colIndex) || [])
+    ]
   };
   
   return { success: true, data: newData };
@@ -148,7 +153,12 @@ export const insertColumnAfter = (data: BasicTableData, colIndex: number): Table
       ...row.slice(0, insertIndex),
       '',
       ...row.slice(insertIndex)
-    ])
+    ]),
+    columnAlignments: [
+      ...(data.columnAlignments?.slice(0, insertIndex) || []),
+      'left',
+      ...(data.columnAlignments?.slice(insertIndex) || [])
+    ]
   };
   
   return { success: true, data: newData };
@@ -174,9 +184,35 @@ export const deleteColumn = (data: BasicTableData, colIndex: number): TableOpera
   const newData: BasicTableData = {
     ...data,
     headers: data.headers.filter((_, index) => index !== colIndex),
-    rows: data.rows.map(row => row.filter((_, index) => index !== colIndex))
+    rows: data.rows.map(row => row.filter((_, index) => index !== colIndex)),
+    columnAlignments: data.columnAlignments?.filter((_, index) => index !== colIndex) || []
   };
   
+  return { success: true, data: newData };
+};
+
+/**
+ * Set alignment for a specific column
+ */
+export const setColumnAlignment = (
+  data: BasicTableData,
+  colIndex: number,
+  alignment: 'left' | 'center' | 'right'
+): TableOperationResult => {
+  if (colIndex < 0 || colIndex >= data.headers.length) {
+    return { success: false, error: 'Invalid column index' };
+  }
+
+  const newData = { ...data };
+  
+  // Initialize columnAlignments if it doesn't exist
+  if (!newData.columnAlignments) {
+    newData.columnAlignments = new Array(data.headers.length).fill('left');
+  }
+
+  // Update the alignment for the specified column
+  newData.columnAlignments[colIndex] = alignment;
+
   return { success: true, data: newData };
 };
 
@@ -227,8 +263,7 @@ export const executeTableOperation = (
     case 'alignLeft':
     case 'alignCenter':
     case 'alignRight':
-      // Alignment is handled via CSS, return success for consistency
-      return { success: true, data };
+      return setColumnAlignment(data, col, action.replace('align', '').toLowerCase() as 'left' | 'center' | 'right');
       
     case 'deleteTable':
       // Table deletion is handled by the editor, not here
@@ -245,10 +280,12 @@ export const executeTableOperation = (
 export const createEmptyTable = (rows: number = 2, cols: number = 2): BasicTableData => {
   const headers = Array.from({ length: cols }, (_, i) => `Column ${i + 1}`);
   const tableRows = Array.from({ length: rows }, () => Array(cols).fill(''));
+  const columnAlignments = Array.from({ length: cols }, () => 'left' as const);
   
   return {
     headers,
     rows: tableRows,
-    id: `table-${Date.now()}`
+    columnAlignments,
+    id: `table-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
   };
 };

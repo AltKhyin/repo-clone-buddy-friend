@@ -1,4 +1,4 @@
-// ABOUTME: Simple table component matching Reddit's structure with contentEditable cells
+// ABOUTME: Simple table component with contentEditable cells supporting basic HTML formatting
 
 import React, { useState, useCallback, useRef } from 'react';
 import { Node } from '@tiptap/core';
@@ -21,9 +21,9 @@ interface BasicTableComponentProps {
  * Basic Table Component - Reddit-inspired simple table
  * Features:
  * - ContentEditable cells for direct editing
+ * - Basic HTML formatting (bold, italic, underline)
  * - Right-click context menu 
  * - Simple array-based data structure
- * - No rich content or complex formatting
  * - Essential operations only
  */
 export const BasicTableComponent: React.FC<BasicTableComponentProps> = ({
@@ -147,6 +147,33 @@ export const BasicTableComponent: React.FC<BasicTableComponentProps> = ({
   }, [dispatch, editor, tableData.id]);
 
   /**
+   * Sanitize cell content to preserve formatting while avoiding nested HTML structures
+   */
+  const sanitizeCellContent = useCallback((cellElement: HTMLElement): string => {
+    // Find the span with the actual content
+    const contentSpan = cellElement.querySelector('span[data-content], span:not(.text-gray-400)');
+    
+    if (contentSpan) {
+      // If we have formatted content, get its innerHTML (preserves bold, italic, etc.)
+      const content = contentSpan.innerHTML.trim();
+      
+      // Remove unwanted elements that browsers might add
+      return content
+        .replace(/<div><br><\/div>/g, '<br>') // Convert div-wrapped breaks to simple breaks
+        .replace(/<div>/g, '<br>') // Convert divs to breaks
+        .replace(/<\/div>/g, '') // Remove closing div tags
+        .replace(/^<br>/, '') // Remove leading breaks
+        .replace(/<br>$/, '') // Remove trailing breaks
+        .replace(/&nbsp;/g, ' ') // Convert non-breaking spaces to regular spaces
+        .trim();
+    }
+    
+    // Fallback: get text content if no formatted content found
+    const textContent = cellElement.textContent || '';
+    return textContent.trim();
+  }, []);
+
+  /**
    * Handle cell blur - update content and clear selection if needed
    */
   const handleCellBlur = useCallback((
@@ -154,7 +181,7 @@ export const BasicTableComponent: React.FC<BasicTableComponentProps> = ({
     rowIndex: number,
     colIndex: number
   ) => {
-    const newContent = event.currentTarget.textContent || '';
+    const newContent = sanitizeCellContent(event.currentTarget);
     updateCell(rowIndex, colIndex, newContent);
     
     // Clear selection if no other table cell will be focused
@@ -201,24 +228,36 @@ export const BasicTableComponent: React.FC<BasicTableComponentProps> = ({
           {/* Header row */}
           <thead>
             <tr>
-              {tableData.headers.map((header, colIndex) => (
-                <th
-                  key={`header-${colIndex}`}
-                  className="px-sm py-xs leading-5 border border-solid border-neutral-border relative bg-transparent"
-                  contentEditable
-                  suppressContentEditableWarning
-                  onFocus={(e) => handleCellFocus(e, -1, colIndex)}
-                  onBlur={(e) => handleCellBlur(e, -1, colIndex)}
-                  onKeyDown={(e) => handleKeyDown(e, -1, colIndex)}
-                  onContextMenu={(e) => handleContextMenu(e, -1, colIndex)}
-                  data-row="-1"
-                  data-col={colIndex}
-                >
-                  <p className="first:mt-0 last:mb-0 min-h-[1em]">
-                    {header || <span className="text-gray-400">Header {colIndex + 1}</span>}
-                  </p>
-                </th>
-              ))}
+              {tableData.headers.map((header, colIndex) => {
+                const alignment = tableData.columnAlignments?.[colIndex] || 'left';
+                return (
+                  <th
+                    key={`header-${colIndex}`}
+                    className="py-xs leading-5 border border-solid border-neutral-border relative bg-transparent"
+                    style={{
+                      textAlign: alignment,
+                      paddingLeft: '8px',
+                      paddingRight: '8px',
+                    }}
+                    contentEditable
+                    suppressContentEditableWarning
+                    onFocus={(e) => handleCellFocus(e, -1, colIndex)}
+                    onBlur={(e) => handleCellBlur(e, -1, colIndex)}
+                    onKeyDown={(e) => handleKeyDown(e, -1, colIndex)}
+                    onContextMenu={(e) => handleContextMenu(e, -1, colIndex)}
+                    data-row="-1"
+                    data-col={colIndex}
+                  >
+                    <p className="first:mt-0 last:mb-0 min-h-[1em]">
+                      {header ? (
+                        <span data-content="true" dangerouslySetInnerHTML={{ __html: header }} />
+                      ) : (
+                        <span className="text-gray-400">Header {colIndex + 1}</span>
+                      )}
+                    </p>
+                  </th>
+                );
+              })}
             </tr>
           </thead>
           
@@ -226,24 +265,36 @@ export const BasicTableComponent: React.FC<BasicTableComponentProps> = ({
           <tbody>
             {tableData.rows.map((row, rowIndex) => (
               <tr key={`row-${rowIndex}`}>
-                {row.map((cell, colIndex) => (
-                  <td
-                    key={`cell-${rowIndex}-${colIndex}`}
-                    className="px-sm py-xs leading-5 border border-solid border-neutral-border relative bg-transparent"
-                    contentEditable
-                    suppressContentEditableWarning
-                    onFocus={(e) => handleCellFocus(e, rowIndex, colIndex)}
-                    onBlur={(e) => handleCellBlur(e, rowIndex, colIndex)}
-                    onKeyDown={(e) => handleKeyDown(e, rowIndex, colIndex)}
-                    onContextMenu={(e) => handleContextMenu(e, rowIndex, colIndex)}
-                    data-row={rowIndex}
-                    data-col={colIndex}
-                  >
-                    <p className="first:mt-0 last:mb-0 min-h-[1em]">
-                      {cell || <span className="text-gray-400">&nbsp;</span>}
-                    </p>
-                  </td>
-                ))}
+                {row.map((cell, colIndex) => {
+                  const alignment = tableData.columnAlignments?.[colIndex] || 'left';
+                  return (
+                    <td
+                      key={`cell-${rowIndex}-${colIndex}`}
+                      className="py-xs leading-5 border border-solid border-neutral-border relative bg-transparent"
+                      style={{
+                        textAlign: alignment,
+                        paddingLeft: '8px',
+                        paddingRight: '8px',
+                      }}
+                      contentEditable
+                      suppressContentEditableWarning
+                      onFocus={(e) => handleCellFocus(e, rowIndex, colIndex)}
+                      onBlur={(e) => handleCellBlur(e, rowIndex, colIndex)}
+                      onKeyDown={(e) => handleKeyDown(e, rowIndex, colIndex)}
+                      onContextMenu={(e) => handleContextMenu(e, rowIndex, colIndex)}
+                      data-row={rowIndex}
+                      data-col={colIndex}
+                    >
+                      <p className="first:mt-0 last:mb-0 min-h-[1em]">
+                        {cell ? (
+                          <span data-content="true" dangerouslySetInnerHTML={{ __html: cell }} />
+                        ) : (
+                          <span className="text-gray-400">&nbsp;</span>
+                        )}
+                      </p>
+                    </td>
+                  );
+                })}
               </tr>
             ))}
           </tbody>
@@ -256,6 +307,7 @@ export const BasicTableComponent: React.FC<BasicTableComponentProps> = ({
           position={contextMenuPosition}
           selectedCell={selectedCell}
           tableData={tableData}
+          tableElement={tableRef.current || undefined}
           onAction={handleTableAction}
           onClose={handleCloseContextMenu}
         />

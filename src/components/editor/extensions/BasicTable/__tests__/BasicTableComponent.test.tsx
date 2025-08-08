@@ -6,15 +6,21 @@ import { describe, it, expect, vi } from 'vitest';
 import { BasicTableComponent } from '../BasicTableComponent';
 import { DEFAULT_TABLE_DATA } from '../types';
 
-// Mock TipTap Node
-const mockNode = {
+// Helper to create fresh mock node for each test
+const createMockNode = () => ({
   attrs: {
-    tableData: DEFAULT_TABLE_DATA
+    tableData: {
+      headers: ['Column 1', 'Column 2'],
+      rows: [
+        ['', ''],
+        ['', '']
+      ]
+    }
   },
   type: {
     name: 'basicTable'
   }
-};
+});
 
 // Mock update function
 const mockUpdateAttributes = vi.fn();
@@ -28,7 +34,7 @@ describe('BasicTableComponent', () => {
     it('renders table with correct HTML structure', () => {
       render(
         <BasicTableComponent
-          node={mockNode}
+          node={createMockNode()}
           updateAttributes={mockUpdateAttributes}
           selected={false}
         />
@@ -46,7 +52,7 @@ describe('BasicTableComponent', () => {
     it('renders correct number of cells', () => {
       render(
         <BasicTableComponent
-          node={mockNode}
+          node={createMockNode()}
           updateAttributes={mockUpdateAttributes}
           selected={false}
         />
@@ -63,7 +69,7 @@ describe('BasicTableComponent', () => {
     it('applies Reddit CSS classes correctly', () => {
       render(
         <BasicTableComponent
-          node={mockNode}
+          node={createMockNode()}
           updateAttributes={mockUpdateAttributes}
           selected={false}
         />
@@ -72,20 +78,22 @@ describe('BasicTableComponent', () => {
       const headerCells = screen.getAllByRole('columnheader');
       const dataCells = screen.getAllByRole('cell');
 
-      // Check Reddit-style CSS classes
+      // Check Reddit-style CSS classes (updated with inline padding)
       headerCells.forEach(cell => {
-        expect(cell).toHaveClass('px-sm', 'py-xs', 'leading-5', 'border', 'border-solid', 'border-neutral-border', 'relative');
+        expect(cell).toHaveClass('py-xs', 'leading-5', 'border', 'border-solid', 'border-neutral-border', 'relative');
+        expect(cell).toHaveStyle({ paddingLeft: '8px', paddingRight: '8px' });
       });
 
       dataCells.forEach(cell => {
-        expect(cell).toHaveClass('px-sm', 'py-xs', 'leading-5', 'border', 'border-solid', 'border-neutral-border', 'relative');
+        expect(cell).toHaveClass('py-xs', 'leading-5', 'border', 'border-solid', 'border-neutral-border', 'relative');
+        expect(cell).toHaveStyle({ paddingLeft: '8px', paddingRight: '8px' });
       });
     });
 
     it('shows selection ring when selected', () => {
       const { container } = render(
         <BasicTableComponent
-          node={mockNode}
+          node={createMockNode()}
           updateAttributes={mockUpdateAttributes}
           selected={true}
         />
@@ -101,7 +109,7 @@ describe('BasicTableComponent', () => {
     it('allows editing header cells', () => {
       render(
         <BasicTableComponent
-          node={mockNode}
+          node={createMockNode()}
           updateAttributes={mockUpdateAttributes}
           selected={false}
         />
@@ -115,7 +123,7 @@ describe('BasicTableComponent', () => {
     it('allows editing data cells', () => {
       render(
         <BasicTableComponent
-          node={mockNode}
+          node={createMockNode()}
           updateAttributes={mockUpdateAttributes}
           selected={false}
         />
@@ -130,7 +138,7 @@ describe('BasicTableComponent', () => {
     it('updates table data when cell content changes', () => {
       render(
         <BasicTableComponent
-          node={mockNode}
+          node={createMockNode()}
           updateAttributes={mockUpdateAttributes}
           selected={false}
         />
@@ -140,7 +148,7 @@ describe('BasicTableComponent', () => {
       
       // Simulate editing
       fireEvent.focus(headerCell);
-      headerCell.textContent = 'New Header';
+      headerCell.innerHTML = 'New Header';
       fireEvent.blur(headerCell);
 
       expect(mockUpdateAttributes).toHaveBeenCalledWith({
@@ -197,7 +205,7 @@ describe('BasicTableComponent', () => {
     it('shows context menu on right click', () => {
       render(
         <BasicTableComponent
-          node={mockNode}
+          node={createMockNode()}
           updateAttributes={mockUpdateAttributes}
           selected={false}
         />
@@ -217,7 +225,7 @@ describe('BasicTableComponent', () => {
     it('hides context menu when clicking outside', () => {
       render(
         <BasicTableComponent
-          node={mockNode}
+          node={createMockNode()}
           updateAttributes={mockUpdateAttributes}
           selected={false}
         />
@@ -242,7 +250,7 @@ describe('Table Operations Integration', () => {
   it('executes insert row operation correctly', () => {
     render(
       <BasicTableComponent
-        node={mockNode}
+        node={createMockNode()}
         updateAttributes={mockUpdateAttributes}
         selected={false}
       />

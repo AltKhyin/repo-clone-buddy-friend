@@ -120,7 +120,7 @@ describe('BasicTable Integration', () => {
           expect.arrayContaining(['', '', '']),
           expect.arrayContaining(['', '', ''])
         ]),
-        id: expect.stringMatching(/^table-\d+$/)
+        id: expect.stringMatching(/^table-\d+-[a-z0-9]+$/)
       });
       
       expect(emptyTable.headers).toHaveLength(3);

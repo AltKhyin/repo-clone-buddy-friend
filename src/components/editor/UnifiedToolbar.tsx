@@ -636,7 +636,7 @@ export const UnifiedToolbar = React.memo(function UnifiedToolbar({
       console.warn('[UnifiedToolbar] RichBlock selected but editor not available, creating new block');
     }
 
-    // Fallback: Create new Rich Block with table content
+    // UNIFIED ARCHITECTURE: Always create richBlock with table content - ensures all blocks are resizable
     addNode({
       type: 'richBlock',
       data: {
@@ -647,6 +647,7 @@ export const UnifiedToolbar = React.memo(function UnifiedToolbar({
         },
       },
     });
+    console.log('[UnifiedToolbar] New richBlock created with table content - fully resizable');
   }, []);
 
   // Media Insertion Handlers

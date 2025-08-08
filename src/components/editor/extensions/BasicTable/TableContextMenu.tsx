@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { cn } from '@/lib/utils';
+import { useEditorTheme } from '@/hooks/useEditorTheme';
 import { BasicTableData, CellPosition, TableAction, TableContextMenuProps } from './types';
 
 /**
@@ -17,11 +18,51 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({
   position,
   selectedCell,
   tableData,
+  tableElement,
   onAction,
   onClose
 }) => {
+  const { colors } = useEditorTheme();
   const { row, col } = selectedCell;
   const isHeaderRow = row === -1;
+
+  // Calculate intelligent positioning
+  const getOptimalPosition = () => {
+    if (!tableElement) {
+      return position; // Fallback to cursor position
+    }
+
+    const tableRect = tableElement.getBoundingClientRect();
+    const menuWidth = 192; // min-w-48 = 12rem = 192px
+    const menuHeight = 300; // estimated max height
+    const padding = 8;
+
+    // Try to position menu to the right of the table
+    let x = tableRect.right + padding;
+    let y = position.y;
+
+    // If menu would overflow right edge of viewport, position to left of table
+    if (x + menuWidth > window.innerWidth) {
+      x = tableRect.left - menuWidth - padding;
+    }
+
+    // If still overflowing left edge, use original cursor position but adjust
+    if (x < 0) {
+      x = Math.min(position.x, window.innerWidth - menuWidth - padding);
+    }
+
+    // Ensure menu doesn't overflow vertically
+    if (y + menuHeight > window.innerHeight) {
+      y = Math.max(padding, window.innerHeight - menuHeight - padding);
+    }
+
+    // Keep menu within table's vertical bounds if possible
+    y = Math.max(tableRect.top, Math.min(y, tableRect.bottom - 100));
+
+    return { x, y };
+  };
+
+  const optimalPosition = getOptimalPosition();
 
   // Menu items based on context
   const menuItems = [
@@ -54,18 +95,26 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({
       style={{ zIndex: 9999 }}
     >
       <div
-        className="absolute bg-white border border-gray-200 shadow-lg rounded-md py-1 min-w-48 pointer-events-auto"
+        className="absolute shadow-lg rounded-md py-1 min-w-48 pointer-events-auto"
         style={{ 
-          left: position.x, 
-          top: position.y,
+          left: optimalPosition.x, 
+          top: optimalPosition.y,
           maxHeight: '300px',
-          overflowY: 'auto'
+          overflowY: 'auto',
+          backgroundColor: colors.block.background,
+          border: `1px solid ${colors.block.border}`,
         }}
         onClick={(e) => e.stopPropagation()}
       >
         {menuItems.map((item, index) => {
           if (item.type === 'separator') {
-            return <hr key={index} className="my-1 border-gray-200" />;
+            return (
+              <hr 
+                key={index} 
+                className="my-1" 
+                style={{ borderColor: colors.block.border }} 
+              />
+            );
           }
 
           if (!item.enabled) {
@@ -75,10 +124,19 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({
           return (
             <button
               key={index}
-              className={cn(
-                "flex items-center w-full px-3 py-2 text-sm text-left hover:bg-gray-100 transition-colors",
-                item.danger && "text-red-600 hover:bg-red-50"
-              )}
+              className="flex items-center w-full px-3 py-2 text-sm text-left transition-colors"
+              style={{
+                color: item.danger ? colors.interactive.error : colors.block.text,
+                backgroundColor: 'transparent',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = item.danger 
+                  ? colors.interactive.error + '10' // 10% opacity
+                  : colors.block.backgroundSecondary;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+              }}
               onClick={() => {
                 onAction(item.action!, selectedCell);
                 onClose();
