@@ -222,4 +222,262 @@ describe('TableContextMenu', () => {
       expect(separators.length).toBeGreaterThan(0);
     });
   });
+
+  describe('Cursor-Based Positioning', () => {
+    // Mock window dimensions for viewport boundary tests
+    const originalInnerWidth = window.innerWidth;
+    const originalInnerHeight = window.innerHeight;
+
+    beforeEach(() => {
+      // Set mock window dimensions
+      Object.defineProperty(window, 'innerWidth', { value: 1200, writable: true });
+      Object.defineProperty(window, 'innerHeight', { value: 800, writable: true });
+    });
+
+    afterEach(() => {
+      // Restore original dimensions
+      Object.defineProperty(window, 'innerWidth', { value: originalInnerWidth, writable: true });
+      Object.defineProperty(window, 'innerHeight', { value: originalInnerHeight, writable: true });
+    });
+
+    it('positions menu at exact cursor coordinates when space available', () => {
+      const position = { x: 150, y: 200 };
+      const { container } = render(
+        <TableContextMenu {...defaultProps} position={position} />
+      );
+      
+      const menu = container.querySelector('.absolute');
+      expect(menu).toHaveStyle({ left: '150px', top: '200px' });
+    });
+
+    it('adjusts horizontal position when menu would overflow right edge', () => {
+      // Position near right edge of viewport (1200px wide)
+      const position = { x: 1150, y: 200 }; // Menu width is 192px + 8px padding
+      const { container } = render(
+        <TableContextMenu {...defaultProps} position={position} />
+      );
+      
+      const menu = container.querySelector('.absolute');
+      // Should be repositioned to fit within viewport
+      expect(menu).not.toHaveStyle({ left: '1150px' });
+      // Should be positioned at viewport width - menu width - padding
+      expect(menu).toHaveStyle({ left: '1000px' }); // 1200 - 192 - 8 = 1000
+    });
+
+    it('adjusts vertical position when menu would overflow bottom edge', () => {
+      // Position near bottom edge of viewport (800px high)
+      const position = { x: 100, y: 750 }; // Menu height is ~300px + 8px padding
+      const { container } = render(
+        <TableContextMenu {...defaultProps} position={position} />
+      );
+      
+      const menu = container.querySelector('.absolute');
+      // Should be repositioned to fit within viewport
+      expect(menu).not.toHaveStyle({ top: '750px' });
+      // Should be positioned at viewport height - menu height - padding
+      expect(menu).toHaveStyle({ top: '492px' }); // 800 - 300 - 8 = 492
+    });
+
+    it('prevents menu from going off left edge', () => {
+      const position = { x: -50, y: 200 }; // Negative x position
+      const { container } = render(
+        <TableContextMenu {...defaultProps} position={position} />
+      );
+      
+      const menu = container.querySelector('.absolute');
+      // Should be repositioned to padding distance from left
+      expect(menu).toHaveStyle({ left: '8px' });
+    });
+
+    it('prevents menu from going off top edge', () => {
+      const position = { x: 100, y: -50 }; // Negative y position
+      const { container } = render(
+        <TableContextMenu {...defaultProps} position={position} />
+      );
+      
+      const menu = container.querySelector('.absolute');
+      // Should be repositioned to padding distance from top
+      expect(menu).toHaveStyle({ top: '8px' });
+    });
+
+    it('handles corner cases when both x and y need adjustment', () => {
+      const position = { x: 1150, y: 750 }; // Both near edges
+      const { container } = render(
+        <TableContextMenu {...defaultProps} position={position} />
+      );
+      
+      const menu = container.querySelector('.absolute');
+      // Both coordinates should be adjusted
+      expect(menu).toHaveStyle({ 
+        left: '1000px', // Adjusted for right edge
+        top: '492px'    // Adjusted for bottom edge
+      });
+    });
+  });
+
+  describe('Typography Controls', () => {
+    it('renders typography section with font family and size dropdowns', () => {
+      const { container } = render(<TableContextMenu {...defaultProps} />);
+      
+      expect(screen.getByLabelText('Font Family')).toBeInTheDocument();
+      expect(screen.getByLabelText('Text Size')).toBeInTheDocument();
+      
+      // Check dropdown options exist
+      const fontFamilyDropdown = screen.getByLabelText('Font Family');
+      expect(fontFamilyDropdown.tagName).toBe('SELECT');
+      
+      const fontSizeDropdown = screen.getByLabelText('Text Size');  
+      expect(fontSizeDropdown.tagName).toBe('SELECT');
+    });
+
+    it('shows current font family value in dropdown', () => {
+      const tableDataWithFont = { 
+        ...mockTableData, 
+        fontFamily: 'Georgia, serif' 
+      };
+      render(<TableContextMenu {...defaultProps} tableData={tableDataWithFont} />);
+      
+      const fontFamilyDropdown = screen.getByLabelText('Font Family') as HTMLSelectElement;
+      expect(fontFamilyDropdown.value).toBe('Georgia, serif');
+    });
+
+    it('shows current font size value in dropdown', () => {
+      const tableDataWithSize = { 
+        ...mockTableData, 
+        fontSize: '18px' 
+      };
+      render(<TableContextMenu {...defaultProps} tableData={tableDataWithSize} />);
+      
+      const fontSizeDropdown = screen.getByLabelText('Text Size') as HTMLSelectElement;
+      expect(fontSizeDropdown.value).toBe('18px');
+    });
+
+    it('calls onAction with setFontFamily when font family changed', () => {
+      render(<TableContextMenu {...defaultProps} />);
+      
+      const fontFamilyDropdown = screen.getByLabelText('Font Family');
+      fireEvent.change(fontFamilyDropdown, { target: { value: 'Georgia, serif' } });
+      
+      expect(mockOnAction).toHaveBeenCalledWith('setFontFamily', {
+        ...defaultProps.selectedCell,
+        value: 'Georgia, serif'
+      });
+    });
+
+    it('calls onAction with setFontSize when font size changed', () => {
+      render(<TableContextMenu {...defaultProps} />);
+      
+      const fontSizeDropdown = screen.getByLabelText('Text Size');
+      fireEvent.change(fontSizeDropdown, { target: { value: '20px' } });
+      
+      expect(mockOnAction).toHaveBeenCalledWith('setFontSize', {
+        ...defaultProps.selectedCell,
+        value: '20px'
+      });
+    });
+
+    it('closes menu after typography selection', () => {
+      render(<TableContextMenu {...defaultProps} />);
+      
+      const fontFamilyDropdown = screen.getByLabelText('Font Family');
+      fireEvent.change(fontFamilyDropdown, { target: { value: 'Monaco, monospace' } });
+      
+      expect(mockOnClose).toHaveBeenCalled();
+    });
+
+    it('handles default font family selection correctly', () => {
+      render(<TableContextMenu {...defaultProps} />);
+      
+      const fontFamilyDropdown = screen.getByLabelText('Font Family');
+      fireEvent.change(fontFamilyDropdown, { target: { value: '' } }); // Empty = default
+      
+      expect(mockOnAction).toHaveBeenCalledWith('setFontFamily', {
+        ...defaultProps.selectedCell,
+        value: undefined
+      });
+    });
+
+    it('uses theme colors for typography controls', () => {
+      render(<TableContextMenu {...defaultProps} />);
+      
+      const fontFamilyDropdown = screen.getByLabelText('Font Family');
+      const fontSizeDropdown = screen.getByLabelText('Text Size');
+      
+      // Both dropdowns should have inline styles applied from theme
+      expect(fontFamilyDropdown).toHaveAttribute('style');
+      expect(fontSizeDropdown).toHaveAttribute('style');
+      
+      // Verify they have background color styling
+      const fontFamilyStyle = fontFamilyDropdown.getAttribute('style');
+      const fontSizeStyle = fontSizeDropdown.getAttribute('style');
+      
+      expect(fontFamilyStyle).toContain('background-color');
+      expect(fontSizeStyle).toContain('background-color');
+    });
+  });
+
+  describe('Auto-Height Toggle', () => {
+    it('renders auto-height section with toggle switch', () => {
+      render(<TableContextMenu {...defaultProps} />);
+      
+      expect(screen.getByLabelText('Auto Height')).toBeInTheDocument();
+      expect(screen.getByText('Automatically adjusts table height based on content')).toBeInTheDocument();
+      
+      // Check that it's a switch component
+      const autoHeightSwitch = screen.getByRole('switch');
+      expect(autoHeightSwitch).toBeInTheDocument();
+    });
+
+    it('shows current auto-height state in toggle', () => {
+      const tableDataWithAutoHeight = { 
+        ...mockTableData, 
+        autoHeight: true 
+      };
+      render(<TableContextMenu {...defaultProps} tableData={tableDataWithAutoHeight} />);
+      
+      const autoHeightSwitch = screen.getByRole('switch');
+      expect(autoHeightSwitch).toHaveAttribute('data-state', 'checked');
+    });
+
+    it('shows unchecked state when auto-height is disabled', () => {
+      const tableDataWithoutAutoHeight = { 
+        ...mockTableData, 
+        autoHeight: false 
+      };
+      render(<TableContextMenu {...defaultProps} tableData={tableDataWithoutAutoHeight} />);
+      
+      const autoHeightSwitch = screen.getByRole('switch');
+      expect(autoHeightSwitch).toHaveAttribute('data-state', 'unchecked');
+    });
+
+    it('calls onAction with toggleAutoHeight when switch is toggled', () => {
+      render(<TableContextMenu {...defaultProps} />);
+      
+      const autoHeightSwitch = screen.getByRole('switch');
+      fireEvent.click(autoHeightSwitch);
+      
+      expect(mockOnAction).toHaveBeenCalledWith('toggleAutoHeight', defaultProps.selectedCell);
+    });
+
+    it('closes menu after auto-height toggle', () => {
+      render(<TableContextMenu {...defaultProps} />);
+      
+      const autoHeightSwitch = screen.getByRole('switch');
+      fireEvent.click(autoHeightSwitch);
+      
+      expect(mockOnClose).toHaveBeenCalled();
+    });
+
+    it('handles default auto-height state correctly', () => {
+      const tableDataWithUndefinedAutoHeight = { 
+        ...mockTableData 
+        // autoHeight property not set (undefined)
+      };
+      render(<TableContextMenu {...defaultProps} tableData={tableDataWithUndefinedAutoHeight} />);
+      
+      const autoHeightSwitch = screen.getByRole('switch');
+      // Should default to unchecked when autoHeight is undefined
+      expect(autoHeightSwitch).toHaveAttribute('data-state', 'unchecked');
+    });
+  });
 });

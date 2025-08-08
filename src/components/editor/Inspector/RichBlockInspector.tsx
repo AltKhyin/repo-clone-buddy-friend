@@ -5,6 +5,7 @@ import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { useEditorStore, useContentSelection } from '@/store/editorStore';
 import { RichBlockData, ContentSelectionType } from '@/types/editor';
 import { InspectorSection } from './shared/InspectorSection';
@@ -241,6 +242,28 @@ export const RichBlockInspector: React.FC<RichBlockInspectorProps> = ({ nodeId }
             maxWidth={8}
             maxRadius={32}
           />
+        </div>
+
+        {/* Auto-Height Toggle */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <label 
+              htmlFor="block-auto-height"
+              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+            >
+              Auto Height
+            </label>
+            <Switch
+              id="block-auto-height"
+              checked={data.autoHeight || false}
+              onCheckedChange={(checked) => {
+                updateNodeData({ autoHeight: checked });
+              }}
+            />
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Automatically adjusts block height to fit content. Manually resizing the height will disable this feature.
+          </p>
         </div>
       </div>
     </div>

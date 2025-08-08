@@ -222,7 +222,11 @@ export const BasicTableComponent: React.FC<BasicTableComponentProps> = ({
       >
         <table 
           ref={tableRef}
-          className="table-fixed border-collapse w-full bg-transparent"
+          className="border-collapse w-full bg-transparent table-fixed"
+          style={{
+            fontFamily: tableData.fontFamily || 'inherit',
+            fontSize: tableData.fontSize || 'inherit',
+          }}
           data-type="basic-table"
         >
           {/* Header row */}
@@ -307,7 +311,6 @@ export const BasicTableComponent: React.FC<BasicTableComponentProps> = ({
           position={contextMenuPosition}
           selectedCell={selectedCell}
           tableData={tableData}
-          tableElement={tableRef.current || undefined}
           onAction={handleTableAction}
           onClose={handleCloseContextMenu}
         />

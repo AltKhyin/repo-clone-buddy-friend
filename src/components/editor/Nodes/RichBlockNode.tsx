@@ -128,6 +128,38 @@ export const RichBlockNode = memo<RichBlockNodeProps>(
       return optimalHeight;
     }, [heightCalculator, updateNode, id, onHeightAdjust]);
 
+    // Handle auto-height disable when height is manually resized
+    const handleAutoHeightDisable = useCallback(() => {
+      if (data.autoHeight) {
+        updateNode(id, {
+          data: {
+            ...data,
+            autoHeight: false,
+          },
+        });
+      }
+    }, [data, updateNode, id]);
+
+    // Auto-height integration - automatically adjust height when enabled and content changes
+    useEffect(() => {
+      if (data.autoHeight && editorInstance.editor) {
+        // Debounce auto-adjustments to avoid excessive updates
+        const timeout = setTimeout(() => {
+          handleHeightAdjustment();
+        }, 300); // 300ms debounce for smooth auto-adjustment
+
+        return () => clearTimeout(timeout);
+      }
+    }, [data.autoHeight, heightCalculator.heightCalculation, handleHeightAdjustment, editorInstance.editor]);
+
+    // Immediate height adjustment when auto-height is toggled ON
+    useEffect(() => {
+      if (data.autoHeight && editorInstance.editor) {
+        // Immediate adjustment when auto-height is first enabled
+        handleHeightAdjustment();
+      }
+    }, [data.autoHeight]); // Only trigger when autoHeight changes
+
     // Register/unregister editor instance for unified insertion architecture
     useEffect(() => {
       if (editorInstance.editor) {
@@ -306,6 +338,8 @@ export const RichBlockNode = memo<RichBlockNodeProps>(
           onSelect={onSelect}
           onMove={onMove}
           onResize={onResize}
+          onAutoHeightDisable={handleAutoHeightDisable}
+          autoHeight={data.autoHeight}
           dragSensitivity={16} // Enhanced drag area
           showDragHandle={true} // 🎯 DRAG HANDLE: Enable visible drag handle for rich blocks
         >

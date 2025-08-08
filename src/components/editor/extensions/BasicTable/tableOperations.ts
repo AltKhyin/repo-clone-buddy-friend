@@ -125,7 +125,10 @@ export const insertColumnBefore = (data: BasicTableData, colIndex: number): Tabl
       ...(data.columnAlignments?.slice(0, colIndex) || []),
       'left',
       ...(data.columnAlignments?.slice(colIndex) || [])
-    ]
+    ],
+    // Preserve typography settings
+    fontFamily: data.fontFamily,
+    fontSize: data.fontSize
   };
   
   return { success: true, data: newData };
@@ -158,7 +161,10 @@ export const insertColumnAfter = (data: BasicTableData, colIndex: number): Table
       ...(data.columnAlignments?.slice(0, insertIndex) || []),
       'left',
       ...(data.columnAlignments?.slice(insertIndex) || [])
-    ]
+    ],
+    // Preserve typography settings
+    fontFamily: data.fontFamily,
+    fontSize: data.fontSize
   };
   
   return { success: true, data: newData };
@@ -185,7 +191,10 @@ export const deleteColumn = (data: BasicTableData, colIndex: number): TableOpera
     ...data,
     headers: data.headers.filter((_, index) => index !== colIndex),
     rows: data.rows.map(row => row.filter((_, index) => index !== colIndex)),
-    columnAlignments: data.columnAlignments?.filter((_, index) => index !== colIndex) || []
+    columnAlignments: data.columnAlignments?.filter((_, index) => index !== colIndex) || [],
+    // Preserve typography settings
+    fontFamily: data.fontFamily,
+    fontSize: data.fontSize
   };
   
   return { success: true, data: newData };
@@ -213,6 +222,28 @@ export const setColumnAlignment = (
   // Update the alignment for the specified column
   newData.columnAlignments[colIndex] = alignment;
 
+  return { success: true, data: newData };
+};
+
+/**
+ * Set font family for entire table
+ */
+export const setTableFontFamily = (
+  data: BasicTableData,
+  fontFamily: string | undefined
+): TableOperationResult => {
+  const newData = { ...data, fontFamily };
+  return { success: true, data: newData };
+};
+
+/**
+ * Set font size for entire table
+ */
+export const setTableFontSize = (
+  data: BasicTableData,
+  fontSize: string | undefined
+): TableOperationResult => {
+  const newData = { ...data, fontSize };
   return { success: true, data: newData };
 };
 
@@ -265,6 +296,12 @@ export const executeTableOperation = (
     case 'alignRight':
       return setColumnAlignment(data, col, action.replace('align', '').toLowerCase() as 'left' | 'center' | 'right');
       
+    case 'setFontFamily':
+      return setTableFontFamily(data, position.value);
+      
+    case 'setFontSize':
+      return setTableFontSize(data, position.value);
+      
     case 'deleteTable':
       // Table deletion is handled by the editor, not here
       return { success: true, data };
@@ -286,6 +323,8 @@ export const createEmptyTable = (rows: number = 2, cols: number = 2): BasicTable
     headers,
     rows: tableRows,
     columnAlignments,
+    fontFamily: undefined, // Use theme default
+    fontSize: undefined,   // Use theme default
     id: `table-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
   };
 };

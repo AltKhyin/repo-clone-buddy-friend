@@ -27,6 +27,8 @@ export const UnifiedBlockWrapper = React.memo<ContentBoundaryProps>(
     onResize,
     onMove,
     onSelect,
+    onAutoHeightDisable,
+    autoHeight = false,
     showResizeHandles = true,
     showDragHandle = false,
     // Constraint-related props removed - complete resize freedom
@@ -46,6 +48,9 @@ export const UnifiedBlockWrapper = React.memo<ContentBoundaryProps>(
     const resizeHandlers = useSimpleResize({
       nodeId: id,
       onUpdate: (position) => {
+        // Detect manual height changes for auto-height disable
+        const heightChanged = position.height !== undefined && position.height !== height;
+        
         // Update both resize and move callbacks for complete freedom
         if (position.width !== undefined || position.height !== undefined) {
           const resizeData = {
@@ -53,6 +58,11 @@ export const UnifiedBlockWrapper = React.memo<ContentBoundaryProps>(
             height: position.height ?? height,
           };
           onResize?.(resizeData);
+          
+          // Disable auto-height if height was manually changed
+          if (heightChanged && onAutoHeightDisable) {
+            onAutoHeightDisable();
+          }
         }
         if (position.x !== undefined || position.y !== undefined) {
           const moveData = {
@@ -242,10 +252,16 @@ export const UnifiedBlockWrapper = React.memo<ContentBoundaryProps>(
         position: 'relative',
         // Apply custom content styles
         ...contentStyles,
+        // Auto-height visual indicator - subtle border accent
+        ...(autoHeight && {
+          borderLeftWidth: '3px',
+          borderLeftStyle: 'solid',
+          borderLeftColor: 'hsl(var(--success))',
+        }),
         // Allow dropdown menus to overflow for rich blocks (tables), hide for others
         overflow: blockType === 'richBlock' ? 'visible' : 'hidden',
       }),
-      [contentStyles, blockType]
+      [contentStyles, blockType, autoHeight]
     );
 
     // 🎯 ENHANCED SELECTION: Selection ring with hover state for structure visibility
@@ -345,7 +361,7 @@ export const UnifiedBlockWrapper = React.memo<ContentBoundaryProps>(
                   : 'bg-slate-800/90 text-white shadow-slate-800/25'
               )}
             >
-              {Math.round(width)} × {Math.round(height)}px
+              {Math.round(width)} × {autoHeight ? 'AUTO' : `${Math.round(height)}px`}
             </div>
             {hoverHandle && !isResizing && (
               <div className="px-3 py-1.5 rounded-md shadow-sm font-medium text-xs border border-white/20 backdrop-blur-sm bg-blue-600/90 text-white shadow-blue-500/25">

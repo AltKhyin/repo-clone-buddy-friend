@@ -18,7 +18,6 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({
   position,
   selectedCell,
   tableData,
-  tableElement,
   onAction,
   onClose
 }) => {
@@ -26,43 +25,50 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({
   const { row, col } = selectedCell;
   const isHeaderRow = row === -1;
 
-  // Calculate intelligent positioning
-  const getOptimalPosition = () => {
-    if (!tableElement) {
-      return position; // Fallback to cursor position
-    }
-
-    const tableRect = tableElement.getBoundingClientRect();
+  // Simple cursor-based positioning with basic viewport boundary checking
+  const getCursorBasedPosition = () => {
     const menuWidth = 192; // min-w-48 = 12rem = 192px
     const menuHeight = 300; // estimated max height
     const padding = 8;
 
-    // Try to position menu to the right of the table
-    let x = tableRect.right + padding;
+    let x = position.x;
     let y = position.y;
 
-    // If menu would overflow right edge of viewport, position to left of table
+    // Prevent horizontal overflow
     if (x + menuWidth > window.innerWidth) {
-      x = tableRect.left - menuWidth - padding;
+      x = window.innerWidth - menuWidth - padding;
+    }
+    if (x < padding) {
+      x = padding;
     }
 
-    // If still overflowing left edge, use original cursor position but adjust
-    if (x < 0) {
-      x = Math.min(position.x, window.innerWidth - menuWidth - padding);
-    }
-
-    // Ensure menu doesn't overflow vertically
+    // Prevent vertical overflow
     if (y + menuHeight > window.innerHeight) {
-      y = Math.max(padding, window.innerHeight - menuHeight - padding);
+      y = window.innerHeight - menuHeight - padding;
     }
-
-    // Keep menu within table's vertical bounds if possible
-    y = Math.max(tableRect.top, Math.min(y, tableRect.bottom - 100));
+    if (y < padding) {
+      y = padding;
+    }
 
     return { x, y };
   };
 
-  const optimalPosition = getOptimalPosition();
+  const menuPosition = getCursorBasedPosition();
+
+  // Typography options with theme defaults
+  const fontFamilyOptions = [
+    { label: 'Default', value: undefined },
+    { label: 'Sans Serif', value: 'system-ui, sans-serif' },
+    { label: 'Serif', value: 'Georgia, serif' },
+    { label: 'Monospace', value: 'Monaco, monospace' }
+  ];
+
+  const fontSizeOptions = [
+    { label: 'Small', value: '14px' },
+    { label: 'Normal', value: '16px' },
+    { label: 'Large', value: '18px' },
+    { label: 'Extra Large', value: '20px' }
+  ];
 
   // Menu items based on context
   const menuItems = [
@@ -75,6 +81,8 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({
     { action: 'alignLeft' as TableAction, label: 'Align left', enabled: true },
     { action: 'alignCenter' as TableAction, label: 'Align center', enabled: true },
     { action: 'alignRight' as TableAction, label: 'Align right', enabled: true },
+    { type: 'separator' },
+    { type: 'typography-section' }, // Special typography section
     { type: 'separator' },
     { action: 'deleteRow' as TableAction, label: 'Delete row', enabled: !isHeaderRow && tableData.rows.length > 1, danger: true },
     { action: 'deleteColumn' as TableAction, label: 'Delete column', enabled: tableData.headers.length > 1, danger: true },
@@ -97,8 +105,8 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({
       <div
         className="absolute shadow-lg rounded-md py-1 min-w-48 pointer-events-auto"
         style={{ 
-          left: optimalPosition.x, 
-          top: optimalPosition.y,
+          left: menuPosition.x, 
+          top: menuPosition.y,
           maxHeight: '300px',
           overflowY: 'auto',
           backgroundColor: colors.block.background,
@@ -114,6 +122,76 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({
                 className="my-1" 
                 style={{ borderColor: colors.block.border }} 
               />
+            );
+          }
+
+          if (item.type === 'typography-section') {
+            return (
+              <div key={index} className="px-3 py-2">
+                {/* Font Family Dropdown */}
+                <div className="mb-2">
+                  <label 
+                    htmlFor="table-font-family"
+                    className="text-xs font-medium mb-1 block"
+                    style={{ color: colors.block.textSecondary }}
+                  >
+                    Font Family
+                  </label>
+                  <select
+                    id="table-font-family"
+                    className="w-full px-2 py-1 text-sm border rounded"
+                    style={{
+                      backgroundColor: colors.block.background,
+                      borderColor: colors.block.border,
+                      color: colors.block.text
+                    }}
+                    value={tableData.fontFamily || ''}
+                    onChange={(e) => {
+                      const value = e.target.value || undefined;
+                      onAction('setFontFamily', { ...selectedCell, value });
+                      onClose();
+                    }}
+                  >
+                    {fontFamilyOptions.map((option) => (
+                      <option key={option.value || 'default'} value={option.value || ''}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Font Size Dropdown */}
+                <div>
+                  <label 
+                    htmlFor="table-font-size"
+                    className="text-xs font-medium mb-1 block"
+                    style={{ color: colors.block.textSecondary }}
+                  >
+                    Text Size
+                  </label>
+                  <select
+                    id="table-font-size"
+                    className="w-full px-2 py-1 text-sm border rounded"
+                    style={{
+                      backgroundColor: colors.block.background,
+                      borderColor: colors.block.border,
+                      color: colors.block.text
+                    }}
+                    value={tableData.fontSize || '16px'}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      onAction('setFontSize', { ...selectedCell, value });
+                      onClose();
+                    }}
+                  >
+                    {fontSizeOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
             );
           }
 

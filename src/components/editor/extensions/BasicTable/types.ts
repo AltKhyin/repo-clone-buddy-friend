@@ -2,7 +2,7 @@
 
 /**
  * Simple table data structure - 90% simpler than complex TableData
- * Now supports basic HTML formatting (bold, italic, underline) and alignment
+ * Now supports basic HTML formatting (bold, italic, underline), alignment, and typography
  */
 export interface BasicTableData {
   /** Column headers supporting basic HTML formatting (bold, italic, etc.) */
@@ -13,6 +13,10 @@ export interface BasicTableData {
   id?: string;
   /** Column alignment settings - left (default), center, or right */
   columnAlignments?: ('left' | 'center' | 'right')[];
+  /** Table-level font family (affects entire table) */
+  fontFamily?: string;
+  /** Table-level font size (affects entire table) */
+  fontSize?: string;
 }
 
 /**
@@ -35,6 +39,8 @@ export type TableAction =
   | 'alignLeft'
   | 'alignCenter'
   | 'alignRight'
+  | 'setFontFamily'
+  | 'setFontSize'
   | 'deleteTable';
 
 /**
@@ -54,6 +60,8 @@ export interface TableMenuItem {
 export interface CellPosition {
   row: number; // -1 for header row
   col: number;
+  /** Optional value for typography operations */
+  value?: string;
 }
 
 /**
@@ -63,7 +71,6 @@ export interface TableContextMenuProps {
   position: { x: number; y: number };
   selectedCell: CellPosition;
   tableData: BasicTableData;
-  tableElement?: HTMLTableElement; // Add table reference for better positioning
   onAction: (action: TableAction, position: CellPosition) => void;
   onClose: () => void;
 }

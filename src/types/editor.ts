@@ -285,6 +285,8 @@ export const RichBlockDataSchema = z.object({
   borderRadius: z.number().optional(),
   borderWidth: z.number().default(0),
   borderColor: z.string().optional(),
+  // Auto-height behavior - dynamically adjusts block height based on content
+  autoHeight: z.boolean().optional(),
   // Typography properties
   textAlign: z.enum(['left', 'center', 'right', 'justify']).optional(),
   color: z.string().optional(),
@@ -543,6 +545,10 @@ export interface ContentBoundaryProps {
   onResize?: (dimensions: { width: number; height: number }) => void;
   /** Callback when content is moved */
   onMove?: (position: { x: number; y: number }) => void;
+  /** Callback when auto-height should be disabled due to manual height resize */
+  onAutoHeightDisable?: () => void;
+  /** Whether auto-height is currently enabled (for visual feedback) */
+  autoHeight?: boolean;
   /** Callback when block is selected (for unified selection system) */
   onSelect?: () => void;
   /** Whether resize handles should be visible */

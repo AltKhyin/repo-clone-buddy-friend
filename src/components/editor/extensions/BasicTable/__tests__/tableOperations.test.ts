@@ -10,7 +10,8 @@ import {
   deleteColumn,
   executeTableOperation,
   validateTableData,
-  createEmptyTable
+  createEmptyTable,
+  toggleTableAutoHeight
 } from '../tableOperations';
 import { BasicTableData, DEFAULT_TABLE_DATA } from '../types';
 
@@ -298,6 +299,116 @@ describe('Table Operations', () => {
       const table2 = createEmptyTable();
       
       expect(table1.id).not.toBe(table2.id);
+    });
+  });
+
+  describe('Auto-Height Operations', () => {
+    const testData: BasicTableData = {
+      headers: ['A', 'B'],
+      rows: [['1', '2'], ['3', '4']],
+      autoHeight: false
+    };
+
+    describe('toggleTableAutoHeight', () => {
+      it('should toggle autoHeight from false to true', () => {
+        const result = toggleTableAutoHeight(testData);
+        
+        expect(result.success).toBe(true);
+        expect(result.data?.autoHeight).toBe(true);
+      });
+
+      it('should toggle autoHeight from true to false', () => {
+        const dataWithAutoHeight = { ...testData, autoHeight: true };
+        const result = toggleTableAutoHeight(dataWithAutoHeight);
+        
+        expect(result.success).toBe(true);
+        expect(result.data?.autoHeight).toBe(false);
+      });
+
+      it('should preserve all other table data when toggling', () => {
+        const complexData: BasicTableData = {
+          headers: ['Header 1', 'Header 2'],
+          rows: [['A1', 'B1'], ['A2', 'B2']],
+          columnAlignments: ['left', 'center'],
+          fontFamily: 'Georgia, serif',
+          fontSize: '18px',
+          autoHeight: false,
+          id: 'test-table-123'
+        };
+
+        const result = toggleTableAutoHeight(complexData);
+        
+        expect(result.success).toBe(true);
+        expect(result.data?.headers).toEqual(complexData.headers);
+        expect(result.data?.rows).toEqual(complexData.rows);
+        expect(result.data?.columnAlignments).toEqual(complexData.columnAlignments);
+        expect(result.data?.fontFamily).toBe(complexData.fontFamily);
+        expect(result.data?.fontSize).toBe(complexData.fontSize);
+        expect(result.data?.id).toBe(complexData.id);
+        expect(result.data?.autoHeight).toBe(true); // Only this should change
+      });
+
+      it('should handle undefined autoHeight as false', () => {
+        const dataWithUndefinedAutoHeight = { ...testData };
+        delete dataWithUndefinedAutoHeight.autoHeight; // Make it undefined
+        
+        const result = toggleTableAutoHeight(dataWithUndefinedAutoHeight);
+        
+        expect(result.success).toBe(true);
+        expect(result.data?.autoHeight).toBe(true); // !undefined = true
+      });
+    });
+
+    describe('executeTableOperation with toggleAutoHeight', () => {
+      it('should execute toggleAutoHeight operation correctly', () => {
+        const position = { row: 0, col: 0 };
+        const result = executeTableOperation(testData, 'toggleAutoHeight', position);
+        
+        expect(result.success).toBe(true);
+        expect(result.data?.autoHeight).toBe(true);
+      });
+    });
+
+    describe('Column operations preserve autoHeight', () => {
+      const dataWithAutoHeight: BasicTableData = {
+        headers: ['A', 'B', 'C'],
+        rows: [['1', '2', '3'], ['4', '5', '6']],
+        columnAlignments: ['left', 'center', 'right'],
+        fontFamily: 'Arial, sans-serif',
+        fontSize: '16px',
+        autoHeight: true
+      };
+
+      it('should preserve autoHeight when inserting column before', () => {
+        const result = insertColumnBefore(dataWithAutoHeight, 1);
+        expect(result.success).toBe(true);
+        expect(result.data?.autoHeight).toBe(true);
+      });
+
+      it('should preserve autoHeight when inserting column after', () => {
+        const result = insertColumnAfter(dataWithAutoHeight, 1);
+        expect(result.success).toBe(true);
+        expect(result.data?.autoHeight).toBe(true);
+      });
+
+      it('should preserve autoHeight when deleting column', () => {
+        const result = deleteColumn(dataWithAutoHeight, 1);
+        expect(result.success).toBe(true);
+        expect(result.data?.autoHeight).toBe(true);
+      });
+    });
+
+    describe('createEmptyTable with autoHeight', () => {
+      it('should create table with autoHeight set to false by default', () => {
+        const result = createEmptyTable(3, 3);
+        expect(result.autoHeight).toBe(false);
+      });
+
+      it('should include autoHeight in created table data', () => {
+        const result = createEmptyTable();
+        expect(result).toHaveProperty('autoHeight');
+        expect(typeof result.autoHeight).toBe('boolean');
+      });
     });
   });
 });
