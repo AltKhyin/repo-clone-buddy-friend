@@ -18,19 +18,9 @@ const WYSIWYGRenderer: React.FC<WYSIWYGRendererProps> = ({
 }) => {
   const isMobile = useIsMobile();
 
-  console.log('WYSIWYGRenderer rendering:', {
-    version: content.version,
-    nodeCount: content.nodes?.length || 0,
-    hasPositions: !!content.positions,
-    hasMobilePositions: !!content.mobilePositions,
-    canvasWidth: content.canvas?.canvasWidth,
-    canvasHeight: content.canvas?.canvasHeight,
-    isMobile,
-  });
 
   // Validate content structure
   if (!content || content.version !== '3.0.0') {
-    console.error('WYSIWYGRenderer: Invalid or unsupported content version:', content?.version);
     return (
       <div className="text-center py-12 px-4">
         <div className="max-w-md mx-auto space-y-4">
@@ -49,7 +39,6 @@ const WYSIWYGRenderer: React.FC<WYSIWYGRendererProps> = ({
   }
 
   if (!content.nodes || !Array.isArray(content.nodes) || content.nodes.length === 0) {
-    console.warn('WYSIWYGRenderer: No content nodes found');
     return (
       <div className="text-center py-12 px-4">
         <div className="max-w-md mx-auto space-y-4">
@@ -76,7 +65,6 @@ const WYSIWYGRenderer: React.FC<WYSIWYGRendererProps> = ({
   const usingMobilePositions = isMobile && !!content.mobilePositions;
 
   if (!positions || Object.keys(positions).length === 0) {
-    console.warn('WYSIWYGRenderer: No position data found, falling back to vertical layout');
     
     // Fallback to vertical layout when no positions are available
     return (
@@ -117,11 +105,6 @@ const WYSIWYGRenderer: React.FC<WYSIWYGRendererProps> = ({
   const positionedNodes = content.nodes.filter(node => positions[node.id]);
   const unpositionedNodes = content.nodes.filter(node => !positions[node.id]);
 
-  if (unpositionedNodes.length > 0) {
-    console.warn('WYSIWYGRenderer: Some nodes have no position data:', 
-      unpositionedNodes.map(n => ({ id: n.id, type: n.type }))
-    );
-  }
 
   return (
     <div className={`wysiwyg-renderer ${className}`}>
@@ -142,7 +125,6 @@ const WYSIWYGRenderer: React.FC<WYSIWYGRendererProps> = ({
         {positionedNodes.map((node) => {
           const position = positions[node.id];
           if (!position) {
-            console.error(`No position data for node ${node.id}`);
             return null;
           }
 
@@ -159,19 +141,6 @@ const WYSIWYGRenderer: React.FC<WYSIWYGRendererProps> = ({
           );
         })}
 
-        {/* Canvas grid overlay for development */}
-        {process.env.NODE_ENV === 'development' && !isReadOnly && (
-          <div 
-            className="absolute inset-0 pointer-events-none opacity-5"
-            style={{
-              backgroundImage: `
-                linear-gradient(to right, #000 1px, transparent 1px),
-                linear-gradient(to bottom, #000 1px, transparent 1px)
-              `,
-              backgroundSize: `${20 * scaleFactor}px ${20 * scaleFactor}px`,
-            }}
-          />
-        )}
       </div>
 
       {/* Fallback section for unpositioned nodes */}
@@ -203,24 +172,6 @@ const WYSIWYGRenderer: React.FC<WYSIWYGRendererProps> = ({
         </div>
       )}
 
-      {/* Debug information for development */}
-      {process.env.NODE_ENV === 'development' && (
-        <details className="mt-8 p-4 bg-muted/30 rounded-lg">
-          <summary className="cursor-pointer text-sm font-medium text-muted-foreground hover:text-foreground">
-            Debug Info (Development Only)
-          </summary>
-          <div className="mt-2 space-y-2 text-xs text-muted-foreground">
-            <div>Version: {content.version}</div>
-            <div>Viewport: {isMobile ? 'Mobile' : 'Desktop'}</div>
-            <div>Scale Factor: {scaleFactor.toFixed(2)}</div>
-            <div>Canvas: {canvasConfig.width}x{canvasConfig.height}px</div>
-            <div>Total Nodes: {content.nodes.length}</div>
-            <div>Positioned Nodes: {positionedNodes.length}</div>
-            <div>Unpositioned Nodes: {unpositionedNodes.length}</div>
-            <div>Position Keys: {Object.keys(positions).length}</div>
-          </div>
-        </details>
-      )}
     </div>
   );
 };
