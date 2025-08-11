@@ -1,10 +1,11 @@
 
-// ABOUTME: Review detail page that renders structured content using the Layout-Aware Renderer architecture per Blueprint 05.
+// ABOUTME: Review detail page with intelligent renderer selection - V3 Native WYSIWYG for V3 content, Legacy Layout-Aware for V2/legacy content
 
 import React from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useReviewDetailQuery } from '../../packages/hooks/useReviewDetailQuery';
 import LayoutAwareRenderer from '@/components/review-detail/LayoutAwareRenderer';
+import WYSIWYGRenderer from '@/components/review-detail/WYSIWYGRenderer';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertTriangle, Lock, Edit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -130,7 +131,13 @@ const ReviewDetailPageContent = () => {
     );
   }
 
-  console.log('Rendering review successfully:', review.title);
+  console.log('Rendering review successfully:', {
+    title: review.title,
+    contentFormat: review.contentFormat,
+    nodeCount: review.nodeCount,
+    hasPositions: review.hasPositions,
+    hasMobilePositions: review.hasMobilePositions,
+  });
 
   return (
     <div className="min-h-screen bg-background">
@@ -193,10 +200,72 @@ const ReviewDetailPageContent = () => {
           </div>
         </header>
 
-        {/* Main Content - Layout-Aware Renderer */}
+        {/* Main Content - Intelligent Renderer Selection */}
         <main className="mb-12">
           {review.structured_content ? (
-            <LayoutAwareRenderer content={review.structured_content} />
+            <div className="review-content">
+              {/* V3 Content Bridge: Smart renderer selection based on format */}
+              {review.contentFormat === 'v3' ? (
+                <div className="v3-content">
+                  {/* V3 Native WYSIWYG Renderer */}
+                  <WYSIWYGRenderer 
+                    content={review.structured_content} 
+                    isReadOnly={true}
+                    className="review-v3-content"
+                  />
+                  
+                  {/* Development format indicator */}
+                  {process.env.NODE_ENV === 'development' && (
+                    <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg">
+                      <div className="flex items-center gap-2 text-sm text-blue-700 dark:text-blue-300">
+                        <span className="font-medium">V3 Content Bridge:</span>
+                        <span>Using V3 Native Renderer</span>
+                        <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900 rounded text-xs">
+                          {review.nodeCount} blocks • {review.hasPositions ? 'Positioned' : 'Vertical'} • 
+                          {review.hasMobilePositions ? ' Mobile-optimized' : ' Scaled'}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : review.contentFormat === 'v2' ? (
+                <div className="v2-content">
+                  {/* Legacy V2 Layout-Aware Renderer */}
+                  <LayoutAwareRenderer content={review.structured_content} />
+                  
+                  {/* Development format indicator */}
+                  {process.env.NODE_ENV === 'development' && (
+                    <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg">
+                      <div className="flex items-center gap-2 text-sm text-amber-700 dark:text-amber-300">
+                        <span className="font-medium">Legacy Content:</span>
+                        <span>Using V2 Layout Renderer</span>
+                        <span className="px-2 py-1 bg-amber-100 dark:bg-amber-900 rounded text-xs">
+                          {review.nodeCount} blocks • Grid-based
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="legacy-content">
+                  {/* Fallback for unknown/legacy formats */}
+                  <LayoutAwareRenderer content={review.structured_content} />
+                  
+                  {/* Development format indicator */}
+                  {process.env.NODE_ENV === 'development' && (
+                    <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-950/30 border border-gray-200 dark:border-gray-800 rounded-lg">
+                      <div className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                        <span className="font-medium">Unknown Format:</span>
+                        <span>Using Legacy Fallback Renderer</span>
+                        <span className="px-2 py-1 bg-gray-100 dark:bg-gray-900 rounded text-xs">
+                          {review.contentFormat} • {review.nodeCount} elements
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           ) : (
             <div className="text-center py-12">
               <p className="text-muted-foreground">

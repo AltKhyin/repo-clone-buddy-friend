@@ -22,7 +22,55 @@ export interface ReviewDetail {
   community_post_id: number | null;
   view_count: number | null;
   tags: string[];
+  // V3 Content Bridge metadata
+  contentFormat: 'v3' | 'v2' | 'legacy' | 'unknown';
+  nodeCount?: number;
+  hasPositions?: boolean;
+  hasMobilePositions?: boolean;
 }
+
+// Content format analyzer for V3 Content Bridge
+const analyzeContentFormat = (data: any): ReviewDetail => {
+  const content = data.structured_content;
+  
+  // Initialize metadata
+  let contentFormat: 'v3' | 'v2' | 'legacy' | 'unknown' = 'unknown';
+  let nodeCount = 0;
+  let hasPositions = false;
+  let hasMobilePositions = false;
+  
+  if (content) {
+    // Check for V3 format (positions-based)
+    if (content.version === '3.0.0' && content.nodes && Array.isArray(content.nodes)) {
+      contentFormat = 'v3';
+      nodeCount = content.nodes.length;
+      hasPositions = Boolean(content.positions && Object.keys(content.positions).length > 0);
+      hasMobilePositions = Boolean(content.mobilePositions && Object.keys(content.mobilePositions).length > 0);
+    }
+    // Check for V2 format (layouts-based)
+    else if (content.layouts && (content.layouts.desktop || content.layouts.mobile)) {
+      contentFormat = 'v2';
+      // Count blocks in V2 layouts
+      const desktopBlocks = content.layouts.desktop?.length || 0;
+      const mobileBlocks = content.layouts.mobile?.length || 0;
+      nodeCount = Math.max(desktopBlocks, mobileBlocks);
+    }
+    // Check for legacy formats
+    else if (content.blocks || content.elements || Array.isArray(content)) {
+      contentFormat = 'legacy';
+      nodeCount = content.blocks?.length || content.elements?.length || 
+                  (Array.isArray(content) ? content.length : 0);
+    }
+  }
+  
+  return {
+    ...data,
+    contentFormat,
+    nodeCount,
+    hasPositions,
+    hasMobilePositions,
+  };
+};
 
 const fetchReviewBySlug = async (slug: string): Promise<ReviewDetail> => {
   console.log('Fetching review detail for slug:', slug);
@@ -36,6 +84,7 @@ const fetchReviewBySlug = async (slug: string): Promise<ReviewDetail> => {
     throw new Error(error.message || 'Failed to fetch review details');
   }
 
+  // Handle edge function response structure: {success: true, data: {...}} or {error: {...}}
   if (data?.error) {
     console.error('Review detail API error:', data.error);
     
@@ -50,8 +99,17 @@ const fetchReviewBySlug = async (slug: string): Promise<ReviewDetail> => {
     throw new Error(data.error.message || 'Failed to fetch review details');
   }
 
-  console.log('Review detail fetched successfully:', data.title);
-  return data;
+  // Extract the actual review data from the edge function response wrapper
+  const reviewData = data?.data || data;
+  
+  if (!reviewData) {
+    throw new Error('No review data received from server');
+  }
+
+  // Analyze content format and add metadata
+  const enhancedData = analyzeContentFormat(reviewData);
+  
+  return enhancedData;
 };
 
 export const useReviewDetailQuery = (slug: string | undefined) => {

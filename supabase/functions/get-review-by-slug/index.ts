@@ -2,13 +2,100 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.0';
-import { corsHeaders, handleCorsPreflightRequest } from '../_shared/cors.ts';
-import {
-  createSuccessResponse,
-  createErrorResponse,
-  authenticateUser,
-} from '../_shared/api-helpers.ts';
-import { checkRateLimit, rateLimitHeaders, RateLimitError } from '../_shared/rate-limit.ts';
+
+// Inline CORS headers for deployment
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Access-Control-Allow-Credentials': 'true',
+};
+
+function handleCorsPreflightRequest(): Response {
+  return new Response(null, {
+    status: 200,
+    headers: corsHeaders
+  });
+}
+
+// Inline authentication helper
+async function authenticateUser(supabase: any, authHeader: string | null) {
+  if (!authHeader) {
+    throw new Error('UNAUTHORIZED: Authorization header is required');
+  }
+
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
+
+  if (authError || !user) {
+    throw new Error('UNAUTHORIZED: Invalid authentication token');
+  }
+
+  return user;
+}
+
+// Inline success response
+function createSuccessResponse(data: any, additionalHeaders: Record<string, string> = {}) {
+  return new Response(
+    JSON.stringify({
+      success: true,
+      data,
+    }),
+    {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        ...corsHeaders,
+        ...additionalHeaders,
+      },
+    }
+  );
+}
+
+// Inline error response
+function createErrorResponse(error: any, additionalHeaders: Record<string, string> = {}) {
+  let status = 500;
+  let code = 'INTERNAL_ERROR';
+  let message = 'An unexpected error occurred';
+
+  if (error instanceof Error) {
+    message = error.message;
+
+    if (message.startsWith('UNAUTHORIZED:')) {
+      status = 401;
+      code = 'UNAUTHORIZED';
+      message = message.replace('UNAUTHORIZED: ', '');
+    } else if (message.startsWith('FORBIDDEN:')) {
+      status = 403;
+      code = 'FORBIDDEN';
+      message = message.replace('FORBIDDEN: ', '');
+    } else if (message.startsWith('VALIDATION_FAILED:')) {
+      status = 400;
+      code = 'VALIDATION_FAILED';
+      message = message.replace('VALIDATION_FAILED: ', '');
+    } else if (message.startsWith('RATE_LIMIT_EXCEEDED:')) {
+      status = 429;
+      code = 'RATE_LIMIT_EXCEEDED';
+      message = message.replace('RATE_LIMIT_EXCEEDED: ', '');
+    }
+  }
+
+  return new Response(
+    JSON.stringify({
+      error: { message, code },
+    }),
+    {
+      status,
+      headers: {
+        'Content-Type': 'application/json',
+        ...corsHeaders,
+        ...additionalHeaders,
+      },
+    }
+  );
+}
 
 interface ReviewDetailResponse {
   id: number;
@@ -40,12 +127,6 @@ serve(async req => {
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
-
-    // STEP 3: Rate Limiting
-    const rateLimitResult = await checkRateLimit(req, { windowMs: 60000, maxRequests: 20 });
-    if (!rateLimitResult.success) {
-      throw RateLimitError;
-    }
 
     // STEP 4: Extract slug from request (support both GET params and POST body)
     let slug;
@@ -82,7 +163,7 @@ serve(async req => {
       }
     }
 
-    console.log(`Fetching review with slug: ${slug} for user: ${userId}`);
+    console.log(`🔍 EDGE FUNCTION: Fetching review with slug: ${slug} for user: ${userId}`);
 
     // Try to parse as ID first, then fall back to title-based lookup
     const parsedId = parseInt(slug, 10);
@@ -92,7 +173,7 @@ serve(async req => {
     let basicError = null;
 
     if (isNumericId) {
-      console.log(`Looking up review by ID: ${parsedId}`);
+      console.log(`🔍 EDGE FUNCTION: Looking up review by ID: ${parsedId}`);
       // Try ID-based lookup first
       let query = supabase
         .from('Reviews')
@@ -134,7 +215,7 @@ serve(async req => {
     // Fall back to title-based lookup if ID lookup failed or wasn't attempted
     if (!basicReview && !basicError) {
       const decodedSlug = decodeURIComponent(slug);
-      console.log(`Looking up review by title: ${decodedSlug}`);
+      console.log(`🔍 EDGE FUNCTION: Looking up review by title: ${decodedSlug}`);
 
       let query = supabase
         .from('Reviews')
@@ -174,13 +255,13 @@ serve(async req => {
     }
 
     if (basicError) {
-      console.error('Basic review fetch error:', basicError);
+      console.error('❌ EDGE FUNCTION: Basic review fetch error:', basicError);
       throw new Error(`Failed to fetch review: ${basicError.message}`);
     }
 
     if (!basicReview) {
       const decodedSlug = decodeURIComponent(slug);
-      console.log(`No review found with title: ${decodedSlug}`);
+      console.log(`🔍 EDGE FUNCTION: No review found with title: ${decodedSlug}`);
 
       // Let's also try a LIKE search to be more flexible
       let fuzzyQuery = supabase
@@ -236,6 +317,8 @@ serve(async req => {
       };
     }
 
+    console.log(`✅ EDGE FUNCTION: Found review ${review.id}: "${review.title}"`);
+
     // STEP 6: Access Control Validation
     const isPublic = review.access_level === 'public';
     const isFreeUser = userId && review.access_level === 'free';
@@ -269,7 +352,7 @@ serve(async req => {
         tags = tagData.map((rt: any) => rt.Tags?.tag_name).filter(Boolean) || [];
       }
     } catch (tagError) {
-      console.warn('Failed to fetch tags, continuing without them:', tagError);
+      console.warn('⚠️ EDGE FUNCTION: Failed to fetch tags, continuing without them:', tagError);
       // Continue without tags rather than failing the entire request
     }
 
@@ -279,17 +362,91 @@ serve(async req => {
         .from('Reviews')
         .update({ view_count: (review.view_count || 0) + 1 })
         .eq('id', review.id)
-        .then(() => console.log(`View count incremented for review ${review.id}`))
-        .catch(err => console.error('Failed to increment view count:', err));
+        .then(() => console.log(`📈 EDGE FUNCTION: View count incremented for review ${review.id}`))
+        .catch(err => console.error('❌ EDGE FUNCTION: Failed to increment view count:', err));
     }
 
-    // STEP 8: Build Response
+    // STEP 8: Enhanced V3 Content Bridge - Prioritize V3 content from editor
+    let finalStructuredContent = review.structured_content;
+    let contentBridgeUsed = false;
+    
+    console.log(`🔍 V3 CONTENT BRIDGE: Starting content bridge for review ${review.id}`);
+    console.log(`📊 V3 CONTENT BRIDGE: Legacy content type: ${Array.isArray(review.structured_content) ? 'array' : typeof review.structured_content}, length: ${Array.isArray(review.structured_content) ? review.structured_content.length : 'N/A'}`);
+    
+    try {
+      console.log(`🔍 V3 CONTENT BRIDGE: Checking for V3 editor content in review_editor_content table...`);
+      
+      // Try to fetch V3 content from review_editor_content table
+      const { data: editorContent, error: editorError } = await supabase
+        .from('review_editor_content')
+        .select('structured_content, updated_at')
+        .eq('review_id', review.id)
+        .single();
+      
+      if (editorError) {
+        if (editorError.code === 'PGRST116') {
+          console.log(`📝 V3 CONTENT BRIDGE: No V3 editor content found for review ${review.id} (expected for legacy reviews)`);
+        } else {
+          console.error(`❌ V3 CONTENT BRIDGE: Database error fetching editor content for review ${review.id}:`, editorError);
+        }
+      } else if (editorContent) {
+        console.log(`✅ V3 CONTENT BRIDGE: Found V3 editor content for review ${review.id}!`);
+        console.log(`📊 V3 CONTENT BRIDGE: V3 Content structure analysis:`, {
+          hasStructuredContent: Boolean(editorContent.structured_content),
+          hasVersion: Boolean(editorContent.structured_content?.version),
+          version: editorContent.structured_content?.version,
+          hasNodes: Boolean(editorContent.structured_content?.nodes),
+          nodeCount: editorContent.structured_content?.nodes?.length || 0,
+          hasPositions: Boolean(editorContent.structured_content?.positions),
+          positionCount: Object.keys(editorContent.structured_content?.positions || {}).length,
+          hasMobilePositions: Boolean(editorContent.structured_content?.mobilePositions),
+          mobilePositionCount: Object.keys(editorContent.structured_content?.mobilePositions || {}).length,
+          updatedAt: editorContent.updated_at
+        });
+        
+        // Validate V3 content structure before using
+        if (editorContent.structured_content?.version === '3.0.0' && 
+            editorContent.structured_content?.nodes && 
+            Array.isArray(editorContent.structured_content.nodes)) {
+          
+          finalStructuredContent = editorContent.structured_content;
+          contentBridgeUsed = true;
+          console.log(`🚀 V3 CONTENT BRIDGE: Successfully using V3 content with ${editorContent.structured_content.nodes.length} nodes!`);
+          console.log(`📊 V3 CONTENT BRIDGE: V3 node types:`, editorContent.structured_content.nodes.map(node => ({ id: node.id, type: node.type })));
+        } else {
+          console.warn(`⚠️ V3 CONTENT BRIDGE: Editor content exists but invalid V3 format for review ${review.id}:`);
+          console.warn(`⚠️ V3 CONTENT BRIDGE: - Version: ${editorContent.structured_content?.version} (expected: "3.0.0")`);
+          console.warn(`⚠️ V3 CONTENT BRIDGE: - Has nodes: ${Boolean(editorContent.structured_content?.nodes)}`);
+          console.warn(`⚠️ V3 CONTENT BRIDGE: - Nodes is array: ${Array.isArray(editorContent.structured_content?.nodes)}`);
+          console.warn(`⚠️ V3 CONTENT BRIDGE: Falling back to legacy content`);
+        }
+      }
+    } catch (bridgeError) {
+      console.error(`💥 V3 CONTENT BRIDGE: Unexpected error in content bridge for review ${review.id}:`, bridgeError);
+      console.error(`💥 V3 CONTENT BRIDGE: Error details:`, {
+        name: bridgeError.name,
+        message: bridgeError.message,
+        stack: bridgeError.stack
+      });
+      console.log(`🔄 V3 CONTENT BRIDGE: Continuing with legacy content due to error`);
+    }
+
+    // Debug logging for final content format
+    if (Array.isArray(finalStructuredContent)) {
+      console.log(`📄 FINAL CONTENT: Legacy array format with ${finalStructuredContent.length} blocks (bridge used: ${contentBridgeUsed})`);
+    } else if (finalStructuredContent?.version === '3.0.0') {
+      console.log(`🎯 FINAL CONTENT: V3 format with ${finalStructuredContent.nodes?.length || 0} nodes (bridge used: ${contentBridgeUsed})`);
+    } else {
+      console.log(`❓ FINAL CONTENT: Unknown format: ${typeof finalStructuredContent} (bridge used: ${contentBridgeUsed})`);
+    }
+
+    // STEP 9: Build Response
     const response: ReviewDetailResponse = {
       id: review.id,
       title: review.title,
       description: review.description,
       cover_image_url: review.cover_image_url,
-      structured_content: review.structured_content,
+      structured_content: finalStructuredContent,
       published_at: review.published_at,
       author: review.author,
       access_level: review.access_level,
@@ -298,13 +455,13 @@ serve(async req => {
       tags,
     };
 
-    console.log(`Successfully fetched review: ${review.title} with ${tags.length} tags`);
+    console.log(`✅ EDGE FUNCTION: Successfully returning review "${review.title}" with ${tags.length} tags (V3 bridge: ${contentBridgeUsed})`);
 
-    // STEP 9: Standardized Success Response
-    return createSuccessResponse(response, rateLimitHeaders(rateLimitResult));
+    // STEP 10: Standardized Success Response
+    return createSuccessResponse(response);
   } catch (error) {
-    // STEP 10: Centralized Error Handling
-    console.error('Review detail fetch error:', error);
+    // STEP 11: Centralized Error Handling
+    console.error('💥 EDGE FUNCTION: Review detail fetch error:', error);
     return createErrorResponse(error);
   }
 });
