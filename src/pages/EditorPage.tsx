@@ -16,14 +16,13 @@ import { useEditorStore } from '@/store/editorStore';
 import { EditorSidebar } from '@/components/editor/EditorSidebar';
 import { WYSIWYGCanvas } from '@/components/editor/WYSIWYGCanvas';
 import { UnifiedToolbar } from '@/components/editor/UnifiedToolbar';
-import { PersistenceIndicator } from '@/components/editor/PersistenceIndicator';
 import { HistoryIndicator } from '@/components/editor/HistoryIndicator';
 import { BackupRecoveryDialog } from '@/components/editor/BackupRecoveryDialog';
 import { useEnhancedPersistence } from '../hooks/useEnhancedPersistence';
 import { useCrashRecovery } from '../hooks/useCrashRecovery';
 import { Button } from '@/components/ui/button';
 import { getDefaultDataForBlockType } from '@/types/editor';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Save } from 'lucide-react';
 import {
   useEditorSaveMutation,
 } from '../../packages/hooks/useEditorPersistence';
@@ -263,16 +262,38 @@ export default function EditorPage() {
                 <div className="h-4 w-px bg-gray-300" />
                 <h1 className="text-lg font-semibold">Content Editor</h1>
                 <span className="text-sm text-muted-foreground">Review ID: {reviewId}</span>
-                {isDirty && (
-                  <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">
-                    Unsaved changes
-                  </span>
-                )}
               </div>
 
               <div className="flex items-center space-x-4">
-                {/* Enhanced Persistence Indicator with Save functionality */}
-                <PersistenceIndicator state={persistenceState} actions={persistenceActions} />
+                {/* Unified Save State Indicator - Single source of truth */}
+                <div className="flex items-center gap-2">
+                  {isSaving ? (
+                    <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded flex items-center gap-1">
+                      <div className="animate-spin h-3 w-3 border border-blue-600 border-t-transparent rounded-full"></div>
+                      Saving...
+                    </span>
+                  ) : isDirty ? (
+                    <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">
+                      Unsaved changes
+                    </span>
+                  ) : (
+                    <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
+                      All changes saved {lastSaved ? `• ${formatLastSaved(lastSaved)}` : ''}
+                    </span>
+                  )}
+                  
+                  {/* Manual Save Button */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleSave}
+                    disabled={isSaving || !isDirty}
+                    className="h-6 px-2"
+                  >
+                    <Save size={12} />
+                    <span className="ml-1 text-xs">Save</span>
+                  </Button>
+                </div>
 
                 {/* File Operations - Consolidated from UnifiedToolbar */}
                 <div className="flex items-center gap-2">

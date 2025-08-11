@@ -7,21 +7,13 @@ import { useReviewDetailQuery } from '../../packages/hooks/useReviewDetailQuery'
 import LayoutAwareRenderer from '@/components/review-detail/LayoutAwareRenderer';
 import WYSIWYGRenderer from '@/components/review-detail/WYSIWYGRenderer';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AlertTriangle, Lock, Edit } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { AlertTriangle, Lock } from 'lucide-react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { useAuthStore } from '@/store/auth';
 
 const ReviewDetailPageContent = () => {
   const { slug } = useParams<{ slug: string }>();
   const { data: review, isLoading, isError, error } = useReviewDetailQuery(slug);
-  const { user } = useAuthStore();
 
-  // Check if user has admin/editor role
-  const userRole = user?.app_metadata?.role || 'practitioner';
-  const canEdit = ['admin', 'editor'].includes(userRole);
-
-  console.log('ReviewDetailPage render:', { slug, review, isLoading, isError, error });
 
   // Loading state with skeleton loaders
   if (isLoading) {
@@ -131,13 +123,6 @@ const ReviewDetailPageContent = () => {
     );
   }
 
-  console.log('Rendering review successfully:', {
-    title: review.title,
-    contentFormat: review.contentFormat,
-    nodeCount: review.nodeCount,
-    hasPositions: review.hasPositions,
-    hasMobilePositions: review.hasMobilePositions,
-  });
 
   return (
     <div className="min-h-screen bg-background">
@@ -148,16 +133,6 @@ const ReviewDetailPageContent = () => {
             <h1 className="text-4xl font-bold text-foreground font-serif leading-tight flex-1">
               {review.title}
             </h1>
-            {canEdit && review.id && (
-              <div className="ml-6 flex-shrink-0">
-                <Button asChild size="sm" variant="outline">
-                  <Link to={`/editor/${review.id}`}>
-                    <Edit size={16} className="mr-2" />
-                    Edit
-                  </Link>
-                </Button>
-              </div>
-            )}
           </div>
           
           {review.description && (
@@ -213,56 +188,16 @@ const ReviewDetailPageContent = () => {
                     isReadOnly={true}
                     className="review-v3-content"
                   />
-                  
-                  {/* Development format indicator */}
-                  {process.env.NODE_ENV === 'development' && (
-                    <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg">
-                      <div className="flex items-center gap-2 text-sm text-blue-700 dark:text-blue-300">
-                        <span className="font-medium">V3 Content Bridge:</span>
-                        <span>Using V3 Native Renderer</span>
-                        <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900 rounded text-xs">
-                          {review.nodeCount} blocks • {review.hasPositions ? 'Positioned' : 'Vertical'} • 
-                          {review.hasMobilePositions ? ' Mobile-optimized' : ' Scaled'}
-                        </span>
-                      </div>
-                    </div>
-                  )}
                 </div>
               ) : review.contentFormat === 'v2' ? (
                 <div className="v2-content">
                   {/* Legacy V2 Layout-Aware Renderer */}
                   <LayoutAwareRenderer content={review.structured_content} />
-                  
-                  {/* Development format indicator */}
-                  {process.env.NODE_ENV === 'development' && (
-                    <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg">
-                      <div className="flex items-center gap-2 text-sm text-amber-700 dark:text-amber-300">
-                        <span className="font-medium">Legacy Content:</span>
-                        <span>Using V2 Layout Renderer</span>
-                        <span className="px-2 py-1 bg-amber-100 dark:bg-amber-900 rounded text-xs">
-                          {review.nodeCount} blocks • Grid-based
-                        </span>
-                      </div>
-                    </div>
-                  )}
                 </div>
               ) : (
                 <div className="legacy-content">
                   {/* Fallback for unknown/legacy formats */}
                   <LayoutAwareRenderer content={review.structured_content} />
-                  
-                  {/* Development format indicator */}
-                  {process.env.NODE_ENV === 'development' && (
-                    <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-950/30 border border-gray-200 dark:border-gray-800 rounded-lg">
-                      <div className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                        <span className="font-medium">Unknown Format:</span>
-                        <span>Using Legacy Fallback Renderer</span>
-                        <span className="px-2 py-1 bg-gray-100 dark:bg-gray-900 rounded text-xs">
-                          {review.contentFormat} • {review.nodeCount} elements
-                        </span>
-                      </div>
-                    </div>
-                  )}
                 </div>
               )}
             </div>

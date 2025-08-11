@@ -582,6 +582,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
       const state = get();
       const originalNode = state.nodes.find(n => n.id === nodeId);
       const originalPosition = state.positions[nodeId];
+      const originalMobilePosition = state.mobilePositions[nodeId];
       if (!originalNode || !originalPosition) return;
 
       // Create duplicate with new ID
@@ -598,6 +599,19 @@ export const useEditorStore = create<EditorState>((set, get) => {
         y: originalPosition.y + 20,
       };
 
+      // AUTO-GENERATE mobile position for duplicate to sync with mobile canvas
+      const duplicateMobilePosition = originalMobilePosition ? {
+        ...originalMobilePosition,
+        id: duplicateNode.id,
+        y: originalMobilePosition.y + originalMobilePosition.height + 20, // Stack below original with spacing
+      } : {
+        id: duplicateNode.id,
+        x: 0, // Full width on mobile
+        y: Object.keys(state.mobilePositions).length * 220, // Stack vertically with spacing
+        width: 375, // Mobile canvas width
+        height: duplicatePosition.height,
+      };
+
       set(state => {
         const updatedState = {
           ...state,
@@ -605,6 +619,10 @@ export const useEditorStore = create<EditorState>((set, get) => {
           positions: {
             ...state.positions,
             [duplicateNode.id]: duplicatePosition,
+          },
+          mobilePositions: {
+            ...state.mobilePositions,
+            [duplicateNode.id]: duplicateMobilePosition,
           },
           selectedNodeId: duplicateNode.id,
           isDirty: true,
