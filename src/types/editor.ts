@@ -2,6 +2,63 @@
 
 import { z } from 'zod';
 
+// ===== ENHANCED PADDING SYSTEM =====
+
+// Viewport-specific padding with zero-to-positive range (0px to +100px)
+export const ViewportPaddingSchema = z.object({
+  top: z.number().min(0).max(100).optional(),
+  right: z.number().min(0).max(100).optional(), 
+  bottom: z.number().min(0).max(100).optional(),
+  left: z.number().min(0).max(100).optional(),
+});
+
+// Enhanced padding system supporting both legacy and viewport-specific padding
+export const EnhancedPaddingSchema = z.object({
+  // Viewport-specific padding (new system)
+  desktopPadding: ViewportPaddingSchema.optional(),
+  mobilePadding: ViewportPaddingSchema.optional(),
+  
+  // Legacy individual padding (for backward compatibility)
+  paddingTop: z.number().min(0).max(100).optional(),
+  paddingRight: z.number().min(0).max(100).optional(),
+  paddingBottom: z.number().min(0).max(100).optional(),
+  paddingLeft: z.number().min(0).max(100).optional(),
+  
+  // Legacy symmetric padding (for migration only)
+  paddingX: z.number().optional(), // @deprecated - for migration only
+  paddingY: z.number().optional(), // @deprecated - for migration only
+});
+
+// ===== BLOCK PRESET SYSTEM =====
+
+// Block preset metadata
+export const BlockPresetMetadataSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string().min(1).max(50),
+  description: z.string().max(200).optional(),
+  category: z.enum(['text', 'media', 'layout', 'custom']).default('custom'),
+  createdAt: z.string().datetime(),
+  lastUsed: z.string().datetime().optional(),
+  useCount: z.number().int().min(0).default(0),
+  isFavorite: z.boolean().default(false),
+  tags: z.array(z.string()).optional(),
+});
+
+// Complete block preset data structure
+export const BlockPresetSchema = z.object({
+  metadata: BlockPresetMetadataSchema,
+  blockType: z.string(), // e.g., 'richBlock', 'textBlock', etc.
+  blockData: z.record(z.any()), // The actual block data to be applied
+  thumbnail: z.string().optional(), // Base64 encoded thumbnail for preview
+});
+
+// Block preset collection for localStorage persistence
+export const BlockPresetCollectionSchema = z.object({
+  version: z.literal('1.0'),
+  presets: z.array(BlockPresetSchema),
+  lastModified: z.string().datetime(),
+});
+
 // ===== LAYOUT SYSTEM =====
 
 export const LayoutItemSchema = z.object({
@@ -90,12 +147,10 @@ export const TextBlockDataSchema = z.object({
   textDecoration: z.enum(['none', 'underline', 'line-through']).optional(),
   // Background and borders
   backgroundColor: z.string().optional(),
-  paddingX: z.number().optional(),
-  paddingY: z.number().optional(),
   borderRadius: z.number().optional(),
   borderWidth: z.number().default(0),
   borderColor: z.string().optional(),
-});
+}).merge(EnhancedPaddingSchema);
 
 export const ImageBlockDataSchema = z.object({
   src: z.string(),
@@ -105,9 +160,7 @@ export const ImageBlockDataSchema = z.object({
   borderRadius: z.number().optional(),
   width: z.number().optional(),
   height: z.number().optional(),
-  // Spacing and styling
-  paddingX: z.number().optional(),
-  paddingY: z.number().optional(),
+  // Spacing and styling 
   backgroundColor: z.string().optional(),
   borderWidth: z.number().default(0),
   borderColor: z.string().optional(),
@@ -122,7 +175,7 @@ export const ImageBlockDataSchema = z.object({
   textTransform: z.enum(['none', 'uppercase', 'lowercase', 'capitalize']).optional(),
   textDecoration: z.enum(['none', 'underline', 'line-through']).optional(),
   fontStyle: z.enum(['normal', 'italic']).optional(),
-});
+}).merge(EnhancedPaddingSchema);
 
 // DEPRECATED: TableBlockDataSchema - Use RichBlockDataSchema with TipTap table extension instead
 // This schema is maintained for backward compatibility and migration purposes only
@@ -140,8 +193,6 @@ export const TableBlockDataSchema = z.object({
   alternatingRowColors: z.boolean().optional(),
   sortable: z.boolean().default(true),
   // Spacing and styling properties
-  paddingX: z.number().optional(),
-  paddingY: z.number().optional(),
   backgroundColor: z.string().optional(),
   borderRadius: z.number().optional(),
   borderWidth: z.number().default(0),
@@ -157,7 +208,7 @@ export const TableBlockDataSchema = z.object({
   textTransform: z.enum(['none', 'uppercase', 'lowercase', 'capitalize']).optional(),
   textDecoration: z.enum(['none', 'underline', 'line-through']).optional(),
   fontStyle: z.enum(['normal', 'italic']).optional(),
-});
+}).merge(EnhancedPaddingSchema);
 
 // REMOVED: PollBlockDataSchema - Poll functionality moved to community-only features
 // Editor polls were removed as part of M1.2 selection system cleanup
@@ -169,9 +220,6 @@ export const KeyTakeawayBlockDataSchema = z.object({
   icon: z.string().optional(),
   theme: z.enum(['info', 'success', 'warning', 'error']).default('info'),
   backgroundColor: z.string().optional(),
-  // Universal styling properties
-  paddingX: z.number().optional(),
-  paddingY: z.number().optional(),
   borderRadius: z.number().optional(),
   borderWidth: z.number().default(0),
   borderColor: z.string().optional(),
@@ -186,7 +234,7 @@ export const KeyTakeawayBlockDataSchema = z.object({
   textTransform: z.enum(['none', 'uppercase', 'lowercase', 'capitalize']).optional(),
   textDecoration: z.enum(['none', 'underline', 'line-through']).optional(),
   fontStyle: z.enum(['normal', 'italic']).optional(),
-});
+}).merge(EnhancedPaddingSchema);
 
 export const ReferenceBlockDataSchema = z.object({
   authors: z.string(),
@@ -198,8 +246,6 @@ export const ReferenceBlockDataSchema = z.object({
   formatted: z.string().optional(), // Legacy APA formatted citation (plain text)
   htmlFormatted: z.string().optional(), // HTML formatted citation for rich text editing
   // Universal styling properties
-  paddingX: z.number().optional(),
-  paddingY: z.number().optional(),
   backgroundColor: z.string().optional(),
   borderRadius: z.number().optional(),
   borderWidth: z.number().default(0),
@@ -215,7 +261,7 @@ export const ReferenceBlockDataSchema = z.object({
   textTransform: z.enum(['none', 'uppercase', 'lowercase', 'capitalize']).optional(),
   textDecoration: z.enum(['none', 'underline', 'overline', 'line-through']).optional(),
   fontStyle: z.enum(['normal', 'italic', 'oblique']).optional(),
-});
+}).merge(EnhancedPaddingSchema);
 
 export const QuoteBlockDataSchema = z.object({
   // HTML content for typography integration (like TextBlock)
@@ -224,9 +270,6 @@ export const QuoteBlockDataSchema = z.object({
   authorImage: z.string().optional(),
   style: z.enum(['default']).default('default'),
   borderColor: z.string().optional(),
-  // Universal styling properties
-  paddingX: z.number().optional(),
-  paddingY: z.number().optional(),
   backgroundColor: z.string().optional(),
   borderRadius: z.number().optional(),
   borderWidth: z.number().default(0),
@@ -241,34 +284,30 @@ export const QuoteBlockDataSchema = z.object({
   textTransform: z.enum(['none', 'uppercase', 'lowercase', 'capitalize']).optional(),
   textDecoration: z.enum(['none', 'underline', 'line-through']).optional(),
   fontStyle: z.enum(['normal', 'italic']).optional(),
-});
+}).merge(EnhancedPaddingSchema);
 
 export const VideoEmbedBlockDataSchema = z.object({
   url: z.string(),
   platform: z.enum(['youtube', 'vimeo']),
   autoplay: z.boolean().default(false),
   // Spacing and styling
-  paddingX: z.number().optional(),
-  paddingY: z.number().optional(),
   backgroundColor: z.string().optional(),
   borderWidth: z.number().default(0),
   borderColor: z.string().optional(),
   borderRadius: z.number().optional(),
-});
+}).merge(EnhancedPaddingSchema);
 
 export const SeparatorBlockDataSchema = z.object({
   style: z.enum(['solid', 'dashed', 'dotted']).default('solid'),
   color: z.string().optional(),
   thickness: z.number().min(1).max(10).default(1),
   width: z.enum(['full', 'half', 'quarter']).default('full'),
-  // Universal styling properties for separator container
-  paddingX: z.number().optional(),
-  paddingY: z.number().optional(),
+  // Universal styling properties
   backgroundColor: z.string().optional(),
   borderRadius: z.number().optional(),
   borderWidth: z.number().default(0),
   borderColor: z.string().optional(),
-});
+}).merge(EnhancedPaddingSchema);
 
 // UNIFIED: RichBlockDataSchema - Single schema for all rich content including tables, text, images, videos
 // TipTap extensions handle tables (customTable) natively within the editor
@@ -278,15 +317,11 @@ export const RichBlockDataSchema = z.object({
     tiptapJSON: z.any().optional(), // TipTap editor JSON content with native table support
     htmlContent: z.string().default('<p>Start typing...</p>'), // HTML representation for fallback display
   }),
-  // Universal styling properties (following existing pattern)
-  paddingX: z.number().optional(),
-  paddingY: z.number().optional(),
+  // Universal styling properties
   backgroundColor: z.string().optional(),
   borderRadius: z.number().optional(),
   borderWidth: z.number().default(0),
   borderColor: z.string().optional(),
-  // Auto-height behavior - dynamically adjusts block height based on content
-  autoHeight: z.boolean().optional(),
   // Typography properties
   textAlign: z.enum(['left', 'center', 'right', 'justify']).optional(),
   color: z.string().optional(),
@@ -308,7 +343,7 @@ export const RichBlockDataSchema = z.object({
     })),
     lastAnalyzed: z.string().optional(), // ISO string timestamp
   }).optional(),
-});
+}).merge(EnhancedPaddingSchema);
 
 // ===== MASTER NODE SCHEMA =====
 // NOTE: tableBlock and pollBlock are DEPRECATED
@@ -368,7 +403,8 @@ export const StructuredContentV2Schema = z.object({
 export const StructuredContentV3Schema = z.object({
   version: z.literal('3.0.0'),
   nodes: z.array(NodeSchema),
-  positions: BlockPositionsSchema, // Direct pixel positions instead of complex layouts
+  positions: BlockPositionsSchema, // Direct pixel positions for desktop
+  mobilePositions: BlockPositionsSchema.optional(), // Optional mobile-specific positions
   canvas: WYSIWYGCanvasSchema, // Canvas configuration and metadata
   globalStyles: z.record(z.any()).optional(),
   metadata: z
@@ -421,6 +457,15 @@ export type QuoteBlockData = z.infer<typeof QuoteBlockDataSchema>;
 export type VideoEmbedBlockData = z.infer<typeof VideoEmbedBlockDataSchema>;
 export type SeparatorBlockData = z.infer<typeof SeparatorBlockDataSchema>;
 export type RichBlockData = z.infer<typeof RichBlockDataSchema>;
+
+// Enhanced padding system types
+export type ViewportPadding = z.infer<typeof ViewportPaddingSchema>;
+export type EnhancedPadding = z.infer<typeof EnhancedPaddingSchema>;
+
+// Block preset system types
+export type BlockPresetMetadata = z.infer<typeof BlockPresetMetadataSchema>;
+export type BlockPreset = z.infer<typeof BlockPresetSchema>;
+export type BlockPresetCollection = z.infer<typeof BlockPresetCollectionSchema>;
 
 // ===== EDITOR STATE TYPES =====
 
@@ -545,10 +590,6 @@ export interface ContentBoundaryProps {
   onResize?: (dimensions: { width: number; height: number }) => void;
   /** Callback when content is moved */
   onMove?: (position: { x: number; y: number }) => void;
-  /** Callback when auto-height should be disabled due to manual height resize */
-  onAutoHeightDisable?: () => void;
-  /** Whether auto-height is currently enabled (for visual feedback) */
-  autoHeight?: boolean;
   /** Callback when block is selected (for unified selection system) */
   onSelect?: () => void;
   /** Whether resize handles should be visible */
@@ -585,8 +626,10 @@ export interface EditorState {
 
   // Content State (structured_content v3.0 - WYSIWYG positioning)
   nodes: NodeObject[];
-  positions: BlockPositions; // Direct pixel positioning
+  positions: BlockPositions; // Direct pixel positioning for desktop
+  mobilePositions: BlockPositions; // Direct pixel positioning for mobile
   canvas: WYSIWYGCanvas; // Canvas configuration
+  currentViewport: Viewport; // Current editing viewport (desktop/mobile)
 
   // Editor State
   selectedNodeId: string | null;
@@ -609,7 +652,6 @@ export interface EditorState {
 
   // Legacy support for migration
   layouts?: MasterDerivedLayouts; // Optional for backward compatibility
-  currentViewport?: Viewport; // Optional for backward compatibility
   canvasTransform?: CanvasTransform; // Optional for backward compatibility
   canvasTheme?: 'light' | 'dark'; // Optional for backward compatibility
   canvasBackgroundColor?: string; // Canvas background color using theme tokens
@@ -681,11 +723,9 @@ export interface EditorState {
   // Legacy Layout Actions (for backward compatibility)
   updateLayout: (nodeId: string, layout: LayoutItem, viewport: Viewport) => void;
 
-  // Master/Derived Layout System
+  // Dual Viewport System  
   switchViewport: (viewport: Viewport) => void;
-  generateMobileFromDesktop: () => void;
-  shouldRegenerateMobile: () => boolean;
-  resetMobileLayout: () => void;
+  generateMobileLayout: () => void; // Simple mobile layout generation from desktop
   updateCanvasTransform: (transform: Partial<CanvasTransform>) => void;
   setCanvasTheme: (theme: 'light' | 'dark') => void;
   setCanvasBackgroundColor: (color: string) => void;
@@ -858,14 +898,110 @@ export const validateStructuredContent = (content: unknown): StructuredContent =
         const migrated = migrateStructuredContent(content);
         return StructuredContentSchema.parse(migrated);
       } catch (migrationError) {
-        console.error('[Schema Migration] Migration failed:', migrationError);
-        throw new Error(
-          `Invalid structured content: ${error.errors.map(e => e.message).join(', ')}`
-        );
+        // ENHANCED: Log detailed error context but don't fail on legacy data
+        console.warn('[Legacy Data] Validation failed, attempting graceful fallback:', {
+          originalError: error.errors,
+          migrationError: migrationError,
+          contentSample: JSON.stringify(content).substring(0, 200)
+        });
+        
+        // If legacy data conflicts exist, create clean v3.0.0 structure
+        return createCleanV3Structure(content);
       }
     }
     throw error;
   }
+};
+
+/**
+ * Create clean V3 structure when legacy data conflicts prevent normal migration
+ */
+const createCleanV3Structure = (content: any): StructuredContentV3 => {
+  const now = new Date().toISOString();
+  
+  // Try to preserve any valid nodes from the original content
+  let preservedNodes: any[] = [];
+  if (content && Array.isArray(content.nodes)) {
+    preservedNodes = content.nodes.filter((node: any) => {
+      // Basic validation - preserve nodes that have essential properties
+      return node && 
+             typeof node === 'object' && 
+             node.id && 
+             node.type && 
+             node.data;
+    }).map((node: any) => {
+      // Clean up node data to ensure compatibility
+      try {
+        return migrateLegacyBlockData(node);
+      } catch {
+        // If migration fails, create a basic fallback node
+        return {
+          id: node.id || generateNodeId(),
+          type: 'richBlock',
+          data: {
+            content: { htmlContent: '<p>Content preserved from legacy data</p>' },
+            backgroundColor: 'transparent',
+            paddingX: 16,
+            paddingY: 16,
+            borderRadius: 8,
+            borderWidth: 0,
+            borderColor: '#e5e7eb',
+          }
+        };
+      }
+    });
+  }
+  
+  // Create positions for preserved nodes
+  const positions: Record<string, any> = {};
+  const mobilePositions: Record<string, any> = {};
+  
+  preservedNodes.forEach((node, index) => {
+    const nodeId = node.id;
+    // Stack nodes vertically with some spacing
+    const yOffset = index * 220;
+    
+    positions[nodeId] = {
+      id: nodeId,
+      x: 100,
+      y: 100 + yOffset,
+      width: 600,
+      height: 200
+    };
+    
+    mobilePositions[nodeId] = {
+      id: nodeId,
+      x: 0,
+      y: 100 + yOffset,
+      width: 375,
+      height: 200
+    };
+  });
+  
+  console.log('[Graceful Recovery] Preserved nodes from legacy content:', {
+    originalNodeCount: content?.nodes?.length || 0,
+    preservedNodeCount: preservedNodes.length,
+    hasOriginalContent: !!(content && typeof content === 'object')
+  });
+  
+  return {
+    version: '3.0.0',
+    nodes: preservedNodes,
+    positions,
+    mobilePositions,
+    canvas: {
+      canvasWidth: 800,
+      canvasHeight: 600,
+      gridColumns: 12,
+      snapTolerance: 10
+    },
+    metadata: {
+      createdAt: now,
+      updatedAt: now,
+      editorVersion: '2.0.0',
+      migratedFrom: 'legacy-conflict-recovery'
+    }
+  };
 };
 
 // Function to migrate entire structured content from legacy format
@@ -877,6 +1013,96 @@ const migrateStructuredContent = (content: any): any => {
   // Migrate nodes if present
   if (Array.isArray(migratedContent.nodes)) {
     migratedContent.nodes = migratedContent.nodes.map(migrateLegacyBlockData);
+  }
+
+  // Check if this is V2 content that needs layout migration to V3 positions
+  if (content.version === '2.0.0' && content.layouts && !content.positions) {
+    console.log('[V2 Migration] Converting V2 layouts to V3 positions');
+    
+    // Convert V2 grid layouts to V3 absolute positions
+    const positions: Record<string, any> = {};
+    const mobilePositions: Record<string, any> = {};
+    
+    // Grid configuration for V2 -> V3 conversion
+    const DESKTOP_GRID_WIDTH = 800;
+    const MOBILE_GRID_WIDTH = 375;
+    const GRID_COLS = 12;
+    const COL_WIDTH_DESKTOP = DESKTOP_GRID_WIDTH / GRID_COLS;
+    const COL_WIDTH_MOBILE = MOBILE_GRID_WIDTH / GRID_COLS;
+    const ROW_HEIGHT = 50; // Standard row height
+    
+    // Convert desktop layout (lg breakpoint)
+    if (content.layouts.lg && Array.isArray(content.layouts.lg)) {
+      content.layouts.lg.forEach((layoutItem: any) => {
+        if (layoutItem.i) {
+          positions[layoutItem.i] = {
+            id: layoutItem.i,
+            x: (layoutItem.x || 0) * COL_WIDTH_DESKTOP,
+            y: (layoutItem.y || 0) * ROW_HEIGHT,
+            width: (layoutItem.w || 4) * COL_WIDTH_DESKTOP,
+            height: (layoutItem.h || 4) * ROW_HEIGHT
+          };
+        }
+      });
+    }
+    
+    // Convert mobile layout (xs or sm breakpoint)
+    const mobileLayout = content.layouts.xs || content.layouts.sm;
+    if (mobileLayout && Array.isArray(mobileLayout)) {
+      mobileLayout.forEach((layoutItem: any) => {
+        if (layoutItem.i) {
+          mobilePositions[layoutItem.i] = {
+            id: layoutItem.i,
+            x: (layoutItem.x || 0) * COL_WIDTH_MOBILE,
+            y: (layoutItem.y || 0) * ROW_HEIGHT,
+            width: (layoutItem.w || 4) * COL_WIDTH_MOBILE,
+            height: (layoutItem.h || 4) * ROW_HEIGHT
+          };
+        }
+      });
+    } else {
+      // Fallback: Use desktop positions but adjust for mobile width
+      Object.entries(positions).forEach(([nodeId, pos]: [string, any]) => {
+        mobilePositions[nodeId] = {
+          id: nodeId,
+          x: 0, // Stack vertically on mobile
+          y: pos.y,
+          width: MOBILE_GRID_WIDTH,
+          height: pos.height
+        };
+      });
+    }
+    
+    // Update to V3 structure
+    migratedContent.version = '3.0.0';
+    migratedContent.positions = positions;
+    migratedContent.mobilePositions = mobilePositions;
+    
+    // Add V3 canvas properties
+    migratedContent.canvas = {
+      canvasWidth: DESKTOP_GRID_WIDTH,
+      canvasHeight: 600,
+      gridColumns: GRID_COLS,
+      snapTolerance: 10
+    };
+    
+    // Update metadata to reflect migration
+    const now = new Date().toISOString();
+    migratedContent.metadata = {
+      ...migratedContent.metadata,
+      updatedAt: now,
+      editorVersion: '2.0.0',
+      migratedFrom: 'v2-layouts'
+    };
+    
+    // Remove old V2 layouts property
+    delete migratedContent.layouts;
+    
+    console.log('[V2 Migration] Successfully converted layouts to positions:', {
+      positionCount: Object.keys(positions).length,
+      mobilePositionCount: Object.keys(mobilePositions).length,
+      nodeCount: migratedContent.nodes?.length || 0
+    });
   }
 
   return migratedContent;
@@ -1086,3 +1312,391 @@ export const getDefaultDataForBlockType = (blockType: string): any => {
       return {};
   }
 };
+
+// ===== ENHANCED PADDING UTILITY FUNCTIONS =====
+
+/**
+ * Get the effective padding for a specific viewport from block data
+ */
+export function getViewportPadding(
+  blockData: any, 
+  viewport: Viewport, 
+  fallbackDefaults: ViewportPadding = {}
+): ViewportPadding {
+  // Priority order: viewport-specific -> legacy individual -> legacy symmetric -> defaults
+  
+  if (viewport === 'desktop' && blockData.desktopPadding) {
+    return { ...fallbackDefaults, ...blockData.desktopPadding };
+  }
+  
+  if (viewport === 'mobile' && blockData.mobilePadding) {
+    return { ...fallbackDefaults, ...blockData.mobilePadding };
+  }
+  
+  // Fallback to legacy individual padding
+  if (blockData.paddingTop !== undefined || blockData.paddingRight !== undefined ||
+      blockData.paddingBottom !== undefined || blockData.paddingLeft !== undefined) {
+    return {
+      ...fallbackDefaults,
+      top: blockData.paddingTop,
+      right: blockData.paddingRight,
+      bottom: blockData.paddingBottom,
+      left: blockData.paddingLeft,
+    };
+  }
+  
+  // Fallback to legacy symmetric padding
+  if (blockData.paddingX !== undefined || blockData.paddingY !== undefined) {
+    const paddingX = blockData.paddingX ?? 16;
+    const paddingY = blockData.paddingY ?? 16;
+    return {
+      ...fallbackDefaults,
+      top: paddingY,
+      right: paddingX,
+      bottom: paddingY,
+      left: paddingX,
+    };
+  }
+  
+  return fallbackDefaults;
+}
+
+/**
+ * Set viewport-specific padding for block data
+ */
+export function setViewportPadding(
+  blockData: any,
+  viewport: Viewport,
+  padding: ViewportPadding
+): any {
+  const updatedData = { ...blockData };
+  
+  if (viewport === 'desktop') {
+    updatedData.desktopPadding = { ...padding };
+  } else {
+    updatedData.mobilePadding = { ...padding };
+  }
+  
+  return updatedData;
+}
+
+/**
+ * Migrate legacy padding data to enhanced padding system
+ */
+export function migratePaddingData(blockData: any): any {
+  // If already using enhanced padding system, clean up legacy data
+  if (blockData.desktopPadding || blockData.mobilePadding) {
+    const cleaned = { ...blockData };
+    // Clean up legacy padding fields if viewport-specific padding exists
+    delete cleaned.paddingX;
+    delete cleaned.paddingY;
+    return cleaned;
+  }
+  
+  const migratedData = { ...blockData };
+  
+  // Migrate from individual padding
+  if (blockData.paddingTop !== undefined || blockData.paddingRight !== undefined ||
+      blockData.paddingBottom !== undefined || blockData.paddingLeft !== undefined) {
+    
+    const padding: ViewportPadding = {
+      top: blockData.paddingTop ?? 16,
+      right: blockData.paddingRight ?? 16,
+      bottom: blockData.paddingBottom ?? 16,
+      left: blockData.paddingLeft ?? 16,
+    };
+    
+    // Apply to both viewports initially (user can customize later)
+    migratedData.desktopPadding = padding;
+    migratedData.mobilePadding = padding;
+    
+    // Keep legacy fields for backward compatibility
+    return migratedData;
+  }
+  
+  // Migrate from symmetric padding
+  if (blockData.paddingX !== undefined || blockData.paddingY !== undefined) {
+    const paddingX = blockData.paddingX ?? 16;
+    const paddingY = blockData.paddingY ?? 16;
+    
+    const padding: ViewportPadding = {
+      top: paddingY,
+      right: paddingX,
+      bottom: paddingY,
+      left: paddingX,
+    };
+    
+    // Apply to both viewports initially
+    migratedData.desktopPadding = padding;
+    migratedData.mobilePadding = padding;
+    
+    // Remove legacy symmetric padding
+    delete migratedData.paddingX;
+    delete migratedData.paddingY;
+    
+    return migratedData;
+  }
+  
+  return migratedData;
+}
+
+/**
+ * Validate padding values are within acceptable range (0-100px)
+ */
+export function validatePaddingValue(value: number): number {
+  return Math.max(0, Math.min(100, Math.round(value)));
+}
+
+/**
+ * Convert padding object to CSS style object with true zero padding support
+ */
+export function paddingToCSSStyle(padding: ViewportPadding): Record<string, string> {
+  const style: Record<string, string> = {};
+  
+  // Ensure zero means exactly 0px for true edge-to-edge content
+  style.paddingTop = `${validatePaddingValue(padding.top ?? 0)}px`;
+  style.paddingRight = `${validatePaddingValue(padding.right ?? 0)}px`;
+  style.paddingBottom = `${validatePaddingValue(padding.bottom ?? 0)}px`;
+  style.paddingLeft = `${validatePaddingValue(padding.left ?? 0)}px`;
+  
+  return style;
+}
+
+/**
+ * Check if padding values represent true zero padding (content touches edges)
+ */
+export function isZeroPadding(padding: ViewportPadding): boolean {
+  return (padding.top ?? 0) === 0 && 
+         (padding.right ?? 0) === 0 && 
+         (padding.bottom ?? 0) === 0 && 
+         (padding.left ?? 0) === 0;
+}
+
+// ===== BLOCK PRESET UTILITIES =====
+
+/**
+ * Default block preset collection structure
+ */
+const getDefaultPresetCollection = (): BlockPresetCollection => ({
+  version: '1.0',
+  presets: [],
+  lastModified: new Date().toISOString(),
+});
+
+/**
+ * Load block presets from localStorage
+ */
+export function loadBlockPresets(): BlockPresetCollection {
+  try {
+    const stored = localStorage.getItem('evidens_block_presets');
+    if (!stored) {
+      return getDefaultPresetCollection();
+    }
+    
+    const parsed = JSON.parse(stored);
+    const validated = BlockPresetCollectionSchema.parse(parsed);
+    return validated;
+  } catch (error) {
+    console.warn('Failed to load block presets, using defaults:', error);
+    return getDefaultPresetCollection();
+  }
+}
+
+/**
+ * Save block presets to localStorage
+ */
+export function saveBlockPresets(collection: BlockPresetCollection): void {
+  try {
+    const updated = {
+      ...collection,
+      lastModified: new Date().toISOString(),
+    };
+    localStorage.setItem('evidens_block_presets', JSON.stringify(updated));
+  } catch (error) {
+    console.error('Failed to save block presets:', error);
+  }
+}
+
+/**
+ * Create a new block preset from existing block data
+ */
+// Generate UUID with fallback for environments without crypto.randomUUID
+function generateUUID(): string {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  
+  // Fallback UUID generation
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
+
+export function createBlockPreset(
+  name: string,
+  blockType: string,
+  blockData: any,
+  options: {
+    description?: string;
+    category?: 'text' | 'media' | 'layout' | 'custom';
+    tags?: string[];
+  } = {}
+): BlockPreset {
+  const now = new Date().toISOString();
+  
+  return {
+    metadata: {
+      id: generateUUID(),
+      name,
+      description: options.description,
+      category: options.category || 'custom',
+      createdAt: now,
+      useCount: 0,
+      isFavorite: false,
+      tags: options.tags,
+    },
+    blockType,
+    blockData: JSON.parse(JSON.stringify(blockData)), // Deep clone
+  };
+}
+
+/**
+ * Add a preset to the collection
+ */
+export function addBlockPreset(preset: BlockPreset): void {
+  const collection = loadBlockPresets();
+  
+  // Check for duplicate names
+  const existingIndex = collection.presets.findIndex(p => p.metadata.name === preset.metadata.name);
+  if (existingIndex >= 0) {
+    // Update existing preset
+    collection.presets[existingIndex] = preset;
+  } else {
+    // Add new preset
+    collection.presets.push(preset);
+  }
+  
+  saveBlockPresets(collection);
+}
+
+/**
+ * Remove a preset from the collection
+ */
+export function removeBlockPreset(presetId: string): void {
+  const collection = loadBlockPresets();
+  collection.presets = collection.presets.filter(p => p.metadata.id !== presetId);
+  saveBlockPresets(collection);
+}
+
+/**
+ * Update preset metadata (favorite, rename, etc.)
+ */
+export function updateBlockPresetMetadata(
+  presetId: string, 
+  updates: Partial<BlockPresetMetadata>
+): void {
+  const collection = loadBlockPresets();
+  const preset = collection.presets.find(p => p.metadata.id === presetId);
+  
+  if (preset) {
+    preset.metadata = { ...preset.metadata, ...updates };
+    saveBlockPresets(collection);
+  }
+}
+
+/**
+ * Record preset usage (increment use count and update lastUsed)
+ */
+export function recordPresetUsage(presetId: string): void {
+  const collection = loadBlockPresets();
+  const preset = collection.presets.find(p => p.metadata.id === presetId);
+  
+  if (preset) {
+    preset.metadata.useCount++;
+    preset.metadata.lastUsed = new Date().toISOString();
+    saveBlockPresets(collection);
+  }
+}
+
+/**
+ * Get presets sorted by usage or category
+ */
+export function getPresetsBy(
+  sortBy: 'usage' | 'recent' | 'category' | 'name' | 'favorites' = 'recent'
+): BlockPreset[] {
+  const collection = loadBlockPresets();
+  
+  switch (sortBy) {
+    case 'usage':
+      return [...collection.presets].sort((a, b) => b.metadata.useCount - a.metadata.useCount);
+    
+    case 'recent':
+      return [...collection.presets].sort((a, b) => {
+        const aTime = a.metadata.lastUsed || a.metadata.createdAt;
+        const bTime = b.metadata.lastUsed || b.metadata.createdAt;
+        return new Date(bTime).getTime() - new Date(aTime).getTime();
+      });
+    
+    case 'category':
+      return [...collection.presets].sort((a, b) => {
+        if (a.metadata.category === b.metadata.category) {
+          return a.metadata.name.localeCompare(b.metadata.name);
+        }
+        return a.metadata.category.localeCompare(b.metadata.category);
+      });
+    
+    case 'name':
+      return [...collection.presets].sort((a, b) => a.metadata.name.localeCompare(b.metadata.name));
+    
+    case 'favorites':
+      return [...collection.presets]
+        .filter(p => p.metadata.isFavorite)
+        .sort((a, b) => a.metadata.name.localeCompare(b.metadata.name));
+    
+    default:
+      return collection.presets;
+  }
+}
+
+/**
+ * Search presets by name, description, or tags
+ */
+export function searchBlockPresets(query: string): BlockPreset[] {
+  const collection = loadBlockPresets();
+  const searchTerm = query.toLowerCase().trim();
+  
+  if (!searchTerm) return collection.presets;
+  
+  return collection.presets.filter(preset => {
+    const name = preset.metadata.name.toLowerCase();
+    const description = preset.metadata.description?.toLowerCase() || '';
+    const tags = preset.metadata.tags?.join(' ').toLowerCase() || '';
+    
+    return name.includes(searchTerm) || description.includes(searchTerm) || tags.includes(searchTerm);
+  });
+}
+
+/**
+ * Export presets collection for backup
+ */
+export function exportBlockPresets(): string {
+  const collection = loadBlockPresets();
+  return JSON.stringify(collection, null, 2);
+}
+
+/**
+ * Import presets collection from backup
+ */
+export function importBlockPresets(jsonString: string): boolean {
+  try {
+    const parsed = JSON.parse(jsonString);
+    const validated = BlockPresetCollectionSchema.parse(parsed);
+    saveBlockPresets(validated);
+    return true;
+  } catch (error) {
+    console.error('Failed to import block presets:', error);
+    return false;
+  }
+}

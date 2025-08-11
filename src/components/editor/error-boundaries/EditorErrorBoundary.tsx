@@ -194,15 +194,15 @@ export function InspectorErrorBoundary({ children }: { children: React.ReactNode
   );
 }
 
-export function BlockPaletteErrorBoundary({ children }: { children: React.ReactNode }) {
+export function EditorSidebarErrorBoundary({ children }: { children: React.ReactNode }) {
   return (
     <ErrorBoundary
       tier="feature"
-      context="BlockPalette"
+      context="EditorSidebar"
       showDetails={process.env.NODE_ENV === 'development'}
       showHomeButton={false}
       showBackButton={false}
-      fallback={props => <EditorErrorFallback {...props} context="palette" />}
+      fallback={props => <EditorErrorFallback {...props} context="sidebar" />}
     >
       {children}
     </ErrorBoundary>

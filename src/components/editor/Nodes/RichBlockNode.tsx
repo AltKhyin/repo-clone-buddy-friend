@@ -7,9 +7,9 @@ import { useEditorTheme } from '../../../hooks/useEditorTheme';
 import { useRichTextEditor } from '../../../hooks/useRichTextEditor';
 import { useSelectionCoordination } from '../../../hooks/useSelectionCoordination';
 import { useSelectionStore } from '@/store/selectionStore';
-import { useContentHeightCalculator } from '../../../hooks/useContentHeightCalculator';
 import { UnifiedBlockWrapper } from '@/components/editor/shared/UnifiedBlockWrapper';
-import { RichBlockData, ContentSelectionType } from '@/types/editor';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { RichBlockData, ContentSelectionType, getViewportPadding } from '@/types/editor';
 
 interface RichBlockNodeProps {
   id: string;
@@ -87,9 +87,26 @@ export const RichBlockNode = memo<RichBlockNodeProps>(
       return data.content.htmlContent || '<p>Start typing...</p>';
     }, [data.content.tiptapJSON, data.content.htmlContent]);
 
-    // Calculate styling properties EARLY - needed for height calculator
-    const paddingX = data.paddingX ?? 16;
-    const paddingY = data.paddingY ?? 16;
+    // Viewport-aware padding system with real-time responsiveness
+    const isMobile = useIsMobile();
+    const currentViewport = isMobile ? 'mobile' : 'desktop';
+    
+    // Responsive padding state that updates with viewport changes
+    const responsivePadding = useMemo(() => {
+      const fallbackPadding = {
+        top: data.paddingTop ?? data.paddingY ?? 16,
+        right: data.paddingRight ?? data.paddingX ?? 16, 
+        bottom: data.paddingBottom ?? data.paddingY ?? 16,
+        left: data.paddingLeft ?? data.paddingX ?? 16
+      };
+      
+      return getViewportPadding(data, currentViewport, fallbackPadding);
+    }, [isMobile, data.desktopPadding, data.mobilePadding, data.paddingTop, data.paddingRight, data.paddingBottom, data.paddingLeft, data.paddingX, data.paddingY]);
+    
+    const paddingTop = responsivePadding.top ?? 16;
+    const paddingRight = responsivePadding.right ?? 16;
+    const paddingBottom = responsivePadding.bottom ?? 16;
+    const paddingLeft = responsivePadding.left ?? 16;
 
     // Initialize enhanced rich text editor for Rich Block
     const editorInstance = useRichTextEditor({
@@ -101,64 +118,8 @@ export const RichBlockNode = memo<RichBlockNodeProps>(
       debounceMs: 1000,
     });
 
-    // Initialize content height calculator for "Adjust Height" functionality
-    const heightCalculator = useContentHeightCalculator({
-      currentHeight: height,
-      currentWidth: width,
-      paddingX,
-      paddingY,
-      borderWidth: data.borderWidth || 0,
-      minHeight: 120, // From the component's minimum dimensions
-      maxHeight: 800, // From the component's maximum dimensions
-      editor: editorInstance.editor,
-    });
 
-    // Handle height adjustment - exposed for Inspector integration
-    const handleHeightAdjustment = useCallback(() => {
-      const optimalHeight = heightCalculator.adjustHeightToContent();
 
-      // Update node dimensions in store
-      updateNode(id, {
-        height: optimalHeight,
-      });
-
-      // Notify parent component of height change
-      onHeightAdjust?.(optimalHeight);
-
-      return optimalHeight;
-    }, [heightCalculator, updateNode, id, onHeightAdjust]);
-
-    // Handle auto-height disable when height is manually resized
-    const handleAutoHeightDisable = useCallback(() => {
-      if (data.autoHeight) {
-        updateNode(id, {
-          data: {
-            ...data,
-            autoHeight: false,
-          },
-        });
-      }
-    }, [data, updateNode, id]);
-
-    // Auto-height integration - automatically adjust height when enabled and content changes
-    useEffect(() => {
-      if (data.autoHeight && editorInstance.editor) {
-        // Debounce auto-adjustments to avoid excessive updates
-        const timeout = setTimeout(() => {
-          handleHeightAdjustment();
-        }, 300); // 300ms debounce for smooth auto-adjustment
-
-        return () => clearTimeout(timeout);
-      }
-    }, [data.autoHeight, heightCalculator.heightCalculation, handleHeightAdjustment, editorInstance.editor]);
-
-    // Immediate height adjustment when auto-height is toggled ON
-    useEffect(() => {
-      if (data.autoHeight && editorInstance.editor) {
-        // Immediate adjustment when auto-height is first enabled
-        handleHeightAdjustment();
-      }
-    }, [data.autoHeight]); // Only trigger when autoHeight changes
 
     // Register/unregister editor instance for unified insertion architecture
     useEffect(() => {
@@ -171,8 +132,7 @@ export const RichBlockNode = memo<RichBlockNodeProps>(
       };
     }, [id, editorInstance.editor, registerEditor, unregisterEditor]);
 
-    // Note: Height adjustment functionality is exposed through handleHeightAdjustment
-    // and heightCalculator state for Inspector integration (Milestone 3)
+    // Note: Manual resize functionality is available through the unified resize system
 
     // Dynamic styles based on current mode and settings
     const dynamicStyles = useMemo(
@@ -182,10 +142,10 @@ export const RichBlockNode = memo<RichBlockNodeProps>(
           textAlign: data.textAlign || 'left',
           color: data.color || colors.block.text,
           backgroundColor: data.backgroundColor || 'transparent',
-          paddingLeft: `${paddingX}px`,
-          paddingRight: `${paddingX}px`,
-          paddingTop: `${paddingY}px`,
-          paddingBottom: `${paddingY}px`,
+          paddingLeft: `${paddingLeft}px`,
+          paddingRight: `${paddingRight}px`,
+          paddingTop: `${paddingTop}px`,
+          paddingBottom: `${paddingBottom}px`,
           borderRadius: data.borderRadius ? `${data.borderRadius}px` : '8px',
           borderWidth: data.borderWidth || 0,
           borderColor: data.borderColor || 'transparent',
@@ -204,8 +164,10 @@ export const RichBlockNode = memo<RichBlockNodeProps>(
         data.color,
         colors.block.text,
         data.backgroundColor,
-        paddingX,
-        paddingY,
+        paddingTop,
+        paddingRight,
+        paddingBottom,
+        paddingLeft,
         data.borderRadius,
         data.borderWidth,
         data.borderColor,
@@ -226,7 +188,7 @@ export const RichBlockNode = memo<RichBlockNodeProps>(
         borderWidth: `${dynamicStyles.borderWidth}px`,
         borderColor: dynamicStyles.borderColor,
         borderStyle: 'solid',
-        padding: `${paddingY}px ${paddingX}px`,
+        padding: `${paddingTop}px ${paddingRight}px ${paddingBottom}px ${paddingLeft}px`,
         display: 'flex',
         flexDirection: 'column' as const,
         justifyContent: 'flex-start',
@@ -234,7 +196,7 @@ export const RichBlockNode = memo<RichBlockNodeProps>(
         minHeight: '100%',
         cursor: 'text',
       }),
-      [dynamicStyles, paddingX, paddingY]
+      [dynamicStyles, paddingTop, paddingRight, paddingBottom, paddingLeft]
     );
 
     // Handle block click to focus editor with coordination
@@ -251,10 +213,10 @@ export const RichBlockNode = memo<RichBlockNodeProps>(
 
         // Check if click is within content area (excluding padding)
         const isWithinContentArea =
-          clickX >= paddingX &&
-          clickX <= rect.width - paddingX &&
-          clickY >= paddingY &&
-          clickY <= rect.height - paddingY;
+          clickX >= paddingLeft &&
+          clickX <= rect.width - paddingRight &&
+          clickY >= paddingTop &&
+          clickY <= rect.height - paddingBottom;
 
         if (isWithinContentArea) {
           // 🎯 UNIFIED SELECTION INTEGRATION: Route text selection directly to unified system
@@ -283,14 +245,13 @@ export const RichBlockNode = memo<RichBlockNodeProps>(
           handleBlockActivation(e);
         }
       },
-      [editorInstance.editor, paddingX, paddingY, id, dispatch, handleBlockActivation]
+      [editorInstance.editor, paddingLeft, paddingRight, paddingTop, paddingBottom, id, dispatch, handleBlockActivation]
     );
 
-    // Unified content rendering - always use TipTap editor with height calculation ref
+    // Unified content rendering - always use TipTap editor
     const renderUnifiedContent = () => {
       return (
         <div
-          ref={heightCalculator.contentRef}
           className="rich-block-content-wrapper"
           style={{
             width: '100%',
@@ -338,8 +299,6 @@ export const RichBlockNode = memo<RichBlockNodeProps>(
           onSelect={onSelect}
           onMove={onMove}
           onResize={onResize}
-          onAutoHeightDisable={handleAutoHeightDisable}
-          autoHeight={data.autoHeight}
           dragSensitivity={16} // Enhanced drag area
           showDragHandle={true} // 🎯 DRAG HANDLE: Enable visible drag handle for rich blocks
         >

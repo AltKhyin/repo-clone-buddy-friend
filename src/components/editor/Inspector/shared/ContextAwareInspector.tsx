@@ -5,7 +5,7 @@ import { useEditorStore } from '@/store/editorStore';
 import { NodeObject } from '@/types/editor';
 import { InspectorSection } from './InspectorSection';
 import { ColorControl } from './ColorControl';
-import { SpacingControls } from './SpacingControls';
+import { VisualPaddingEditor } from './VisualPaddingEditor';
 // Typography controls now handled by UnifiedToolbar - removed TypographyControls import
 import {
   Palette,
@@ -162,11 +162,9 @@ export const ContextAwareInspector = React.memo(function ContextAwareInspector({
 
     return (
       <InspectorSection title="Spacing & Layout" icon={Move} compact={compact}>
-        <SpacingControls
+        <VisualPaddingEditor
           data={node.data}
           onChange={handleDataUpdate}
-          fields={spacingFields}
-          compact={compact}
         />
       </InspectorSection>
     );

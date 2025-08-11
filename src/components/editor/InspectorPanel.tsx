@@ -1,6 +1,6 @@
 // ABOUTME: Properties inspector panel for editing selected block attributes and styling
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useEditorStore } from '@/store/editorStore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,6 +26,7 @@ import {
   Grid,
   Ruler,
   Minus,
+  Bookmark,
 } from 'lucide-react';
 import { SafeSwitch } from './SafeSwitch';
 import { TextBlockInspector } from './Inspector/TextBlockInspector';
@@ -36,6 +37,7 @@ import { KeyTakeawayBlockInspector } from './Inspector/KeyTakeawayBlockInspector
 import { SeparatorBlockInspector } from './Inspector/SeparatorBlockInspector';
 import { QuoteBlockInspector } from './Inspector/QuoteBlockInspector';
 import { RichBlockInspector } from './Inspector/RichBlockInspector';
+import { SavePresetDialog } from './SavePresetDialog';
 
 export const InspectorPanel = React.memo(function InspectorPanel() {
   const {
@@ -60,7 +62,8 @@ export const InspectorPanel = React.memo(function InspectorPanel() {
     guidelines,
     clearGuidelines,
   } = useEditorStore();
-
+  
+  const [savePresetDialogOpen, setSavePresetDialogOpen] = useState(false);
   const selectedNode = selectedNodeId ? nodes.find(n => n.id === selectedNodeId) : null;
 
   const handleUpdateNode = React.useCallback(
@@ -292,6 +295,15 @@ export const InspectorPanel = React.memo(function InspectorPanel() {
               <Button
                 size="sm"
                 variant="outline"
+                onClick={() => setSavePresetDialogOpen(true)}
+                className="w-full justify-start"
+              >
+                <Bookmark size={16} className="mr-2" />
+                Save as Preset
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
                 onClick={handleDuplicateNode}
                 className="w-full justify-start"
               >
@@ -327,6 +339,20 @@ export const InspectorPanel = React.memo(function InspectorPanel() {
           </div>
         )}
       </div>
+      
+      {/* Save Preset Dialog */}
+      {selectedNode && (
+        <SavePresetDialog
+          open={savePresetDialogOpen}
+          onOpenChange={setSavePresetDialogOpen}
+          blockType={selectedNode.type}
+          blockData={selectedNode.data}
+          onPresetSaved={() => {
+            // Optionally show success message or refresh preset list
+            console.log('Preset saved successfully');
+          }}
+        />
+      )}
     </div>
   );
 });

@@ -1,11 +1,13 @@
 // ABOUTME: Simplified left sidebar showing Rich Block properties directly (no tabs needed since only one block type exists)
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useEditorStore } from '@/store/editorStore';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { Plus, Settings2, Edit3 } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Plus, Settings2, Edit3, ChevronDown, Trash2 } from 'lucide-react';
 import { RichBlockInspector } from './Inspector/RichBlockInspector';
+import { getPresetsBy, recordPresetUsage, removeBlockPreset, type BlockPreset } from '@/types/editor';
 
 interface EditorSidebarProps {
   className?: string;
@@ -16,6 +18,27 @@ export const EditorSidebar = React.memo(function EditorSidebar({
 }: EditorSidebarProps) {
   const { selectedNodeId, nodes, addNode } = useEditorStore();
   const selectedNode = selectedNodeId ? nodes.find(n => n.id === selectedNodeId) : null;
+  
+  // State for saved presets
+  const [savedPresets, setSavedPresets] = useState<BlockPreset[]>([]);
+
+  // Load saved presets on mount
+  useEffect(() => {
+    const loadPresets = () => {
+      const presets = getPresetsBy('recent');
+      setSavedPresets(presets);
+    };
+    
+    loadPresets();
+    
+    // Listen for localStorage changes to refresh presets
+    const handleStorageChange = () => {
+      loadPresets();
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
 
   // Add Rich Block handler - since there's only one block type, make it simple
   const handleAddRichBlock = React.useCallback(() => {
@@ -37,13 +60,35 @@ export const EditorSidebar = React.memo(function EditorSidebar({
     });
   }, [addNode]);
 
+  // Add preset block handler
+  const handleAddPresetBlock = React.useCallback((preset: BlockPreset) => {
+    recordPresetUsage(preset.metadata.id);
+    addNode({
+      type: 'richBlock',
+      x: 120,
+      y: 120,
+      width: 600,
+      height: 200,
+      data: preset.blockData,
+    });
+  }, [addNode]);
+
+  // Delete preset handler
+  const handleDeletePreset = React.useCallback((presetId: string, event: React.MouseEvent) => {
+    event.stopPropagation(); // Prevent dropdown item click
+    removeBlockPreset(presetId);
+    // Refresh presets list
+    const updatedPresets = getPresetsBy('recent');
+    setSavedPresets(updatedPresets);
+  }, []);
+
   return (
     <div
       className={cn('bg-muted/30 flex flex-col h-full editor-sidebar', className)}
       data-inspector="true"
     >
-      {/* Simplified header with Add Rich Block button */}
-      <div className="border-b px-4 py-3">
+      {/* Header with Add Rich Block buttons */}
+      <div className="border-b px-4 py-3 space-y-2">
         <Button
           onClick={handleAddRichBlock}
           className="w-full flex items-center gap-2 text-sm"
@@ -52,6 +97,60 @@ export const EditorSidebar = React.memo(function EditorSidebar({
           <Plus size={16} />
           Add Rich Block
         </Button>
+        
+        {/* Add Custom Rich Block dropdown */}
+        {savedPresets.length > 0 ? (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                className="w-full flex items-center gap-2 text-sm"
+                variant="outline"
+              >
+                <Edit3 size={16} />
+                Add Custom Rich Block
+                <ChevronDown size={14} className="ml-auto" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-64">
+              {savedPresets.map((preset) => (
+                <DropdownMenuItem
+                  key={preset.metadata.id}
+                  onClick={() => handleAddPresetBlock(preset)}
+                  className="flex items-center gap-2 group"
+                >
+                  <Edit3 size={14} />
+                  <span className="truncate flex-1">{preset.metadata.name}</span>
+                  <div className="flex items-center gap-1">
+                    {preset.metadata.useCount > 0 && (
+                      <span className="text-xs text-muted-foreground">
+                        {preset.metadata.useCount}
+                      </span>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => handleDeletePreset(preset.metadata.id, e)}
+                      className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive hover:text-destructive-foreground"
+                      title={`Delete "${preset.metadata.name}"`}
+                    >
+                      <Trash2 size={12} />
+                    </Button>
+                  </div>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : (
+          <Button
+            disabled
+            className="w-full flex items-center gap-2 text-sm"
+            variant="outline"
+          >
+            <Edit3 size={16} />
+            Add Custom Rich Block
+            <span className="text-xs text-muted-foreground ml-auto">(No saved blocks)</span>
+          </Button>
+        )}
       </div>
 
       {/* Always show properties directly - no tabs needed */}

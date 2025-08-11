@@ -29,8 +29,9 @@ const initialWYSIWYGCanvas: WYSIWYGCanvas = {
 
 // Initial positions (empty for new documents)
 const initialPositions: BlockPositions = {};
+const initialMobilePositions: BlockPositions = {};
 
-// Simplified utility: Find available position for Rich Block only
+// ZERO MARGIN SYSTEM: Find available position for Rich Block - blocks can touch canvas edges
 const findAvailablePosition = (
   existingPositions: BlockPositions,
   blockType?: string
@@ -41,29 +42,161 @@ const findAvailablePosition = (
   };
 
   const { width: defaultWidth, height: defaultHeight } = getDefaultDimensions(blockType);
-  let y = 50; // Start 50px from top
+  let y = 0; // ZERO MARGIN: Start at canvas top edge
 
-  // Find first available Y position with content-aware spacing
+  // Find first available Y position with zero margins
   while (true) {
     const hasOverlap = Object.values(existingPositions).some(
       pos =>
         y < pos.y + pos.height &&
         y + defaultHeight > pos.y &&
-        50 < pos.x + pos.width && // Start at x=50 for better visual hierarchy
-        50 + defaultWidth > pos.x
+        0 < pos.x + pos.width && // ZERO MARGIN: Check from canvas left edge
+        0 + defaultWidth > pos.x
     );
 
     if (!hasOverlap) break;
-    y += defaultHeight + 20; // Move down with spacing
+    y += defaultHeight + 20; // Move down with spacing (controlled by block padding, not canvas)
   }
 
   return {
     id: '', // Will be set by caller
-    x: 50, // Content-aware left margin
+    x: 0, // ZERO MARGIN: Position at canvas left edge
     y,
     width: defaultWidth,
     height: defaultHeight,
   };
+};
+
+// Simple mobile position generator - ZERO MARGIN SYSTEM - blocks can touch all canvas edges
+const generateMobilePositions = (nodes: NodeObject[], desktopPositions: BlockPositions): BlockPositions => {
+  const mobilePositions: BlockPositions = {};
+  const MOBILE_CANVAS_WIDTH = 375; // Mobile canvas total width
+  const MOBILE_CONTENT_WIDTH = MOBILE_CANVAS_WIDTH; // Full canvas width - no margins
+  const MOBILE_SPACING = 20; // Spacing between blocks (controlled by block padding, not canvas)
+  let currentY = 0; // Start at canvas top edge - no top padding
+
+  // Sort nodes by their desktop Y position to maintain reading order
+  const sortedNodes = nodes
+    .map(node => ({
+      node,
+      desktopY: desktopPositions[node.id]?.y || 0
+    }))
+    .sort((a, b) => a.desktopY - b.desktopY);
+
+  sortedNodes.forEach(({ node }) => {
+    const desktopPos = desktopPositions[node.id];
+    if (desktopPos) {
+      mobilePositions[node.id] = {
+        id: node.id,
+        x: 0, // ZERO MARGIN: Position at canvas left edge
+        y: currentY,
+        width: MOBILE_CONTENT_WIDTH, // Full canvas width (375px)
+        height: desktopPos.height, // Keep original height
+      };
+      currentY += desktopPos.height + MOBILE_SPACING;
+    }
+  });
+
+  return mobilePositions;
+};
+
+// Padding migration utility - converts legacy paddingX/Y to individual padding
+const migratePaddingData = (data: any): any => {
+  // If already migrated (has individual padding fields), return as-is
+  if (data.paddingTop !== undefined || data.paddingRight !== undefined || 
+      data.paddingBottom !== undefined || data.paddingLeft !== undefined) {
+    return data;
+  }
+
+  // If has legacy padding, migrate to individual fields
+  if (data.paddingX !== undefined || data.paddingY !== undefined) {
+    const paddingX = data.paddingX ?? 16;
+    const paddingY = data.paddingY ?? 16;
+    
+    return {
+      ...data,
+      paddingTop: paddingY,
+      paddingRight: paddingX,
+      paddingBottom: paddingY,
+      paddingLeft: paddingX,
+      // Remove legacy fields to prevent confusion
+      paddingX: undefined,
+      paddingY: undefined,
+    };
+  }
+
+  // No padding data - set defaults for individual fields
+  return {
+    ...data,
+    paddingTop: 16,
+    paddingRight: 16,
+    paddingBottom: 16,
+    paddingLeft: 16,
+  };
+};
+
+// Canvas boundary validation utilities - ZERO MARGIN SYSTEM
+const CANVAS_BOUNDARIES = {
+  desktop: {
+    width: 800,
+    height: 600, // Minimum, will extend based on content
+    margin: 0, // Zero margins - blocks can touch canvas edges
+  },
+  mobile: {
+    width: 375,
+    height: 800, // Minimum, will extend based on content  
+    margin: 0, // Zero margins - blocks can touch canvas edges on mobile too
+  }
+} as const;
+
+// Calculate dynamic canvas height based on current content positions - ZERO MARGIN SYSTEM
+const calculateCanvasHeight = (
+  positions: BlockPositions, 
+  viewport: 'desktop' | 'mobile'
+): number => {
+  const minHeight = CANVAS_BOUNDARIES[viewport].height;
+  // ZERO MARGIN: No extra padding below content - blocks can reach canvas bottom edge
+  
+  if (Object.keys(positions).length === 0) {
+    return minHeight;
+  }
+  
+  const maxY = Math.max(
+    minHeight,
+    ...Object.values(positions).map(pos => pos.y + pos.height)
+  );
+  
+  return maxY;
+};
+
+// Validate and constrain position to canvas boundaries (with dynamic height support)
+const validatePosition = (
+  position: BlockPosition, 
+  viewport: 'desktop' | 'mobile',
+  canvasHeight: number = CANVAS_BOUNDARIES[viewport].height
+): BlockPosition => {
+  const boundaries = CANVAS_BOUNDARIES[viewport];
+  
+  // Calculate constraints
+  const minX = boundaries.margin;
+  const maxX = boundaries.width - boundaries.margin - position.width;
+  const minY = boundaries.margin; 
+  
+  // IMPORTANT: Allow expansion beyond current canvas height for downward movement
+  // Only constrain if trying to position above minimum boundaries
+  const maxY = Math.max(canvasHeight - position.height - boundaries.margin, minY);
+
+  // Constrain position within boundaries - ZERO MARGIN SYSTEM
+  const constrainedPosition: BlockPosition = {
+    ...position,
+    x: Math.max(minX, Math.min(maxX, position.x)),
+    // For Y, only constrain upward movement, allow downward expansion
+    y: Math.max(minY, position.y), // Remove maxY constraint to allow canvas expansion
+    // ZERO MARGIN: Width can use full canvas width on both desktop and mobile
+    width: Math.min(position.width, boundaries.width),
+  };
+
+  return constrainedPosition;
 };
 
 // Legacy support
@@ -95,6 +228,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
         version: '3.0.0',
         nodes: state.nodes,
         positions: state.positions,
+        mobilePositions: state.mobilePositions,
         canvas: state.canvas,
         metadata: {
           createdAt: new Date().toISOString(),
@@ -159,7 +293,9 @@ export const useEditorStore = create<EditorState>((set, get) => {
     // Content State (V3 - WYSIWYG positioning)
     nodes: [],
     positions: initialPositions,
+    mobilePositions: initialMobilePositions,
     canvas: initialWYSIWYGCanvas,
+    currentViewport: 'desktop' as Viewport,
 
     // Editor State
     selectedNodeId: null,
@@ -216,7 +352,10 @@ export const useEditorStore = create<EditorState>((set, get) => {
 
       // Auto-migrate any legacy content to richBlock format
       const migration = autoMigrateNodeData(nodeData.type || 'textBlock', nodeDataValue);
-      const finalNodeData = migration.data;
+      
+      // Apply padding migration to ensure individual padding fields
+      const migratedData = migratePaddingData(migration.data);
+      const finalNodeData = migratedData;
 
       if (migration.migrated) {
         console.log(`[EditorStore] Auto-migrated ${nodeData.type} to richBlock`);
@@ -238,12 +377,25 @@ export const useEditorStore = create<EditorState>((set, get) => {
         const newPosition = findAvailablePosition(existingPositions);
         newPosition.id = newNode.id;
 
+        // AUTO-GENERATE mobile position immediately to sync new blocks to mobile canvas
+        const newMobilePosition = {
+          id: newNode.id,
+          x: 0, // Full width on mobile
+          y: Object.keys(state.mobilePositions).length * 220, // Stack vertically with spacing
+          width: 375, // Mobile canvas width
+          height: newPosition.height,
+        };
+
         const updatedState = {
           ...state,
           nodes: [...state.nodes, newNode],
           positions: {
             ...state.positions,
             [newNode.id]: newPosition,
+          },
+          mobilePositions: {
+            ...state.mobilePositions,
+            [newNode.id]: newMobilePosition,
           },
           selectedNodeId: newNode.id,
           isDirty: true,
@@ -262,9 +414,16 @@ export const useEditorStore = create<EditorState>((set, get) => {
         if (nodeIndex === -1) return state;
 
         const updatedNodes = [...state.nodes];
+        
+        // Apply padding migration if data is being updated
+        const processedUpdates = updates.data ? {
+          ...updates,
+          data: migratePaddingData(updates.data)
+        } : updates;
+        
         updatedNodes[nodeIndex] = {
           ...updatedNodes[nodeIndex],
-          ...updates,
+          ...processedUpdates,
           id: nodeId, // Ensure ID is preserved
         } as NodeObject;
 
@@ -288,14 +447,21 @@ export const useEditorStore = create<EditorState>((set, get) => {
         const currentPosition = state.positions[nodeId];
         if (!currentPosition) return state;
 
+        // Create updated position
+        const updatedPosition = {
+          ...currentPosition,
+          ...positionUpdate,
+        };
+
+        // Calculate current canvas height and validate position
+        const currentCanvasHeight = calculateCanvasHeight(state.positions, 'desktop');
+        const constrainedPosition = validatePosition(updatedPosition, 'desktop', currentCanvasHeight);
+
         const updatedState = {
           ...state,
           positions: {
             ...state.positions,
-            [nodeId]: {
-              ...currentPosition,
-              ...positionUpdate,
-            },
+            [nodeId]: constrainedPosition,
           },
           isDirty: true,
         };
@@ -305,6 +471,51 @@ export const useEditorStore = create<EditorState>((set, get) => {
 
         return updatedState;
       });
+    },
+
+    // Update mobile positions specifically with boundary validation
+    updateMobilePosition: (nodeId: string, positionUpdate: Partial<BlockPosition>) => {
+      set((state) => {
+        const currentPosition = state.mobilePositions[nodeId];
+        if (!currentPosition) {
+          console.warn(`[EditorStore] No mobile position found for node ${nodeId}`);
+          return state;
+        }
+
+        // Create updated position
+        const updatedPosition = {
+          ...currentPosition,
+          ...positionUpdate,
+        };
+
+        // Calculate current canvas height and validate position  
+        const currentCanvasHeight = calculateCanvasHeight(state.mobilePositions, 'mobile');
+        const constrainedPosition = validatePosition(updatedPosition, 'mobile', currentCanvasHeight);
+
+        const updatedState = {
+          ...state,
+          mobilePositions: {
+            ...state.mobilePositions,
+            [nodeId]: constrainedPosition,
+          },
+          isDirty: true,
+        };
+
+        // Auto-save after position update
+        debouncedSave();
+
+        return updatedState;
+      });
+    },
+
+    // Unified position update that handles both viewports
+    updateCurrentViewportPosition: (nodeId: string, positionUpdate: Partial<BlockPosition>) => {
+      const state = get();
+      if (state.currentViewport === 'mobile') {
+        state.updateMobilePosition(nodeId, positionUpdate);
+      } else {
+        state.updateNodePosition(nodeId, positionUpdate);
+      }
     },
 
     initializeNodePosition: (nodeId, blockType) => {
@@ -555,6 +766,22 @@ export const useEditorStore = create<EditorState>((set, get) => {
       console.log(`[EditorStore] Switched to ${viewport} viewport (Rich Block responsive)`);
     },
 
+    generateMobileLayout: () => {
+      // Simple mobile layout generation - stacks blocks vertically
+      const state = get();
+      const mobilePositions = generateMobilePositions(state.nodes, state.positions);
+      
+      set({ 
+        mobilePositions,
+        isDirty: true 
+      });
+      
+      console.log(`[EditorStore] Generated mobile layout for ${state.nodes.length} blocks`);
+      
+      // Auto-save after generating mobile layout
+      debouncedSave();
+    },
+
     updateCanvasTransform: transform => {
       set(state => ({
         canvasTransform: { ...state.canvasTransform, ...transform },
@@ -769,6 +996,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
           version: '3.0.0',
           nodes: state.nodes,
           positions: state.positions,
+          mobilePositions: state.mobilePositions,
           canvas: state.canvas,
           metadata: {
             createdAt: new Date().toISOString(),
@@ -841,10 +1069,15 @@ export const useEditorStore = create<EditorState>((set, get) => {
                 }
               });
 
+              // Load mobile positions or generate them if missing
+              const mobilePositions = content.mobilePositions || generateMobilePositions(content.nodes, { ...positions, ...missingPositions });
+
               set({
                 nodes: content.nodes,
                 positions: { ...positions, ...missingPositions },
+                mobilePositions,
                 canvas: content.canvas || initialWYSIWYGCanvas,
+                currentViewport: 'desktop',
                 selectedNodeId: null,
                 isDirty: false,
                 isSaving: false,
@@ -868,10 +1101,15 @@ export const useEditorStore = create<EditorState>((set, get) => {
                 positions[node.id] = newPosition;
               });
 
+              // Generate mobile positions for migrated content
+              const mobilePositions = generateMobilePositions(content.nodes, positions);
+
               set({
                 nodes: content.nodes,
                 positions,
+                mobilePositions,
                 canvas: initialWYSIWYGCanvas,
+                currentViewport: 'desktop',
                 selectedNodeId: null,
                 isDirty: false,
                 isSaving: false,
@@ -886,7 +1124,9 @@ export const useEditorStore = create<EditorState>((set, get) => {
             set({
               nodes: [],
               positions: initialPositions,
+              mobilePositions: initialMobilePositions,
               canvas: initialWYSIWYGCanvas,
+              currentViewport: 'desktop',
               selectedNodeId: null,
               isDirty: false,
               isSaving: false,
@@ -899,7 +1139,9 @@ export const useEditorStore = create<EditorState>((set, get) => {
           set({
             nodes: [],
             positions: initialPositions,
+            mobilePositions: initialMobilePositions,
             canvas: initialWYSIWYGCanvas,
+            currentViewport: 'desktop',
             selectedNodeId: null,
             isDirty: false,
             isSaving: false,
@@ -930,10 +1172,15 @@ export const useEditorStore = create<EditorState>((set, get) => {
             }
           });
 
+          // Load mobile positions or generate them if missing
+          const mobilePositions = json.mobilePositions || generateMobilePositions(json.nodes, { ...positions, ...missingPositions });
+
           set({
             nodes: json.nodes,
             positions: { ...positions, ...missingPositions },
+            mobilePositions,
             canvas: json.canvas || initialWYSIWYGCanvas,
+            currentViewport: 'desktop',
             isDirty: false,
             selectedNodeId: null,
           });
@@ -951,10 +1198,15 @@ export const useEditorStore = create<EditorState>((set, get) => {
             positions[node.id] = newPosition;
           });
 
+          // Generate mobile positions for migrated content
+          const mobilePositions = generateMobilePositions(validatedContent.nodes, positions);
+
           set({
             nodes: validatedContent.nodes,
             positions,
+            mobilePositions,
             canvas: initialWYSIWYGCanvas,
+            currentViewport: 'desktop',
             isDirty: false,
             selectedNodeId: null,
           });
@@ -976,6 +1228,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
         version: '3.0.0',
         nodes: state.nodes,
         positions: state.positions,
+        mobilePositions: state.mobilePositions,
         canvas: state.canvas,
         metadata: {
           createdAt: new Date().toISOString(),
@@ -1007,7 +1260,9 @@ export const useEditorStore = create<EditorState>((set, get) => {
         description: '',
         nodes: [],
         positions: initialPositions,
+        mobilePositions: initialMobilePositions,
         canvas: initialWYSIWYGCanvas,
+        currentViewport: 'desktop',
         selectedNodeId: null,
         canvasZoom: 1.0,
         isDirty: false,
@@ -1023,8 +1278,6 @@ export const useEditorStore = create<EditorState>((set, get) => {
         },
         showGrid: true,
         showSnapGuides: true,
-        // Rich Block responsive viewport
-        currentViewport: 'desktop',
         canvasTransform: initialCanvasTransform,
         // UI State
         isInspectorVisible: true,
@@ -1093,8 +1346,11 @@ export const usePersistenceState = () =>
     lastSaved: state.lastSaved,
   }));
 
-// Rich Block viewport selector
+// Dual viewport selectors
 export const useCurrentViewport = () => useEditorStore(state => state.currentViewport);
+export const useCurrentPositions = () => 
+  useEditorStore(state => state.currentViewport === 'mobile' ? state.mobilePositions : state.positions);
+export const useMobilePositions = () => useEditorStore(state => state.mobilePositions);
 
 // Active block selector
 export const useActiveBlockId = () => useEditorStore(state => state.activeBlockId);
@@ -1136,6 +1392,11 @@ export const useEditorActions = () =>
     setContentSelection: state.setContentSelection,
     clearAllSelection: state.clearAllSelection,
     selectTableCell: state.selectTableCell,
+    // Dual viewport actions
+    switchViewport: state.switchViewport,
+    generateMobileLayout: state.generateMobileLayout,
+    updateMobilePosition: state.updateMobilePosition,
+    updateCurrentViewportPosition: state.updateCurrentViewportPosition,
   }));
 
 export const useCanvasActions = () =>

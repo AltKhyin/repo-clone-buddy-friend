@@ -5,6 +5,12 @@ import { useEditorTheme } from './useEditorTheme';
 import { cn } from '@/lib/utils';
 
 interface BaseBlockData {
+  // Individual padding system
+  paddingTop?: number;
+  paddingRight?: number;
+  paddingBottom?: number;
+  paddingLeft?: number;
+  // Legacy padding fields (for backward compatibility)
   paddingX?: number;
   paddingY?: number;
   backgroundColor?: string;
@@ -15,9 +21,13 @@ interface BaseBlockData {
 }
 
 interface BlockStylingOptions {
-  /** Default padding X value */
+  /** Default individual padding values */
+  defaultPaddingTop?: number;
+  defaultPaddingRight?: number;
+  defaultPaddingBottom?: number;
+  defaultPaddingLeft?: number;
+  /** Legacy default padding values (deprecated) */
   defaultPaddingX?: number;
-  /** Default padding Y value */
   defaultPaddingY?: number;
   /** Default background color */
   defaultBackground?: string;
@@ -45,6 +55,11 @@ export function useBlockStyling<T extends BaseBlockData>(
   const { colors } = useEditorTheme();
 
   const {
+    defaultPaddingTop = 16,
+    defaultPaddingRight = 16,
+    defaultPaddingBottom = 16,
+    defaultPaddingLeft = 16,
+    // Legacy defaults
     defaultPaddingX = 16,
     defaultPaddingY = 16,
     defaultBackground = 'transparent',
@@ -55,10 +70,13 @@ export function useBlockStyling<T extends BaseBlockData>(
     transparentBackground = true,
   } = options;
 
-  // Calculate dynamic styles
+  // Calculate dynamic styles with individual padding support
   const dynamicStyles = useMemo((): React.CSSProperties => {
-    const paddingX = data.paddingX ?? defaultPaddingX;
-    const paddingY = data.paddingY ?? defaultPaddingY;
+    // Individual padding with fallback to legacy system
+    const paddingTop = data.paddingTop ?? data.paddingY ?? defaultPaddingTop;
+    const paddingRight = data.paddingRight ?? data.paddingX ?? defaultPaddingRight;
+    const paddingBottom = data.paddingBottom ?? data.paddingY ?? defaultPaddingBottom;
+    const paddingLeft = data.paddingLeft ?? data.paddingX ?? defaultPaddingLeft;
 
     return {
       backgroundColor:
@@ -68,12 +86,16 @@ export function useBlockStyling<T extends BaseBlockData>(
       borderColor: data.borderColor || 'transparent',
       borderStyle: 'solid',
       color: data.color || defaultTextColor || colors.block.text,
-      padding: `${paddingY}px ${paddingX}px`,
+      padding: `${paddingTop}px ${paddingRight}px ${paddingBottom}px ${paddingLeft}px`,
       minWidth: `${minDimensions.width}px`,
       minHeight: `${minDimensions.height}px`,
       transition: 'all 0.2s ease-in-out',
     };
   }, [
+    data.paddingTop,
+    data.paddingRight,
+    data.paddingBottom,
+    data.paddingLeft,
     data.paddingX,
     data.paddingY,
     data.backgroundColor,
@@ -81,6 +103,10 @@ export function useBlockStyling<T extends BaseBlockData>(
     data.borderWidth,
     data.borderColor,
     data.color,
+    defaultPaddingTop,
+    defaultPaddingRight,
+    defaultPaddingBottom,
+    defaultPaddingLeft,
     defaultPaddingX,
     defaultPaddingY,
     defaultBackground,
@@ -98,8 +124,11 @@ export function useBlockStyling<T extends BaseBlockData>(
 
   // Calculate content styles for UnifiedBlockWrapper
   const contentStyles = useMemo((): React.CSSProperties => {
-    const paddingX = data.paddingX ?? defaultPaddingX;
-    const paddingY = data.paddingY ?? defaultPaddingY;
+    // Individual padding with fallback to legacy system
+    const paddingTop = data.paddingTop ?? data.paddingY ?? defaultPaddingTop;
+    const paddingRight = data.paddingRight ?? data.paddingX ?? defaultPaddingRight;
+    const paddingBottom = data.paddingBottom ?? data.paddingY ?? defaultPaddingBottom;
+    const paddingLeft = data.paddingLeft ?? data.paddingX ?? defaultPaddingLeft;
 
     return {
       backgroundColor: dynamicStyles.backgroundColor,
@@ -107,7 +136,7 @@ export function useBlockStyling<T extends BaseBlockData>(
       borderWidth: dynamicStyles.borderWidth,
       borderColor: dynamicStyles.borderColor,
       borderStyle: 'solid',
-      padding: `${paddingY}px ${paddingX}px`,
+      padding: `${paddingTop}px ${paddingRight}px ${paddingBottom}px ${paddingLeft}px`,
       display: 'flex',
       flexDirection: 'column' as const,
       justifyContent: 'flex-start',
@@ -116,7 +145,21 @@ export function useBlockStyling<T extends BaseBlockData>(
       cursor: 'pointer',
       color: dynamicStyles.color,
     };
-  }, [dynamicStyles, data.paddingX, data.paddingY, defaultPaddingX, defaultPaddingY]);
+  }, [
+    dynamicStyles,
+    data.paddingTop,
+    data.paddingRight,
+    data.paddingBottom,
+    data.paddingLeft,
+    data.paddingX,
+    data.paddingY,
+    defaultPaddingTop,
+    defaultPaddingRight,
+    defaultPaddingBottom,
+    defaultPaddingLeft,
+    defaultPaddingX,
+    defaultPaddingY,
+  ]);
 
   // Calculate container classes
   const containerClasses = useMemo(() => {
@@ -130,6 +173,12 @@ export function useBlockStyling<T extends BaseBlockData>(
   // Get individual style values for convenience
   const styleValues = useMemo(
     () => ({
+      // Individual padding values
+      paddingTop: data.paddingTop ?? data.paddingY ?? defaultPaddingTop,
+      paddingRight: data.paddingRight ?? data.paddingX ?? defaultPaddingRight,
+      paddingBottom: data.paddingBottom ?? data.paddingY ?? defaultPaddingBottom,
+      paddingLeft: data.paddingLeft ?? data.paddingX ?? defaultPaddingLeft,
+      // Legacy padding values (for backward compatibility)
       paddingX: data.paddingX ?? defaultPaddingX,
       paddingY: data.paddingY ?? defaultPaddingY,
       backgroundColor:
@@ -140,6 +189,10 @@ export function useBlockStyling<T extends BaseBlockData>(
       textColor: data.color || defaultTextColor || colors.block.text,
     }),
     [
+      data.paddingTop,
+      data.paddingRight,
+      data.paddingBottom,
+      data.paddingLeft,
       data.paddingX,
       data.paddingY,
       data.backgroundColor,
@@ -147,6 +200,10 @@ export function useBlockStyling<T extends BaseBlockData>(
       data.borderWidth,
       data.borderColor,
       data.color,
+      defaultPaddingTop,
+      defaultPaddingRight,
+      defaultPaddingBottom,
+      defaultPaddingLeft,
       defaultPaddingX,
       defaultPaddingY,
       defaultBackground,

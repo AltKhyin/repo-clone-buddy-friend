@@ -49,6 +49,11 @@ import {
   SPACING_PRESETS,
 } from './spacing-constants';
 
+/**
+ * @deprecated SpacingControls is being replaced by VisualPaddingEditor
+ * Use VisualPaddingEditor for new implementations - provides intuitive visual editing
+ * This component remains for backward compatibility during migration
+ */
 export function SpacingControls({
   data,
   onChange,
@@ -59,16 +64,19 @@ export function SpacingControls({
   enablePresets = true,
   enableBorders = true,
 }: SpacingControlsProps) {
+  console.warn('SpacingControls is deprecated. Please use VisualPaddingEditor for better UX.');
   const [isDetailedControlsOpen, setIsDetailedControlsOpen] = useState(false);
   const [linkedPadding, setLinkedPadding] = useState(false);
 
   const handleFieldChange = (fieldKey: string, value: number) => {
     const updates: Record<string, number> = { [fieldKey]: value };
 
-    // Handle linked padding
-    if (linkedPadding && ['paddingX', 'paddingY'].includes(fieldKey)) {
-      updates.paddingX = value;
-      updates.paddingY = value;
+    // Handle linked padding for individual 4-side system
+    if (linkedPadding && ['paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft'].includes(fieldKey)) {
+      updates.paddingTop = value;
+      updates.paddingRight = value;
+      updates.paddingBottom = value;
+      updates.paddingLeft = value;
     }
 
     onChange(updates);
@@ -163,7 +171,7 @@ export function SpacingControls({
   return (
     <div className={cn('space-y-4', className)}>
       {/* Spacing Presets */}
-      {enablePresets && finalFields.some(f => ['paddingX', 'paddingY'].includes(f.key)) && (
+      {enablePresets && finalFields.some(f => ['paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft'].includes(f.key)) && (
         <div className="space-y-2">
           <Label
             className={cn(
@@ -211,7 +219,7 @@ export function SpacingControls({
             {paddingFields.map(field =>
               renderFieldControl(
                 field,
-                linkedPadding && ['paddingX', 'paddingY'].includes(field.key)
+                linkedPadding && ['paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft'].includes(field.key)
               )
             )}
           </div>

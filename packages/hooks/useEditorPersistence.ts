@@ -3,12 +3,12 @@
 import React from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { StructuredContentV2, validateStructuredContent } from '@/types/editor';
+import { StructuredContent, validateStructuredContent } from '@/types/editor';
 
 export interface EditorPersistenceData {
   id: string;
   review_id: number;
-  structured_content: StructuredContentV2;
+  structured_content: StructuredContent;
   created_at: string;
   updated_at: string;
 }
@@ -24,7 +24,7 @@ export const useEditorSaveMutation = () => {
       structuredContent,
     }: {
       reviewId: string;
-      structuredContent: StructuredContentV2;
+      structuredContent: StructuredContent;
     }) => {
       // Convert reviewId to number at database boundary
       const numericReviewId = parseInt(reviewId, 10);
@@ -288,7 +288,7 @@ export const useEditorLoadQuery = (reviewId: string | null) => {
 
 export const useEditorAutoSave = (
   reviewId: string | null,
-  structuredContent: StructuredContentV2 | null,
+  structuredContent: StructuredContent | null,
   isDirty: boolean,
   debounceMs: number = 30000 // 30 seconds default
 ) => {
@@ -325,7 +325,7 @@ export const useEditorManualSave = () => {
   const saveMutation = useEditorSaveMutation();
 
   return {
-    saveToDatabase: async (reviewId: string, structuredContent: StructuredContentV2) => {
+    saveToDatabase: async (reviewId: string, structuredContent: StructuredContent) => {
       return saveMutation.mutateAsync({ reviewId, structuredContent });
     },
     isSaving: saveMutation.isPending,

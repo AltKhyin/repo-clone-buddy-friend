@@ -44,6 +44,7 @@ import {
   ListOrdered,
   Quote,
   Link,
+  RefreshCw,
 } from 'lucide-react';
 import { ThemeSelector } from '@/components/header/ThemeSelector';
 import { useUnifiedSelection, useToolbarInteraction } from '../../hooks/useUnifiedSelection';
@@ -81,6 +82,9 @@ export const UnifiedToolbar = React.memo(function UnifiedToolbar({
     canvasZoom,
     updateCanvasZoom,
     getEditor,
+    currentViewport,
+    switchViewport,
+    generateMobileLayout,
   } = useEditorStore();
 
   // 🎯 UNIFIED SELECTION SYSTEM: Single source of truth for all selection types
@@ -1243,27 +1247,48 @@ export const UnifiedToolbar = React.memo(function UnifiedToolbar({
 
         {/* View Options - Ultra-Compact */}
         <div role="group" aria-label="View options" className="flex items-center gap-1">
-          {/* Viewport Preview - Ultra-Compact Group */}
+          {/* Viewport Toggle - Dual Canvas System */}
           <div className="flex items-center gap-0.5 bg-muted/40 rounded-md p-0.5 border border-border/10">
             <Button
-              variant="ghost"
+              variant={currentViewport === 'desktop' ? 'default' : 'ghost'}
               size="sm"
+              onClick={() => switchViewport('desktop')}
               className="flex items-center gap-1 h-6 px-1.5 border-none"
-              title="Mobile preview"
+              title="Switch to desktop viewport"
+              aria-label="Desktop viewport"
+              aria-pressed={currentViewport === 'desktop'}
+            >
+              <Monitor size={10} />
+              <span className="hidden lg:inline text-xs">Desktop</span>
+            </Button>
+
+            <Button
+              variant={currentViewport === 'mobile' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => switchViewport('mobile')}
+              className="flex items-center gap-1 h-6 px-1.5 border-none"
+              title="Switch to mobile viewport"
+              aria-label="Mobile viewport"
+              aria-pressed={currentViewport === 'mobile'}
             >
               <Smartphone size={10} />
               <span className="hidden lg:inline text-xs">Mobile</span>
             </Button>
 
-            <Button
-              variant="default"
-              size="sm"
-              className="flex items-center gap-1 h-6 px-1.5 border-none"
-              title="Desktop preview (current)"
-            >
-              <Monitor size={10} />
-              <span className="hidden lg:inline text-xs">Desktop</span>
-            </Button>
+            {/* Generate Mobile Layout - Only visible in mobile mode */}
+            {currentViewport === 'mobile' && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={generateMobileLayout}
+                className="flex items-center gap-1 h-6 px-1.5 border-none text-blue-600 hover:text-blue-700"
+                title="Generate mobile layout from desktop layout"
+                aria-label="Generate mobile layout"
+              >
+                <RefreshCw size={10} />
+                <span className="hidden xl:inline text-xs">Generate</span>
+              </Button>
+            )}
           </div>
 
           {/* View Aids - Ultra-Compact */}

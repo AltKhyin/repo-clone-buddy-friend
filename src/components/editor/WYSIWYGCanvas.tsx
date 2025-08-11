@@ -7,15 +7,22 @@ import { DraggableBlock } from './DraggableBlock';
 import { useEditorTheme } from '../../hooks/useEditorTheme';
 import { BlockPosition } from '@/types/editor';
 
-// Canvas configuration constants
+// Canvas configuration constants - Dual viewport support
 const CANVAS_CONFIG = {
-  width: 800, // Fixed width matching final output
-  gridColumns: 12, // 12-column grid for snapping
+  desktop: {
+    width: 800, // Fixed width matching final output
+    gridColumns: 12, // 12-column grid for snapping
+    minHeight: 600, // Minimum canvas height
+  },
+  mobile: {
+    width: 375, // Mobile viewport width (iPhone standard)
+    gridColumns: 1, // Single column for mobile
+    minHeight: 800, // Taller minimum for mobile scrolling
+  },
   minZoom: 0.5, // 50% zoom for overview
   maxZoom: 2.0, // 200% zoom for precision
   defaultZoom: 1.0, // 100% actual size
   snapTolerance: 10, // 10px snap tolerance
-  minHeight: 600, // Minimum canvas height
 };
 
 // Main WYSIWYG Canvas component
@@ -29,28 +36,35 @@ export function WYSIWYGCanvas() {
     updateNodePosition,
     initializeNodePosition,
     updateCanvasZoom,
+    currentViewport,
+    mobilePositions,
   } = useEditorStore();
 
   // Use unified selection system instead of legacy selectNode
-  const { clearAllSelection, activateBlock } = useEditorActions();
+  const { clearAllSelection, activateBlock, updateCurrentViewportPosition } = useEditorActions();
 
   const { colors } = useEditorTheme();
   const { canvasBackgroundColor, showGrid } = useCanvasState();
   const canvasRef = useRef<HTMLDivElement>(null);
+
+  // Select appropriate positions and config based on current viewport
+  const currentCanvasConfig = CANVAS_CONFIG[currentViewport];
+  const currentPositions = currentViewport === 'mobile' ? mobilePositions : storePositions;
 
   // Set up drop zone for new blocks from palette
   const { isOver, setNodeRef } = useDroppable({
     id: 'wysiwyg-canvas',
   });
 
-  // Calculate canvas height based on content
+  // Calculate canvas height based on content and viewport - ZERO MARGIN SYSTEM
   const canvasHeight = useMemo(() => {
     const maxY = Math.max(
-      CANVAS_CONFIG.minHeight,
-      ...Object.values(storePositions).map(pos => pos.y + pos.height + 50)
+      currentCanvasConfig.minHeight,
+      // ZERO MARGIN: No bottom padding - blocks can reach canvas bottom edge
+      ...Object.values(currentPositions).map(pos => pos.y + pos.height)
     );
     return maxY;
-  }, [storePositions]);
+  }, [currentPositions, currentCanvasConfig.minHeight]);
 
   // Initialize positions for new nodes with content-aware sizing
   React.useEffect(() => {
@@ -61,12 +75,12 @@ export function WYSIWYGCanvas() {
     });
   }, [editorNodes, storePositions, initializeNodePosition]);
 
-  // Handle block position updates
+  // Handle block position updates - viewport aware
   const handlePositionChange = useCallback(
     (nodeId: string, positionUpdate: Partial<BlockPosition>) => {
-      updateNodePosition(nodeId, positionUpdate);
+      updateCurrentViewportPosition(nodeId, positionUpdate);
     },
-    [updateNodePosition]
+    [updateCurrentViewportPosition]
   );
 
   // Helper to detect if interaction is with toolbar/UI elements that should preserve table selection
@@ -122,9 +136,9 @@ export function WYSIWYGCanvas() {
 
   return (
     <div className="flex-1 relative bg-gray-50 overflow-auto min-h-0">
-      {/* Canvas container with zoom */}
+      {/* Canvas container with zoom - ZERO MARGIN SYSTEM */}
       <div
-        className="flex justify-center pt-8 pb-8 px-8"
+        className="flex justify-center"
         style={{ transform: `scale(${canvasZoom})`, transformOrigin: 'top center' }}
       >
         <div
@@ -133,7 +147,7 @@ export function WYSIWYGCanvas() {
             isOver ? 'border-primary bg-primary/5' : 'border-border'
           }`}
           style={{
-            width: CANVAS_CONFIG.width,
+            width: currentCanvasConfig.width,
             height: canvasHeight,
             backgroundColor: canvasBackgroundColor || 'hsl(var(--background))',
           }}
@@ -148,8 +162,8 @@ export function WYSIWYGCanvas() {
                   repeating-linear-gradient(
                     90deg,
                     transparent,
-                    transparent ${CANVAS_CONFIG.width / CANVAS_CONFIG.gridColumns - 1}px,
-                    ${colors.grid || 'hsl(var(--border))'} ${CANVAS_CONFIG.width / CANVAS_CONFIG.gridColumns}px
+                    transparent ${currentCanvasConfig.width / currentCanvasConfig.gridColumns - 1}px,
+                    ${colors.grid || 'hsl(var(--border))'} ${currentCanvasConfig.width / currentCanvasConfig.gridColumns}px
                   ),
                   repeating-linear-gradient(
                     0deg,
@@ -171,7 +185,7 @@ export function WYSIWYGCanvas() {
 
           {/* Render blocks */}
           {editorNodes.map(node => {
-            const position = storePositions[node.id];
+            const position = currentPositions[node.id];
             if (!position) return null;
 
             return (

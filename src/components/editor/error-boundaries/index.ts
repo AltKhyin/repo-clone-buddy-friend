@@ -4,7 +4,7 @@ export {
   EditorPageErrorBoundary,
   EditorCanvasErrorBoundary,
   InspectorErrorBoundary,
-  BlockPaletteErrorBoundary,
+  EditorSidebarErrorBoundary,
   BlockNodeErrorBoundary,
 } from './EditorErrorBoundary';
 

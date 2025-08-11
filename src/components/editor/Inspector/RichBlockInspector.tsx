@@ -1,6 +1,6 @@
 // ABOUTME: Content-aware inspector panel for RichBlock with simple resize system integration
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,9 +10,10 @@ import { useEditorStore, useContentSelection } from '@/store/editorStore';
 import { RichBlockData, ContentSelectionType } from '@/types/editor';
 import { InspectorSection } from './shared/InspectorSection';
 import { ColorControl } from './shared/ColorControl';
-import { SpacingControls } from './shared/SpacingControls';
+import { VisualPaddingEditor } from './shared/VisualPaddingEditor';
 import { BorderControls } from './shared/BorderControls';
 import { MediaTransformSection } from './sections/MediaTransformSection';
+import { SavePresetDialog } from '../SavePresetDialog';
 import { useSimpleResize } from '@/components/editor/unified-resize';
 import {
   Edit3,
@@ -27,6 +28,7 @@ import {
   AlignLeft,
   AlignCenter,
   AlignRight,
+  Bookmark,
 } from 'lucide-react';
 
 interface RichBlockInspectorProps {
@@ -36,6 +38,7 @@ interface RichBlockInspectorProps {
 export const RichBlockInspector: React.FC<RichBlockInspectorProps> = ({ nodeId }) => {
   const { nodes, updateNode } = useEditorStore();
   const contentSelection = useContentSelection();
+  const [savePresetDialogOpen, setSavePresetDialogOpen] = useState(false);
 
   const node = nodes.find(n => n.id === nodeId);
   const data = node?.type === 'richBlock' ? (node.data as RichBlockData) : null;
@@ -187,34 +190,10 @@ export const RichBlockInspector: React.FC<RichBlockInspectorProps> = ({ nodeId }
           compact={false}
         />
 
-        {/* Spacing controls */}
-        <SpacingControls
+        {/* Visual Padding Editor - Smart 4-direction interface */}
+        <VisualPaddingEditor
           data={data}
           onChange={updateNodeData}
-          fields={[
-            {
-              key: 'paddingX',
-              label: 'Horizontal Padding',
-              min: 0,
-              max: 80,
-              step: 2,
-              unit: 'px',
-              category: 'padding',
-            },
-            {
-              key: 'paddingY',
-              label: 'Vertical Padding',
-              min: 0,
-              max: 80,
-              step: 2,
-              unit: 'px',
-              category: 'padding',
-            },
-          ]}
-          compact={false}
-          enablePresets={true}
-          enableBorders={false}
-          showDetailedControls={false}
         />
 
         {/* Consolidated border controls - all border properties together */}
@@ -244,28 +223,30 @@ export const RichBlockInspector: React.FC<RichBlockInspectorProps> = ({ nodeId }
           />
         </div>
 
-        {/* Auto-Height Toggle */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <label 
-              htmlFor="block-auto-height"
-              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-            >
-              Auto Height
-            </label>
-            <Switch
-              id="block-auto-height"
-              checked={data.autoHeight || false}
-              onCheckedChange={(checked) => {
-                updateNodeData({ autoHeight: checked });
-              }}
-            />
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Automatically adjusts block height to fit content. Manually resizing the height will disable this feature.
-          </p>
-        </div>
+        {/* Save Block Button */}
+        <Separator />
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => setSavePresetDialogOpen(true)}
+          className="w-full justify-start"
+        >
+          <Bookmark size={16} className="mr-2" />
+          Save Block
+        </Button>
+
       </div>
+
+      {/* Save Preset Dialog */}
+      <SavePresetDialog
+        open={savePresetDialogOpen}
+        onOpenChange={setSavePresetDialogOpen}
+        blockType={node?.type || 'richBlock'}
+        blockData={data}
+        onPresetSaved={() => {
+          setSavePresetDialogOpen(false);
+        }}
+      />
     </div>
   );
 };

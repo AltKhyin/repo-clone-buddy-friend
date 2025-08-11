@@ -32,7 +32,7 @@ import { validateStructuredContent } from '@/types/editor';
 import { Link } from 'react-router-dom';
 import {
   EditorPageErrorBoundary,
-  BlockPaletteErrorBoundary,
+  EditorSidebarErrorBoundary,
   EditorCanvasErrorBoundary,
 } from '@/components/editor/error-boundaries';
 // Performance optimizer removed - using simple resize system
@@ -300,6 +300,62 @@ export default function EditorPage() {
                   >
                     Export
                   </Button>
+                  
+                  {/* Import Button with Hidden File Input */}
+                  <div className="relative">
+                    <input
+                      type="file"
+                      accept=".json"
+                      onChange={(event) => {
+                        const file = event.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onload = (e) => {
+                            try {
+                              const content = e.target?.result as string;
+                              const jsonData = JSON.parse(content);
+                              
+                              // Validate that it's a proper structured content format
+                              if (!jsonData.version || !jsonData.nodes) {
+                                throw new Error('Invalid file format: Missing version or nodes');
+                              }
+                              
+                              // Use the store's loadFromJSON method which handles V2/V3 compatibility
+                              loadFromJSON(jsonData);
+                              
+                              // Clear the input so the same file can be selected again
+                              event.target.value = '';
+                              
+                              console.log('Successfully imported content:', {
+                                version: jsonData.version,
+                                nodeCount: jsonData.nodes?.length || 0,
+                                hasPositions: !!jsonData.positions,
+                                hasLayouts: !!jsonData.layouts
+                              });
+                              
+                            } catch (error) {
+                              console.error('Import failed:', error);
+                              alert(`Import failed: ${error instanceof Error ? error.message : 'Invalid JSON file'}`);
+                            }
+                          };
+                          reader.readAsText(file);
+                        }
+                      }}
+                      className="hidden"
+                      id="import-file-input"
+                    />
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        document.getElementById('import-file-input')?.click();
+                      }}
+                      className="flex items-center gap-2"
+                      title="Import from JSON"
+                    >
+                      Import
+                    </Button>
+                  </div>
 
                   <Button
                     size="sm"
@@ -331,9 +387,9 @@ export default function EditorPage() {
           {/* Two-Panel Workspace (Sidebar + Canvas) - Canvas scrolls independently */}
           <div className="flex-1 flex overflow-hidden">
             <div className="w-64 overflow-y-auto border-r">
-              <BlockPaletteErrorBoundary>
+              <EditorSidebarErrorBoundary>
                 <EditorSidebar />
-              </BlockPaletteErrorBoundary>
+              </EditorSidebarErrorBoundary>
             </div>
             <div className="flex-1 overflow-y-auto">
               <EditorCanvasErrorBoundary>

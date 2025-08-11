@@ -134,7 +134,7 @@ export const SimpleResizeHandles = memo<SimpleResizeHandlesProps>(({
     onHandleHover?.(null);
   }, [onHandleHover]);
 
-  // Simple handle styles - no constraint-based colors
+  // Handle styles
   const handleStyle = useMemo((): React.CSSProperties => ({
     position: 'absolute',
     width: '12px',
@@ -143,7 +143,7 @@ export const SimpleResizeHandles = memo<SimpleResizeHandlesProps>(({
     border: '2px solid white',
     backgroundColor: resizeHandlers.isResizing 
       ? 'hsl(var(--success))' // Success color when resizing
-      : 'hsl(var(--primary))', // Primary color default - always available
+      : 'hsl(var(--primary))', // Primary color default
     boxShadow: resizeHandlers.isResizing
       ? '0 0 0 4px hsl(var(--success) / 0.2)'
       : '0 2px 4px hsl(var(--foreground) / 0.1)',

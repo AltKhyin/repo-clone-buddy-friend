@@ -343,12 +343,18 @@ export class IntelligentViewportConverter {
       };
     }
     
-    // Apply spacing adjustments
+    // Apply spacing adjustments - INDIVIDUAL PADDING SYSTEM
     if (rules.adjustSpacing) {
       const spacingMap = {
-        compact: { paddingX: 12, paddingY: 8 },
-        normal: { paddingX: 16, paddingY: 12 },
-        loose: { paddingX: 20, paddingY: 16 },
+        compact: { 
+          paddingTop: 8, paddingRight: 12, paddingBottom: 8, paddingLeft: 12 
+        },
+        normal: { 
+          paddingTop: 12, paddingRight: 16, paddingBottom: 12, paddingLeft: 16 
+        },
+        loose: { 
+          paddingTop: 16, paddingRight: 20, paddingBottom: 16, paddingLeft: 20 
+        },
       };
       
       adaptations.data = {

@@ -63,6 +63,33 @@ Object.defineProperty(window, 'sessionStorage', {
 // Mock fetch for API calls
 global.fetch = vi.fn();
 
+// Mock Supabase client for database integration tests
+vi.mock('@/integrations/supabase/client', () => ({
+  supabase: {
+    from: vi.fn(() => ({
+      select: vi.fn(() => ({
+        eq: vi.fn(() => ({
+          single: vi.fn(() => Promise.resolve({ data: null, error: null })),
+        })),
+      })),
+      insert: vi.fn(() => ({
+        select: vi.fn(() => Promise.resolve({ data: [], error: null })),
+      })),
+      upsert: vi.fn(() => ({
+        select: vi.fn(() => Promise.resolve({ data: [], error: null })),
+      })),
+      update: vi.fn(() => ({
+        eq: vi.fn(() => ({
+          select: vi.fn(() => Promise.resolve({ data: [], error: null })),
+        })),
+      })),
+    })),
+    auth: {
+      getUser: vi.fn(() => Promise.resolve({ user: null, error: null })),
+    },
+  },
+}));
+
 // Mock CustomThemeProvider with proper context structure
 vi.mock('@/components/theme/CustomThemeProvider', () => ({
   CustomThemeProvider: ({ children }: { children: React.ReactNode }) => children,
@@ -136,12 +163,15 @@ vi.mock('@/hooks/useUnifiedSelection', () => ({
   }),
 }));
 
-// Mock editorStore
+// Mock editorStore with all required exports
 vi.mock('@/store/editorStore', () => ({
   useEditorStore: () => ({
     nodes: [],
+    positions: {},
+    mobilePositions: {},
     selectedNode: null,
     selectedNodeId: null,
+    currentViewport: 'desktop',
     getEditor: () => null,
     updateNode: vi.fn(),
     deleteNode: vi.fn(),
@@ -154,15 +184,55 @@ vi.mock('@/store/editorStore', () => ({
     canRedo: false,
     saveToDatabase: vi.fn(),
     exportToJSON: vi.fn(),
+    loadFromJSON: vi.fn(),
+    loadFromDatabase: vi.fn(),
     isDirty: false,
     isSaving: false,
     lastSaved: null,
+    isFullscreen: false,
     showGrid: true,
     showSnapGuides: false,
     toggleSnapGuides: vi.fn(),
     canvasZoom: 1.0,
     updateCanvasZoom: vi.fn(),
     setTextSelection: vi.fn(),
+    initializeNodePosition: vi.fn(),
+    updateNodePosition: vi.fn(),
+    updateCurrentViewportPosition: vi.fn(),
+    setPersistenceCallbacks: vi.fn(),
+    canvas: {
+      canvasWidth: 800,
+      canvasHeight: 600,
+      gridColumns: 12,
+      snapTolerance: 10
+    },
+  }),
+  useEditorActions: () => ({
+    clearAllSelection: vi.fn(),
+    activateBlock: vi.fn(),
+    updateCurrentViewportPosition: vi.fn(),
+    selectNode: vi.fn(),
+    deleteNode: vi.fn(),
+    duplicateNode: vi.fn(),
+    updateNode: vi.fn(),
+  }),
+  useCanvasState: () => ({
+    canvasBackgroundColor: 'hsl(var(--background))',
+    showGrid: true,
+    canvasZoom: 1.0,
+    currentViewport: 'desktop',
+    setCanvasBackgroundColor: vi.fn(),
+    toggleGrid: vi.fn(),
+    updateCanvasZoom: vi.fn(),
+    switchViewport: vi.fn(),
+  }),
+  useCanvasActions: () => ({
+    setCanvasBackgroundColor: vi.fn(),
+    toggleGrid: vi.fn(),
+    updateCanvasZoom: vi.fn(),
+    switchViewport: vi.fn(),
+    resetCanvas: vi.fn(),
+    exportCanvas: vi.fn(),
   }),
 }));
 
@@ -220,6 +290,7 @@ vi.mock('lucide-react', () => {
     'Copy',
     'Clipboard',
     'Link',
+    'Unlink',
     'ExternalLink',
     'Mail',
     'Phone',
@@ -411,6 +482,17 @@ vi.mock('lucide-react', () => {
     'AlignCenter',
     'AlignRight',
     'AlignJustify',
+    // Block preset system icons
+    'Edit3',
+    'Star',
+    'StarOff',
+    'Search',
+    'Settings',
+    'Plus',
+    'Heart',
+    'Clock',
+    'Grid',
+    'Bookmark',
   ];
 
   const mockIcons: Record<string, any> = {};
