@@ -7,10 +7,12 @@ import { BrowserRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import ReviewDetailPage from '../ReviewDetailPage';
 import { useReviewDetailQuery } from '../../../packages/hooks/useReviewDetailQuery';
+import { useEditorLoadQuery } from '../../../packages/hooks/useEditorPersistence';
 import { ReviewDetail } from '../../../packages/hooks/useReviewDetailQuery';
 
 // Mock the hooks
 vi.mock('../../../packages/hooks/useReviewDetailQuery');
+vi.mock('../../../packages/hooks/useEditorPersistence');
 vi.mock('@/store/auth', () => ({
   useAuthStore: vi.fn(() => ({ user: null })),
 }));
@@ -20,8 +22,8 @@ vi.mock('@/components/review-detail/LayoutAwareRenderer', () => ({
   default: vi.fn(() => <div data-testid="legacy-renderer">Legacy V2 Content</div>),
 }));
 
-vi.mock('@/components/review-detail/WYSIWYGRenderer', () => ({
-  default: vi.fn(() => <div data-testid="v3-renderer">V3 WYSIWYG Content</div>),
+vi.mock('@/components/review-detail/ReadOnlyCanvas', () => ({
+  ReadOnlyCanvas: vi.fn(() => <div data-testid="readonly-canvas">V3 ReadOnly Canvas Content</div>),
 }));
 
 describe('ReviewDetailPage - Intelligent Renderer Selection', () => {
@@ -35,6 +37,32 @@ describe('ReviewDetailPage - Intelligent Renderer Selection', () => {
       },
     });
     vi.clearAllMocks();
+    
+    // Default mock for editor query (no content)
+    vi.mocked(useEditorLoadQuery).mockReturnValue({
+      data: null,
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
+      isRefetching: false,
+      isSuccess: true,
+      isPending: false,
+      isRefetchError: false,
+      isLoadingError: false,
+      failureCount: 0,
+      failureReason: null,
+      status: 'success',
+      fetchStatus: 'idle',
+      errorUpdateCount: 0,
+      isFetched: true,
+      isFetchedAfterMount: true,
+      isPaused: false,
+      isPlaceholderData: false,
+      isStale: false,
+      dataUpdatedAt: Date.now(),
+      errorUpdatedAt: 0,
+    });
   });
 
   const renderWithProviders = (children: React.ReactNode) => {
@@ -99,9 +127,41 @@ describe('ReviewDetailPage - Intelligent Renderer Selection', () => {
   };
 
   describe('V3 Content Rendering', () => {
-    it('should use WYSIWYGRenderer for V3 content', async () => {
+    it('should use ReadOnlyCanvas for V3 editor content', async () => {
       vi.mocked(useReviewDetailQuery).mockReturnValue({
         data: mockV3Review,
+        isLoading: false,
+        isError: false,
+        error: null,
+        refetch: vi.fn(),
+        isRefetching: false,
+        isSuccess: true,
+        isPending: false,
+        isRefetchError: false,
+        isLoadingError: false,
+        failureCount: 0,
+        failureReason: null,
+        status: 'success',
+        fetchStatus: 'idle',
+        errorUpdateCount: 0,
+        isFetched: true,
+        isFetchedAfterMount: true,
+        isPaused: false,
+        isPlaceholderData: false,
+        isStale: false,
+        dataUpdatedAt: Date.now(),
+        errorUpdatedAt: 0,
+      });
+
+      // Mock editor content data (same as editor uses)
+      vi.mocked(useEditorLoadQuery).mockReturnValue({
+        data: {
+          id: 'editor-content-1',
+          review_id: 1,
+          structured_content: mockV3Review.structured_content,
+          created_at: '2023-01-01T00:00:00Z',
+          updated_at: '2023-01-01T00:00:00Z',
+        },
         isLoading: false,
         isError: false,
         error: null,
@@ -131,29 +191,49 @@ describe('ReviewDetailPage - Intelligent Renderer Selection', () => {
         expect(screen.getByText('Test V3 Review')).toBeInTheDocument();
       });
 
-      // Should use V3 renderer for V3 content
-      expect(screen.getByTestId('v3-renderer')).toBeInTheDocument();
+      // Should use ReadOnly Canvas for V3 content
+      expect(screen.getByTestId('readonly-canvas')).toBeInTheDocument();
       expect(screen.queryByTestId('legacy-renderer')).not.toBeInTheDocument();
 
-      // Should show V3 content indicator in development
-      const originalEnv = process.env.NODE_ENV;
-      process.env.NODE_ENV = 'development';
-
-      renderWithProviders(<ReviewDetailPage />);
-      await waitFor(() => {
-        expect(screen.getByText(/V3 Content Bridge/)).toBeInTheDocument();
-        expect(screen.getByText(/Using V3 Native Renderer/)).toBeInTheDocument();
-      });
-
-      process.env.NODE_ENV = originalEnv;
+      // ReadOnly Canvas successfully renders V3 content
+      expect(screen.getByTestId('readonly-canvas')).toHaveTextContent('V3 ReadOnly Canvas Content');
     });
 
-    it('should display correct V3 metadata in development mode', async () => {
-      const originalEnv = process.env.NODE_ENV;
-      process.env.NODE_ENV = 'development';
-
+    it('should properly render V3 structured content', async () => {
       vi.mocked(useReviewDetailQuery).mockReturnValue({
         data: mockV3Review,
+        isLoading: false,
+        isError: false,
+        error: null,
+        refetch: vi.fn(),
+        isRefetching: false,
+        isSuccess: true,
+        isPending: false,
+        isRefetchError: false,
+        isLoadingError: false,
+        failureCount: 0,
+        failureReason: null,
+        status: 'success',
+        fetchStatus: 'idle',
+        errorUpdateCount: 0,
+        isFetched: true,
+        isFetchedAfterMount: true,
+        isPaused: false,
+        isPlaceholderData: false,
+        isStale: false,
+        dataUpdatedAt: Date.now(),
+        errorUpdatedAt: 0,
+      });
+
+      // Mock editor content data
+      vi.mocked(useEditorLoadQuery).mockReturnValue({
+        data: {
+          id: 'editor-content-1',
+          review_id: 1,
+          structured_content: mockV3Review.structured_content,
+          created_at: '2023-01-01T00:00:00Z',
+          updated_at: '2023-01-01T00:00:00Z',
+        },
         isLoading: false,
         isError: false,
         error: null,
@@ -180,17 +260,19 @@ describe('ReviewDetailPage - Intelligent Renderer Selection', () => {
       renderWithProviders(<ReviewDetailPage />);
 
       await waitFor(() => {
-        expect(screen.getByText(/1 blocks • Positioned • Scaled/)).toBeInTheDocument();
+        expect(screen.getByTestId('readonly-canvas')).toBeInTheDocument();
       });
 
-      process.env.NODE_ENV = originalEnv;
+      // Verify V3 content section is properly rendered
+      expect(screen.getByText('Test V3 Review')).toBeInTheDocument();
+      expect(screen.getByText('A test review with V3 content')).toBeInTheDocument();
     });
   });
 
-  describe('V2 Content Rendering', () => {
-    it('should use LayoutAwareRenderer for V2 content', async () => {
+  describe('No Content Rendering', () => {
+    it('should show no content message when editor data is unavailable', async () => {
       vi.mocked(useReviewDetailQuery).mockReturnValue({
-        data: mockV2Review,
+        data: mockV3Review,
         isLoading: false,
         isError: false,
         error: null,
@@ -214,15 +296,16 @@ describe('ReviewDetailPage - Intelligent Renderer Selection', () => {
         errorUpdatedAt: 0,
       });
 
+      // Use default mock (no editor content)
       renderWithProviders(<ReviewDetailPage />);
 
       await waitFor(() => {
         expect(screen.getByText('Test V3 Review')).toBeInTheDocument();
       });
 
-      // Should use legacy renderer for V2 content
-      expect(screen.getByTestId('legacy-renderer')).toBeInTheDocument();
-      expect(screen.queryByTestId('v3-renderer')).not.toBeInTheDocument();
+      // Should show no content message when editor data is null
+      expect(screen.getByText('Este review ainda não possui conteúdo estruturado.')).toBeInTheDocument();
+      expect(screen.queryByTestId('readonly-canvas')).not.toBeInTheDocument();
     });
   });
 
@@ -293,16 +376,10 @@ describe('ReviewDetailPage - Intelligent Renderer Selection', () => {
     });
   });
 
-  describe('Content Format Detection', () => {
-    it('should handle unknown content format gracefully', async () => {
-      const unknownFormatReview = {
-        ...mockV3Review,
-        contentFormat: 'unknown' as const,
-        structured_content: { someUnknownFormat: 'data' },
-      };
-
+  describe('Editor Loading States', () => {
+    it('should show loading when editor content is loading', () => {
       vi.mocked(useReviewDetailQuery).mockReturnValue({
-        data: unknownFormatReview,
+        data: mockV3Review,
         isLoading: false,
         isError: false,
         error: null,
@@ -326,15 +403,37 @@ describe('ReviewDetailPage - Intelligent Renderer Selection', () => {
         errorUpdatedAt: 0,
       });
 
-      renderWithProviders(<ReviewDetailPage />);
-
-      await waitFor(() => {
-        expect(screen.getByText('Test V3 Review')).toBeInTheDocument();
+      // Mock editor query as loading
+      vi.mocked(useEditorLoadQuery).mockReturnValue({
+        data: null,
+        isLoading: true,
+        isError: false,
+        error: null,
+        refetch: vi.fn(),
+        isRefetching: false,
+        isSuccess: false,
+        isPending: true,
+        isRefetchError: false,
+        isLoadingError: false,
+        failureCount: 0,
+        failureReason: null,
+        status: 'pending',
+        fetchStatus: 'fetching',
+        errorUpdateCount: 0,
+        isFetched: false,
+        isFetchedAfterMount: false,
+        isPaused: false,
+        isPlaceholderData: false,
+        isStale: false,
+        dataUpdatedAt: 0,
+        errorUpdatedAt: 0,
       });
 
-      // Should fall back to legacy renderer for unknown format
-      expect(screen.getByTestId('legacy-renderer')).toBeInTheDocument();
-      expect(screen.queryByTestId('v3-renderer')).not.toBeInTheDocument();
+      renderWithProviders(<ReviewDetailPage />);
+
+      // Should show skeleton loaders while editor content is loading
+      const skeletonElements = document.querySelectorAll('.animate-pulse');
+      expect(skeletonElements.length).toBeGreaterThanOrEqual(6);
     });
   });
 });

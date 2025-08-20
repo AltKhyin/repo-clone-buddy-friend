@@ -4,8 +4,9 @@
 import React from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useReviewDetailQuery } from '../../packages/hooks/useReviewDetailQuery';
+import { useEditorLoadQuery } from '../../packages/hooks/useEditorPersistence';
 import LayoutAwareRenderer from '@/components/review-detail/LayoutAwareRenderer';
-import WYSIWYGRenderer from '@/components/review-detail/WYSIWYGRenderer';
+import { ReadOnlyCanvas } from '@/components/review-detail/ReadOnlyCanvas';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertTriangle, Lock } from 'lucide-react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -13,10 +14,13 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 const ReviewDetailPageContent = () => {
   const { slug } = useParams<{ slug: string }>();
   const { data: review, isLoading, isError, error } = useReviewDetailQuery(slug);
+  
+  // 🎯 UNIFIED DATA SOURCE: Use same data as editor for perfect parity
+  const { data: editorContent, isLoading: isEditorLoading } = useEditorLoadQuery(slug || null);
 
 
-  // Loading state with skeleton loaders
-  if (isLoading) {
+  // Loading state with skeleton loaders  
+  if (isLoading || isEditorLoading) {
     return (
       <div className="min-h-screen bg-background">
         <div className="max-w-4xl mx-auto p-6 space-y-8">
@@ -175,31 +179,18 @@ const ReviewDetailPageContent = () => {
           </div>
         </header>
 
-        {/* Main Content - Intelligent Renderer Selection */}
+        {/* Main Content - Unified Canvas Architecture */}
         <main className="mb-12">
-          {review.structured_content ? (
+          {editorContent?.structured_content ? (
             <div className="review-content">
-              {/* V3 Content Bridge: Smart renderer selection based on format */}
-              {review.contentFormat === 'v3' ? (
-                <div className="v3-content">
-                  {/* V3 Native WYSIWYG Renderer */}
-                  <WYSIWYGRenderer 
-                    content={review.structured_content} 
-                    isReadOnly={true}
-                    className="review-v3-content"
-                  />
-                </div>
-              ) : review.contentFormat === 'v2' ? (
-                <div className="v2-content">
-                  {/* Legacy V2 Layout-Aware Renderer */}
-                  <LayoutAwareRenderer content={review.structured_content} />
-                </div>
-              ) : (
-                <div className="legacy-content">
-                  {/* Fallback for unknown/legacy formats */}
-                  <LayoutAwareRenderer content={review.structured_content} />
-                </div>
-              )}
+              {/* Break out of ALL container padding for true edge-to-edge mobile canvas */}
+              <div className="v3-content -mx-6 sm:mx-0">
+                {/* 🎯 UNIFIED DATA SOURCE: Same data as editor = perfect parity */}
+                <ReadOnlyCanvas 
+                  content={editorContent.structured_content}
+                  className="review-v3-content"
+                />
+              </div>
             </div>
           ) : (
             <div className="text-center py-12">
