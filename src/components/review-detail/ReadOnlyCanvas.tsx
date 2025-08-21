@@ -38,25 +38,25 @@ export function ReadOnlyCanvas({
     ? content.mobilePositions 
     : content.positions;
     
-  // Calculate actual canvas width for mobile (full screen width)
-  const actualCanvasWidth = isMobile 
+  // 🎯 MOBILE SCALING FIX: Logical canvas width (375px) vs visual screen width
+  const logicalCanvasWidth = currentCanvasConfig.width; // Always 375px for mobile logic
+  const actualScreenWidth = isMobile 
     ? (typeof window !== 'undefined' ? window.innerWidth : 375)
     : currentCanvasConfig.width;
     
-  // Calculate scale factor for mobile content positioning
-  const canvasScaleFactor = isMobile 
-    ? actualCanvasWidth / currentCanvasConfig.width 
+  // 🎯 VISUAL SCALING: Scale up 375px canvas to fill mobile screen width
+  const visualScaleFactor = isMobile 
+    ? actualScreenWidth / logicalCanvasWidth 
     : 1;
+    
+  // 🎯 POSITIONING: Always use 1:1 scale for position calculations (maintains editor parity)
+  const positioningScaleFactor = 1;
 
   // Track if we're using mobile-specific positions
   const usingMobilePositions = isMobile && !!content.mobilePositions;
 
-  // Calculate canvas height based on content and viewport - ZERO MARGIN SYSTEM (identical to editor)
+  // 🎯 CANVAS HEIGHT PARITY FIX: Use identical calculation as WYSIWYGCanvas
   const canvasHeight = useMemo(() => {
-    if (!currentPositions || Object.keys(currentPositions).length === 0) {
-      return currentCanvasConfig.minHeight;
-    }
-    
     const maxY = Math.max(
       currentCanvasConfig.minHeight,
       // ZERO MARGIN: No bottom padding - blocks can reach canvas bottom edge
@@ -111,11 +111,14 @@ export function ReadOnlyCanvas({
       {/* Canvas container - NO zoom functionality for read-only mode */}
       <div className={isMobile ? "w-full flex justify-center px-0" : "flex justify-center"}>
         <div
-          className="readonly-canvas relative border-2 rounded-lg shadow-lg border-border"
+          className="readonly-canvas relative"
           style={{
-            width: actualCanvasWidth,
+            width: logicalCanvasWidth, // Always use logical 375px for canvas size
             height: canvasHeight,
             backgroundColor: 'hsl(var(--background))',
+            // 🎯 MOBILE SCALING: Scale up canvas visually to fill screen width
+            transform: isMobile ? `scale(${visualScaleFactor})` : 'none',
+            transformOrigin: 'top center', // Scale from top center
           }}
           data-testid="readonly-canvas"
           data-canvas-type="readonly"
@@ -157,7 +160,7 @@ export function ReadOnlyCanvas({
                 canvasWidth={currentCanvasConfig.width}
                 mobileCanvasWidth={CANVAS_CONFIG.mobile.width}
                 isMobilePosition={usingMobilePositions}
-                scaleFactor={canvasScaleFactor}
+                scaleFactor={positioningScaleFactor}
               />
             );
           })}

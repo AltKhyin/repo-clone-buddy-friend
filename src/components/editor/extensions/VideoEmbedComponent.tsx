@@ -109,13 +109,30 @@ export const VideoEmbedComponent = React.forwardRef<HTMLDivElement, VideoEmbedCo
 
   // Generate embed URL with current settings
   const getEmbedUrl = useCallback(() => {
-    if (!node.attrs.videoId || !node.attrs.provider) return '';
+    if (!node.attrs.videoId || !node.attrs.provider) {
+      console.warn('VideoEmbed: Missing video data', {
+        videoId: node.attrs.videoId,
+        provider: node.attrs.provider,
+        src: node.attrs.src,
+        allAttrs: node.attrs
+      });
+      return '';
+    }
 
-    return VideoUtils.getEmbedUrl(node.attrs.provider, node.attrs.videoId, {
+    const embedUrl = VideoUtils.getEmbedUrl(node.attrs.provider, node.attrs.videoId, {
       autoplay: node.attrs.autoplay,
       muted: node.attrs.muted,
     });
-  }, [node.attrs]);
+    
+    console.log('VideoEmbed: Generated embed URL', {
+      provider: node.attrs.provider,
+      videoId: node.attrs.videoId,
+      embedUrl,
+      isReadOnly
+    });
+    
+    return embedUrl;
+  }, [node.attrs, isReadOnly]);
 
   // Handle settings update
   const handleSettingsUpdate = useCallback(() => {
@@ -133,12 +150,7 @@ export const VideoEmbedComponent = React.forwardRef<HTMLDivElement, VideoEmbedCo
     }
   }, [autoplay, muted, node.attrs.autoplay, node.attrs.muted, showIframe]);
 
-  // 🎯 READ-ONLY FIX: Auto-show iframe for videos with valid src in read-only mode  
-  useEffect(() => {
-    if (isReadOnly && node.attrs.src && node.attrs.videoId && !isEditing && !showIframe) {
-      setShowIframe(true);
-    }
-  }, [isReadOnly, node.attrs.src, node.attrs.videoId, isEditing, showIframe]);
+  // 🎯 REMOVED: Auto-iframe logic - read-only mode should show thumbnail + play button, not iframe
 
   // Render editing interface
   if (isEditing) {
@@ -292,6 +304,7 @@ export const VideoEmbedComponent = React.forwardRef<HTMLDivElement, VideoEmbedCo
             width: 'auto',
             maxWidth: 'var(--block-max-width, 100%)',
             aspectRatio: getVideoAspectRatio(node.attrs.objectFit),
+            minHeight: '200px', // Ensure minimum height for video display
           }}
         >
           {/* Thumbnail Preview */}
@@ -312,9 +325,8 @@ export const VideoEmbedComponent = React.forwardRef<HTMLDivElement, VideoEmbedCo
               <div className="absolute inset-0 bg-black/20 flex items-center justify-center group-hover:bg-black/40 transition-colors">
                 <Button
                   size="lg"
-                  onClick={isReadOnly ? undefined : handleLoadEmbed}
-                  disabled={isReadOnly}
-                  className={`rounded-full w-16 h-16 p-0 bg-white/90 hover:bg-white text-black ${isReadOnly ? 'cursor-default opacity-50' : ''}`}
+                  onClick={handleLoadEmbed}
+                  className="rounded-full w-16 h-16 p-0 bg-white/90 hover:bg-white text-black"
                 >
                   <Play size={24} />
                 </Button>
@@ -349,9 +361,10 @@ export const VideoEmbedComponent = React.forwardRef<HTMLDivElement, VideoEmbedCo
               allowFullScreen={node.attrs.allowFullscreen}
               className="max-w-full h-auto"
               style={{
-                width: 'auto',
-                height: 'auto',
+                width: '100%',
+                height: '100%',
                 maxWidth: 'var(--block-max-width, 100%)',
+                minHeight: '200px',
               }}
             />
           )}

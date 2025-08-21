@@ -31,10 +31,16 @@ export const useEditorSaveMutation = () => {
       if (isNaN(numericReviewId)) {
         throw new Error(`Invalid reviewId: ${reviewId}`);
       }
-      // Validate content before saving with detailed error handling
+      // 🎯 PHASE 2A: Enhanced logging to trace positioning data through save pipeline
       let validatedContent;
       try {
-        console.log('Attempting to validate content:', {
+        // 📊 POSITIONING DATA AUDIT: Log positioning data before validation
+        const originalPositions = (structuredContent as any)?.positions || {};
+        const originalMobilePositions = (structuredContent as any)?.mobilePositions || {};
+        const positionsCount = Object.keys(originalPositions).length;
+        const mobilePositionsCount = Object.keys(originalMobilePositions).length;
+
+        console.log('[PERSISTENCE AUDIT] 💾 SAVE PIPELINE - Attempting to validate content:', {
           reviewId,
           contentType: typeof structuredContent,
           contentKeys: Object.keys(structuredContent || {}),
@@ -44,10 +50,59 @@ export const useEditorSaveMutation = () => {
           hasPositions: 'positions' in (structuredContent || {}),
           nodeCount: structuredContent?.nodes?.length || 0,
           version: structuredContent?.version || 'unknown',
+          
+          // 🎯 POSITIONING DATA TRACKING
+          positionsCount,
+          mobilePositionsCount,
+          samplePositions: positionsCount > 0 ? Object.entries(originalPositions).slice(0, 2).map(([id, pos]: [string, any]) => ({
+            id,
+            x: pos.x,
+            y: pos.y,
+            width: pos.width,
+            height: pos.height,
+          })) : [],
+
+          // 🔍 RICHBLOCK CONTENT STRUCTURE AUDIT
+          richBlockNodes: structuredContent?.nodes?.filter((node: any) => node.type === 'richBlock').map((node: any) => ({
+            id: node.id,
+            hasData: !!node.data,
+            hasContent: !!node.data?.content,
+            contentType: typeof node.data?.content,
+            isContentString: typeof node.data?.content === 'string',
+            hasCorrectStructure: node.data?.content && typeof node.data.content === 'object' && 'htmlContent' in node.data.content,
+          })) || [],
+          
           structuredContentSample: JSON.stringify(structuredContent).substring(0, 300) + '...',
         });
 
         validatedContent = validateStructuredContent(structuredContent);
+        
+        // 📊 POST-VALIDATION POSITIONING DATA AUDIT
+        const validatedPositions = (validatedContent as any)?.positions || {};
+        const validatedMobilePositions = (validatedContent as any)?.mobilePositions || {};
+        const validatedPositionsCount = Object.keys(validatedPositions).length;
+        const validatedMobilePositionsCount = Object.keys(validatedMobilePositions).length;
+
+        console.log('[PERSISTENCE AUDIT] ✅ SAVE PIPELINE - Content validation successful:', {
+          reviewId,
+          validatedNodeCount: validatedContent.nodes.length,
+          validatedVersion: validatedContent.version,
+          isV3: validatedContent.version === '3.0.0',
+          hasPositions: 'positions' in validatedContent,
+          hasLayouts: 'layouts' in validatedContent,
+          
+          // 🎯 POSITIONING DATA PRESERVATION CHECK
+          positionsPreserved: positionsCount === validatedPositionsCount,
+          mobilePositionsPreserved: mobilePositionsCount === validatedMobilePositionsCount,
+          originalPositionsCount: positionsCount,
+          validatedPositionsCount,
+          originalMobilePositionsCount: mobilePositionsCount,
+          validatedMobilePositionsCount,
+          
+          positioningDataStatus: positionsCount === validatedPositionsCount && mobilePositionsCount === validatedMobilePositionsCount ? 
+            '✅ PRESERVED' : 
+            '❌ LOST/MODIFIED'
+        });
 
         console.log('Content validation successful:', {
           reviewId,
@@ -250,20 +305,96 @@ export const useEditorLoadQuery = (reviewId: string | null) => {
       if (error) {
         if (error.code === 'PGRST116') {
           // No editor content exists yet - this is fine for new reviews
+          console.log('[PERSISTENCE AUDIT] 📥 LOAD PIPELINE - No content found for review:', reviewId);
           return null;
         }
         throw new Error(`Failed to load editor content: ${error.message}`);
       }
 
+      // 🎯 PHASE 2A: Enhanced logging to trace loaded content structure
+      const rawContent = data.structured_content as any;
+      const rawPositions = rawContent?.positions || {};
+      const rawMobilePositions = rawContent?.mobilePositions || {};
+      const rawPositionsCount = Object.keys(rawPositions).length;
+      const rawMobilePositionsCount = Object.keys(rawMobilePositions).length;
+
+      console.log('[PERSISTENCE AUDIT] 📥 LOAD PIPELINE - Raw content loaded from database:', {
+        reviewId,
+        hasStructuredContent: !!rawContent,
+        contentType: typeof rawContent,
+        rawVersion: rawContent?.version,
+        rawNodeCount: Array.isArray(rawContent?.nodes) ? rawContent.nodes.length : 0,
+        hasRawPositions: !!rawContent?.positions,
+        hasRawMobilePositions: !!rawContent?.mobilePositions,
+        
+        // 🎯 RAW POSITIONING DATA AUDIT
+        rawPositionsCount,
+        rawMobilePositionsCount,
+        sampleRawPositions: rawPositionsCount > 0 ? Object.entries(rawPositions).slice(0, 2).map(([id, pos]: [string, any]) => ({
+          id,
+          x: pos.x,
+          y: pos.y,
+          width: pos.width,
+          height: pos.height,
+        })) : [],
+
+        // 🔍 RAW RICHBLOCK CONTENT STRUCTURE AUDIT
+        rawRichBlockNodes: rawContent?.nodes?.filter((node: any) => node.type === 'richBlock').map((node: any) => ({
+          id: node.id,
+          hasData: !!node.data,
+          hasContent: !!node.data?.content,
+          contentType: typeof node.data?.content,
+          isContentString: typeof node.data?.content === 'string',
+          hasCorrectStructure: node.data?.content && typeof node.data.content === 'object' && 'htmlContent' in node.data.content,
+          contentPreview: typeof node.data?.content === 'string' 
+            ? node.data.content.substring(0, 30) + '...'
+            : JSON.stringify(node.data?.content).substring(0, 50) + '...',
+        })) || [],
+        
+        created_at: data.created_at,
+        updated_at: data.updated_at,
+      });
+
       // Validate the loaded content
       try {
         const validatedContent = validateStructuredContent(data.structured_content);
+        
+        // 📊 POST-VALIDATION LOAD AUDIT
+        const validatedPositions = (validatedContent as any)?.positions || {};
+        const validatedMobilePositions = (validatedContent as any)?.mobilePositions || {};
+        const validatedPositionsCount = Object.keys(validatedPositions).length;
+        const validatedMobilePositionsCount = Object.keys(validatedMobilePositions).length;
+
+        console.log('[PERSISTENCE AUDIT] ✅ LOAD PIPELINE - Content validation successful:', {
+          reviewId,
+          validatedNodeCount: validatedContent.nodes.length,
+          validatedVersion: validatedContent.version,
+          
+          // 🎯 POSITIONING DATA PRESERVATION CHECK
+          positionsPreserved: rawPositionsCount === validatedPositionsCount,
+          mobilePositionsPreserved: rawMobilePositionsCount === validatedMobilePositionsCount,
+          rawPositionsCount,
+          validatedPositionsCount,
+          rawMobilePositionsCount,
+          validatedMobilePositionsCount,
+          
+          loadPositioningDataStatus: rawPositionsCount === validatedPositionsCount && rawMobilePositionsCount === validatedMobilePositionsCount ? 
+            '✅ PRESERVED THROUGH LOAD' : 
+            '❌ LOST/MODIFIED DURING LOAD'
+        });
+
         return {
           ...data,
           structured_content: validatedContent,
         } as EditorPersistenceData;
       } catch (validationError) {
-        console.error('Loaded editor content failed validation:', validationError);
+        console.error('[PERSISTENCE AUDIT] ❌ LOAD PIPELINE - Loaded content validation FAILED:', {
+          reviewId,
+          error: validationError instanceof Error ? validationError.message : String(validationError),
+          rawPositionsCount,
+          rawMobilePositionsCount,
+          validationErrorType: validationError instanceof Error ? validationError.constructor.name : typeof validationError,
+        });
         throw new Error(`Invalid editor content format: ${validationError}`);
       }
     },

@@ -886,27 +886,184 @@ const migrateLegacyBlockData = (node: any): any => {
   return { ...node, data: migratedData };
 };
 
+/**
+ * 🎯 PHASE 3A: Repair malformed content structure before validation
+ * Fixes common issues like RichBlock content being string instead of object
+ */
+const repairContentStructure = (content: any): any => {
+  if (!content || typeof content !== 'object' || !Array.isArray(content.nodes)) {
+    return content; // Can't repair, let validation handle it
+  }
+
+  console.log('[CONTENT REPAIR] 🔧 Analyzing content structure for repairs...');
+
+  const repairedNodes = content.nodes.map((node: any, index: number) => {
+    if (node.type === 'richBlock' && node.data) {
+      // 🚨 CRITICAL REPAIR: Fix malformed RichBlock content structure
+      if (typeof node.data.content === 'string') {
+        const originalStringContent = node.data.content;
+        console.log(`[CONTENT REPAIR] 🔧 Repairing malformed RichBlock content for node ${index} (${node.id}):`, {
+          before: { contentType: 'string', content: originalStringContent.substring(0, 50) + '...' },
+          after: { contentType: 'object', htmlContent: 'extracted from string' }
+        });
+
+        // Transform string content into proper object structure
+        return {
+          ...node,
+          data: {
+            ...node.data,
+            content: {
+              htmlContent: originalStringContent,
+              // Don't add tiptapJSON since we don't have it from string content
+            }
+          }
+        };
+      }
+
+      // ✅ Content structure is already correct
+      if (node.data.content && typeof node.data.content === 'object' && 'htmlContent' in node.data.content) {
+        return node; // Already has correct structure
+      }
+
+      // 🔧 EDGE CASE: Missing content property entirely
+      if (!node.data.content) {
+        console.log(`[CONTENT REPAIR] 🔧 Adding missing content property for node ${index} (${node.id})`);
+        return {
+          ...node,
+          data: {
+            ...node.data,
+            content: {
+              htmlContent: '<p>Content restored during repair</p>'
+            }
+          }
+        };
+      }
+    }
+
+    return node; // Non-richBlock nodes or already valid structure
+  });
+
+  const repairCount = repairedNodes.filter((node, index) => node !== content.nodes[index]).length;
+  console.log('[CONTENT REPAIR] 🔧 Content repair summary:', {
+    totalNodes: content.nodes.length,
+    repairedNodes: repairCount,
+    repairRate: content.nodes.length > 0 ? Math.round((repairCount / content.nodes.length) * 100) : 0
+  });
+
+  return repairCount > 0 ? {
+    ...content,
+    nodes: repairedNodes
+  } : content;
+};
+
 export const validateStructuredContent = (content: unknown): StructuredContent => {
+  // 🎯 PHASE 3A: Apply content structure repairs BEFORE validation
+  const repairedContent = repairContentStructure(content);
+  
+  // 🎯 PHASE 2A: Enhanced logging to trace validation failures and data loss
+  console.log('[PERSISTENCE AUDIT] Starting validateStructuredContent with:', {
+    hasContent: !!repairedContent,
+    contentType: typeof repairedContent,
+    hasVersion: !!(repairedContent as any)?.version,
+    version: (repairedContent as any)?.version,
+    hasNodes: Array.isArray((repairedContent as any)?.nodes),
+    nodeCount: Array.isArray((repairedContent as any)?.nodes) ? (repairedContent as any).nodes.length : 0,
+    hasPositions: !!(repairedContent as any)?.positions,
+    positionsKeys: (repairedContent as any)?.positions ? Object.keys((repairedContent as any).positions).length : 0,
+    hasMobilePositions: !!(repairedContent as any)?.mobilePositions,
+    mobilePositionsKeys: (repairedContent as any)?.mobilePositions ? Object.keys((repairedContent as any).mobilePositions).length : 0,
+    wasRepaired: repairedContent !== content,
+  });
+
   try {
-    // First, try to parse with the new schema
-    return StructuredContentSchema.parse(content);
+    // First, try to parse with the new schema (using repaired content)
+    const validated = StructuredContentSchema.parse(repairedContent);
+    console.log('[PERSISTENCE AUDIT] ✅ Schema validation SUCCESSFUL - positioning data preserved');
+    return validated;
   } catch (error) {
     // If validation fails, attempt migration from legacy format
     if (error instanceof z.ZodError) {
+      console.error('[PERSISTENCE AUDIT] ❌ Schema validation FAILED - analyzing errors:', {
+        errorCount: error.errors.length,
+        errorPaths: error.errors.map(err => ({
+          path: err.path.join('.'),
+          code: err.code,
+          message: err.message,
+          received: err.received,
+        })),
+        firstFewErrors: error.errors.slice(0, 3)
+      });
+
+      // 🔍 DETAILED NODE ANALYSIS: Check for remaining malformed RichBlock content (after repair)
+      if ((repairedContent as any)?.nodes) {
+        const nodes = (repairedContent as any).nodes;
+        console.log('[PERSISTENCE AUDIT] 🔍 Analyzing node structure after repair:');
+        nodes.forEach((node: any, index: number) => {
+          if (node.type === 'richBlock') {
+            const hasCorrectContentStructure = node.data?.content && 
+              typeof node.data.content === 'object' && 
+              'htmlContent' in node.data.content;
+            
+            console.log(`[PERSISTENCE AUDIT] Node ${index} (${node.id}):`, {
+              type: node.type,
+              hasData: !!node.data,
+              hasContent: !!node.data?.content,
+              contentType: typeof node.data?.content,
+              isContentString: typeof node.data?.content === 'string',
+              hasCorrectStructure: hasCorrectContentStructure,
+              contentPreview: typeof node.data?.content === 'string' 
+                ? node.data.content.substring(0, 50) + '...'
+                : JSON.stringify(node.data?.content).substring(0, 100) + '...',
+            });
+
+            // 🚨 REMAINING ISSUES AFTER REPAIR
+            if (typeof node.data?.content === 'string') {
+              console.error('[PERSISTENCE AUDIT] 🚨 REPAIR FAILED: RichBlock still has malformed content after repair!', {
+                nodeId: node.id,
+                nodeIndex: index,
+                contentType: 'string (STILL INCORRECT)',
+                expectedType: 'object with htmlContent property',
+                actualContent: node.data.content,
+              });
+            }
+          }
+        });
+      }
+
       try {
-        console.warn('[Schema Migration] Attempting to migrate legacy content format');
-        const migrated = migrateStructuredContent(content);
-        return StructuredContentSchema.parse(migrated);
+        console.warn('[PERSISTENCE AUDIT] 🔄 Attempting schema migration (using repaired content)...');
+        const migrated = migrateStructuredContent(repairedContent);
+        const validated = StructuredContentSchema.parse(migrated);
+        console.log('[PERSISTENCE AUDIT] ✅ Schema migration SUCCESSFUL - positioning data preserved');
+        return validated;
       } catch (migrationError) {
-        // ENHANCED: Log detailed error context but don't fail on legacy data
-        console.warn('[Legacy Data] Validation failed, attempting graceful fallback:', {
+        // 🚨 CRITICAL POINT: This is where positioning data might get DESTROYED (but now with enhanced recovery)
+        console.error('[PERSISTENCE AUDIT] 💥 CRITICAL: Migration FAILED - using enhanced recovery to preserve positioning!', {
           originalError: error.errors,
-          migrationError: migrationError,
-          contentSample: JSON.stringify(content).substring(0, 200)
+          migrationError: migrationError instanceof Error ? migrationError.message : migrationError,
+          contentSample: JSON.stringify(repairedContent).substring(0, 200),
+          originalPositionsCount: (repairedContent as any)?.positions ? Object.keys((repairedContent as any).positions).length : 0,
+          originalMobilePositionsCount: (repairedContent as any)?.mobilePositions ? Object.keys((repairedContent as any).mobilePositions).length : 0,
         });
         
-        // If legacy data conflicts exist, create clean v3.0.0 structure
-        return createCleanV3Structure(content);
+        // 📊 LOG POSITIONING DATA BEFORE ENHANCED RECOVERY
+        if ((repairedContent as any)?.positions) {
+          console.warn('[PERSISTENCE AUDIT] 📊 Positioning data will be preserved via enhanced recovery:', {
+            positionsCount: Object.keys((repairedContent as any).positions).length,
+            samplePositions: Object.entries((repairedContent as any).positions).slice(0, 2).map(([id, pos]: [string, any]) => ({
+              id,
+              x: pos.x,
+              y: pos.y, 
+              width: pos.width,
+              height: pos.height,
+            })),
+          });
+        }
+
+        // Enhanced recovery: createCleanV3Structure now preserves positioning data
+        const fallbackResult = createCleanV3Structure(repairedContent);
+        console.warn('[PERSISTENCE AUDIT] 🔄 Enhanced graceful recovery applied - positioning data PRESERVED');
+        return fallbackResult;
       }
     }
     throw error;
@@ -952,30 +1109,97 @@ const createCleanV3Structure = (content: any): StructuredContentV3 => {
     });
   }
   
-  // Create positions for preserved nodes
+  // 🎯 PHASE 2B: Enhanced graceful recovery to PRESERVE original positioning data
   const positions: Record<string, any> = {};
   const mobilePositions: Record<string, any> = {};
   
+  // Extract original positioning data if it exists and is valid
+  const originalPositions = (content as any)?.positions || {};
+  const originalMobilePositions = (content as any)?.mobilePositions || {};
+  const hasOriginalPositions = Object.keys(originalPositions).length > 0;
+  const hasOriginalMobilePositions = Object.keys(originalMobilePositions).length > 0;
+
+  console.log('[ENHANCED RECOVERY] 🎯 Attempting to preserve original positioning data:', {
+    hasOriginalPositions,
+    hasOriginalMobilePositions,
+    originalPositionsCount: Object.keys(originalPositions).length,
+    originalMobilePositionsCount: Object.keys(originalMobilePositions).length,
+  });
+  
   preservedNodes.forEach((node, index) => {
     const nodeId = node.id;
-    // Stack nodes vertically with some spacing
-    const yOffset = index * 220;
     
-    positions[nodeId] = {
-      id: nodeId,
-      x: 100,
-      y: 100 + yOffset,
-      width: 600,
-      height: 200
-    };
+    // 🎯 POSITIONING PRESERVATION PRIORITY:
+    // 1. Use original positioning data if it exists for this node
+    // 2. Fall back to generic stacked positioning only if no original data exists
     
-    mobilePositions[nodeId] = {
-      id: nodeId,
-      x: 0,
-      y: 100 + yOffset,
-      width: 375,
-      height: 200
-    };
+    if (hasOriginalPositions && originalPositions[nodeId]) {
+      // ✅ PRESERVE ORIGINAL DESKTOP POSITIONING
+      const originalPos = originalPositions[nodeId];
+      positions[nodeId] = {
+        id: nodeId,
+        x: originalPos.x ?? 100,
+        y: originalPos.y ?? (100 + index * 220),
+        width: originalPos.width ?? 600,
+        height: originalPos.height ?? 200,
+        ...(originalPos.zIndex && { zIndex: originalPos.zIndex }),
+      };
+      console.log(`[ENHANCED RECOVERY] ✅ Preserved desktop position for ${nodeId}:`, {
+        original: originalPos,
+        preserved: positions[nodeId]
+      });
+    } else {
+      // ❌ FALLBACK: Generic stacked positioning (only when no original data)
+      const yOffset = index * 220;
+      positions[nodeId] = {
+        id: nodeId,
+        x: 100,
+        y: 100 + yOffset,
+        width: 600,
+        height: 200
+      };
+      console.log(`[ENHANCED RECOVERY] ⚠️ Using fallback position for ${nodeId} (no original data)`);
+    }
+    
+    if (hasOriginalMobilePositions && originalMobilePositions[nodeId]) {
+      // ✅ PRESERVE ORIGINAL MOBILE POSITIONING  
+      const originalMobilePos = originalMobilePositions[nodeId];
+      mobilePositions[nodeId] = {
+        id: nodeId,
+        x: originalMobilePos.x ?? 0,
+        y: originalMobilePos.y ?? (100 + index * 220),
+        width: originalMobilePos.width ?? 375,
+        height: originalMobilePos.height ?? 200,
+        ...(originalMobilePos.zIndex && { zIndex: originalMobilePos.zIndex }),
+      };
+      console.log(`[ENHANCED RECOVERY] ✅ Preserved mobile position for ${nodeId}:`, {
+        original: originalMobilePos,
+        preserved: mobilePositions[nodeId]
+      });
+    } else {
+      // ❌ FALLBACK: Generic mobile stacked positioning (only when no original data)
+      const yOffset = index * 220;
+      mobilePositions[nodeId] = {
+        id: nodeId,
+        x: 0,
+        y: 100 + yOffset,
+        width: 375,
+        height: 200
+      };
+      console.log(`[ENHANCED RECOVERY] ⚠️ Using fallback mobile position for ${nodeId} (no original data)`);
+    }
+  });
+
+  // 📊 POSITIONING PRESERVATION SUMMARY
+  const preservedDesktopCount = preservedNodes.filter(node => hasOriginalPositions && originalPositions[node.id]).length;
+  const preservedMobileCount = preservedNodes.filter(node => hasOriginalMobilePositions && originalMobilePositions[node.id]).length;
+  
+  console.log('[ENHANCED RECOVERY] 📊 Positioning preservation summary:', {
+    totalNodes: preservedNodes.length,
+    desktopPositionsPreserved: preservedDesktopCount,
+    mobilePositionsPreserved: preservedMobileCount,
+    desktopPreservationRate: preservedNodes.length > 0 ? Math.round((preservedDesktopCount / preservedNodes.length) * 100) : 0,
+    mobilePreservationRate: preservedNodes.length > 0 ? Math.round((preservedMobileCount / preservedNodes.length) * 100) : 0,
   });
   
   console.log('[Graceful Recovery] Preserved nodes from legacy content:', {

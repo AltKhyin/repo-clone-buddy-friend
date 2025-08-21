@@ -227,8 +227,8 @@ export const ReadOnlyRichBlockNode = memo<ReadOnlyRichBlockNodeProps>(
               // 🎯 MEDIA CONSTRAINT SYSTEM: Pass available width to child media elements
               '--block-content-width': `${finalPosition.width - paddingLeft - paddingRight}px`,
               '--block-max-width': `${finalPosition.width - paddingLeft - paddingRight}px`,
-              // CSS containment to prevent overflow
-              contain: 'layout style',
+              // 🎯 REMOVED: CSS containment was clipping video iframes
+              // contain: 'layout style',
             } as React.CSSProperties}
           >
             {renderContent()}

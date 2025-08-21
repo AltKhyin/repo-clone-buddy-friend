@@ -56,14 +56,15 @@ export const RichBlockNode = memo<RichBlockNodeProps>(
 
     // Handle content updates from TipTap
     const handleContentUpdate = useCallback(
-      (nodeId: string, htmlContent: string) => {
+      (nodeId: string, htmlContent: string, tiptapJSON?: any) => {
         updateNode(nodeId, {
           data: {
             ...data,
             content: {
               ...data.content,
               htmlContent,
-              // Note: TipTap JSON will be updated separately when editor changes
+              // 🎯 DUAL CONTENT SYNC: Update both HTML and JSON simultaneously
+              ...(tiptapJSON && { tiptapJSON }),
             },
           },
         });

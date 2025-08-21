@@ -275,6 +275,46 @@ export const VideoEmbed = Node.create<VideoEmbedOptions>({
     return [
       {
         tag: 'div[data-video-embed]',
+        getAttrs: element => {
+          const el = element as HTMLElement;
+          
+          // 🎯 COMPLETE ATTRIBUTE PARSING: Extract all video data from HTML attributes
+          const src = el.getAttribute('data-src') || '';
+          const provider = el.getAttribute('data-provider') || '';
+          const videoId = el.getAttribute('data-video-id') || '';
+          const thumbnail = el.getAttribute('data-thumbnail') || '';
+          const title = el.getAttribute('data-title') || '';
+          const duration = el.getAttribute('data-duration') || '';
+          const width = el.getAttribute('data-width');
+          const height = el.getAttribute('data-height');
+          const size = el.getAttribute('data-size') || 'auto';
+          const objectFit = el.getAttribute('data-object-fit') || 'contain';
+          const autoplay = el.getAttribute('data-autoplay') === 'true';
+          const muted = el.getAttribute('data-muted') === 'true';
+          const allowFullscreen = el.getAttribute('data-allow-fullscreen') !== 'false';
+          const loading = el.getAttribute('data-loading') === 'true';
+          const error = el.getAttribute('data-error') || null;
+          const placeholder = el.getAttribute('data-placeholder') === 'true';
+
+          return {
+            src,
+            provider,
+            videoId,
+            thumbnail,
+            title,
+            duration,
+            width: width ? parseInt(width, 10) : null,
+            height: height ? parseInt(height, 10) : null,
+            size,
+            objectFit,
+            autoplay,
+            muted,
+            allowFullscreen,
+            loading,
+            error,
+            placeholder,
+          };
+        },
       },
       {
         tag: 'iframe[src*="youtube.com"]',
@@ -299,11 +339,28 @@ export const VideoEmbed = Node.create<VideoEmbedOptions>({
     ];
   },
 
-  renderHTML({ HTMLAttributes }) {
+  renderHTML({ HTMLAttributes, node }) {
     return [
       'div',
       mergeAttributes(this.options.HTMLAttributes, HTMLAttributes, {
         'data-video-embed': '',
+        // 🎯 COMPLETE ATTRIBUTE SERIALIZATION: Include all video data for proper HTML ↔ JSON sync
+        'data-src': node.attrs.src || '',
+        'data-provider': node.attrs.provider || '',
+        'data-video-id': node.attrs.videoId || '',
+        'data-thumbnail': node.attrs.thumbnail || '',
+        'data-title': node.attrs.title || '',
+        'data-duration': node.attrs.duration || '',
+        'data-width': node.attrs.width || '',
+        'data-height': node.attrs.height || '',
+        'data-size': node.attrs.size || 'auto',
+        'data-object-fit': node.attrs.objectFit || 'contain',
+        'data-autoplay': node.attrs.autoplay?.toString() || 'false',
+        'data-muted': node.attrs.muted?.toString() || 'false',
+        'data-allow-fullscreen': node.attrs.allowFullscreen?.toString() || 'true',
+        'data-loading': node.attrs.loading?.toString() || 'false',
+        'data-error': node.attrs.error || '',
+        'data-placeholder': node.attrs.placeholder?.toString() || 'false',
       }),
     ];
   },

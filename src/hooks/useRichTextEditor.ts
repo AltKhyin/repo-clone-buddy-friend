@@ -340,7 +340,7 @@ interface UseRichTextEditorProps {
   nodeId: string;
   initialContent: string | any; // Can be HTML string or TipTap JSON
   placeholder?: string;
-  onUpdate: (nodeId: string, content: string) => void;
+  onUpdate: (nodeId: string, content: string, json?: any) => void;
   editable?: boolean;
   debounceMs?: number;
 }
@@ -405,10 +405,11 @@ export const useRichTextEditor = ({
     error: null,
   });
 
-  // Create debounced update function
+  // Create debounced update function - now supports dual content sync
   const debouncedUpdate = useRef(
-    debounce((nodeId: string, content: string) => {
-      onUpdate(nodeId, content);
+    debounce((nodeId: string, content: string, json?: any) => {
+      // 🎯 DUAL CONTENT SYNC: Pass both HTML and JSON for proper persistence
+      onUpdate(nodeId, content, json);
     }, debounceMs)
   ).current;
 
@@ -594,7 +595,9 @@ export const useRichTextEditor = ({
 
     onUpdate: ({ editor }) => {
       const html = editor.getHTML();
-      debouncedUpdate(nodeId, html);
+      const json = editor.getJSON();
+      // 🎯 DUAL CONTENT SYNC: Save both HTML and JSON to prevent data loss
+      debouncedUpdate(nodeId, html, json);
     },
     onSelectionUpdate: ({ editor }) => {
       // INSTRUMENTATION: Track selection update frequency (identifies over-calling problem)
