@@ -17,6 +17,7 @@ interface ReadOnlyRichBlockNodeProps {
   canvasWidth: number;
   mobileCanvasWidth?: number;
   isMobilePosition?: boolean;
+  scaleFactor?: number; // Scale factor for mobile canvas width adjustment
 }
 
 export const ReadOnlyRichBlockNode = memo<ReadOnlyRichBlockNodeProps>(
@@ -30,12 +31,14 @@ export const ReadOnlyRichBlockNode = memo<ReadOnlyRichBlockNodeProps>(
     canvasWidth,
     mobileCanvasWidth = 375,
     isMobilePosition = false,
+    scaleFactor: providedScaleFactor,
   }) => {
     const isMobile = useIsMobile();
 
-    // Calculate scaling factor for mobile only if positions are not already mobile-specific
+    // Use provided scale factor (for canvas width adjustment) or calculate based on mobile positioning
     // This is identical to DraggableBlock/PositionedBlockRenderer logic
-    const scaleFactor = (isMobile && !isMobilePosition) ? mobileCanvasWidth / canvasWidth : 1;
+    const scaleFactor = providedScaleFactor || 
+      ((isMobile && !isMobilePosition) ? mobileCanvasWidth / canvasWidth : 1);
     
     // Apply scaling to position and dimensions - identical to editor logic
     const finalPosition = {

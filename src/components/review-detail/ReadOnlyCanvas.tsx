@@ -32,11 +32,21 @@ export function ReadOnlyCanvas({
 }: ReadOnlyCanvasProps) {
   const isMobile = useIsMobile();
   
-  // Select appropriate positions and config based on current viewport - identical to editor logic
+  // Select appropriate positions and config based on current viewport - with mobile scaling to screen width
   const currentCanvasConfig = CANVAS_CONFIG[isMobile ? 'mobile' : 'desktop'];
   const currentPositions = isMobile && content.mobilePositions 
     ? content.mobilePositions 
     : content.positions;
+    
+  // Calculate actual canvas width for mobile (full screen width)
+  const actualCanvasWidth = isMobile 
+    ? (typeof window !== 'undefined' ? window.innerWidth : 375)
+    : currentCanvasConfig.width;
+    
+  // Calculate scale factor for mobile content positioning
+  const canvasScaleFactor = isMobile 
+    ? actualCanvasWidth / currentCanvasConfig.width 
+    : 1;
 
   // Track if we're using mobile-specific positions
   const usingMobilePositions = isMobile && !!content.mobilePositions;
@@ -103,7 +113,7 @@ export function ReadOnlyCanvas({
         <div
           className="readonly-canvas relative"
           style={{
-            width: currentCanvasConfig.width,
+            width: actualCanvasWidth,
             height: canvasHeight,
             backgroundColor: 'hsl(var(--background))',
           }}
@@ -147,6 +157,7 @@ export function ReadOnlyCanvas({
                 canvasWidth={currentCanvasConfig.width}
                 mobileCanvasWidth={CANVAS_CONFIG.mobile.width}
                 isMobilePosition={usingMobilePositions}
+                scaleFactor={canvasScaleFactor}
               />
             );
           })}

@@ -11,6 +11,7 @@ interface ReadOnlyBlockProps {
   canvasWidth: number;
   mobileCanvasWidth?: number;
   isMobilePosition?: boolean; // Indicates if position is already mobile-specific
+  scaleFactor?: number; // Scale factor for mobile canvas width adjustment
 }
 
 /**
@@ -23,12 +24,14 @@ const LegacyReadOnlyBlock: React.FC<ReadOnlyBlockProps> = ({
   canvasWidth,
   mobileCanvasWidth = 375,
   isMobilePosition = false,
+  scaleFactor: providedScaleFactor,
 }) => {
   const isMobile = useIsMobile();
 
-  // Calculate scaling factor for mobile only if positions are not already mobile-specific
+  // Use provided scale factor (for canvas width adjustment) or calculate based on mobile positioning
   // This is identical to DraggableBlock logic but without interaction handling
-  const scaleFactor = (isMobile && !isMobilePosition) ? mobileCanvasWidth / canvasWidth : 1;
+  const scaleFactor = providedScaleFactor || 
+    ((isMobile && !isMobilePosition) ? mobileCanvasWidth / canvasWidth : 1);
   
   // Apply scaling to position and dimensions only when needed - identical to editor logic
   const scaledPosition = {
@@ -196,6 +199,7 @@ export const ReadOnlyBlock: React.FC<ReadOnlyBlockProps> = (props) => {
         canvasWidth={props.canvasWidth}
         mobileCanvasWidth={props.mobileCanvasWidth}
         isMobilePosition={props.isMobilePosition}
+        scaleFactor={props.scaleFactor}
       />
     );
   }
