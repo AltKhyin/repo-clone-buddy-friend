@@ -42,6 +42,9 @@ export const BasicTableComponent: React.FC<BasicTableComponentProps> = ({
   // Selection integration with unified selection system
   const { dispatch } = useSelectionActions();
 
+  // 🎯 READ-ONLY MODE DETECTION: Check if editor is in read-only mode
+  const isReadOnly = editor && !editor.isEditable;
+
   // Validate table data
   const validation = validateTableData(tableData);
   if (!validation.isValid) {
@@ -243,7 +246,7 @@ export const BasicTableComponent: React.FC<BasicTableComponentProps> = ({
                       paddingLeft: '8px',
                       paddingRight: '8px',
                     }}
-                    contentEditable
+                    contentEditable={!isReadOnly}
                     suppressContentEditableWarning
                     onFocus={(e) => handleCellFocus(e, -1, colIndex)}
                     onBlur={(e) => handleCellBlur(e, -1, colIndex)}
@@ -280,7 +283,7 @@ export const BasicTableComponent: React.FC<BasicTableComponentProps> = ({
                         paddingLeft: '8px',
                         paddingRight: '8px',
                       }}
-                      contentEditable
+                      contentEditable={!isReadOnly}
                       suppressContentEditableWarning
                       onFocus={(e) => handleCellFocus(e, rowIndex, colIndex)}
                       onBlur={(e) => handleCellBlur(e, rowIndex, colIndex)}

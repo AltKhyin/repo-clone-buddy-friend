@@ -629,4 +629,158 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+
+  /* 🎯 SMART READ-ONLY SYSTEM: Disable editor interactions while preserving text selection */
+  .readonly-content {
+    /* Allow normal text selection for copy/paste */
+    /* user-select: auto; - Let browser handle normal text selection */
+    
+    /* Disable drag operations on editor elements */
+    -webkit-user-drag: none !important;
+    -khtml-user-drag: none !important;
+    -moz-user-drag: none !important;
+    -o-user-drag: none !important;
+    user-drag: none !important;
+  }
+
+  /* 🚫 DISABLE PROSEMIRROR EDITOR INTERACTIONS: Target specific editor elements */
+  .readonly-content .ProseMirror-selectednode {
+    /* Remove ProseMirror selection styling */
+    outline: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  /* 🚫 DISABLE TABLE EDITING: Remove selection rings while preserving text selection */
+  .readonly-content .node-basicTable .ring-2,
+  .readonly-content .basic-table-node-wrapper .ring-2 {
+    /* Remove table selection rings */
+    --tw-ring-color: transparent !important;
+    box-shadow: none !important;
+  }
+
+  /* 🚫 DISABLE TABLE CELL EDITING: Make cells non-editable but keep text selectable */
+  .readonly-content table [contenteditable="true"] {
+    /* Force contenteditable to false for table cells */
+    -webkit-user-modify: read-only !important;
+    -moz-user-modify: read-only !important;
+    user-modify: read-only !important;
+  }
+
+  /* 🚫 DISABLE IMAGE EDITING: Remove hover controls and selection rings */
+  .readonly-content .node-inlineImage .ring-2,
+  .readonly-content .inline-image-wrapper .ring-2 {
+    /* Remove image selection rings */
+    --tw-ring-color: transparent !important;
+    box-shadow: none !important;
+  }
+
+  .readonly-content .node-inlineImage .group-hover\:opacity-100,
+  .readonly-content .inline-image-wrapper .group-hover\:opacity-100 {
+    /* Hide image edit controls on hover */
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+
+  /* 🚫 DISABLE DRAG ON MEDIA: Prevent dragging images/videos but allow text selection around them */
+  .readonly-content img,
+  .readonly-content video,
+  .readonly-content iframe,
+  .readonly-content canvas,
+  .readonly-content svg {
+    -webkit-user-drag: none !important;
+    -khtml-user-drag: none !important;
+    -moz-user-drag: none !important;
+    -o-user-drag: none !important;
+    user-drag: none !important;
+    /* Do NOT set user-select: none - allow text selection around media */
+  }
+
+  /* 🚫 DISABLE EDITOR-SPECIFIC CONTEXT MENUS: Block table/image edit menus, allow normal browser menus */
+  .readonly-content .node-basicTable,
+  .readonly-content .node-inlineImage {
+    /* Prevent ProseMirror context menus */
+    -webkit-context-menu: none !important;
+    -moz-context-menu: none !important;
+    context-menu: none !important;
+  }
+
+  /* 🎯 MEDIA CONSTRAINT SYSTEM: Ensure all media respects block boundaries */
+  .readonly-content .rich-block-content-container img,
+  .readonly-content .rich-block-content-container video,
+  .readonly-content .rich-block-content-container iframe,
+  .readonly-content .rich-block-content-container .video-container,
+  .readonly-content .rich-block-content-container .inline-image-wrapper {
+    /* Use CSS custom properties set by the block container */
+    max-width: var(--block-max-width, 100%) !important;
+    width: auto !important;
+    height: auto !important;
+    /* Maintain aspect ratio while respecting width constraints */
+    object-fit: contain !important;
+    /* Ensure no horizontal overflow */
+    box-sizing: border-box !important;
+  }
+
+  /* 🎯 SPECIFIC VIDEO CONSTRAINTS: Enhanced video containment */
+  .readonly-content .rich-block-content-container .video-embed-wrapper,
+  .readonly-content .rich-block-content-container .video-container {
+    /* Video containers must respect block width */
+    max-width: var(--block-max-width, 100%) !important;
+    width: 100% !important;
+    /* Maintain aspect ratio */
+    aspect-ratio: var(--video-aspect-ratio, 16/9);
+    /* Prevent overflow */
+    contain: layout size !important;
+    overflow: hidden !important;
+  }
+
+  /* 🎯 IMAGE CONSTRAINTS: Override any hardcoded max-widths */
+  .readonly-content .rich-block-content-container img {
+    /* Override InlineImage component's hardcoded max-width */
+    max-width: var(--block-max-width, 100%) !important;
+    /* Maintain aspect ratio */
+    width: auto !important;
+    height: auto !important;
+    /* Ensure proper scaling */
+    object-fit: contain !important;
+  }
+  
+  /* 🚨 VIDEO CONSTRAINT SYSTEM: Ensure videos respect block boundaries */
+  .readonly-content .video-embed-wrapper,
+  .readonly-content .video-container,
+  .readonly-content iframe[src*="youtube"],
+  .readonly-content iframe[src*="vimeo"],
+  .readonly-content iframe[src*="video"] {
+    max-width: 100% !important;
+    width: 100% !important;
+    contain: layout size !important; /* CSS containment to prevent overflow */
+    overflow: hidden !important;
+  }
+  
+  /* Ensure video elements respect container bounds */
+  .readonly-content video {
+    max-width: 100% !important;
+    width: 100% !important;
+    height: auto !important;
+    object-fit: cover !important;
+    contain: layout size !important;
+  }
+  
+  /* Mobile-specific video constraints */
+  @media (max-width: 767px) {
+    .readonly-content .video-embed-wrapper,
+    .readonly-content .video-container {
+      /* Force videos to respect mobile container boundaries */
+      max-width: 100% !important;
+      width: 100% !important;
+      box-sizing: border-box !important;
+    }
+    
+    /* Ensure iframes don't overflow on mobile */
+    .readonly-content iframe {
+      max-width: 100% !important;
+      width: 100% !important;
+      box-sizing: border-box !important;
+    }
+  }
 }

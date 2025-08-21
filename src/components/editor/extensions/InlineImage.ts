@@ -86,7 +86,7 @@ export const InlineImage = Node.create<InlineImageOptions>({
         rendered: false, // Don't render to HTML, used for styling
       },
       size: {
-        default: 'medium',
+        default: 'auto',
         rendered: false,
       },
       // Placeholder state

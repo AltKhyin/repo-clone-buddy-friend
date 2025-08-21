@@ -107,11 +107,11 @@ export function ReadOnlyCanvas({
   const unpositionedNodes = content.nodes.filter(node => !currentPositions?.[node.id]);
 
   return (
-    <div className={`readonly-canvas-container ${className}`}>
+    <div className={`readonly-canvas-container readonly-content ${className}`}>
       {/* Canvas container - NO zoom functionality for read-only mode */}
       <div className={isMobile ? "w-full flex justify-center px-0" : "flex justify-center"}>
         <div
-          className="readonly-canvas relative"
+          className="readonly-canvas relative border-2 rounded-lg shadow-lg border-border"
           style={{
             width: actualCanvasWidth,
             height: canvasHeight,

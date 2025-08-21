@@ -259,7 +259,7 @@ export const VideoEmbed = Node.create<VideoEmbedOptions>({
         rendered: false, // Don't render to HTML, used for styling
       },
       size: {
-        default: 'medium',
+        default: 'auto',
         rendered: false,
       },
       // Placeholder state

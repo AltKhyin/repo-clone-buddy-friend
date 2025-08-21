@@ -5,7 +5,6 @@ import React from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useReviewDetailQuery } from '../../packages/hooks/useReviewDetailQuery';
 import { useEditorLoadQuery } from '../../packages/hooks/useEditorPersistence';
-import LayoutAwareRenderer from '@/components/review-detail/LayoutAwareRenderer';
 import { ReadOnlyCanvas } from '@/components/review-detail/ReadOnlyCanvas';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertTriangle, Lock } from 'lucide-react';

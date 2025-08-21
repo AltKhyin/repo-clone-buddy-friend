@@ -252,12 +252,17 @@ export const RichBlockNode = memo<RichBlockNodeProps>(
     const renderUnifiedContent = () => {
       return (
         <div
-          className="rich-block-content-wrapper"
+          className="rich-block-content-wrapper rich-block-content-container"
           style={{
             width: '100%',
             flex: 1,
             position: 'relative',
-          }}
+            // 🎯 MEDIA CONSTRAINT SYSTEM: Pass available content width to child media elements (matching ReadOnlyRichBlockNode)
+            '--block-content-width': `${(width || 600) - paddingLeft - paddingRight}px`,
+            '--block-max-width': `${(width || 600) - paddingLeft - paddingRight}px`,
+            // CSS containment to prevent media overflow
+            contain: 'layout style',
+          } as React.CSSProperties}
         >
           <EditorContent
             editor={editorInstance.editor}

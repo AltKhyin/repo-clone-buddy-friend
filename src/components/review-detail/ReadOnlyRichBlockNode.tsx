@@ -176,37 +176,63 @@ export const ReadOnlyRichBlockNode = memo<ReadOnlyRichBlockNodeProps>(
         data-block-id={id}
         data-block-type="richBlock"
         data-read-only="true"
-        className="absolute readonly-rich-block"
+        className="absolute readonly-rich-block readonly-content"
         style={{
-          // Positioning - identical to editor logic
+          // CONTAINER LAYER: Positioning only (matching UnifiedBlockWrapper containerStyles)
           position: 'absolute',
           left: `${finalPosition.x}px`,
           top: `${finalPosition.y}px`,
           width: `${finalPosition.width}px`,
           height: `${finalPosition.height}px`,
           zIndex: 1,
-          // Content styling
-          backgroundColor: dynamicStyles.backgroundColor,
-          borderRadius: dynamicStyles.borderRadius,
-          borderWidth: `${dynamicStyles.borderWidth}px`,
-          borderColor: dynamicStyles.borderColor,
-          borderStyle: 'solid',
+          padding: 0,
+          margin: 0,
+          border: 'none',
+          outline: 'none',
+          boxSizing: 'border-box',
           display: 'flex',
           flexDirection: 'column',
-          justifyContent: 'flex-start',
-          alignItems: 'stretch',
-          minHeight: '100%',
-          boxSizing: 'border-box',
         }}
       >
-        {/* Main content area - unified rich text editor (read-only) */}
+        {/* CONTENT AREA LAYER: Styling (matching UnifiedBlockWrapper unifiedContentStyles) */}
         <div 
-          className="flex-1 w-full"
+          className="unified-content-area"
           style={{
-            padding: `${paddingTop}px ${paddingRight}px ${paddingBottom}px ${paddingLeft}px`,
+            width: '100%',
+            height: '100%',
+            padding: 0,
+            margin: 0,
+            border: 'none',
+            boxSizing: 'border-box',
+            position: 'relative',
+            // Apply content styles (matching UnifiedBlockWrapper contentStyles)
+            backgroundColor: dynamicStyles.backgroundColor,
+            borderRadius: dynamicStyles.borderRadius,
+            borderWidth: `${dynamicStyles.borderWidth}px`,
+            borderColor: dynamicStyles.borderColor,
+            borderStyle: 'solid',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'flex-start',
+            alignItems: 'stretch',
+            minHeight: '100%',
+            overflow: 'visible', // Allow dropdown menus for tables
           }}
         >
-          {renderContent()}
+          {/* CONTENT WRAPPER: Padding and flex layout with media constraints */}
+          <div 
+            className="flex-1 w-full rich-block-content-container"
+            style={{
+              padding: `${paddingTop}px ${paddingRight}px ${paddingBottom}px ${paddingLeft}px`,
+              // 🎯 MEDIA CONSTRAINT SYSTEM: Pass available width to child media elements
+              '--block-content-width': `${finalPosition.width - paddingLeft - paddingRight}px`,
+              '--block-max-width': `${finalPosition.width - paddingLeft - paddingRight}px`,
+              // CSS containment to prevent overflow
+              contain: 'layout style',
+            } as React.CSSProperties}
+          >
+            {renderContent()}
+          </div>
         </div>
       </div>
     );

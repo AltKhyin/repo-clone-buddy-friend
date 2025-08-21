@@ -34,6 +34,7 @@ import {
 
 interface VideoEmbedComponentProps extends NodeViewProps {
   // Inherited from NodeViewProps: node, updateAttributes, deleteNode, etc.
+  editor?: any; // TipTap editor instance
 }
 
 export const VideoEmbedComponent = React.forwardRef<HTMLDivElement, VideoEmbedComponentProps>(({
@@ -41,8 +42,15 @@ export const VideoEmbedComponent = React.forwardRef<HTMLDivElement, VideoEmbedCo
   updateAttributes,
   deleteNode,
   selected,
+  editor,
 }, ref) => {
-  const [isEditing, setIsEditing] = useState(!node.attrs.src || node.attrs.placeholder);
+  // 🎯 READ-ONLY MODE DETECTION: Check if editor is in read-only mode
+  const isReadOnly = editor && !editor.isEditable;
+
+  // 🎯 READ-ONLY FIX: Never allow editing in read-only mode
+  const [isEditing, setIsEditing] = useState(
+    isReadOnly ? false : (!node.attrs.src || node.attrs.placeholder)
+  );
   const [videoUrl, setVideoUrl] = useState(node.attrs.src || '');
   const [isLoading, setIsLoading] = useState(node.attrs.loading || false);
   const [error, setError] = useState(node.attrs.error || null);
@@ -124,6 +132,13 @@ export const VideoEmbedComponent = React.forwardRef<HTMLDivElement, VideoEmbedCo
       setShowIframe(false);
     }
   }, [autoplay, muted, node.attrs.autoplay, node.attrs.muted, showIframe]);
+
+  // 🎯 READ-ONLY FIX: Auto-show iframe for videos with valid src in read-only mode  
+  useEffect(() => {
+    if (isReadOnly && node.attrs.src && node.attrs.videoId && !isEditing && !showIframe) {
+      setShowIframe(true);
+    }
+  }, [isReadOnly, node.attrs.src, node.attrs.videoId, isEditing, showIframe]);
 
   // Render editing interface
   if (isEditing) {
@@ -234,17 +249,19 @@ export const VideoEmbedComponent = React.forwardRef<HTMLDivElement, VideoEmbedCo
     return (
       <NodeViewWrapper ref={ref} className="video-embed-wrapper">
         <div
-          className={`inline-block cursor-pointer ${selected ? 'ring-2 ring-blue-500 ring-offset-2' : ''}`}
-          onClick={() => setIsEditing(true)}
+          className={`inline-block ${isReadOnly ? 'cursor-default' : 'cursor-pointer'} ${selected && !isReadOnly ? 'ring-2 ring-blue-500 ring-offset-2' : ''}`}
+          onClick={isReadOnly ? undefined : () => setIsEditing(true)}
           data-placeholder="true"
         >
           <div className="relative border-2 border-dashed border-gray-300 rounded-lg bg-gray-900 hover:bg-gray-800 transition-colors">
             <div
               className="flex items-center justify-center"
               style={{
-                width: PLACEHOLDER_DIMENSIONS.video.width,
-                height: PLACEHOLDER_DIMENSIONS.video.height,
-                maxWidth: getMediaMaxWidth(node.attrs.size),
+                width: isReadOnly ? 'auto' : PLACEHOLDER_DIMENSIONS.video.width,
+                height: isReadOnly ? 'auto' : PLACEHOLDER_DIMENSIONS.video.height,
+                maxWidth: isReadOnly 
+                  ? 'var(--block-max-width, 100%)' 
+                  : getMediaMaxWidth(node.attrs.size),
                 aspectRatio: '16/9',
               }}
             >
@@ -267,13 +284,13 @@ export const VideoEmbedComponent = React.forwardRef<HTMLDivElement, VideoEmbedCo
   // Render video display
   return (
     <NodeViewWrapper ref={ref} className="video-embed-wrapper">
-      <div className={`inline-block group ${selected ? 'ring-2 ring-blue-500 ring-offset-2' : ''}`}>
+      <div className={`inline-block group ${selected && !isReadOnly ? 'ring-2 ring-blue-500 ring-offset-2' : ''}`}>
         <div
           className="relative bg-black rounded-lg overflow-hidden"
           style={{
-            // Size controls with transform support using shared constants
-            width: node.attrs.width ? `${node.attrs.width}px` : getMediaMaxWidth(node.attrs.size),
-            maxWidth: '100%',
+            // 🎯 UNIVERSAL BLOCK-AWARE SIZING: Apply block constraints in all modes  
+            width: 'auto',
+            maxWidth: 'var(--block-max-width, 100%)',
             aspectRatio: getVideoAspectRatio(node.attrs.objectFit),
           }}
         >
@@ -283,9 +300,11 @@ export const VideoEmbedComponent = React.forwardRef<HTMLDivElement, VideoEmbedCo
               <img
                 src={node.attrs.thumbnail}
                 alt={node.attrs.title || 'Video thumbnail'}
-                className="w-full h-full"
+                className="max-w-full h-auto"
                 style={{
                   objectFit: getVideoThumbnailObjectFit(node.attrs.objectFit),
+                  width: '100%',
+                  height: '100%',
                 }}
               />
 
@@ -293,8 +312,9 @@ export const VideoEmbedComponent = React.forwardRef<HTMLDivElement, VideoEmbedCo
               <div className="absolute inset-0 bg-black/20 flex items-center justify-center group-hover:bg-black/40 transition-colors">
                 <Button
                   size="lg"
-                  onClick={handleLoadEmbed}
-                  className="rounded-full w-16 h-16 p-0 bg-white/90 hover:bg-white text-black"
+                  onClick={isReadOnly ? undefined : handleLoadEmbed}
+                  disabled={isReadOnly}
+                  className={`rounded-full w-16 h-16 p-0 bg-white/90 hover:bg-white text-black ${isReadOnly ? 'cursor-default opacity-50' : ''}`}
                 >
                   <Play size={24} />
                 </Button>
@@ -324,12 +344,15 @@ export const VideoEmbedComponent = React.forwardRef<HTMLDivElement, VideoEmbedCo
               ref={iframeRef}
               src={getEmbedUrl()}
               title={node.attrs.title || 'Video'}
-              width={node.attrs.width}
-              height={node.attrs.height}
               frameBorder="0"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen={node.attrs.allowFullscreen}
-              className="w-full h-full"
+              className="max-w-full h-auto"
+              style={{
+                width: 'auto',
+                height: 'auto',
+                maxWidth: 'var(--block-max-width, 100%)',
+              }}
             />
           )}
 
@@ -344,14 +367,15 @@ export const VideoEmbedComponent = React.forwardRef<HTMLDivElement, VideoEmbedCo
             </div>
           )}
 
-          {/* Hover Controls */}
-          {selected && !error && (
+          {/* Hover Controls - Hidden in read-only mode */}
+          {selected && !error && !isReadOnly && (
             <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
               <div className="flex gap-1">
                 <Button
                   size="sm"
                   variant="secondary"
-                  onClick={() => setShowSettings(!showSettings)}
+                  onClick={isReadOnly ? undefined : () => setShowSettings(!showSettings)}
+                  disabled={isReadOnly}
                   className="h-8 w-8 p-0 bg-black/50 hover:bg-black/70 text-white border-0"
                   title="Video settings"
                 >
@@ -361,7 +385,8 @@ export const VideoEmbedComponent = React.forwardRef<HTMLDivElement, VideoEmbedCo
                 <Button
                   size="sm"
                   variant="secondary"
-                  onClick={() => setIsEditing(true)}
+                  onClick={isReadOnly ? undefined : () => setIsEditing(true)}
+                  disabled={isReadOnly}
                   className="h-8 w-8 p-0 bg-black/50 hover:bg-black/70 text-white border-0"
                   title="Edit video"
                 >
@@ -381,7 +406,8 @@ export const VideoEmbedComponent = React.forwardRef<HTMLDivElement, VideoEmbedCo
                 <Button
                   size="sm"
                   variant="destructive"
-                  onClick={deleteNode}
+                  onClick={isReadOnly ? undefined : deleteNode}
+                  disabled={isReadOnly}
                   className="h-8 w-8 p-0"
                   title="Delete video"
                 >

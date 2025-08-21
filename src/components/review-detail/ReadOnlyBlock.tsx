@@ -139,6 +139,66 @@ const LegacyReadOnlyBlock: React.FC<ReadOnlyBlockProps> = ({
           </div>
         );
 
+      case 'videoBlock':
+      case 'video':
+        return (
+          <div className="video-block-content">
+            {node.data?.src ? (
+              <div 
+                className="video-container relative w-full rounded-lg overflow-hidden bg-black"
+                style={{ 
+                  maxWidth: '100%',
+                  aspectRatio: node.data?.aspectRatio || '16/9',
+                  contain: 'layout size' // Prevent overflow
+                }}
+              >
+                {node.data?.provider === 'youtube' || node.data?.provider === 'vimeo' ? (
+                  // For embedded videos, show thumbnail with play button
+                  <div className="relative w-full h-full">
+                    {node.data?.thumbnail && (
+                      <img 
+                        src={node.data.thumbnail}
+                        alt={node.data?.title || 'Video thumbnail'}
+                        className="w-full h-full object-cover"
+                      />
+                    )}
+                    <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
+                      <div className="w-16 h-16 bg-white/90 rounded-full flex items-center justify-center">
+                        <div className="w-0 h-0 border-l-[20px] border-l-black border-y-[12px] border-y-transparent ml-1"></div>
+                      </div>
+                    </div>
+                    {node.data?.provider && (
+                      <div className="absolute top-3 left-3 bg-black/50 text-white text-xs px-2 py-1 rounded">
+                        {node.data.provider.charAt(0).toUpperCase() + node.data.provider.slice(1)}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  // For direct video files
+                  <video 
+                    className="w-full h-full object-cover"
+                    controls={false}
+                    poster={node.data?.thumbnail}
+                    style={{ maxWidth: '100%', height: 'auto' }}
+                  >
+                    <source src={node.data.src} type="video/mp4" />
+                    Your browser does not support the video tag.
+                  </video>
+                )}
+              </div>
+            ) : (
+              <div className="w-full h-32 bg-muted rounded-lg flex items-center justify-center">
+                <span className="text-muted-foreground text-sm">No video source</span>
+              </div>
+            )}
+            {node.data?.caption && (
+              <p className="text-sm text-muted-foreground mt-2 text-center">
+                {node.data.caption}
+              </p>
+            )}
+          </div>
+        );
+
       default:
         return (
           <div className="p-4 bg-muted/30 rounded-lg border-2 border-dashed border-muted-foreground/20">
@@ -160,7 +220,7 @@ const LegacyReadOnlyBlock: React.FC<ReadOnlyBlockProps> = ({
   return (
     <div
       data-testid={`readonly-block-${node.id}`}
-      className="absolute readonly-block"
+      className="absolute readonly-block readonly-content"
       style={{
         left: scaledPosition.x,
         top: scaledPosition.y,

@@ -281,7 +281,25 @@ export const UnifiedBlockWrapper = React.memo<ContentBoundaryProps>(
           style={unifiedContentStyles}
           data-content-boundary="true"
         >
-          {children}
+          {/* 🎯 MEDIA CONSTRAINT ENHANCEMENT: Add rich block content container for media containment */}
+          {blockType === 'richBlock' ? (
+            <div 
+              className="rich-block-content-container"
+              style={{
+                width: '100%',
+                height: '100%',
+                // 🎯 MEDIA CONSTRAINT SYSTEM: Pass available content width to child media elements (excluding padding)
+                '--block-max-width': `${width}px`, // This will be overridden by rich blocks with proper padding calculation
+                '--block-content-width': `${width}px`,
+                // CSS containment to prevent media overflow
+                contain: 'layout style',
+              } as React.CSSProperties}
+            >
+              {children}
+            </div>
+          ) : (
+            children
+          )}
         </div>
 
         {/* 🎯 INTERACTION PRIORITY: Resize Handles - show on selection OR hover (but not during operations) */}

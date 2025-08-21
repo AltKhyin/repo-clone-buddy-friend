@@ -30,7 +30,7 @@ export type ObjectFitOption = keyof typeof OBJECT_FIT_OPTIONS;
  * Get maximum width for media based on size setting
  */
 export const getMediaMaxWidth = (size: string): string => {
-  return MEDIA_SIZES[size as MediaSize] || MEDIA_SIZES.medium;
+  return MEDIA_SIZES[size as MediaSize] || MEDIA_SIZES.auto;
 };
 
 /**

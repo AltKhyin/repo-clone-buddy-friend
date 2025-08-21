@@ -25,6 +25,7 @@ import {
 
 interface InlineImageComponentProps extends NodeViewProps {
   // Inherited from NodeViewProps: node, updateAttributes, deleteNode, etc.
+  editor?: any; // TipTap editor instance
 }
 
 export const InlineImageComponent = React.forwardRef<HTMLDivElement, InlineImageComponentProps>(({
@@ -32,6 +33,7 @@ export const InlineImageComponent = React.forwardRef<HTMLDivElement, InlineImage
   updateAttributes,
   deleteNode,
   selected,
+  editor,
 }, ref) => {
   const [isEditing, setIsEditing] = useState(!node.attrs.src || node.attrs.placeholder);
   const [imageUrl, setImageUrl] = useState(node.attrs.src || '');
@@ -42,6 +44,9 @@ export const InlineImageComponent = React.forwardRef<HTMLDivElement, InlineImage
   const [error, setError] = useState(node.attrs.error || null);
   const [imageLoaded, setImageLoaded] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // 🎯 READ-ONLY MODE DETECTION: Check if editor is in read-only mode
+  const isReadOnly = editor && !editor.isEditable;
 
   // Handle image URL update
   const handleSaveUrl = useCallback(() => {
@@ -273,7 +278,7 @@ export const InlineImageComponent = React.forwardRef<HTMLDivElement, InlineImage
     return (
       <NodeViewWrapper ref={ref} className="inline-image-wrapper">
         <div
-          className={`inline-block cursor-pointer ${selected ? 'ring-2 ring-blue-500 ring-offset-1' : ''}`}
+          className={`inline-block cursor-pointer ${selected && !isReadOnly ? 'ring-2 ring-blue-500 ring-offset-1' : ''}`}
           onClick={() => setIsEditing(true)}
           data-placeholder="true"
         >
@@ -283,9 +288,11 @@ export const InlineImageComponent = React.forwardRef<HTMLDivElement, InlineImage
               alt="Click to configure image"
               className="opacity-60"
               style={{
-                width: PLACEHOLDER_DIMENSIONS.image.width,
-                height: PLACEHOLDER_DIMENSIONS.image.height,
-                maxWidth: getMediaMaxWidth(node.attrs.size),
+                width: isReadOnly ? 'auto' : PLACEHOLDER_DIMENSIONS.image.width,
+                height: isReadOnly ? 'auto' : PLACEHOLDER_DIMENSIONS.image.height,
+                maxWidth: isReadOnly 
+                  ? 'var(--block-max-width, 100%)' 
+                  : getMediaMaxWidth(node.attrs.size),
                 display: 'block',
               }}
             />
@@ -304,7 +311,7 @@ export const InlineImageComponent = React.forwardRef<HTMLDivElement, InlineImage
   // Render image display
   return (
     <NodeViewWrapper ref={ref} className="inline-image-wrapper">
-      <div className={`inline-block group ${selected ? 'ring-2 ring-blue-500 ring-offset-1' : ''}`}>
+      <div className={`inline-block group ${selected && !isReadOnly ? 'ring-2 ring-blue-500 ring-offset-1' : ''}`}>
         <div className="relative">
           {/* Image */}
           <img
@@ -315,11 +322,17 @@ export const InlineImageComponent = React.forwardRef<HTMLDivElement, InlineImage
             onError={handleImageError}
             className="max-w-full h-auto rounded border"
             style={{
-              // Existing size controls with consistent sizing
-              maxWidth: node.attrs.width
-                ? `${node.attrs.width}px`
-                : getMediaMaxWidth(node.attrs.size),
-              maxHeight: node.attrs.height ? `${node.attrs.height}px` : 'auto',
+              // 🎯 BLOCK-AWARE SIZING: Use block constraints in read-only, original sizing in editor
+              maxWidth: isReadOnly 
+                ? 'var(--block-max-width, 100%)' 
+                : (node.attrs.width
+                  ? `${node.attrs.width}px`
+                  : getMediaMaxWidth(node.attrs.size)),
+              maxHeight: isReadOnly 
+                ? 'none' 
+                : (node.attrs.height ? `${node.attrs.height}px` : 'auto'),
+              width: isReadOnly ? 'auto' : undefined,
+              height: isReadOnly ? 'auto' : undefined,
 
               // Object-fit transform using shared utilities
               objectFit: getImageObjectFit(node.attrs.objectFit),
@@ -344,8 +357,8 @@ export const InlineImageComponent = React.forwardRef<HTMLDivElement, InlineImage
             </div>
           )}
 
-          {/* Hover Controls */}
-          {selected && !error && (
+          {/* Hover Controls - Hidden in read-only mode */}
+          {selected && !error && !isReadOnly && (
             <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
               <div className="flex gap-1">
                 <Button

@@ -591,6 +591,7 @@ export const useRichTextEditor = ({
     content: initialContent, // Can be HTML string or TipTap JSON object
     editable,
 
+
     onUpdate: ({ editor }) => {
       const html = editor.getHTML();
       debouncedUpdate(nodeId, html);
@@ -941,10 +942,21 @@ export const useRichTextEditor = ({
       }
     },
 
-    // Enhanced editor props for Reddit-like experience
+    // Enhanced editor props for Reddit-like experience + read-only mode support
     editorProps: {
-      // Enhanced keyboard shortcuts with markdown detection
-      handleKeyDown: (view, event) => {
+      // 🎯 READ-ONLY MODE: Block interactions when not editable, otherwise use enhanced features
+      ...(editable === false ? {
+        handleClick: () => true, // Block all click handling
+        handleKeyDown: () => true, // Block all keyboard handling  
+        handleDOMEvents: {
+          // Block context menus and drag events in read-only
+          contextmenu: () => true,
+          dragstart: () => true,
+          drop: () => true,
+        },
+      } : {
+        // Enhanced keyboard shortcuts with markdown detection (editable mode only)
+        handleKeyDown: (view, event) => {
         const { state, dispatch } = view;
 
         // Shift+Enter for hard breaks
@@ -1071,10 +1083,14 @@ export const useRichTextEditor = ({
         }
 
         return false;
-      },
+        },
+      }),
 
-      // Enhanced styling for editor
+      // Enhanced styling for editor (always applied)
       attributes: {
+        // Add readonly attribute when applicable
+        ...(editable === false && { 'data-readonly': 'true' }),
+        // Enhanced styling
         class: 'prose prose-sm max-w-none focus:outline-none',
         style: `
           min-height: 100px;
