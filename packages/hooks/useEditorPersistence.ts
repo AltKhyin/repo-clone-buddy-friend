@@ -350,6 +350,31 @@ export const useEditorLoadQuery = (reviewId: string | null) => {
             ? node.data.content.substring(0, 30) + '...'
             : JSON.stringify(node.data?.content).substring(0, 50) + '...',
         })) || [],
+
+        // 🎯 MOBILE PADDING DATA AUDIT: Specifically track mobile padding presence and structure
+        mobilePaddingAudit: rawContent?.nodes?.map((node: any) => ({
+          nodeId: node.id,
+          nodeType: node.type,
+          hasData: !!node.data,
+          paddingAnalysis: {
+            // Viewport-specific padding (the new system we need)
+            hasDesktopPadding: !!node.data?.desktopPadding,
+            hasMobilePadding: !!node.data?.mobilePadding,
+            desktopPaddingValue: node.data?.desktopPadding,
+            mobilePaddingValue: node.data?.mobilePadding,
+            // Legacy padding system
+            hasLegacyIndividual: !!(node.data?.paddingTop || node.data?.paddingRight || node.data?.paddingBottom || node.data?.paddingLeft),
+            hasLegacySymmetric: !!(node.data?.paddingX || node.data?.paddingY),
+            legacyPaddingData: {
+              paddingTop: node.data?.paddingTop,
+              paddingRight: node.data?.paddingRight,
+              paddingBottom: node.data?.paddingBottom,
+              paddingLeft: node.data?.paddingLeft,
+              paddingX: node.data?.paddingX,
+              paddingY: node.data?.paddingY,
+            }
+          }
+        })) || [],
         
         created_at: data.created_at,
         updated_at: data.updated_at,
@@ -364,6 +389,33 @@ export const useEditorLoadQuery = (reviewId: string | null) => {
         const validatedMobilePositions = (validatedContent as any)?.mobilePositions || {};
         const validatedPositionsCount = Object.keys(validatedPositions).length;
         const validatedMobilePositionsCount = Object.keys(validatedMobilePositions).length;
+
+        // 🎯 POST-VALIDATION MOBILE PADDING AUDIT: Check if mobile padding survived validation
+        const validatedMobilePaddingAudit = validatedContent.nodes.map((node: any) => ({
+          nodeId: node.id,
+          nodeType: node.type,
+          hasData: !!node.data,
+          paddingAnalysis: {
+            hasDesktopPadding: !!node.data?.desktopPadding,
+            hasMobilePadding: !!node.data?.mobilePadding,
+            desktopPaddingValue: node.data?.desktopPadding,
+            mobilePaddingValue: node.data?.mobilePadding,
+            hasLegacyIndividual: !!(node.data?.paddingTop || node.data?.paddingRight || node.data?.paddingBottom || node.data?.paddingLeft),
+            hasLegacySymmetric: !!(node.data?.paddingX || node.data?.paddingY),
+            legacyPaddingData: {
+              paddingTop: node.data?.paddingTop,
+              paddingRight: node.data?.paddingRight,
+              paddingBottom: node.data?.paddingBottom,
+              paddingLeft: node.data?.paddingLeft,
+              paddingX: node.data?.paddingX,
+              paddingY: node.data?.paddingY,
+            }
+          }
+        }));
+
+        // Compare raw vs validated mobile padding data
+        const rawNodesWithMobilePadding = rawContent?.nodes?.filter((node: any) => !!node.data?.mobilePadding) || [];
+        const validatedNodesWithMobilePadding = validatedContent.nodes.filter((node: any) => !!node.data?.mobilePadding);
 
         console.log('[PERSISTENCE AUDIT] ✅ LOAD PIPELINE - Content validation successful:', {
           reviewId,
@@ -380,7 +432,19 @@ export const useEditorLoadQuery = (reviewId: string | null) => {
           
           loadPositioningDataStatus: rawPositionsCount === validatedPositionsCount && rawMobilePositionsCount === validatedMobilePositionsCount ? 
             '✅ PRESERVED THROUGH LOAD' : 
-            '❌ LOST/MODIFIED DURING LOAD'
+            '❌ LOST/MODIFIED DURING LOAD',
+
+          // 🎯 MOBILE PADDING PRESERVATION CHECK
+          mobilePaddingPreservationAudit: {
+            rawNodesWithMobilePadding: rawNodesWithMobilePadding.length,
+            validatedNodesWithMobilePadding: validatedNodesWithMobilePadding.length,
+            mobilePaddingPreserved: rawNodesWithMobilePadding.length === validatedNodesWithMobilePadding.length,
+            mobilePaddingDataStatus: rawNodesWithMobilePadding.length === validatedNodesWithMobilePadding.length ?
+              '✅ MOBILE PADDING PRESERVED THROUGH VALIDATION' :
+              '❌ MOBILE PADDING LOST DURING VALIDATION',
+            validatedMobilePaddingDetails: validatedMobilePaddingAudit.filter(node => node.paddingAnalysis.hasMobilePadding),
+            allValidatedPaddingDetails: validatedMobilePaddingAudit
+          }
         });
 
         return {

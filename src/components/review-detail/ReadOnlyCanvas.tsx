@@ -106,6 +106,24 @@ export function ReadOnlyCanvas({
   const positionedNodes = content.nodes.filter(node => currentPositions?.[node.id]);
   const unpositionedNodes = content.nodes.filter(node => !currentPositions?.[node.id]);
 
+  // 🎯 MOBILE PADDING AUDIT: Check what data structure we're receiving from content
+  console.log('[ReadOnlyCanvas] 🔍 CONTENT STRUCTURE AUDIT:', {
+    totalNodes: content.nodes.length,
+    positionedNodes: positionedNodes.length,
+    richBlockNodes: content.nodes.filter(n => n.type === 'richBlock').length,
+    'SAMPLE NODE DATA': positionedNodes.length > 0 ? {
+      nodeId: positionedNodes[0].id,
+      nodeType: positionedNodes[0].type,
+      hasData: Boolean(positionedNodes[0].data),
+      dataKeys: positionedNodes[0].data ? Object.keys(positionedNodes[0].data) : [],
+      hasMobilePadding: Boolean(positionedNodes[0].data?.mobilePadding),
+      hasDesktopPadding: Boolean(positionedNodes[0].data?.desktopPadding),
+      mobilePaddingValue: positionedNodes[0].data?.mobilePadding,
+      desktopPaddingValue: positionedNodes[0].data?.desktopPadding,
+      dataSample: positionedNodes[0].data ? JSON.stringify(positionedNodes[0].data).substring(0, 200) + '...' : 'null'
+    } : 'No positioned nodes'
+  });
+
   return (
     <div className={`readonly-canvas-container readonly-content ${className}`}>
       {/* Canvas container - NO zoom functionality for read-only mode */}

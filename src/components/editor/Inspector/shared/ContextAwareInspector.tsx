@@ -165,6 +165,7 @@ export const ContextAwareInspector = React.memo(function ContextAwareInspector({
         <VisualPaddingEditor
           data={node.data}
           onChange={handleDataUpdate}
+          editorViewport={currentViewport}
         />
       </InspectorSection>
     );

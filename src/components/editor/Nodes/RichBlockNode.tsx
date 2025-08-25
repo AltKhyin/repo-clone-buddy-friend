@@ -10,6 +10,7 @@ import { useSelectionStore } from '@/store/selectionStore';
 import { UnifiedBlockWrapper } from '@/components/editor/shared/UnifiedBlockWrapper';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { RichBlockData, ContentSelectionType, getViewportPadding } from '@/types/editor';
+import { createDebugContentUpdateHandler } from '@/components/editor/shared/content-update-handler';
 
 interface RichBlockNodeProps {
   id: string;
@@ -41,7 +42,7 @@ export const RichBlockNode = memo<RichBlockNodeProps>(
     onResize,
     onHeightAdjust,
   }) => {
-    const { updateNode, registerEditor, unregisterEditor } = useEditorStore();
+    const { updateNode, registerEditor, unregisterEditor, currentViewport: editorViewport } = useEditorStore();
     const { colors } = useEditorTheme();
 
     // Selection coordination for text content
@@ -54,21 +55,9 @@ export const RichBlockNode = memo<RichBlockNodeProps>(
     // UNIFIED SELECTION SYSTEM: Direct integration for text selections
     const { dispatch } = useSelectionStore();
 
-    // Handle content updates from TipTap
-    const handleContentUpdate = useCallback(
-      (nodeId: string, htmlContent: string, tiptapJSON?: any) => {
-        updateNode(nodeId, {
-          data: {
-            ...data,
-            content: {
-              ...data.content,
-              htmlContent,
-              // 🎯 DUAL CONTENT SYNC: Update both HTML and JSON simultaneously
-              ...(tiptapJSON && { tiptapJSON }),
-            },
-          },
-        });
-      },
+    // Handle content updates from TipTap with enhanced typography synchronization
+    const handleContentUpdate = useMemo(
+      () => createDebugContentUpdateHandler(updateNode, data, true),
       [updateNode, data]
     );
 
@@ -90,7 +79,11 @@ export const RichBlockNode = memo<RichBlockNodeProps>(
 
     // Viewport-aware padding system with real-time responsiveness
     const isMobile = useIsMobile();
-    const currentViewport = isMobile ? 'mobile' : 'desktop';
+    const browserViewport = isMobile ? 'mobile' : 'desktop';
+    
+    // 🎯 VIEWPORT CONFLICT INVESTIGATION: Check for discrepancy between editor and browser viewport
+    const currentViewport = editorViewport || browserViewport;
+    
     
     // Responsive padding state that updates with viewport changes
     const responsivePadding = useMemo(() => {
@@ -101,8 +94,10 @@ export const RichBlockNode = memo<RichBlockNodeProps>(
         left: data.paddingLeft ?? data.paddingX ?? 16
       };
       
-      return getViewportPadding(data, currentViewport, fallbackPadding);
-    }, [isMobile, data.desktopPadding, data.mobilePadding, data.paddingTop, data.paddingRight, data.paddingBottom, data.paddingLeft, data.paddingX, data.paddingY]);
+      const viewportPadding = getViewportPadding(data, currentViewport, fallbackPadding);
+      
+      return viewportPadding;
+    }, [isMobile, data.desktopPadding, data.mobilePadding, data.paddingTop, data.paddingRight, data.paddingBottom, data.paddingLeft, data.paddingX, data.paddingY, editorViewport, currentViewport]);
     
     const paddingTop = responsivePadding.top ?? 16;
     const paddingRight = responsivePadding.right ?? 16;

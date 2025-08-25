@@ -56,14 +56,22 @@ export const AccessibleNumberInput: React.FC<AccessibleNumberInputProps> = ({
     }
   }, [value, precision, isEditing]);
 
+  // Precision-safe number rounding helper
+  const roundToPrecision = useCallback((num: number): number => {
+    if (precision === 0) return Math.round(num);
+    const multiplier = Math.pow(10, precision);
+    return Math.round(num * multiplier) / multiplier;
+  }, [precision]);
+
   // Parse and validate input value
   const parseValue = useCallback((str: string): number => {
     const parsed = parseFloat(str);
     if (isNaN(parsed)) return value; // Return current value if invalid
     
-    // Apply constraints
-    return Math.min(max, Math.max(min, parsed));
-  }, [value, min, max]);
+    // Apply constraints with precision-safe rounding
+    const constrained = Math.min(max, Math.max(min, parsed));
+    return roundToPrecision(constrained);
+  }, [value, min, max, roundToPrecision]);
 
   // Handle input changes with live validation
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -86,8 +94,7 @@ export const AccessibleNumberInput: React.FC<AccessibleNumberInputProps> = ({
   const handleBlur = useCallback(() => {
     setIsEditing(false);
     
-    const parsed = parseValue(inputValue);
-    const finalValue = Number(parsed.toFixed(precision));
+    const finalValue = parseValue(inputValue); // Already precision-safe
     
     // Ensure final value is properly formatted and within bounds
     setInputValue(finalValue.toFixed(precision));
@@ -112,15 +119,15 @@ export const AccessibleNumberInput: React.FC<AccessibleNumberInputProps> = ({
 
   // Increment value
   const increment = useCallback(() => {
-    const newValue = Math.min(max, value + step);
+    const newValue = roundToPrecision(Math.min(max, value + step));
     onChange(newValue);
-  }, [value, step, max, onChange]);
+  }, [value, step, max, onChange, roundToPrecision]);
 
   // Decrement value
   const decrement = useCallback(() => {
-    const newValue = Math.max(min, value - step);
+    const newValue = roundToPrecision(Math.max(min, value - step));
     onChange(newValue);
-  }, [value, step, min, onChange]);
+  }, [value, step, min, onChange, roundToPrecision]);
 
   // Handle increment button interactions with repeat
   const startIncrementing = useCallback(() => {

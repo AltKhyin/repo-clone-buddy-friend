@@ -467,6 +467,17 @@ export const UnifiedToolbar = React.memo(function UnifiedToolbar({
     [handleTypography]
   );
 
+  // Helper functions for clean number display (avoid precision errors)
+  const getCleanFontSize = React.useCallback(() => {
+    const fontSize = appliedMarks.fontSize || 16;
+    return Math.round(fontSize); // Font size should be integer
+  }, [appliedMarks.fontSize]);
+
+  const getCleanLineHeight = React.useCallback(() => {
+    const lineHeight = appliedMarks.lineHeight || 1.4;
+    return Math.round(lineHeight * 10) / 10; // Line height to 1 decimal place
+  }, [appliedMarks.lineHeight]);
+
   // 🎯 TIPTAP COMMAND HANDLERS: Integrated TipTap functionality for Rich Block editing
   
   // History Controls (MISSING from original UnifiedToolbar)
@@ -1399,7 +1410,7 @@ export const UnifiedToolbar = React.memo(function UnifiedToolbar({
           
             <div className="flex items-center gap-1">
               <AccessibleNumberInput
-                value={appliedMarks.fontSize || 16}
+                value={getCleanFontSize()}
                 onChange={handleFontSize}
                 onMouseDown={handleToolbarMouseDown}
                 onMouseUp={handleToolbarMouseUp}
@@ -1407,6 +1418,7 @@ export const UnifiedToolbar = React.memo(function UnifiedToolbar({
                 min={8}
                 max={128}
                 step={1}
+                precision={0}
                 disabled={!typographyActive && !selectedNode}
                 aria-label="Font size"
                 title="Font size (8-128px)"
@@ -1435,7 +1447,7 @@ export const UnifiedToolbar = React.memo(function UnifiedToolbar({
             
             <div className="flex items-center gap-1">
               <AccessibleNumberInput
-                value={appliedMarks.lineHeight || 1.4}
+                value={getCleanLineHeight()}
                 onChange={handleLineHeight}
                 className="w-14 h-6"
                 min={0.5}

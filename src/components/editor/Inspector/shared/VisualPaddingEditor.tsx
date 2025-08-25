@@ -41,11 +41,21 @@ interface VisualPaddingEditorProps {
   data: PaddingData;
   onChange: (updates: PaddingData) => void;
   className?: string;
+  editorViewport?: Viewport; // Current editor viewport for auto-switching
 }
 
-export function VisualPaddingEditor({ data, onChange, className }: VisualPaddingEditorProps) {
+export function VisualPaddingEditor({ data, onChange, className, editorViewport }: VisualPaddingEditorProps) {
   const [linkMode, setLinkMode] = useState<'none' | 'all' | 'vertical' | 'horizontal'>('none');
-  const [currentViewport, setCurrentViewport] = useState<Viewport>('desktop');
+  
+  // 🎯 AUTO-SWITCHING FIX: Use editor viewport as initial state and sync with it
+  const [currentViewport, setCurrentViewport] = useState<Viewport>(editorViewport || 'desktop');
+  
+  // 🎯 VIEWPORT SYNC: Automatically sync with editor viewport changes
+  React.useEffect(() => {
+    if (editorViewport && editorViewport !== currentViewport) {
+      setCurrentViewport(editorViewport);
+    }
+  }, [editorViewport, currentViewport]);
 
   // Get current padding values for the selected viewport using enhanced schema
   const currentPadding = getViewportPadding(data, currentViewport, { top: 16, right: 16, bottom: 16, left: 16 });
@@ -97,7 +107,13 @@ export function VisualPaddingEditor({ data, onChange, className }: VisualPadding
     }
 
     // Update the block data with the new viewport-specific padding
-    const updates = setViewportPadding(data, currentViewport, newPadding);
+    let updates = setViewportPadding(data, currentViewport, newPadding);
+    
+    // 🎯 MOBILE PADDING SYNC: Ensure desktop changes are synced to mobile if mobile is empty
+    if (currentViewport === 'desktop' && !data.mobilePadding) {
+      updates = setViewportPadding(updates, 'mobile', newPadding);
+    }
+    
     onChange(updates);
   }, [onChange, linkMode, currentViewport, data]);
 
@@ -147,9 +163,18 @@ export function VisualPaddingEditor({ data, onChange, className }: VisualPadding
         
         {/* Link controls */}
         <div className="flex items-center justify-between">
-          <Label className="text-xs text-muted-foreground">
-            {currentViewport === 'desktop' ? 'Desktop Padding' : 'Mobile Padding'}
-          </Label>
+          <div className="flex items-center gap-2">
+            <Label className="text-xs text-muted-foreground">
+              {currentViewport === 'desktop' ? 'Desktop Padding' : 'Mobile Padding'}
+            </Label>
+            {/* 🎯 AUTO-SWITCHING INDICATOR: Show when synced with editor viewport */}
+            {editorViewport && currentViewport === editorViewport && (
+              <div className="flex items-center gap-1 px-2 py-0.5 bg-green-50 border border-green-200 rounded text-xs text-green-700">
+                <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
+                <span>Auto</span>
+              </div>
+            )}
+          </div>
           <div className="flex items-center gap-1">
           <Button
             variant="ghost"
@@ -335,22 +360,6 @@ export function VisualPaddingEditor({ data, onChange, className }: VisualPadding
         </div>
       </div>
 
-      {/* Enhanced information about true zero padding */}
-      {allValuesAreZero && (
-        <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mt-4">
-          <div className="flex items-start gap-2">
-            <Info size={14} className="text-blue-500 mt-0.5 flex-shrink-0" />
-            <div className="text-xs text-blue-700">
-              <div className="font-medium mb-1">True Zero Padding Active:</div>
-              <div className="text-blue-600 space-y-1">
-                <div>• Content touches block edges directly</div>
-                <div>• Creates seamless layouts between adjacent blocks</div>
-                <div>• Perfect for edge-to-edge content presentation</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

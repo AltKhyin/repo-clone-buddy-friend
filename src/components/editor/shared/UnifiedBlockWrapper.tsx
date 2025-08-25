@@ -29,23 +29,26 @@ export const UnifiedBlockWrapper = React.memo<ContentBoundaryProps>(
     onSelect,
     showResizeHandles = true,
     showDragHandle = false,
+    readOnly = false, // 🎯 NEW: Read-only mode support
     // Constraint-related props removed - complete resize freedom
   }) => {
     const contentRef = useRef<HTMLDivElement>(null);
     const { updateNodePosition } = useEditorStore();
 
-    // Unified selection coordination system with content editing awareness
+    // 🎯 CONDITIONAL SELECTION SYSTEM: Only enable selection in interactive mode
     const { isActive, hasContentSelection, handleBlockActivation } = useSelectionCoordination({
       blockId: id,
       componentType: 'generic',
       enableContentSelection: false, // Block wrapper doesn't handle content selection
       preventBubbling: true,
+      // 🎯 READ-ONLY: Disable selection in read-only mode
+      enabled: !readOnly,
     });
 
-    // Simple resize system integration - no constraints or limitations
+    // 🎯 CONDITIONAL RESIZE SYSTEM: Only enable resize in interactive mode
     const resizeHandlers = useSimpleResize({
       nodeId: id,
-      onUpdate: (position) => {
+      onUpdate: readOnly ? () => {} : (position) => {
         // Update both resize and move callbacks for complete freedom
         if (position.width !== undefined || position.height !== undefined) {
           const resizeData = {
@@ -71,14 +74,16 @@ export const UnifiedBlockWrapper = React.memo<ContentBoundaryProps>(
         };
         updateNodePosition(id, storeUpdate);
       },
+      // 🎯 READ-ONLY: Disable resize completely
+      disabled: readOnly,
     });
 
-    // 🎯 DRAG-HANDLE-ONLY STATE: Simplified drag state for handle-only movement
+    // 🎯 CONDITIONAL INTERACTION STATE: Only enable in interactive mode
     const [isDragging, setIsDragging] = useState(false);
     const [dragStart, setDragStart] = useState({ x: 0, y: 0, mouseX: 0, mouseY: 0 });
     const [hoverHandle, setHoverHandle] = useState<ResizeHandle | null>(null);
     
-    // 🎯 HOVER STATE: Block hover detection for full UI display
+    // 🎯 CONDITIONAL HOVER STATE: Block hover detection only in interactive mode
     const [isBlockHovered, setIsBlockHovered] = useState(false);
 
     // 🎯 FIX: Visual feedback callbacks for simple resize system
@@ -201,7 +206,7 @@ export const UnifiedBlockWrapper = React.memo<ContentBoundaryProps>(
 
     // 🎯 REMOVED: Complex gesture detection system eliminated for performance
 
-    // 🎯 SIMPLIFIED CONTAINER STYLES: No animations, direct positioning only
+    // 🎯 CONDITIONAL CONTAINER STYLES: Different behavior for read-only vs interactive
     const containerStyles = useMemo(
       (): React.CSSProperties => ({
         position: 'absolute',
@@ -216,18 +221,21 @@ export const UnifiedBlockWrapper = React.memo<ContentBoundaryProps>(
         boxSizing: 'border-box',
         display: 'flex',
         flexDirection: 'column',
-        // No transitions during drag - instant positioning with visual feedback
-        transition: 'none',
-        // 🎯 INTERACTION HIERARCHY: editing > selected > hovered > default
-        zIndex: isResizing || isDragging ? 1000 : isActive ? 100 : isBlockHovered ? 50 : 1,
-        cursor: isDragging 
-          ? 'grabbing' 
-          : 'default',
-        // 🎯 IMPROVED DRAG FEEDBACK: Better visual feedback during drag
-        opacity: isDragging ? 0.8 : 1,
-        transform: isDragging ? 'scale(1.02)' : 'none',
+        // 🎯 READ-ONLY: No transitions in read-only mode
+        transition: readOnly ? 'none' : 'none',
+        // 🎯 CONDITIONAL Z-INDEX: Static z-index for read-only, dynamic for interactive
+        zIndex: readOnly 
+          ? 1 // Static z-index for read-only
+          : (isResizing || isDragging ? 1000 : isActive ? 100 : isBlockHovered ? 50 : 1),
+        // 🎯 CONDITIONAL CURSOR: Default cursor for read-only, interactive cursors for editor
+        cursor: readOnly 
+          ? 'default' 
+          : (isDragging ? 'grabbing' : 'default'),
+        // 🎯 CONDITIONAL VISUAL FEEDBACK: No drag feedback in read-only mode
+        opacity: readOnly ? 1 : (isDragging ? 0.8 : 1),
+        transform: readOnly ? 'none' : (isDragging ? 'scale(1.02)' : 'none'),
       }),
-      [x, y, width, height, isResizing, isActive, isDragging, isBlockHovered]
+      [x, y, width, height, isResizing, isActive, isDragging, isBlockHovered, readOnly]
     );
 
     // Content area styles (fills container exactly)
@@ -264,15 +272,17 @@ export const UnifiedBlockWrapper = React.memo<ContentBoundaryProps>(
 
     return (
       <div
-        className={cn('unified-block-wrapper', selectionClasses, `block-type-${blockType}`)}
+        className={cn('unified-block-wrapper', selectionClasses, `block-type-${blockType}`, readOnly && 'readonly-block-wrapper')}
         style={containerStyles}
         data-block-id={id}
         data-block-type={blockType}
+        data-read-only={readOnly}
         data-testid={`unified-block-${id}`}
-        onClick={handleBlockClick}
-        onMouseMove={handleMouseMove}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
+        // 🎯 CONDITIONAL EVENT HANDLERS: Only enable in interactive mode
+        onClick={readOnly ? undefined : handleBlockClick}
+        onMouseMove={readOnly ? undefined : handleMouseMove}
+        onMouseEnter={readOnly ? undefined : handleMouseEnter}
+        onMouseLeave={readOnly ? undefined : handleMouseLeave}
       >
         {/* Content Area - fills container exactly */}
         <div
@@ -302,8 +312,8 @@ export const UnifiedBlockWrapper = React.memo<ContentBoundaryProps>(
           )}
         </div>
 
-        {/* 🎯 INTERACTION PRIORITY: Resize Handles - show on selection OR hover (but not during operations) */}
-        {showResizeHandles && (selected || (isBlockHovered && !isDragging && !isResizing && !hasContentSelection)) && (
+        {/* 🎯 CONDITIONAL RESIZE HANDLES: Only show in interactive mode */}
+        {!readOnly && showResizeHandles && (selected || (isBlockHovered && !isDragging && !isResizing && !hasContentSelection)) && (
           <SimpleResizeHandles
             width={width}
             height={height}
@@ -318,8 +328,8 @@ export const UnifiedBlockWrapper = React.memo<ContentBoundaryProps>(
         )}
 
 
-        {/* 🎯 INTERACTION PRIORITY: Drag Handle - show on activation OR hover (but not during operations) */}
-        {showDragHandle && (isActive || (isBlockHovered && !isDragging && !isResizing && !hasContentSelection)) && (
+        {/* 🎯 CONDITIONAL DRAG HANDLE: Only show in interactive mode */}
+        {!readOnly && showDragHandle && (isActive || (isBlockHovered && !isDragging && !isResizing && !hasContentSelection)) && (
           <div 
             className={cn(
               "absolute top-2 right-2 w-8 h-8 rounded-md cursor-grab z-30 flex items-center justify-center",
@@ -337,8 +347,8 @@ export const UnifiedBlockWrapper = React.memo<ContentBoundaryProps>(
           </div>
         )}
 
-        {/* 🎨 SIMPLIFIED SELECTION INDICATOR: Clean visual feedback without animations */}
-        {isActive && (
+        {/* 🎯 CONDITIONAL SELECTION INDICATOR: Only show in interactive mode */}
+        {!readOnly && isActive && (
           <div className="absolute -top-7 left-0 flex gap-2 text-xs z-20">
             <div
               className={cn(

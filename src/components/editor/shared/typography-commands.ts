@@ -466,23 +466,143 @@ export class TypographyCommands {
       return result;
     }
 
+    // Clean precision errors by rounding to 1 decimal place
+    const cleanLineHeight = Math.round(numericLineHeight * 10) / 10;
+
     // Validate line height constraints (typical range 0.5-3.0)
-    if (numericLineHeight < 0.5 || numericLineHeight > 3.0) {
-      result.errors.push(`Invalid line height: ${lineHeight}. Must be between 0.5 and 3.0.`);
+    if (cleanLineHeight < 0.5 || cleanLineHeight > 3.0) {
+      result.errors.push(`Invalid line height: ${cleanLineHeight}. Must be between 0.5 and 3.0.`);
       return result;
     }
 
     try {
-      // Use TipTap's TextStyle extension for line height
-      const success = this.editor.commands.setMark('textStyle', { lineHeight: numericLineHeight });
-      if (success) {
+      // 🎯 ENHANCED DEBUG: Log line height command execution with selection context
+      console.log('[Typography Commands] 🚀 EXECUTING setLineHeight:', {
+        originalValue: lineHeight,
+        cleanedValue: cleanLineHeight,
+        editorExists: Boolean(this.editor),
+        hasSelection: Boolean(this.editor?.state?.selection),
+        selectionEmpty: this.editor?.state?.selection?.empty,
+        currentMarks: this.editor?.state?.selection ? this.editor?.getAttributes('textStyle') : null
+      });
+
+      // 🎯 EXPLICIT MARK CREATION: Create mark with explicit attribute structure
+      const markAttrs = { lineHeight: cleanLineHeight };
+      console.log('[Typography Commands] 📝 Creating textStyle mark with attributes:', markAttrs);
+      
+      // Use our EnhancedTextStyle extension for proper lineHeight handling
+      const success = this.editor.commands.setMark('textStyle', markAttrs);
+      
+      // 🎯 IMMEDIATE VERIFICATION: Check if mark was created correctly
+      const immediateMarks = this.editor?.getAttributes('textStyle');
+      const markCreatedCorrectly = immediateMarks?.lineHeight === cleanLineHeight;
+      
+      console.log('[Typography Commands] 🔍 IMMEDIATE MARK VERIFICATION:', {
+        commandSuccess: success,
+        intendedAttrs: markAttrs,
+        retrievedMarks: immediateMarks,
+        markCreatedCorrectly,
+        attrsType: typeof immediateMarks,
+        attrsStructure: immediateMarks ? Object.keys(immediateMarks) : 'null/undefined',
+        lineHeightMatch: immediateMarks?.lineHeight === cleanLineHeight
+      });
+
+      // 🎯 ENHANCED ERROR DETECTION: Identify specific failure types
+      if (success && !markCreatedCorrectly) {
+        const errorMsg = 'Mark command succeeded but lineHeight attribute not properly set';
+        result.errors.push(errorMsg);
+        result.success = false;
+        
+        console.error('[Typography Commands] 🚨 MARK CREATION FAILURE:', {
+          issue: 'Command succeeded but mark not properly created',
+          intendedLineHeight: cleanLineHeight,
+          actualMarks: immediateMarks,
+          possibleCause: immediateMarks === null ? 'textStyle mark not created' : 'lineHeight attribute missing',
+          markAttrs,
+          editorState: {
+            hasSelection: Boolean(this.editor?.state?.selection),
+            selectionEmpty: this.editor?.state?.selection?.empty,
+            documentSize: this.editor?.state?.doc?.content?.size
+          }
+        });
+        
+        return result;
+      }
+
+      // 🎯 SELECTION CONTEXT VERIFICATION: Ensure mark applies to current selection
+      const currentSelection = this.editor?.state?.selection;
+      if (currentSelection && !currentSelection.empty) {
+        const doc = this.editor?.state?.doc;
+        const from = currentSelection.from;
+        const to = currentSelection.to;
+        const selectedText = doc?.textBetween(from, to);
+        
+        console.log('[Typography Commands] 🎯 SELECTION CONTEXT VERIFICATION:', {
+          selectionRange: { from, to },
+          selectedText: selectedText?.substring(0, 50) + (selectedText && selectedText.length > 50 ? '...' : ''),
+          selectionLength: selectedText?.length,
+          marksInSelection: this.editor?.getAttributes('textStyle'),
+          markAppliedToSelection: Boolean(selectedText && selectedText.length > 0)
+        });
+      }
+
+      if (success && markCreatedCorrectly) {
         result.success = true;
-        result.appliedProperties.lineHeight = numericLineHeight;
+        result.appliedProperties.lineHeight = cleanLineHeight;
+        
+        console.log('[Typography Commands] ✅ setLineHeight SUCCESS:', {
+          cleanLineHeight,
+          finalMarks: immediateMarks,
+          resultSuccess: true
+        });
+        
+        // 🎯 DELAYED VERIFICATION: Double-check persistence after editor update cycle
+        setTimeout(() => {
+          const delayedVerificationMarks = this.editor?.getAttributes('textStyle');
+          const persistedCorrectly = delayedVerificationMarks?.lineHeight === cleanLineHeight;
+          
+          console.log('[Typography Commands] ⏰ DELAYED VERIFICATION (100ms):', {
+            marksAfterDelay: delayedVerificationMarks,
+            persistedCorrectly,
+            lineHeightValue: delayedVerificationMarks?.lineHeight,
+            originalValue: cleanLineHeight,
+            matchesOriginal: delayedVerificationMarks?.lineHeight === cleanLineHeight
+          });
+          
+          if (!persistedCorrectly) {
+            console.error('[Typography Commands] 🚨 PERSISTENCE FAILURE:', {
+              issue: 'Mark was created but did not persist through editor update cycle',
+              originalLineHeight: cleanLineHeight,
+              persistedMarks: delayedVerificationMarks,
+              persistenceFailure: true
+            });
+          }
+        }, 100);
+        
       } else {
         result.errors.push('Failed to apply line height command');
+        result.success = false;
+        
+        console.error('[Typography Commands] ❌ setLineHeight COMMAND FAILED:', {
+          commandSuccess: success,
+          markCreatedCorrectly,
+          cleanLineHeight,
+          editorState: this.editor?.state ? 'exists' : 'missing',
+          selection: this.editor?.state?.selection,
+          currentMarks: immediateMarks
+        });
       }
     } catch (error) {
       result.errors.push(`Line height command error: ${error}`);
+      result.success = false;
+      
+      console.error('[Typography Commands] 💥 setLineHeight EXCEPTION:', {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+        cleanLineHeight,
+        editorExists: Boolean(this.editor),
+        editorState: this.editor?.state ? 'exists' : 'missing'
+      });
     }
 
     return result;

@@ -11,6 +11,8 @@ import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
 import Mention from '@tiptap/extension-mention';
 import Underline from '@tiptap/extension-underline';
+import TextStyle from '@tiptap/extension-text-style';
+import { EnhancedTextStyle } from '@/components/editor/extensions/EnhancedTextStyle';
 import { useCallback, useRef, useState, useEffect } from 'react';
 import { debounce } from 'lodash-es';
 import { useEditorStore } from '@/store/editorStore';
@@ -419,6 +421,19 @@ export const useRichTextEditor = ({
   // UNIFIED SELECTION SYSTEM: Get dispatch for text selection integration
   const { dispatch } = useSelectionStore();
 
+  // 🎯 REAL-TIME MARK TRACKING: State to track textStyle marks between updates
+  const previousMarkStateRef = useRef<{
+    markCount: number;
+    marksWithLineHeight: number;
+    markDetails: any[];
+    timestamp: number;
+  }>({
+    markCount: 0,
+    marksWithLineHeight: 0,
+    markDetails: [],
+    timestamp: Date.now(),
+  });
+
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -497,6 +512,9 @@ export const useRichTextEditor = ({
 
       // Underline formatting (always enabled)
       Underline,
+
+      // Enhanced TextStyle for typography features (lineHeight, fontSize, etc.)
+      EnhancedTextStyle,
 
       // Task lists (always enabled)
       TaskList.configure({
@@ -594,8 +612,186 @@ export const useRichTextEditor = ({
 
 
     onUpdate: ({ editor }) => {
+      const updateTimestamp = Date.now();
       const html = editor.getHTML();
       const json = editor.getJSON();
+
+      // 🎯 COMPREHENSIVE MARK SCANNING: Enhanced scanning with attribute integrity tracking
+      const scanForTextStyleMarks = (content: any): any[] => {
+        const findings: any[] = [];
+        
+        const scanNode = (node: any, path: string = 'root', depth: number = 0) => {
+          if (node.marks) {
+            node.marks.forEach((mark: any, markIndex: number) => {
+              if (mark.type === 'textStyle') {
+                // 🎯 DETAILED ATTRIBUTE ANALYSIS: Check every possible attribute state
+                const markDetail = {
+                  path: `${path}.marks[${markIndex}]`,
+                  depth,
+                  markType: mark.type,
+                  // Raw attribute inspection
+                  rawAttrs: mark.attrs,
+                  attrsType: typeof mark.attrs,
+                  isAttrsNull: mark.attrs === null,
+                  isAttrsUndefined: mark.attrs === undefined,
+                  attrsKeys: mark.attrs ? Object.keys(mark.attrs) : [],
+                  // LineHeight specific analysis
+                  hasLineHeight: Boolean(mark.attrs?.lineHeight),
+                  lineHeightValue: mark.attrs?.lineHeight,
+                  lineHeightType: typeof mark.attrs?.lineHeight,
+                  lineHeightIsNull: mark.attrs?.lineHeight === null,
+                  lineHeightIsUndefined: mark.attrs?.lineHeight === undefined,
+                  // Other attributes analysis
+                  otherAttrs: mark.attrs ? Object.fromEntries(
+                    Object.entries(mark.attrs).filter(([key]) => key !== 'lineHeight')
+                  ) : {},
+                  // Mark integrity check
+                  markIntegrity: {
+                    hasAttrsObject: Boolean(mark.attrs && typeof mark.attrs === 'object'),
+                    hasValidLineHeight: Boolean(mark.attrs?.lineHeight && typeof mark.attrs.lineHeight === 'number'),
+                    isEmptyAttrs: mark.attrs && Object.keys(mark.attrs).length === 0,
+                    hasOnlyNullValues: mark.attrs && Object.values(mark.attrs).every(v => v === null || v === undefined)
+                  }
+                };
+                
+                findings.push(markDetail);
+              }
+            });
+          }
+          
+          if (node.content) {
+            node.content.forEach((childNode: any, nodeIndex: number) => {
+              scanNode(childNode, `${path}.content[${nodeIndex}]`, depth + 1);
+            });
+          }
+        };
+        
+        if (content) {
+          scanNode(content);
+        }
+        
+        return findings;
+      };
+
+      const currentMarkState = scanForTextStyleMarks(json);
+      const previousMarkState = previousMarkStateRef.current;
+      
+      // 🎯 MARK STATE TRANSITION ANALYSIS: Compare previous vs current states
+      const markTransitionAnalysis = {
+        markCountChange: currentMarkState.length - previousMarkState.markCount,
+        lineHeightMarkCountChange: currentMarkState.filter(m => m.hasLineHeight).length - previousMarkState.marksWithLineHeight,
+        newMarks: currentMarkState.filter(currentMark => 
+          !previousMarkState.markDetails.some(prevMark => 
+            prevMark.path === currentMark.path && 
+            JSON.stringify(prevMark.rawAttrs) === JSON.stringify(currentMark.rawAttrs)
+          )
+        ),
+        lostMarks: previousMarkState.markDetails.filter(prevMark => 
+          !currentMarkState.some(currentMark => 
+            currentMark.path === prevMark.path
+          )
+        ),
+        modifiedMarks: currentMarkState.filter(currentMark => {
+          const prevMark = previousMarkState.markDetails.find(p => p.path === currentMark.path);
+          return prevMark && JSON.stringify(prevMark.rawAttrs) !== JSON.stringify(currentMark.rawAttrs);
+        })
+      };
+
+      // 🎯 ATTRIBUTE INTEGRITY ALERTS: Identify marks that lost their attributes
+      const corruptedMarks = currentMarkState.filter(mark => 
+        mark.rawAttrs === undefined || 
+        mark.rawAttrs === null ||
+        (mark.rawAttrs && Object.keys(mark.rawAttrs).length === 0) ||
+        mark.markIntegrity.hasOnlyNullValues
+      );
+
+      const lineHeightLossEvents = markTransitionAnalysis.modifiedMarks.filter(currentMark => {
+        const prevMark = previousMarkState.markDetails.find(p => p.path === currentMark.path);
+        return prevMark?.hasLineHeight && !currentMark.hasLineHeight;
+      });
+
+      // 🔍 LINE HEIGHT INVESTIGATION: Critical issues only
+      if (corruptedMarks.length > 0 || lineHeightLossEvents.length > 0) {
+        console.log('[useRichTextEditor] 🚨 LINE HEIGHT CRITICAL ISSUES:', {
+          nodeId,
+          corruptedMarks: corruptedMarks.length,
+          lineHeightLossEvents: lineHeightLossEvents.length,
+          criticalDetails: {
+            corruptedMarks: corruptedMarks.map(mark => ({
+              path: mark.path,
+              issue: mark.rawAttrs === undefined ? 'attrs_undefined' : 'attrs_corrupted',
+              rawAttrs: mark.rawAttrs
+            })),
+            lineHeightLossEvents: lineHeightLossEvents.map(mark => ({
+              path: mark.path,
+              previousLineHeight: previousMarkState.markDetails.find(p => p.path === mark.path)?.lineHeightValue,
+              currentLineHeight: mark.lineHeightValue
+            }))
+          }
+        });
+      }
+
+      // 🔍 LINE HEIGHT INVESTIGATION: Show only marks with line height issues
+      const lineHeightMarks = currentMarkState.filter(m => m.hasLineHeight || m.rawAttrs === undefined);
+      if (lineHeightMarks.length > 0) {
+        console.log('[useRichTextEditor] 🔍 LINE HEIGHT MARKS INSPECTION:', {
+          nodeId,
+          lineHeightMarks: lineHeightMarks.slice(0, 2).map(mark => ({
+            path: mark.path,
+            lineHeight: mark.lineHeightValue,
+            hasValidAttrs: mark.rawAttrs !== undefined,
+            lineHeightAnalysis: {
+              type: mark.lineHeightType,
+              isNull: mark.lineHeightIsNull,
+              isUndefined: mark.lineHeightIsUndefined,
+              isValid: mark.markIntegrity.hasValidLineHeight
+            },
+            integrityCheck: mark.markIntegrity
+          })),
+          allMarkPaths: currentMarkState.map(m => m.path)
+        });
+      }
+
+      // 🎯 HTML VERIFICATION: Cross-reference with HTML output
+      const htmlTextStylePattern = /<[^>]*style="[^"]*line-height:[^"]*"/gi;
+      const htmlLineHeightMatches = html.match(htmlTextStylePattern) || [];
+
+      // 🔍 LINE HEIGHT INVESTIGATION: Essential editor state only
+      const currentEditorMarks = editor.getAttributes('textStyle');
+      const hasActiveLineHeight = Boolean(currentEditorMarks?.lineHeight);
+      
+      if (hasActiveLineHeight || currentEditorMarks === undefined) {
+        console.log('[useRichTextEditor] 🎯 ACTIVE LINE HEIGHT STATE:', {
+          nodeId,
+          hasActiveLineHeight,
+          activeLineHeightValue: currentEditorMarks?.lineHeight,
+          activeAttrsValid: currentEditorMarks !== undefined
+        });
+      }
+
+      // 🎯 UPDATE TRACKING STATE: Store current state for next comparison
+      previousMarkStateRef.current = {
+        markCount: currentMarkState.length,
+        marksWithLineHeight: currentMarkState.filter(m => m.hasLineHeight).length,
+        markDetails: currentMarkState.map(mark => ({
+          path: mark.path,
+          rawAttrs: JSON.parse(JSON.stringify(mark.rawAttrs)), // Deep copy
+          hasLineHeight: mark.hasLineHeight,
+          lineHeightValue: mark.lineHeightValue
+        })),
+        timestamp: updateTimestamp
+      };
+
+      // 🔍 LINE HEIGHT INVESTIGATION: Only log if there are line height issues
+      if (currentMarkState.filter(m => m.hasLineHeight).length > 0 || corruptedMarks.length > 0) {
+        console.log('[useRichTextEditor] 💾 LINE HEIGHT SAVE SUMMARY:', {
+          nodeId,
+          lineHeightMarks: currentMarkState.filter(m => m.hasLineHeight).length,
+          corruptedMarks: corruptedMarks.length,
+          hasLineHeightLoss: lineHeightLossEvents.length > 0
+        });
+      }
+      
       // 🎯 DUAL CONTENT SYNC: Save both HTML and JSON to prevent data loss
       debouncedUpdate(nodeId, html, json);
     },
@@ -695,11 +891,20 @@ export const useRichTextEditor = ({
                 },
                 // Provide direct update function
                 updateAttributes: (attributes: Record<string, any>) => {
-                  const transaction = state.tr.setNodeMarkup(selection.from, null, {
-                    ...selectedNode.attrs,
-                    ...attributes,
-                  });
-                  editor.view.dispatch(transaction);
+                  // 🔧 TRANSACTION FIX: Use current editor state to prevent mismatched transaction RangeError
+                  const currentState = editor.state;
+                  const currentSelection = currentState.selection;
+                  
+                  // Validate position is still valid in current document
+                  if (currentSelection.from >= 0 && currentSelection.from < currentState.doc.content.size) {
+                    const transaction = currentState.tr.setNodeMarkup(currentSelection.from, null, {
+                      ...selectedNode.attrs,
+                      ...attributes,
+                    });
+                    editor.view.dispatch(transaction);
+                  } else {
+                    console.warn('[useRichTextEditor] ⚠️ Skipped inline image transaction - invalid position');
+                  }
                 },
               },
             },
@@ -731,11 +936,20 @@ export const useRichTextEditor = ({
                 },
                 // Provide direct update function
                 updateAttributes: (attributes: Record<string, any>) => {
-                  const transaction = state.tr.setNodeMarkup(selection.from, null, {
-                    ...selectedNode.attrs,
-                    ...attributes,
-                  });
-                  editor.view.dispatch(transaction);
+                  // 🔧 TRANSACTION FIX: Use current editor state to prevent mismatched transaction RangeError
+                  const currentState = editor.state;
+                  const currentSelection = currentState.selection;
+                  
+                  // Validate position is still valid in current document
+                  if (currentSelection.from >= 0 && currentSelection.from < currentState.doc.content.size) {
+                    const transaction = currentState.tr.setNodeMarkup(currentSelection.from, null, {
+                      ...selectedNode.attrs,
+                      ...attributes,
+                    });
+                    editor.view.dispatch(transaction);
+                  } else {
+                    console.warn('[useRichTextEditor] ⚠️ Skipped video embed transaction - invalid position');
+                  }
                 },
               },
             },
@@ -1098,7 +1312,7 @@ export const useRichTextEditor = ({
         style: `
           min-height: 100px;
           padding: 12px;
-          line-height: 1.6;
+          line-height: inherit;
           color: inherit;
           font-family: inherit;
         `,

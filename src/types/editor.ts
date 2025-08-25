@@ -602,6 +602,8 @@ export interface ContentBoundaryProps {
   showDragHandle?: boolean;
   /** Whether to enable resize constraints (default: true) */
   enableConstraints?: boolean;
+  /** Whether this is a read-only instance (disables interactions) */
+  readOnly?: boolean;
 }
 
 // Content-Aware Block Position (extends existing BlockPosition)
@@ -790,6 +792,12 @@ const migrateLegacyBlockData = (node: any): any => {
 
   const migratedData = { ...node.data };
 
+  // 🎯 MOBILE PADDING PRESERVATION: Track mobile padding during migration
+  const originalMobilePadding = node.data?.mobilePadding;
+  const originalDesktopPadding = node.data?.desktopPadding;
+  const hasOriginalMobilePadding = Boolean(originalMobilePadding);
+  const hasOriginalDesktopPadding = Boolean(originalDesktopPadding);
+
   switch (node.type) {
     case 'quoteBlock':
       // Migrate content -> htmlContent, citation -> htmlCitation
@@ -881,6 +889,37 @@ const migrateLegacyBlockData = (node: any): any => {
         // Keep original formatted field for backward compatibility
       }
       break;
+  }
+
+  // 🎯 MOBILE PADDING PRESERVATION AUDIT: Log mobile padding status after migration
+  const finalMobilePadding = migratedData?.mobilePadding;
+  const finalDesktopPadding = migratedData?.desktopPadding;
+  const hasFinalMobilePadding = Boolean(finalMobilePadding);
+  const hasFinalDesktopPadding = Boolean(finalDesktopPadding);
+
+  if (hasOriginalMobilePadding || hasOriginalDesktopPadding || hasFinalMobilePadding || hasFinalDesktopPadding) {
+    console.log('[MIGRATION AUDIT] 🎯 Mobile Padding Migration Status:', {
+      nodeId: node.id,
+      nodeType: node.type,
+      before: {
+        hasDesktopPadding: hasOriginalDesktopPadding,
+        hasMobilePadding: hasOriginalMobilePadding,
+        desktopPaddingValue: originalDesktopPadding,
+        mobilePaddingValue: originalMobilePadding
+      },
+      after: {
+        hasDesktopPadding: hasFinalDesktopPadding,
+        hasMobilePadding: hasFinalMobilePadding,
+        desktopPaddingValue: finalDesktopPadding,
+        mobilePaddingValue: finalMobilePadding
+      },
+      preservationStatus: {
+        desktopPaddingPreserved: hasOriginalDesktopPadding === hasFinalDesktopPadding,
+        mobilePaddingPreserved: hasOriginalMobilePadding === hasFinalMobilePadding,
+        overallStatus: (hasOriginalMobilePadding === hasFinalMobilePadding && hasOriginalDesktopPadding === hasFinalDesktopPadding) ? 
+          '✅ PRESERVED' : '❌ LOST/MODIFIED'
+      }
+    });
   }
 
   return { ...node, data: migratedData };
@@ -1098,8 +1137,9 @@ const createCleanV3Structure = (content: any): StructuredContentV3 => {
           data: {
             content: { htmlContent: '<p>Content preserved from legacy data</p>' },
             backgroundColor: 'transparent',
-            paddingX: 16,
-            paddingY: 16,
+            // 🎯 MOBILE PADDING FIX: Use enhanced padding system instead of legacy paddingX/paddingY
+            desktopPadding: { top: 16, right: 16, bottom: 16, left: 16 },
+            mobilePadding: { top: 16, right: 16, bottom: 16, left: 16 },
             borderRadius: 8,
             borderWidth: 0,
             borderColor: '#e5e7eb',
@@ -1547,6 +1587,7 @@ export function getViewportPadding(
   viewport: Viewport, 
   fallbackDefaults: ViewportPadding = {}
 ): ViewportPadding {
+
   // Priority order: viewport-specific -> legacy individual -> legacy symmetric -> defaults
   
   if (viewport === 'desktop' && blockData.desktopPadding) {
