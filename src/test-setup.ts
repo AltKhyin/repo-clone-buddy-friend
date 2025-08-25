@@ -106,9 +106,17 @@ vi.mock('@/hooks/useColorTokens', () => ({
     getColorValue: vi.fn((color) => color),
     getTokenInfo: vi.fn((value) => null),
     getPreviewColor: vi.fn((value) => value),
+    getTokenPreviewColor: vi.fn((value) => value),
     resolveColor: vi.fn((value) => value),
     validateColor: vi.fn((value) => ({ isValid: true })),
     isToken: vi.fn(() => false),
+    getCurrentThemeInfo: vi.fn(() => ({
+      theme: 'light',
+      isDarkMode: false,
+      cssVariables: {},
+    })),
+    getTokensByCategory: vi.fn(() => []),
+    getTokensForUseCase: vi.fn(() => []),
     theme: 'light',
     isDarkMode: false,
     allTokens: [],
@@ -163,9 +171,9 @@ vi.mock('@/hooks/useUnifiedSelection', () => ({
   }),
 }));
 
-// Mock editorStore with all required exports
+// Mock editorStore with all required exports - use vi.fn() for test flexibility  
 vi.mock('@/store/editorStore', () => ({
-  useEditorStore: () => ({
+  useEditorStore: vi.fn(() => ({
     nodes: [],
     positions: {},
     mobilePositions: {},
@@ -206,8 +214,8 @@ vi.mock('@/store/editorStore', () => ({
       gridColumns: 12,
       snapTolerance: 10
     },
-  }),
-  useEditorActions: () => ({
+  })),
+  useEditorActions: vi.fn(() => ({
     clearAllSelection: vi.fn(),
     activateBlock: vi.fn(),
     updateCurrentViewportPosition: vi.fn(),
@@ -215,7 +223,7 @@ vi.mock('@/store/editorStore', () => ({
     deleteNode: vi.fn(),
     duplicateNode: vi.fn(),
     updateNode: vi.fn(),
-  }),
+  })),
   useCanvasState: () => ({
     canvasBackgroundColor: 'hsl(var(--background))',
     showGrid: true,

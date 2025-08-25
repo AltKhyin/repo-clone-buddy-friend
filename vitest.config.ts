@@ -11,7 +11,7 @@ export default defineConfig({
     setupFiles: ['./src/test-setup.ts'],
 
     // STRATEGIC: Fast feedback for critical tests only
-    testTimeout: 5000, // 5 second timeout - tests should be fast
+    testTimeout: 3000, // 3 second timeout - tests should be fast
 
     // SIMPLE: Basic test file patterns
     include: ['src/**/*.test.{ts,tsx}'],
