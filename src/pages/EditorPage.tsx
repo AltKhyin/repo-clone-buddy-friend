@@ -51,6 +51,8 @@ export default function EditorPage() {
     positions,
     exportToJSON,
     loadFromJSON,
+    exportAsTemplate,
+    importFromTemplate,
   } = useEditorStore();
 
   // Set up persistence hooks
@@ -375,6 +377,94 @@ export default function EditorPage() {
                       title="Import from JSON"
                     >
                       Import
+                    </Button>
+                  </div>
+
+                  {/* Template Export Button */}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      try {
+                        const template = exportAsTemplate();
+                        const blob = new Blob([JSON.stringify(template, null, 2)], {
+                          type: 'application/json',
+                        });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `review-template-${new Date().toISOString().split('T')[0]}.json`;
+                        a.click();
+                        URL.revokeObjectURL(url);
+                        
+                        console.log('Template exported successfully:', {
+                          nodeCount: template.nodes?.length || 0,
+                          hasPositions: !!template.positions,
+                          hasMobilePositions: !!template.mobilePositions,
+                        });
+                      } catch (error) {
+                        console.error('Template export failed:', error);
+                        alert(`Template export failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+                      }
+                    }}
+                    className="flex items-center gap-2"
+                    title="Export as Template (AI-optimized format without IDs)"
+                  >
+                    Export Template
+                  </Button>
+
+                  {/* Template Import Button with Hidden File Input */}
+                  <div className="relative">
+                    <input
+                      type="file"
+                      accept=".json"
+                      onChange={(event) => {
+                        const file = event.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onload = (e) => {
+                            try {
+                              const content = e.target?.result as string;
+                              const templateData = JSON.parse(content);
+                              
+                              // Basic validation for template format
+                              if (!templateData.nodes || !Array.isArray(templateData.nodes)) {
+                                throw new Error('Invalid template format: Missing or invalid nodes array');
+                              }
+                              
+                              // Use the template import function
+                              importFromTemplate(templateData);
+                              
+                              // Clear the input so the same file can be selected again
+                              event.target.value = '';
+                              
+                              console.log('Template imported successfully:', {
+                                nodeCount: templateData.nodes?.length || 0,
+                                hasPositions: !!templateData.positions,
+                                hasMobilePositions: !!templateData.mobilePositions,
+                              });
+                              
+                            } catch (error) {
+                              console.error('Template import failed:', error);
+                              alert(`Template import failed: ${error instanceof Error ? error.message : 'Invalid template file'}`);
+                            }
+                          };
+                          reader.readAsText(file);
+                        }
+                      }}
+                      className="hidden"
+                      id="import-template-file-input"
+                    />
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        document.getElementById('import-template-file-input')?.click();
+                      }}
+                      className="flex items-center gap-2"
+                      title="Import Template (AI-optimized format)"
+                    >
+                      Import Template
                     </Button>
                   </div>
 

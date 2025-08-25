@@ -1258,6 +1258,102 @@ export const useEditorStore = create<EditorState>((set, get) => {
       return exportData;
     },
 
+    exportAsTemplate: () => {
+      const state = get();
+      
+      // Use exact database format, but strip dependency-creating fields
+      const dbFormat = state.exportToJSON();
+      
+      // Strip only UUIDs and metadata - keep everything else identical to database
+      const cleanedNodes = dbFormat.nodes.map((node, index) => ({
+        ...node,
+        id: `block-${index + 1}` // Semantic IDs that AI can understand and fill
+      }));
+      
+      // Update position keys to match new semantic node IDs
+      const cleanedPositions: Record<string, any> = {};
+      const cleanedMobilePositions: Record<string, any> = {};
+      
+      dbFormat.nodes.forEach((originalNode, index) => {
+        const newId = `block-${index + 1}`;
+        if (dbFormat.positions[originalNode.id]) {
+          cleanedPositions[newId] = {
+            ...dbFormat.positions[originalNode.id],
+            id: newId
+          };
+        }
+        if (dbFormat.mobilePositions && dbFormat.mobilePositions[originalNode.id]) {
+          cleanedMobilePositions[newId] = {
+            ...dbFormat.mobilePositions[originalNode.id],
+            id: newId
+          };
+        }
+      });
+      
+      // Return database-identical format with only dependency-creating fields stripped
+      return {
+        version: dbFormat.version,
+        nodes: cleanedNodes,
+        positions: cleanedPositions,
+        mobilePositions: cleanedMobilePositions,
+        canvas: dbFormat.canvas,
+        // metadata removed - AI cannot fill timestamps
+      };
+    },
+
+    importFromTemplate: (templateData: any) => {
+      const state = get();
+      
+      // Generate new UUIDs for actual usage in the editor
+      const nodesWithNewIds = templateData.nodes.map((node: any) => ({
+        ...node,
+        id: generateNodeId() // Generate real UUIDs for editor usage
+      }));
+      
+      // Reconstruct positions with new UUIDs
+      const newPositions: Record<string, any> = {};
+      const newMobilePositions: Record<string, any> = {};
+      
+      nodesWithNewIds.forEach((node, index) => {
+        const templateId = `block-${index + 1}`;
+        if (templateData.positions && templateData.positions[templateId]) {
+          newPositions[node.id] = {
+            ...templateData.positions[templateId],
+            id: node.id
+          };
+        }
+        if (templateData.mobilePositions && templateData.mobilePositions[templateId]) {
+          newMobilePositions[node.id] = {
+            ...templateData.mobilePositions[templateId],
+            id: node.id
+          };
+        }
+      });
+      
+      // Reconstruct full database format for import
+      const reconstructedData: StructuredContentV3 = {
+        version: templateData.version || '3.0.0',
+        nodes: nodesWithNewIds,
+        positions: newPositions,
+        mobilePositions: newMobilePositions,
+        canvas: templateData.canvas || state.canvas,
+        metadata: {
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          editorVersion: '2.0.0',
+        },
+      };
+      
+      // Use existing loadFromJSON - it handles validation perfectly!
+      state.loadFromJSON(reconstructedData);
+      
+      console.log('[EditorStore] Template imported successfully:', {
+        nodeCount: nodesWithNewIds.length,
+        hasPositions: Object.keys(newPositions).length > 0,
+        hasMobilePositions: Object.keys(newMobilePositions).length > 0,
+      });
+    },
+
     exportToPDF: async () => {
       // TODO: Implement PDF export functionality
       console.log('Exporting to PDF...');
