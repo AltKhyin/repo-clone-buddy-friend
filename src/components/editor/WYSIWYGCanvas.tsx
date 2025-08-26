@@ -135,7 +135,7 @@ export function WYSIWYGCanvas() {
   );
 
   return (
-    <div className="flex-1 relative bg-gray-50 overflow-auto min-h-0">
+    <div className="flex-1 relative bg-gray-50 min-h-0">
       {/* Canvas container with zoom - ZERO MARGIN SYSTEM */}
       <div
         className="flex justify-center"

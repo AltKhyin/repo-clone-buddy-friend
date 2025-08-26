@@ -33,7 +33,7 @@ export const UnifiedBlockWrapper = React.memo<ContentBoundaryProps>(
     // Constraint-related props removed - complete resize freedom
   }) => {
     const contentRef = useRef<HTMLDivElement>(null);
-    const { updateNodePosition } = useEditorStore();
+    const { updateCurrentViewportPosition, currentViewport } = useEditorStore();
 
     // 🎯 CONDITIONAL SELECTION SYSTEM: Only enable selection in interactive mode
     const { isActive, hasContentSelection, handleBlockActivation } = useSelectionCoordination({
@@ -72,7 +72,7 @@ export const UnifiedBlockWrapper = React.memo<ContentBoundaryProps>(
           width: position.width ?? width,
           height: position.height ?? height,
         };
-        updateNodePosition(id, storeUpdate);
+        updateCurrentViewportPosition(id, storeUpdate);
       },
       // 🎯 READ-ONLY: Disable resize completely
       disabled: readOnly,
@@ -181,9 +181,9 @@ export const UnifiedBlockWrapper = React.memo<ContentBoundaryProps>(
           onMove({ x: constrainedX, y: constrainedY });
         }
 
-        updateNodePosition(id, { x: constrainedX, y: constrainedY });
+        updateCurrentViewportPosition(id, { x: constrainedX, y: constrainedY });
       },
-      [isDragging, isResizing, dragStart, onMove, updateNodePosition, id]
+      [isDragging, isResizing, dragStart, onMove, updateCurrentViewportPosition, id]
     );
 
     // 🎯 SIMPLIFIED DRAG END: Clean drag state reset only
