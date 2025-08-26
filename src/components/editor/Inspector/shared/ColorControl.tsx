@@ -4,6 +4,7 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { Slider } from '@/components/ui/slider';
 import { X } from 'lucide-react';
 import { UnifiedColorPicker } from '@/components/editor/shared/UnifiedColorPicker';
 import { useColorTokens } from '../../../../hooks/useColorTokens';
@@ -20,6 +21,80 @@ interface ColorControlProps {
   /** Use case specific tokens (e.g., 'text', 'background', 'highlight') */
   useCase?: 'text' | 'background' | 'highlight';
 }
+
+// Color format conversion utilities
+const parseColor = (colorValue: string): { baseColor: string; alpha: number } => {
+  if (!colorValue || colorValue === 'transparent') {
+    return { baseColor: '#ffffff', alpha: 0 };
+  }
+  
+  // Handle rgba format
+  const rgbaMatch = colorValue.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([0-9]*\.?[0-9]+))?\)/);
+  if (rgbaMatch) {
+    const [, r, g, b, a] = rgbaMatch;
+    const alpha = a ? parseFloat(a) : 1;
+    return { 
+      baseColor: `rgb(${r}, ${g}, ${b})`, 
+      alpha: Math.round(alpha * 100)
+    };
+  }
+  
+  // Handle hsla format
+  const hslaMatch = colorValue.match(/hsla?\((\d+),\s*(\d+)%,\s*(\d+)%(?:,\s*([0-9]*\.?[0-9]+))?\)/);
+  if (hslaMatch) {
+    const [, h, s, l, a] = hslaMatch;
+    const alpha = a ? parseFloat(a) : 1;
+    return { 
+      baseColor: `hsl(${h}, ${s}%, ${l}%)`, 
+      alpha: Math.round(alpha * 100)
+    };
+  }
+  
+  // Handle hex and other formats - assume fully opaque
+  return { baseColor: colorValue, alpha: 100 };
+};
+
+const convertToAlphaFormat = (baseColor: string, alphaPercent: number): string => {
+  if (alphaPercent === 0) {
+    return 'transparent';
+  }
+  
+  const alpha = alphaPercent / 100;
+  
+  // Convert hex to rgba
+  const hexMatch = baseColor.match(/^#([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i);
+  if (hexMatch) {
+    const [, r, g, b] = hexMatch;
+    return `rgba(${parseInt(r, 16)}, ${parseInt(g, 16)}, ${parseInt(b, 16)}, ${alpha})`;
+  }
+  
+  // Convert rgb to rgba
+  const rgbMatch = baseColor.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+  if (rgbMatch) {
+    const [, r, g, b] = rgbMatch;
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  }
+  
+  // Convert hsl to hsla
+  const hslMatch = baseColor.match(/hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)/);
+  if (hslMatch) {
+    const [, h, s, l] = hslMatch;
+    return `hsla(${h}, ${s}%, ${l}%, ${alpha})`;
+  }
+  
+  // Handle theme tokens and other formats - wrap in rgba
+  if (baseColor.includes('var(--') || baseColor.startsWith('hsl(var(')) {
+    if (alpha === 1) {
+      return baseColor; // Keep original format if fully opaque
+    }
+    // For theme tokens with transparency, we need a different approach
+    // Use CSS color-mix when available, or fallback to opacity
+    return baseColor; // Keep original and handle transparency via CSS opacity if needed
+  }
+  
+  // Fallback - assume it's a valid CSS color
+  return alpha === 1 ? baseColor : `color-mix(in srgb, ${baseColor} ${alphaPercent}%, transparent)`;
+};
 
 // OPTIMIZATION: Memoized theme-aware presets that replace hardcoded colors
 const INSPECTOR_COLOR_TOKENS: ColorToken[] = [
@@ -120,10 +195,21 @@ const ColorControlComponent = React.memo(function ColorControl({
     onChange(undefined);
   }, [onChange]);
 
-  // Handle transparency selection
-  const handleTransparentSelect = React.useCallback(() => {
-    onChange('transparent');
-  }, [onChange]);
+  // Parse current color and alpha
+  const { baseColor, alpha } = React.useMemo(() => parseColor(value), [value]);
+  
+  // Handle base color selection
+  const handleBaseColorSelect = React.useCallback((color: string) => {
+    const newColor = convertToAlphaFormat(color, alpha);
+    onChange(newColor || undefined);
+  }, [alpha, onChange]);
+  
+  // Handle transparency change
+  const handleTransparencyChange = React.useCallback((newAlpha: number[]) => {
+    const alphaValue = newAlpha[0];
+    const newColor = convertToAlphaFormat(baseColor, alphaValue);
+    onChange(newColor === 'transparent' ? undefined : newColor);
+  }, [baseColor, onChange]);
 
   return (
     <div className={cn('space-y-2', className)}>
@@ -146,24 +232,11 @@ const ColorControlComponent = React.memo(function ColorControl({
         )}
       </div>
 
-      <div className="space-y-2">
-        {/* Transparency option */}
-        {allowTransparent && (
-          <Button
-            variant={value === 'transparent' ? 'default' : 'outline'}
-            size="sm"
-            onClick={handleTransparentSelect}
-            className="w-full justify-start"
-          >
-            <div className="w-4 h-4 border-2 border-dashed border-gray-300 rounded mr-2" />
-            Transparent
-          </Button>
-        )}
-
-        {/* Unified color picker */}
+      <div className="space-y-3">
+        {/* Unified color picker for base color */}
         <UnifiedColorPicker
-          value={value && value !== 'transparent' ? value : undefined}
-          onColorSelect={handleColorSelect}
+          value={baseColor && baseColor !== '#ffffff' ? baseColor : undefined}
+          onColorSelect={handleBaseColorSelect}
           onColorClear={handleColorClear}
           mode={allowCustom ? 'both' : 'tokens'}
           variant="input"
@@ -174,6 +247,32 @@ const ColorControlComponent = React.memo(function ColorControl({
           placeholder="#000000"
           className="w-full"
         />
+        
+        {/* Transparency slider */}
+        {allowTransparent && (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className={cn('text-xs text-muted-foreground')}>
+                Transparency
+              </Label>
+              <span className={cn('text-xs text-muted-foreground')}>
+                {alpha}%
+              </span>
+            </div>
+            <Slider
+              value={[alpha]}
+              onValueChange={handleTransparencyChange}
+              max={100}
+              min={0}
+              step={1}
+              className="w-full"
+            />
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>Transparent</span>
+              <span>Opaque</span>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
