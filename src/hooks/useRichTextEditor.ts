@@ -26,6 +26,7 @@ import { detectTableContext } from '@/utils/table-detection';
 import { InlineImage } from '@/components/editor/extensions/InlineImage';
 import { VideoEmbed, VideoUtils } from '@/components/editor/extensions/VideoEmbed';
 import { BasicTableExtension, createEmptyTable } from '@/components/editor/extensions/BasicTable';
+// Removed EditableBlockquote - using built-in blockquote instead
 import { useMediaDropHandler } from './useMediaDropHandler';
 // Typography marks for selection-based formatting
 import { FontFamilyMark } from '@/components/editor/extensions/marks/FontFamilyMark';
@@ -465,8 +466,12 @@ export const useRichTextEditor = ({
         },
         listItem: true,
 
-        // Block features (always enabled)
-        blockquote: true,
+        // Block features (always enabled) 
+        blockquote: {
+          HTMLAttributes: {
+            class: 'simple-blockquote',
+          },
+        },
         codeBlock: true,
         horizontalRule: true,
 
@@ -563,6 +568,8 @@ export const useRichTextEditor = ({
           class: 'basic-table-extension',
         },
       }),
+
+      // Note: Using built-in blockquote from StarterKit instead of custom extension
 
       // Typography marks for selection-based formatting (Google Docs-like)
       FontFamilyMark.configure({
@@ -1310,8 +1317,6 @@ export const useRichTextEditor = ({
         // Enhanced styling
         class: 'prose prose-sm max-w-none focus:outline-none',
         style: `
-          min-height: 100px;
-          padding: 12px;
           line-height: inherit;
           color: inherit;
           font-family: inherit;

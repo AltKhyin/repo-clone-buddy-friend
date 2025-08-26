@@ -409,6 +409,8 @@ export const UnifiedToolbar = React.memo(function UnifiedToolbar({
     [handleTypography]
   );
 
+  // Note: Border color customization temporarily removed for simplification
+
   const handleHighlight = React.useCallback(() => {
     // Toggle highlight by setting/clearing background color
     const isHighlighted = Boolean(appliedMarks.backgroundColor);
@@ -1496,6 +1498,8 @@ export const UnifiedToolbar = React.memo(function UnifiedToolbar({
                 size="sm"
               />
             </div>
+            
+            {/* Note: Quote border color picker temporarily removed for simplification */}
           </div>
         </div>
 

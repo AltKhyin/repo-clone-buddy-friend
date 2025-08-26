@@ -320,7 +320,7 @@ export const InlineImageComponent = React.forwardRef<HTMLDivElement, InlineImage
             title={node.attrs.title || ''}
             onLoad={handleImageLoad}
             onError={handleImageError}
-            className="max-w-full h-auto rounded border"
+            className="max-w-full h-auto rounded"
             style={{
               // 🎯 BLOCK-AWARE SIZING: Use block constraints in read-only, original sizing in editor
               maxWidth: isReadOnly 

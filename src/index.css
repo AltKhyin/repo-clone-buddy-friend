@@ -783,4 +783,41 @@
       box-sizing: border-box !important;
     }
   }
+
+  /* 🎯 SIMPLE BLOCKQUOTE STYLING: Clean, minimalist approach */
+  .simple-blockquote {
+    border-left: 4px solid hsl(var(--quote-border));
+    padding-left: 1rem;
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+    margin: 1rem 0;
+    background-color: transparent;
+    color: hsl(var(--quote-text));
+    font-style: inherit; /* Ensure no forced italic styling */
+  }
+
+  /* 🚫 REMOVE PROSE QUOTE MARKS: Target the specific prose styling that adds quote marks */
+  .prose blockquote::before,
+  .prose blockquote::after,
+  .prose-sm blockquote::before,
+  .prose-sm blockquote::after,
+  .tiptap.prose blockquote::before,
+  .tiptap.prose blockquote::after,
+  .tiptap.prose-sm blockquote::before,
+  .tiptap.prose-sm blockquote::after {
+    content: none !important;
+    display: none !important;
+  }
+
+  /* Additional safety: Remove quote marks from simple-blockquote specifically */
+  .simple-blockquote::before,
+  .simple-blockquote::after {
+    content: none !important;
+    display: none !important;
+  }
+
+  /* Dynamic border color support via CSS custom properties */
+  .simple-blockquote[data-border-color] {
+    border-left-color: var(--dynamic-quote-border);
+  }
 }

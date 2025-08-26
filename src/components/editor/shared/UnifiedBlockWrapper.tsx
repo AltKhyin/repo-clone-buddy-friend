@@ -353,6 +353,7 @@ export const UnifiedBlockWrapper = React.memo<ContentBoundaryProps>(
             <div
               className={cn(
                 'px-3 py-1.5 rounded-md shadow-sm font-medium border border-white/20 backdrop-blur-sm',
+                'whitespace-nowrap text-ellipsis overflow-hidden h-7 flex items-center min-w-0',
                 isResizing
                   ? 'bg-green-600/90 text-white shadow-green-500/25'
                   : isDragging
@@ -369,6 +370,7 @@ export const UnifiedBlockWrapper = React.memo<ContentBoundaryProps>(
             <div
               className={cn(
                 'px-3 py-1.5 rounded-md shadow-sm font-mono text-xs border border-white/20 backdrop-blur-sm',
+                'whitespace-nowrap text-ellipsis overflow-hidden h-7 flex items-center min-w-0',
                 isResizing 
                   ? 'bg-green-700/90 text-white shadow-green-500/25' 
                   : 'bg-slate-800/90 text-white shadow-slate-800/25'
@@ -377,7 +379,7 @@ export const UnifiedBlockWrapper = React.memo<ContentBoundaryProps>(
               {Math.round(width)} × {Math.round(height)}px
             </div>
             {hoverHandle && !isResizing && (
-              <div className="px-3 py-1.5 rounded-md shadow-sm font-medium text-xs border border-white/20 backdrop-blur-sm bg-blue-600/90 text-white shadow-blue-500/25">
+              <div className="px-3 py-1.5 rounded-md shadow-sm font-medium text-xs border border-white/20 backdrop-blur-sm bg-blue-600/90 text-white shadow-blue-500/25 whitespace-nowrap text-ellipsis overflow-hidden h-7 flex items-center min-w-0">
                 {hoverHandle} handle
               </div>
             )}
