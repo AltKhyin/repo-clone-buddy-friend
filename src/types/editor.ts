@@ -116,7 +116,7 @@ export const BlockPositionSchema = z.object({
   x: z.number().min(0), // Direct pixel X coordinate (0-800)
   y: z.number().min(0), // Direct pixel Y coordinate
   width: z.number().min(50), // Block width in pixels (minimum 50px)
-  height: z.number().min(30), // Block height in pixels (minimum 30px)
+  height: z.number(), // Block height in pixels
   zIndex: z.number().optional(), // Stacking order for overlapping blocks
 });
 

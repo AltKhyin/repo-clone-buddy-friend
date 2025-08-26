@@ -167,11 +167,17 @@ export default function EditorPage() {
     setPersistenceCallbacks(persistenceCallbacks);
   }, [setPersistenceCallbacks, persistenceCallbacks]);
 
+  // Track if initial load has completed to prevent duplicate loading in StrictMode
+  const loadedReviewIdRef = React.useRef<string | null>(null);
+  
   // Load data from database - ensure callbacks are set before loading
   React.useEffect(() => {
-    if (reviewId && persistenceCallbacks.load) {
+    if (reviewId && persistenceCallbacks.load && loadedReviewIdRef.current !== reviewId) {
+      loadedReviewIdRef.current = reviewId;
       loadFromDatabase(reviewId).catch(error => {
         console.error('[EditorPage] Failed to load review data:', error);
+        // Reset ref on error to allow retry
+        loadedReviewIdRef.current = null;
       });
     }
   }, [reviewId, persistenceCallbacks.load, loadFromDatabase]);
