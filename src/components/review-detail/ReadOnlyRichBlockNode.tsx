@@ -220,12 +220,7 @@ export const ReadOnlyRichBlockNode = memo<ReadOnlyRichBlockNodeProps>(
       const baseStyles = {
         fontSize: dynamicStyles.fontSize,
         textAlign: dynamicStyles.textAlign,
-        color: dynamicStyles.color,
         fontFamily: dynamicStyles.fontFamily,
-        fontWeight: dynamicStyles.fontWeight,
-        letterSpacing: dynamicStyles.letterSpacing,
-        textTransform: dynamicStyles.textTransform,
-        textDecoration: dynamicStyles.textDecoration,
         lineHeight: dynamicStyles.lineHeight,
         minHeight: '60px',
         outline: 'none',
@@ -233,6 +228,12 @@ export const ReadOnlyRichBlockNode = memo<ReadOnlyRichBlockNodeProps>(
         width: '100%',
         height: '100%',
         cursor: 'default', // Read-only cursor
+        // 🚫 TEXT-LEVEL PROPERTIES REMOVED: Let TipTap handle text-level formatting
+        // color: dynamicStyles.color,                    // Let TipTap render text colors
+        // fontWeight: dynamicStyles.fontWeight,          // Let TipTap render bold/light
+        // letterSpacing: dynamicStyles.letterSpacing,    // Let TipTap render kerning
+        // textTransform: dynamicStyles.textTransform,    // Let TipTap render CAPS/lowercase
+        // textDecoration: dynamicStyles.textDecoration,  // Let TipTap render underline/strikethrough
       };
 
       // Combine with extracted inline marks (inline marks take precedence)

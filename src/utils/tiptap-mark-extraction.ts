@@ -284,6 +284,7 @@ export function extractTypographyMarksFromHTML(htmlContent: string): TypographyM
 
 /**
  * Combine typography marks with block-level styles, giving priority to inline marks
+ * NOTE: Excludes text-level properties (colors, fontWeight, etc.) to prevent contamination
  */
 export function combineTypographyStyles(
   blockStyles: React.CSSProperties,
@@ -291,15 +292,22 @@ export function combineTypographyStyles(
 ): React.CSSProperties {
   return {
     ...blockStyles,
-    // Override block styles with inline marks (inline takes precedence)
+    // Override block styles with inline marks ONLY for true block-level properties
     ...(inlineMarks.lineHeight && { lineHeight: inlineMarks.lineHeight }),
-    ...(inlineMarks.textColor && { color: inlineMarks.textColor }),
-    ...(inlineMarks.backgroundColor && { backgroundColor: inlineMarks.backgroundColor }),
     ...(inlineMarks.fontSize && { fontSize: `${inlineMarks.fontSize}px` }),
     ...(inlineMarks.fontFamily && { fontFamily: inlineMarks.fontFamily }),
-    ...(inlineMarks.fontWeight && { fontWeight: inlineMarks.fontWeight }),
-    ...(inlineMarks.letterSpacing && { letterSpacing: `${inlineMarks.letterSpacing}px` }),
-    ...(inlineMarks.textTransform && { textTransform: inlineMarks.textTransform }),
-    ...(inlineMarks.textDecoration && { textDecoration: inlineMarks.textDecoration }),
+    
+    // 🚫 TEXT-LEVEL PROPERTIES EXCLUDED: These should stay in TipTap marks, not contaminate block styles
+    // Colors (highlighting/text color): Should be handled by TipTap rendering
+    // ...(inlineMarks.textColor && { color: inlineMarks.textColor }),
+    // ...(inlineMarks.backgroundColor && { backgroundColor: inlineMarks.backgroundColor }),
+    // Font weight (bold/light): Should be handled by TipTap rendering  
+    // ...(inlineMarks.fontWeight && { fontWeight: inlineMarks.fontWeight }),
+    // Letter spacing: Should be handled by TipTap rendering
+    // ...(inlineMarks.letterSpacing && { letterSpacing: `${inlineMarks.letterSpacing}px` }),
+    // Text transform (CAPS): Should be handled by TipTap rendering
+    // ...(inlineMarks.textTransform && { textTransform: inlineMarks.textTransform }),
+    // Text decoration (underline): Should be handled by TipTap rendering
+    // ...(inlineMarks.textDecoration && { textDecoration: inlineMarks.textDecoration }),
   };
 }
