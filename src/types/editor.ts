@@ -753,6 +753,8 @@ export interface EditorState {
   loadFromDatabase: (reviewId: string) => Promise<void>;
   loadFromJSON: (json: StructuredContentV2 | StructuredContentV3) => void;
   exportToJSON: () => StructuredContentV2 | StructuredContentV3;
+  exportAsTemplate: () => any;
+  importFromTemplate: (templateData: any) => void;
   exportToPDF: () => Promise<void>;
 
   // Persistence

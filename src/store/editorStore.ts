@@ -2,6 +2,7 @@
 
 import { create } from 'zustand';
 import { debounce } from 'lodash-es';
+import { tiptapJsonToHtml } from '@/components/editor/shared/tiptapContentHelpers';
 import {
   EditorState,
   NodeObject,
@@ -133,6 +134,93 @@ const migratePaddingData = (data: any): any => {
     paddingBottom: 16,
     paddingLeft: 16,
   };
+};
+
+// ===== AI TEMPLATE FIELD REPLACEMENT UTILITIES =====
+
+/**
+ * Replaces problematic massive text fields with AI-friendly placeholders
+ */
+const replaceProblematicFields = (data: any): any => {
+  if (!data || typeof data !== 'object') return data;
+  
+  const result = Array.isArray(data) ? [...data] : { ...data };
+  
+  // Replace htmlContent with regeneration marker
+  if ('htmlContent' in result) {
+    result.htmlContent = '[AI_REGENERATE_HTML]';
+  }
+  
+  // Replace base64 image sources with semantic placeholders
+  if ('src' in result && typeof result.src === 'string' && result.src.startsWith('data:image/')) {
+    const imageType = result.src.split(';')[0].split('/')[1] || 'image';
+    result.src = `[AI_IMAGE_PLACEHOLDER_${imageType.toUpperCase()}]`;
+    result.originalSize = result.src.length; // Track for regeneration
+  }
+  
+  // Recursively process nested objects/arrays
+  for (const key in result) {
+    if (result[key] && typeof result[key] === 'object') {
+      result[key] = replaceProblematicFields(result[key]);
+    }
+  }
+  
+  return result;
+};
+
+/**
+ * Restores problematic fields from AI-friendly placeholders
+ */
+const restoreProblematicFields = (data: any): any => {
+  if (!data || typeof data !== 'object') return data;
+  
+  const result = Array.isArray(data) ? [...data] : { ...data };
+  
+  // Regenerate htmlContent from tiptapJSON if marked for regeneration
+  if (result.htmlContent === '[AI_REGENERATE_HTML]' && result.tiptapJSON) {
+    result.htmlContent = tiptapJsonToHtml(result.tiptapJSON);
+  }
+  
+  // Handle image placeholders - create empty uploadable slots
+  if ('src' in result && typeof result.src === 'string' && result.src.startsWith('[AI_IMAGE_PLACEHOLDER_')) {
+    result.src = ''; // Empty src for AI to populate or user to upload
+    result.placeholder = true;
+    delete result.originalSize;
+  }
+  
+  // Recursively process nested objects/arrays
+  for (const key in result) {
+    if (result[key] && typeof result[key] === 'object') {
+      result[key] = restoreProblematicFields(result[key]);
+    }
+  }
+  
+  return result;
+};
+
+/**
+ * Helper function to count restored fields in template
+ */
+const countRestoredFields = (data: any, fieldName: string): number => {
+  if (!data || typeof data !== 'object') return 0;
+  
+  let count = 0;
+  
+  // Check current level
+  if (fieldName === 'htmlContent' && data.htmlContent && data.htmlContent !== '[AI_REGENERATE_HTML]') {
+    count++;
+  } else if (fieldName === 'placeholder' && data.placeholder === true) {
+    count++;
+  }
+  
+  // Recursively count in nested objects/arrays
+  for (const key in data) {
+    if (data[key] && typeof data[key] === 'object') {
+      count += countRestoredFields(data[key], fieldName);
+    }
+  }
+  
+  return count;
 };
 
 // Canvas boundary validation utilities - ZERO MARGIN SYSTEM
@@ -1261,97 +1349,102 @@ export const useEditorStore = create<EditorState>((set, get) => {
     exportAsTemplate: () => {
       const state = get();
       
-      // Use exact database format, but strip dependency-creating fields
-      const dbFormat = state.exportToJSON();
+      // Start with existing template export logic
+      const baseTemplate = state.exportAsTemplate();
       
-      // Strip only UUIDs and metadata - keep everything else identical to database
-      const cleanedNodes = dbFormat.nodes.map((node, index) => ({
-        ...node,
-        id: `block-${index + 1}` // Semantic IDs that AI can understand and fill
-      }));
+      // Apply field replacement to remove problematic massive text
+      const aiOptimizedTemplate = replaceProblematicFields(baseTemplate);
       
-      // Update position keys to match new semantic node IDs
-      const cleanedPositions: Record<string, any> = {};
-      const cleanedMobilePositions: Record<string, any> = {};
-      
-      dbFormat.nodes.forEach((originalNode, index) => {
-        const newId = `block-${index + 1}`;
-        if (dbFormat.positions[originalNode.id]) {
-          cleanedPositions[newId] = {
-            ...dbFormat.positions[originalNode.id],
-            id: newId
-          };
-        }
-        if (dbFormat.mobilePositions && dbFormat.mobilePositions[originalNode.id]) {
-          cleanedMobilePositions[newId] = {
-            ...dbFormat.mobilePositions[originalNode.id],
-            id: newId
-          };
-        }
-      });
-      
-      // Return database-identical format with only dependency-creating fields stripped
+      // Add AI guidance metadata
       return {
-        version: dbFormat.version,
-        nodes: cleanedNodes,
-        positions: cleanedPositions,
-        mobilePositions: cleanedMobilePositions,
-        canvas: dbFormat.canvas,
-        // metadata removed - AI cannot fill timestamps
+        ...aiOptimizedTemplate,
+        __aiMetadata: {
+          version: 'ai-optimized-1.0',
+          instructions: 'Complex JSON structures preserved. Massive text fields replaced with placeholders.',
+          placeholders: {
+            '[AI_REGENERATE_HTML]': 'HTML will be auto-generated from tiptapJSON on import',
+            '[AI_IMAGE_PLACEHOLDER_*]': 'Replace with empty string or image URL'
+          },
+          generatedAt: new Date().toISOString()
+        }
       };
     },
 
     importFromTemplate: (templateData: any) => {
-      const state = get();
-      
-      // Generate new UUIDs for actual usage in the editor
-      const nodesWithNewIds = templateData.nodes.map((node: any) => ({
-        ...node,
-        id: generateNodeId() // Generate real UUIDs for editor usage
-      }));
-      
-      // Reconstruct positions with new UUIDs
-      const newPositions: Record<string, any> = {};
-      const newMobilePositions: Record<string, any> = {};
-      
-      nodesWithNewIds.forEach((node, index) => {
-        const templateId = `block-${index + 1}`;
-        if (templateData.positions && templateData.positions[templateId]) {
-          newPositions[node.id] = {
-            ...templateData.positions[templateId],
-            id: node.id
-          };
+      try {
+        // Check if it's an AI template or legacy template
+        let actualTemplateData = templateData;
+        
+        // If it has AI metadata, extract the template data
+        if (templateData.__aiMetadata) {
+          const { __aiMetadata, ...extractedData } = templateData;
+          actualTemplateData = extractedData;
         }
-        if (templateData.mobilePositions && templateData.mobilePositions[templateId]) {
-          newMobilePositions[node.id] = {
-            ...templateData.mobilePositions[templateId],
-            id: node.id
-          };
+        
+        // Validate template format
+        if (!actualTemplateData.version || !actualTemplateData.nodes) {
+          throw new Error('Invalid template format');
         }
-      });
-      
-      // Reconstruct full database format for import
-      const reconstructedData: StructuredContentV3 = {
-        version: templateData.version || '3.0.0',
-        nodes: nodesWithNewIds,
-        positions: newPositions,
-        mobilePositions: newMobilePositions,
-        canvas: templateData.canvas || state.canvas,
-        metadata: {
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          editorVersion: '2.0.0',
-        },
-      };
-      
-      // Use existing loadFromJSON - it handles validation perfectly!
-      state.loadFromJSON(reconstructedData);
-      
-      console.log('[EditorStore] Template imported successfully:', {
-        nodeCount: nodesWithNewIds.length,
-        hasPositions: Object.keys(newPositions).length > 0,
-        hasMobilePositions: Object.keys(newMobilePositions).length > 0,
-      });
+        
+        // Restore problematic fields that were replaced (if it's an AI template)
+        const restoredTemplate = restoreProblematicFields(actualTemplateData);
+        
+        // Generate new UUIDs for actual usage in the editor
+        const nodesWithNewIds = restoredTemplate.nodes.map((node: any) => ({
+          ...node,
+          id: generateNodeId() // Generate real UUIDs for editor usage
+        }));
+        
+        // Reconstruct positions with new UUIDs
+        const newPositions: Record<string, any> = {};
+        const newMobilePositions: Record<string, any> = {};
+        
+        nodesWithNewIds.forEach((node, index) => {
+          const templateId = `block-${index + 1}`;
+          if (restoredTemplate.positions && restoredTemplate.positions[templateId]) {
+            newPositions[node.id] = {
+              ...restoredTemplate.positions[templateId],
+              id: node.id
+            };
+          }
+          if (restoredTemplate.mobilePositions && restoredTemplate.mobilePositions[templateId]) {
+            newMobilePositions[node.id] = {
+              ...restoredTemplate.mobilePositions[templateId],
+              id: node.id
+            };
+          }
+        });
+        
+        // Reconstruct full database format for import
+        const reconstructedData: StructuredContentV3 = {
+          version: restoredTemplate.version || '3.0.0',
+          nodes: nodesWithNewIds,
+          positions: newPositions,
+          mobilePositions: newMobilePositions,
+          canvas: restoredTemplate.canvas || get().canvas,
+          metadata: {
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            editorVersion: '2.0.0',
+          },
+        };
+        
+        // Use existing loadFromJSON - it handles validation perfectly!
+        get().loadFromJSON(reconstructedData);
+        
+        console.log('Template imported successfully:', {
+          nodeCount: nodesWithNewIds.length,
+          hasPositions: Object.keys(newPositions).length > 0,
+          hasMobilePositions: Object.keys(newMobilePositions).length > 0,
+          wasAITemplate: !!templateData.__aiMetadata,
+          restoredHtmlFields: countRestoredFields(restoredTemplate, 'htmlContent'),
+          imageFieldsProcessed: countRestoredFields(restoredTemplate, 'placeholder')
+        });
+        
+      } catch (error) {
+        console.error('AI template import failed:', error);
+        throw new Error(`Template import failed: ${error.message}`);
+      }
     },
 
     exportToPDF: async () => {
