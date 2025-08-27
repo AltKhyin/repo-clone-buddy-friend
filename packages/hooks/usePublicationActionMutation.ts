@@ -6,7 +6,7 @@ import { supabase } from '../../src/integrations/supabase/client';
 // Publication Action Types (local to this hook for specific response structure)
 export interface PublicationAction {
   reviewId: number;
-  action: 'submit_for_review' | 'approve' | 'reject' | 'schedule' | 'publish' | 'unpublish' | 'archive';
+  action: 'submit_for_review' | 'approve' | 'reject' | 'schedule' | 'publish' | 'unpublish' | 'archive' | 'delete';
   reviewerId?: string;
   scheduledDate?: string;
   notes?: string;

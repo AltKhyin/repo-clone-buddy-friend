@@ -294,11 +294,12 @@ export function combineTypographyStyles(
     ...blockStyles,
     // Override block styles with inline marks ONLY for true block-level properties
     ...(inlineMarks.lineHeight && { lineHeight: inlineMarks.lineHeight }),
-    ...(inlineMarks.fontSize && { fontSize: `${inlineMarks.fontSize}px` }),
-    ...(inlineMarks.fontFamily && { fontFamily: inlineMarks.fontFamily }),
     
     // 🚫 TEXT-LEVEL PROPERTIES EXCLUDED: These should stay in TipTap marks, not contaminate block styles
+    // Font properties (fontSize/fontFamily): Should be handled by TipTap rendering
     // Colors (highlighting/text color): Should be handled by TipTap rendering
+    // ...(inlineMarks.fontSize && { fontSize: `${inlineMarks.fontSize}px` }),
+    // ...(inlineMarks.fontFamily && { fontFamily: inlineMarks.fontFamily }),
     // ...(inlineMarks.textColor && { color: inlineMarks.textColor }),
     // ...(inlineMarks.backgroundColor && { backgroundColor: inlineMarks.backgroundColor }),
     // Font weight (bold/light): Should be handled by TipTap rendering  

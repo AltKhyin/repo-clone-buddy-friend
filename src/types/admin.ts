@@ -5,7 +5,7 @@ export type ReviewApprovalStatus = 'pending' | 'approved' | 'rejected' | 'change
 
 export interface PublicationActionRequest {
   reviewId: number;
-  action: 'publish' | 'schedule' | 'reject' | 'archive' | 'unpublish' | 'request_changes';
+  action: 'publish' | 'schedule' | 'reject' | 'archive' | 'unpublish' | 'request_changes' | 'delete';
   scheduledAt?: string;
   notes?: string;
   metadata?: Record<string, any>;
@@ -23,7 +23,7 @@ export interface PublicationActionResponse {
 
 export interface BulkOperationRequest {
   reviewIds: number[];
-  action: 'publish' | 'schedule' | 'archive' | 'reject';
+  action: 'publish' | 'schedule' | 'archive' | 'reject' | 'delete';
   scheduledAt?: string;
   notes?: string;
 }

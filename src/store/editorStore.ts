@@ -1349,8 +1349,8 @@ export const useEditorStore = create<EditorState>((set, get) => {
     exportAsTemplate: () => {
       const state = get();
       
-      // Start with existing template export logic
-      const baseTemplate = state.exportAsTemplate();
+      // Start with base JSON export (not recursive call to avoid infinite loop)
+      const baseTemplate = state.exportToJSON();
       
       // Apply field replacement to remove problematic massive text
       const aiOptimizedTemplate = replaceProblematicFields(baseTemplate);

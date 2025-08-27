@@ -140,20 +140,35 @@ Deno.serve(async req => {
         historyAction = 'unpublished';
         break;
 
+      case 'delete':
+        // For delete, we'll perform actual deletion after history logging
+        updateData = null;
+        historyAction = 'deleted';
+        break;
+
       default:
         throw new Error(`Invalid action: ${payload.action}`);
     }
 
-    // Update the review
-    const { data: updatedReview, error: updateError } = await supabase
-      .from('Reviews')
-      .update(updateData)
-      .eq('id', payload.reviewId)
-      .select()
-      .single();
+    // Handle review update or deletion
+    let updatedReview;
+    if (payload.action === 'delete') {
+      // For delete, we'll delete after logging history
+      updatedReview = currentReview;
+    } else {
+      // Update the review for all other actions
+      const { data, error: updateError } = await supabase
+        .from('Reviews')
+        .update(updateData)
+        .eq('id', payload.reviewId)
+        .select()
+        .single();
 
-    if (updateError) {
-      throw new Error(`Failed to update review: ${updateError.message}`);
+      if (updateError) {
+        throw new Error(`Failed to update review: ${updateError.message}`);
+      }
+      
+      updatedReview = data;
     }
 
     // Log the action in publication history
@@ -172,6 +187,21 @@ Deno.serve(async req => {
 
     if (historyError) {
       console.error('Failed to log publication history:', historyError);
+    }
+
+    // Perform actual deletion if this is a delete action
+    if (payload.action === 'delete') {
+      const { error: deleteError } = await supabase
+        .from('Reviews')
+        .delete()
+        .eq('id', payload.reviewId);
+
+      if (deleteError) {
+        throw new Error(`Failed to delete review: ${deleteError.message}`);
+      }
+      
+      // Update updatedReview to indicate deletion
+      updatedReview = { ...currentReview, status: 'deleted' };
     }
 
     // Log audit event

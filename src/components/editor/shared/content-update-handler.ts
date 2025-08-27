@@ -51,15 +51,16 @@ export function createEnhancedContentUpdateHandler(
       // 🎯 TYPOGRAPHY SYNC: Update ONLY true block-level properties from TipTap marks
       // These properties affect the entire block and should sync to maintain layout consistency
       ...(extractedMarks.lineHeight && { lineHeight: extractedMarks.lineHeight }),
-      ...(extractedMarks.fontSize && { fontSize: extractedMarks.fontSize }),
-      ...(extractedMarks.fontFamily && { fontFamily: extractedMarks.fontFamily }),
       
       // 🚫 TEXT-LEVEL SYNC REMOVED: These should remain isolated to selected text only
+      // fontSize & fontFamily: Should apply to selections, not entire blocks
       // fontWeight (bold/light): Should apply to selections, not entire blocks
       // letterSpacing (kerning): Should apply to selections, not entire blocks  
       // textTransform (CAPS/lowercase): Should apply to selections, not entire blocks
       // textDecoration (underline/strikethrough): Should apply to selections, not entire blocks
       // textColor & backgroundColor: Should apply to selections, not entire blocks
+      // ...(extractedMarks.fontSize && { fontSize: extractedMarks.fontSize }),
+      // ...(extractedMarks.fontFamily && { fontFamily: extractedMarks.fontFamily }),
       // ...(extractedMarks.fontWeight && { fontWeight: extractedMarks.fontWeight }),
       // ...(extractedMarks.letterSpacing && { letterSpacing: extractedMarks.letterSpacing }),
       // ...(extractedMarks.textTransform && { textTransform: extractedMarks.textTransform }),

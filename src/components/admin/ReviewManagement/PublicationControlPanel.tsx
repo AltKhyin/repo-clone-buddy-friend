@@ -8,7 +8,7 @@ import { ReviewManagementData } from '../../../../packages/hooks/useReviewManage
 import { usePublicationActionMutation } from '../../../../packages/hooks/usePublicationActionMutation';
 import { PublishScheduleModal } from './PublishScheduleModal';
 import { PublicationHistoryPanel } from './PublicationHistoryPanel';
-import { Send, Calendar, Archive, Eye, AlertTriangle, CheckCircle, Loader2 } from 'lucide-react';
+import { Send, Calendar, Archive, Eye, AlertTriangle, CheckCircle, Loader2, Trash2 } from 'lucide-react';
 import { useToast } from '../../../hooks/use-toast';
 
 interface PublicationControlPanelProps {
@@ -56,6 +56,35 @@ export const PublicationControlPanel: React.FC<PublicationControlPanelProps> = (
         toast({
           title: 'Error',
           description: error instanceof Error ? error.message : 'Failed to archive review',
+          variant: 'destructive',
+        });
+      }
+    }
+  };
+
+  const handleDelete = async () => {
+    const confirmed = confirm(
+      `⚠️ ATENÇÃO: Esta ação é IRREVERSÍVEL!\n\nVocê está prestes a deletar PERMANENTEMENTE o review "${review.title}".\n\nEsta ação não pode ser desfeita. O review será completamente removido do sistema.\n\nTem certeza de que deseja continuar?`
+    );
+    
+    if (confirmed) {
+      try {
+        await publicationMutation.mutateAsync({
+          reviewId: review.id,
+          action: 'delete',
+        });
+
+        toast({
+          title: 'Success',
+          description: 'Review deleted successfully!',
+        });
+        
+        // Redirect to content queue after successful deletion
+        window.location.href = '/admin/content';
+      } catch (error) {
+        toast({
+          title: 'Error',
+          description: error instanceof Error ? error.message : 'Failed to delete review',
           variant: 'destructive',
         });
       }
@@ -144,6 +173,20 @@ export const PublicationControlPanel: React.FC<PublicationControlPanelProps> = (
               {publicationMutation.isPending ? 'Archiving...' : 'Archive Review'}
             </Button>
           )}
+
+          <Button
+            onClick={handleDelete}
+            variant="destructive"
+            className="w-full bg-red-600 hover:bg-red-700 border-red-600 hover:border-red-700"
+            disabled={publicationMutation.isPending}
+          >
+            {publicationMutation.isPending ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Trash2 className="h-4 w-4 mr-2" />
+            )}
+            {publicationMutation.isPending ? 'Deleting...' : 'Delete Review'}
+          </Button>
         </div>
 
         {/* Quick Stats */}

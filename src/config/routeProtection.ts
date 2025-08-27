@@ -83,55 +83,61 @@ export const ROUTE_PROTECTION_CONFIG: RouteProtectionConfig[] = [
   // Admin Routes
   {
     path: 'admin',
-    requiredLevel: 'admin', // Simplified from editor_admin to admin
+    requiredLevel: 'editor_admin', // Aligned with database level
     redirectUrl: '/acesso-negado',
     description: 'Admin dashboard - requires admin/editor role',
   },
   {
+    path: 'admin/community',
+    requiredLevel: 'editor_admin', // Aligned with database level
+    redirectUrl: '/acesso-negado',
+    description: 'Community management - requires admin/editor role',
+  },
+  {
     path: 'admin/dashboard',
-    requiredLevel: 'admin', // Simplified from editor_admin to admin
+    requiredLevel: 'editor_admin', // Aligned with database level
     redirectUrl: '/acesso-negado',
     description: 'Admin dashboard home - requires admin/editor role',
   },
   {
     path: 'admin/content',
-    requiredLevel: 'admin', // Simplified from editor_admin to admin
+    requiredLevel: 'editor_admin', // Aligned with database level
     redirectUrl: '/acesso-negado',
     description: 'Content management - requires admin/editor role',
   },
   {
     path: 'admin/users',
-    requiredLevel: 'admin', // Simplified from editor_admin to admin
+    requiredLevel: 'editor_admin', // Aligned with database level
     redirectUrl: '/acesso-negado',
     description: 'User management - requires admin/editor role',
   },
   {
     path: 'admin/tags',
-    requiredLevel: 'admin', // Simplified from editor_admin to admin
+    requiredLevel: 'editor_admin', // Aligned with database level
     redirectUrl: '/acesso-negado',
     description: 'Tag management - requires admin/editor role',
   },
   {
     path: 'admin/layout',
-    requiredLevel: 'admin', // Simplified from editor_admin to admin
+    requiredLevel: 'editor_admin', // Aligned with database level
     redirectUrl: '/acesso-negado',
     description: 'Layout management - requires admin/editor role',
   },
   {
     path: 'admin/analytics',
-    requiredLevel: 'admin', // Simplified from editor_admin to admin
+    requiredLevel: 'editor_admin', // Aligned with database level
     redirectUrl: '/acesso-negado',
     description: 'Analytics dashboard - requires admin/editor role',
   },
   {
     path: 'admin/access-control',
-    requiredLevel: 'admin', // Simplified from editor_admin to admin
+    requiredLevel: 'editor_admin', // Aligned with database level
     redirectUrl: '/acesso-negado',
     description: 'Access control management - requires admin/editor role',
   },
   {
     path: 'admin/review/:reviewId',
-    requiredLevel: 'admin', // Simplified from editor_admin to admin
+    requiredLevel: 'editor_admin', // Aligned with database level
     redirectUrl: '/acesso-negado',
     description: 'Review management - requires admin/editor role',
   },
@@ -139,7 +145,7 @@ export const ROUTE_PROTECTION_CONFIG: RouteProtectionConfig[] = [
   // Editor Routes
   {
     path: 'editor/:reviewId',
-    requiredLevel: 'admin', // Simplified from editor_admin to admin
+    requiredLevel: 'editor_admin', // Aligned with database level
     redirectUrl: '/acesso-negado',
     description: 'Review editor - requires admin/editor role',
   },

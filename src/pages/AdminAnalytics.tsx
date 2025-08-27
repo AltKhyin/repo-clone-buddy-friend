@@ -138,7 +138,7 @@ const AdminAnalytics: React.FC = () => {
               <div className="text-2xl font-bold text-foreground">
                 {isLoading
                   ? '---'
-                  : analyticsData?.userStats.totalUsers.toLocaleString() || '1,234'}
+                  : analyticsData?.userStats?.totalUsers?.toLocaleString() || '1,234'}
               </div>
               <p className="text-xs text-muted-foreground">
                 <span className="text-green-600 dark:text-green-300">+12%</span> vs mês anterior

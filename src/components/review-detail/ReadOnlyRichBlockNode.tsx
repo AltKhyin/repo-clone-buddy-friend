@@ -218,9 +218,7 @@ export const ReadOnlyRichBlockNode = memo<ReadOnlyRichBlockNodeProps>(
     // 🎯 ENHANCED EDITOR CONTENT STYLES: Combine block and inline typography
     const enhancedEditorStyles = useMemo(() => {
       const baseStyles = {
-        fontSize: dynamicStyles.fontSize,
         textAlign: dynamicStyles.textAlign,
-        fontFamily: dynamicStyles.fontFamily,
         lineHeight: dynamicStyles.lineHeight,
         minHeight: '60px',
         outline: 'none',
@@ -229,6 +227,8 @@ export const ReadOnlyRichBlockNode = memo<ReadOnlyRichBlockNodeProps>(
         height: '100%',
         cursor: 'default', // Read-only cursor
         // 🚫 TEXT-LEVEL PROPERTIES REMOVED: Let TipTap handle text-level formatting
+        // fontSize: dynamicStyles.fontSize,              // Let TipTap render font sizes
+        // fontFamily: dynamicStyles.fontFamily,          // Let TipTap render font families
         // color: dynamicStyles.color,                    // Let TipTap render text colors
         // fontWeight: dynamicStyles.fontWeight,          // Let TipTap render bold/light
         // letterSpacing: dynamicStyles.letterSpacing,    // Let TipTap render kerning

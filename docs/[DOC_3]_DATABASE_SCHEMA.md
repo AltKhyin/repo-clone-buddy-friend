@@ -250,7 +250,7 @@ CREATE TABLE "Reviews" (
 CREATE TABLE "Publication_History" (
   "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   "review_id" INT NOT NULL REFERENCES "Reviews"(id) ON DELETE CASCADE,
-  "action" TEXT NOT NULL CHECK (action IN ('created', 'submitted_for_review', 'approved', 'rejected', 'scheduled', 'published', 'unpublished', 'archived')),
+  "action" TEXT NOT NULL CHECK (action IN ('created', 'submitted_for_review', 'approved', 'rejected', 'scheduled', 'published', 'unpublished', 'archived', 'deleted')),
   "performed_by" UUID NOT NULL REFERENCES "Practitioners"(id),
   "notes" TEXT,
   "metadata" JSONB DEFAULT '{}'::jsonb,

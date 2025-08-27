@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { X, Archive, Calendar, CheckCircle, Loader2 } from 'lucide-react';
+import { X, Archive, Calendar, CheckCircle, Loader2, Trash2 } from 'lucide-react';
 import { useAdminBulkOperations } from '../../../../packages/hooks/useAdminBulkOperations';
 import { useToast } from '../../../hooks/use-toast';
 
@@ -17,7 +17,15 @@ export const BulkOperations = ({ selectedReviews, onComplete }: BulkOperationsPr
   const { toast } = useToast();
   const bulkOperations = useAdminBulkOperations();
 
-  const handleBulkAction = async (action: 'publish' | 'schedule' | 'archive') => {
+  const handleBulkAction = async (action: 'publish' | 'schedule' | 'archive' | 'delete') => {
+    // Add confirmation for destructive delete action
+    if (action === 'delete') {
+      const confirmed = confirm(
+        `⚠️ ATENÇÃO: Esta ação é IRREVERSÍVEL!\n\nVocê está prestes a deletar PERMANENTEMENTE ${selectedReviews.length} review(s).\n\nEsta ação não pode ser desfeita. Os reviews serão completamente removidos do sistema.\n\nTem certeza de que deseja continuar?`
+      );
+      if (!confirmed) return;
+    }
+
     try {
       const result = await bulkOperations.mutateAsync({
         reviewIds: selectedReviews,
@@ -96,6 +104,21 @@ export const BulkOperations = ({ selectedReviews, onComplete }: BulkOperationsPr
                 <Archive className="h-4 w-4 mr-1" />
               )}
               Arquivar
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleBulkAction('delete')}
+              disabled={bulkOperations.isPending}
+              className="text-red-700 border-red-300 hover:bg-red-50 dark:text-red-400 dark:border-red-600 dark:hover:bg-red-950"
+            >
+              {bulkOperations.isPending ? (
+                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+              ) : (
+                <Trash2 className="h-4 w-4 mr-1" />
+              )}
+              Deletar
             </Button>
 
             <Button variant="ghost" size="sm" onClick={onComplete}>
