@@ -2,7 +2,7 @@
 
 import { handleCorsPreflightRequest } from '../_shared/cors.ts';
 import { getUserFromRequest } from '../_shared/auth.ts';
-import { sendSuccess, sendError } from '../_shared/api-helpers.ts';
+import { createSuccessResponse, createErrorResponse } from '../_shared/api-helpers.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 
 interface UserManagementPayload {
@@ -27,16 +27,18 @@ interface UserManagementPayload {
 }
 
 Deno.serve(async (req: Request) => {
+  const origin = req.headers.get('Origin');
+  
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
-    return handleCorsPreflightRequest();
+    return handleCorsPreflightRequest(req);
   }
 
   try {
     // Authenticate and verify admin privileges
     const { user, error: authError } = await getUserFromRequest(req);
     if (authError || !user) {
-      return sendError('Authentication required', 401);
+      return createErrorResponse(new Error('Authentication required'), {}, origin);
     }
 
     // Initialize Supabase admin client
@@ -55,7 +57,7 @@ Deno.serve(async (req: Request) => {
 
     // Accept admin or editor role during transition (editor will be migrated to admin)
     if (!adminCheck?.role || !['admin', 'editor'].includes(adminCheck.role)) {
-      return sendError('Admin or editor privileges required', 403);
+      return createErrorResponse(new Error('FORBIDDEN: Admin or editor privileges required'), {}, origin);
     }
 
     // Parse request body
@@ -268,12 +270,12 @@ Deno.serve(async (req: Request) => {
         break;
 
       default:
-        return sendError(`Invalid action: ${action}`, 400);
+        return createErrorResponse(new Error(`VALIDATION_FAILED: Invalid action: ${action}`), {}, origin);
     }
 
-    return sendSuccess(result);
+    return createSuccessResponse(result, {}, origin);
   } catch (error) {
     console.error('Admin user management error:', error);
-    return sendError(error instanceof Error ? error.message : 'Internal server error', 500);
+    return createErrorResponse(error, {}, origin);
   }
 });

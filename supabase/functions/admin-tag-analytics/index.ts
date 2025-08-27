@@ -2,7 +2,7 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.0';
-import { corsHeaders, handleCorsPreflightRequest } from '../_shared/cors.ts';
+import { handleCorsPreflightRequest } from '../_shared/cors.ts';
 import { createSuccessResponse, createErrorResponse, authenticateUser } from '../_shared/api-helpers.ts';
 import { checkRateLimit, rateLimitHeaders, RateLimitError } from '../_shared/rate-limit.ts';
 import { getUserFromRequest, requireRole } from '../_shared/auth.ts';
@@ -32,9 +32,11 @@ interface TagAnalytics {
 }
 
 serve(async (req: Request) => {
+  const origin = req.headers.get('Origin');
+  
   // STEP 1: CORS Preflight Handling
   if (req.method === 'OPTIONS') {
-    return handleCorsPreflightRequest();
+    return handleCorsPreflightRequest(req);
   }
 
   try {
@@ -206,11 +208,11 @@ serve(async (req: Request) => {
     };
 
     // STEP 7: Standardized Success Response
-    return createSuccessResponse(analytics, rateLimitHeaders(rateLimitResult));
+    return createSuccessResponse(analytics, rateLimitHeaders(rateLimitResult), origin);
 
   } catch (error) {
     // STEP 8: Centralized Error Handling
     console.error('Error in admin-tag-analytics:', error);
-    return createErrorResponse(error);
+    return createErrorResponse(error, {}, origin);
   }
 });

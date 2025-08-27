@@ -3,59 +3,50 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.0';
-import { corsHeaders, handleCorsPreflightRequest } from '../_shared/cors.ts';
-import { checkRateLimit, RateLimitError } from '../_shared/rate-limit.ts';
-import { authenticateRequest, requireRole } from '../_shared/auth.ts';
+import { handleCorsPreflightRequest } from '../_shared/cors.ts';
+import { checkRateLimit, rateLimitHeaders, RateLimitError } from '../_shared/rate-limit.ts';
+import { authenticateUser } from '../_shared/api-helpers.ts';
 import { createSuccessResponse, createErrorResponse } from '../_shared/api-helpers.ts';
 
 serve(async (req) => {
+  const origin = req.headers.get('Origin');
+  
   // Step 1: Handle CORS preflight
   if (req.method === 'OPTIONS') {
-    return handleCorsPreflightRequest();
+    return handleCorsPreflightRequest(req);
   }
 
   try {
     // Step 2: Rate limiting
     const rateLimitResult = await checkRateLimit(req, { windowMs: 60000, maxRequests: 50 });
     if (!rateLimitResult.success) {
-      return new Response(JSON.stringify({ 
-        error: rateLimitResult.error || 'Rate limit exceeded',
-        details: 'Too many analytics requests'
-      }), {
-        status: 429,
-        headers: { ...corsHeaders, ...rateLimitResult.headers, 'Content-Type': 'application/json' },
-      });
+      throw RateLimitError;
     }
 
     // Step 3: Authentication
-    const authResult = await authenticateRequest(req);
-    if (!authResult.success) {
-      return new Response(JSON.stringify({ 
-        error: authResult.error || 'Authentication failed',
-        details: 'Invalid or missing authentication'
-      }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      throw new Error('UNAUTHORIZED: Authentication required for analytics access');
     }
 
-    // Step 4: Authorization (admin or editor only)
-    const roleCheck = requireRole(authResult.user, ['admin', 'editor']);
-    if (!roleCheck.success) {
-      return new Response(JSON.stringify({ 
-        error: roleCheck.error || 'Insufficient permissions',
-        details: 'Admin or editor role required for analytics access'
-      }), {
-        status: 403,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    // Step 5: Create Supabase client
+    // Step 4: Create Supabase client and authenticate
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
+
+    const user = await authenticateUser(supabase, authHeader);
+
+    // Step 5: Authorization (admin or editor only)
+    const { data: adminCheck } = await supabase
+      .from('Practitioners')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (!adminCheck?.role || !['admin', 'editor'].includes(adminCheck.role)) {
+      throw new Error('FORBIDDEN: Admin or editor role required for analytics access');
+    }
 
     // Step 6: Execute business logic
     console.log('Fetching analytics dashboard data...');
@@ -115,27 +106,10 @@ serve(async (req) => {
     console.log('Analytics dashboard response prepared successfully');
 
     // Step 7: Return success response
-    return new Response(JSON.stringify(analyticsData), {
-      headers: { 
-        ...corsHeaders, 
-        ...rateLimitResult.headers,
-        'Content-Type': 'application/json' 
-      },
-    });
+    return createSuccessResponse(analyticsData, rateLimitHeaders(rateLimitResult), origin);
 
   } catch (error) {
     console.error('Analytics dashboard error:', error);
-    
-    const errorMessage = error.message || 'Unknown error occurred';
-    const statusCode = errorMessage.includes('authentication') ? 401 :
-                      errorMessage.includes('permissions') ? 403 : 500;
-
-    return new Response(JSON.stringify({ 
-      error: errorMessage,
-      details: 'Analytics dashboard fetch failed'
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: statusCode,
-    });
+    return createErrorResponse(error, {}, origin);
   }
 });
