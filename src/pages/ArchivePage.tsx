@@ -3,9 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import { useIsMobile } from '../hooks/use-mobile';
 import { useAcervoDataQuery } from '../../packages/hooks/useAcervoDataQuery';
-import { useContentAccessFilter } from '../hooks/useContentAccessFilter';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AccessUpgradePrompt } from '@/components/ui/AccessUpgradePrompt';
 import TagsPanel from '@/components/acervo/TagsPanel';
 import MobileTagsModal from '@/components/acervo/MobileTagsModal';
 import MasonryGrid from '@/components/acervo/MasonryGrid';
@@ -36,16 +34,9 @@ export const ArchivePageContent = () => {
     []
   );
 
-  // Add content filtering based on user access level
-  const {
-    filteredContent: accessibleReviews,
-    totalFiltered,
-    statistics,
-    userAccessLevel,
-  } = useContentAccessFilter(acervoData?.reviews, {
-    accessLevelField: 'access_level',
-    defaultAccessLevel: 'public',
-  });
+  // Marketing Strategy: Show ALL reviews regardless of access level
+  // Protection happens at route level (admin-controlled) and individual review pages
+  const allReviews = acervoData?.reviews || [];
 
   // Memoize skeleton component to prevent re-renders
   const loadingSkeleton = useMemo(
@@ -120,11 +111,9 @@ export const ArchivePageContent = () => {
   }
 
   return (
-    <div className="w-full">
-      {/* Page Header */}
+    <StandardLayout type="content-only" contentClassName="px-6 pb-6">
+      {/* Page Header within StandardLayout width constraints */}
       <PageHeader pageId="acervo" className="mb-6" />
-      
-      <StandardLayout type="content-only" contentClassName="px-6 pb-6">
         {/* Desktop: Horizontal Tags Panel */}
       {!isMobile && (
         <TagsPanel
@@ -143,26 +132,10 @@ export const ArchivePageContent = () => {
         />
       )}
 
-      {/* Access Control Upgrade Prompt */}
-      {totalFiltered > 0 && (
-        <AccessUpgradePrompt
-          filteredCount={totalFiltered}
-          statistics={statistics}
-          userAccessLevel={userAccessLevel}
-          onUpgradeClick={() => {
-            // Navigate to pricing page
-            window.location.href = '/pricing';
-          }}
-          onLoginClick={() => {
-            // Navigate to login page
-            window.location.href = '/login';
-          }}
-        />
-      )}
 
       {/* Reviews Grid with Client-Side Sorting */}
       <ClientSideSorter
-        reviews={accessibleReviews}
+        reviews={allReviews}
         tags={acervoData.tags}
         selectedTags={selectedTags}
         searchQuery=""
@@ -189,7 +162,6 @@ export const ArchivePageContent = () => {
         )}
       </ClientSideSorter>
       </StandardLayout>
-    </div>
   );
 };
 

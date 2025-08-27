@@ -1,11 +1,13 @@
 // ABOUTME: Universal route protection component using centralized configuration
 /* eslint-disable react-refresh/only-export-components */
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/auth';
 import { getUserAccessLevel, hasAccessLevel, type AccessLevel } from '@/lib/accessControl';
 import { getRouteProtection, isPublicRoute } from '@/config/routeProtection';
+import { usePageAccessControl } from '../../../packages/hooks/usePageAccessControl';
+import { useProgress } from '@/contexts/ProgressContext';
 
 interface UniversalRouteProtectionProps {
   children: React.ReactNode;
@@ -38,38 +40,92 @@ export const UniversalRouteProtection: React.FC<UniversalRouteProtectionProps> =
   const location = useLocation();
   const navigate = useNavigate();
   const { user, session, isLoading: authLoading } = useAuthStore();
+  const { showProgress, hideProgress } = useProgress();
+  
+  // Track background verification state
+  const [verificationComplete, setVerificationComplete] = useState(false);
+  const [accessDenied, setAccessDenied] = useState(false);
+  
+  // Get dynamic page access control from admin database settings
+  const {
+    hasAccess: databaseHasAccess,
+    isLoading: pageAccessLoading,
+    requiredAccessLevel: databaseRequiredLevel,
+    redirectUrl: databaseRedirectUrl,
+    pageConfig
+  } = usePageAccessControl(location.pathname, {
+    defaultRequiredLevel: requiredLevel || 'public',
+    defaultRedirectUrl: redirectUrl || '/login'
+  });
 
+  // Reset verification state when route changes
   useEffect(() => {
-    // Don't check while auth is still loading
-    if (authLoading) return;
+    setVerificationComplete(false);
+    setAccessDenied(false);
+  }, [location.pathname]);
 
+  // Background verification effect
+  useEffect(() => {
     const currentPath = location.pathname;
-    // Remove leading slash to match config format
-    const normalizedPath = currentPath.startsWith('/') ? currentPath.slice(1) : currentPath;
 
     // Check if route is public (no protection needed)
     if (isPublicRoute(currentPath)) {
+      setVerificationComplete(true);
+      setAccessDenied(false);
       if (showDebugInfo) {
         console.log('🌐 Universal Route Protection: Public route, no check needed:', currentPath);
       }
       return;
     }
 
-    // Get protection config from centralized source (try both formats)
-    const routeConfig = getRouteProtection(normalizedPath) || getRouteProtection(currentPath);
+    // Show progress during verification
+    const isVerifying = authLoading || pageAccessLoading;
+    if (isVerifying) {
+      showProgress();
+    }
 
-    // Determine required access level (config takes precedence over props)
-    const finalRequiredLevel = routeConfig?.requiredLevel || requiredLevel || 'public';
-    const finalRedirectUrl = routeConfig?.redirectUrl || redirectUrl || '/login';
+    // Don't proceed with checks while still loading
+    if (authLoading || pageAccessLoading) return;
+
+    // PRIORITY: Use database config first, fallback to static config
+    let finalRequiredLevel: AccessLevel;
+    let finalRedirectUrl: string;
+
+    if (pageConfig) {
+      // Database has configuration for this route - use it (admin-controlled)
+      finalRequiredLevel = databaseRequiredLevel;
+      finalRedirectUrl = databaseRedirectUrl || '/login';
+      
+      if (showDebugInfo) {
+        console.log('🗄️ Using DATABASE config for route protection:', {
+          path: currentPath,
+          dbRequiredLevel: finalRequiredLevel,
+          dbRedirectUrl: finalRedirectUrl,
+        });
+      }
+    } else {
+      // Fallback to static config for routes not configured by admin
+      const staticConfig = getRouteProtection(currentPath.startsWith('/') ? currentPath.slice(1) : currentPath);
+      finalRequiredLevel = staticConfig?.requiredLevel || requiredLevel || 'public';
+      finalRedirectUrl = staticConfig?.redirectUrl || redirectUrl || '/login';
+      
+      if (showDebugInfo) {
+        console.log('📄 Using STATIC config fallback for route protection:', {
+          path: currentPath,
+          staticRequiredLevel: finalRequiredLevel,
+          staticRedirectUrl: finalRedirectUrl,
+        });
+      }
+    }
 
     if (showDebugInfo) {
-      console.log('🔒 Universal Route Protection Debug:', {
+      console.log('🔒 Universal Route Protection Final Decision:', {
         path: currentPath,
-        configFound: !!routeConfig,
         requiredLevel: finalRequiredLevel,
         redirectUrl: finalRedirectUrl,
         user: !!user,
         session: !!session,
+        databaseConfigExists: !!pageConfig,
       });
     }
 
@@ -83,6 +139,9 @@ export const UniversalRouteProtection: React.FC<UniversalRouteProtectionProps> =
           finalRedirectUrl
         );
       }
+      hideProgress();
+      setVerificationComplete(true);
+      setAccessDenied(true);
       navigate(finalRedirectUrl, { replace: true });
       return;
     }
@@ -107,16 +166,25 @@ export const UniversalRouteProtection: React.FC<UniversalRouteProtectionProps> =
             finalRedirectUrl
           );
         }
+        hideProgress();
+        setVerificationComplete(true);
+        setAccessDenied(true);
         navigate(finalRedirectUrl, { replace: true });
         return;
       }
     }
 
+    // Verification complete and access granted
+    hideProgress();
+    setVerificationComplete(true);
+    setAccessDenied(false);
+    
     if (showDebugInfo) {
       console.log('✅ Universal Route Protection: Access granted for:', currentPath);
     }
   }, [
     authLoading,
+    pageAccessLoading,
     location.pathname,
     user,
     session,
@@ -124,14 +192,21 @@ export const UniversalRouteProtection: React.FC<UniversalRouteProtectionProps> =
     redirectUrl,
     navigate,
     showDebugInfo,
+    pageConfig,
+    databaseRequiredLevel,
+    databaseRedirectUrl,
+    showProgress,
+    hideProgress,
   ]);
 
-  // Show loading while auth is loading
-  if (authLoading) {
-    return <>{loadingComponent}</>;
+  // Only block rendering if access has been explicitly denied
+  // (i.e., during redirect phase)
+  if (accessDenied) {
+    return null; // Briefly blank while redirecting
   }
 
-  // Render protected content
+  // SEAMLESS UX: Always render children immediately
+  // Progress bar provides visual feedback during background verification
   return <>{children}</>;
 };
 

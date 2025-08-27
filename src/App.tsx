@@ -5,11 +5,27 @@ import React from 'react';
 import { AppRouter } from './router/AppRouter';
 import { AppProviders } from './components/providers/AppProviders';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { TopProgressBar } from './components/ui/TopProgressBar';
+import { useProgress } from './contexts/ProgressContext';
+import { usePageLoadingProgress } from './hooks/usePageLoadingProgress';
 import './App.css';
 
-function App() {
+// Internal component to access ProgressContext
+const AppContent = () => {
+  const { progressState } = useProgress();
+  
+  // Automatically track page content loading across all TanStack Query requests
+  usePageLoadingProgress();
+  
   return (
-    <AppProviders>
+    <>
+      {/* Reddit-style progress bar at the very top */}
+      <TopProgressBar 
+        isVisible={progressState.isVisible}
+        progress={progressState.progress}
+        duration={progressState.duration}
+      />
+      
       {/* Tier 1: Root Error Boundary - Ultimate safety net for entire application */}
       <ErrorBoundary 
         tier="root"
@@ -20,6 +36,14 @@ function App() {
       >
         <AppRouter />
       </ErrorBoundary>
+    </>
+  );
+};
+
+function App() {
+  return (
+    <AppProviders>
+      <AppContent />
     </AppProviders>
   );
 }

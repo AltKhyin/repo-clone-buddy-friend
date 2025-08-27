@@ -59,18 +59,15 @@ describe('PageHeader', () => {
 
     renderWithClient(<PageHeader pageId="acervo" />);
     
-    // Should show default title
-    expect(screen.getByRole('heading', { name: /acervo evidens/i })).toBeInTheDocument();
+    // Should show simplified title (just "Acervo", capitalized from pageId)
+    expect(screen.getByRole('heading', { name: /acervo/i })).toBeInTheDocument();
   });
 
   it('renders with custom settings when data available', () => {
     const mockSettings = {
       title: 'Custom Acervo Title',
-      description: 'Custom description',
       avatar_url: 'https://example.com/avatar.png',
-      theme_color: '#FF0000',
-      banner_url: null,
-      banner_urls: null
+      banner_url: 'https://example.com/banner.png'
     };
 
     mockUsePageSettings.mockReturnValue({
@@ -81,30 +78,28 @@ describe('PageHeader', () => {
     renderWithClient(<PageHeader pageId="acervo" />);
     
     expect(screen.getByRole('heading', { name: /custom acervo title/i })).toBeInTheDocument();
-    expect(screen.getByText('Custom description')).toBeInTheDocument();
+    // No description for Reddit parity
+    expect(screen.queryByText('Custom description')).not.toBeInTheDocument();
     
-    // Should show avatar images (mobile + desktop)
-    const avatars = screen.getAllByAltText(/custom acervo title icon/i);
-    expect(avatars).toHaveLength(2); // Mobile and desktop versions
-    expect(avatars[0]).toHaveAttribute('src', 'https://example.com/avatar.png');
+    // Should show single avatar (simplified structure)
+    const avatar = screen.getByAltText(/custom acervo title avatar/i);
+    expect(avatar).toHaveAttribute('src', 'https://example.com/avatar.png');
   });
 
   it('renders fallback avatar when no avatar_url provided', () => {
     mockUsePageSettings.mockReturnValue({
       data: {
         title: 'Test Page',
-        description: 'Test description',
-        avatar_url: null,
-        theme_color: '#0F172A'
+        avatar_url: null
       },
       isLoading: false
     });
 
     renderWithClient(<PageHeader pageId="test" />);
     
-    // Should show first letter of title as fallback (mobile + desktop)
-    const fallbackAvatars = screen.getAllByText('T');
-    expect(fallbackAvatars).toHaveLength(2); // Mobile and desktop versions
+    // Should show first letter of title as fallback (single avatar)
+    const fallbackAvatar = screen.getByText('T');
+    expect(fallbackAvatar).toBeInTheDocument();
   });
 
   it('renders children when provided', () => {

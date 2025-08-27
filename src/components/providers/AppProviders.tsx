@@ -4,6 +4,7 @@ import React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ErrorBoundary } from '../ErrorBoundary';
 import AuthSessionProvider from '../auth/AuthSessionProvider';
+import { ProgressProvider } from '../../contexts/ProgressContext';
 import { CustomThemeProvider } from '../theme/CustomThemeProvider';
 import PWAProvider from '../pwa/PWAProvider';
 
@@ -48,12 +49,16 @@ export const AppProviders = ({ children }: AppProvidersProps) => {
       <QueryClientProvider client={queryClient}>
         <ErrorBoundary tier="provider" context="AuthSessionProvider">
           <AuthSessionProvider>
-            <ErrorBoundary tier="provider" context="CustomThemeProvider">
-              <CustomThemeProvider defaultTheme="light" storageKey="evidens-theme">
-                <ErrorBoundary tier="provider" context="PWAProvider">
-                  <PWAProvider>{children}</PWAProvider>
+            <ErrorBoundary tier="provider" context="ProgressProvider">
+              <ProgressProvider>
+                <ErrorBoundary tier="provider" context="CustomThemeProvider">
+                  <CustomThemeProvider defaultTheme="light" storageKey="evidens-theme">
+                    <ErrorBoundary tier="provider" context="PWAProvider">
+                      <PWAProvider>{children}</PWAProvider>
+                    </ErrorBoundary>
+                  </CustomThemeProvider>
                 </ErrorBoundary>
-              </CustomThemeProvider>
+              </ProgressProvider>
             </ErrorBoundary>
           </AuthSessionProvider>
         </ErrorBoundary>

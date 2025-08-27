@@ -91,14 +91,10 @@ function CommunityPageContent() {
     );
   }
 
-  // Standard shell integration with page header
+  // Standard shell integration - header placed within ContentGrid width constraints
   return (
-    <div className="w-full">
-      {/* Page Header */}
-      <PageHeader pageId="comunidade" className="mb-6" />
-      
-      <CommunityErrorBoundary context="página principal da comunidade">
-        <CommunityFeedWithSidebar
+    <CommunityErrorBoundary context="página principal da comunidade">
+      <CommunityFeedWithSidebar
         posts={data?.posts || []}
         sidebarData={data?.sidebarData}
         onLoadMore={fetchNextPage}
@@ -107,9 +103,9 @@ function CommunityPageContent() {
         lastSync={lastSync}
         isLoading={isLoading}
         error={error}
-        />
-      </CommunityErrorBoundary>
-    </div>
+        headerComponent={<PageHeader pageId="comunidade" />}
+      />
+    </CommunityErrorBoundary>
   );
 }
 
