@@ -7,6 +7,10 @@ import { ThemeSelector } from '@/components/header/ThemeSelector';
 import { UserMenu } from '@/components/header/UserMenu';
 import { MobileUserMenu } from '@/components/header/MobileUserMenu';
 import { SearchBar } from '@/components/header/SearchBar';
+import { useAuthStore } from '@/store/auth';
+import { Button } from '@/components/ui/button';
+import { LogIn } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 interface FixedHeaderProps {
   className?: string;
@@ -16,6 +20,14 @@ interface FixedHeaderProps {
 }
 
 const FixedHeader = ({ className, children, isCollapsed, isMobile }: FixedHeaderProps) => {
+  const { user } = useAuthStore();
+  const navigate = useNavigate();
+  const isLoggedIn = !!user;
+
+  const handleLoginClick = () => {
+    navigate('/auth');
+  };
+
   return (
     <header
       className={cn(
@@ -86,20 +98,44 @@ const FixedHeader = ({ className, children, isCollapsed, isMobile }: FixedHeader
 
           {/* Icons - All the way to right edge of screen */}
           <div className="absolute top-1/2 right-4 transform -translate-y-1/2 z-20">
-            <div className="flex items-center space-x-4">
-              <NotificationBell />
-              <ThemeSelector />
-              <UserMenu />
-            </div>
+            {isLoggedIn ? (
+              <div className="flex items-center space-x-4">
+                <NotificationBell />
+                <ThemeSelector />
+                <UserMenu />
+              </div>
+            ) : (
+              <Button
+                onClick={handleLoginClick}
+                variant="ghost"
+                size="sm"
+                className="h-8 px-3 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Entrar/Cadastrar
+                <LogIn className="h-3 w-3 ml-1.5" />
+              </Button>
+            )}
           </div>
         </div>
 
         {/* Mobile Header Layout - Icons right aligned */}
         <div className="md:hidden h-full flex items-center justify-end px-4">
-          <div className="flex items-center space-x-3">
-            <NotificationBell />
-            <MobileUserMenu />
-          </div>
+          {isLoggedIn ? (
+            <div className="flex items-center space-x-3">
+              <NotificationBell />
+              <MobileUserMenu />
+            </div>
+          ) : (
+            <Button
+              onClick={handleLoginClick}
+              variant="ghost"
+              size="sm"
+              className="h-8 px-3 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Entrar/Cadastrar
+              <LogIn className="h-3 w-3 ml-1.5" />
+            </Button>
+          )}
         </div>
 
         {/* Legacy children container for any future content */}
