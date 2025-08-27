@@ -12,12 +12,12 @@ const CANVAS_CONFIG = {
   desktop: {
     width: 800, // Fixed width matching final output
     gridColumns: 12, // 12-column grid for snapping
-    minHeight: 600, // Minimum canvas height
+    minHeight: 400, // Reduced minimum for content-adaptive sizing (was 600)
   },
   mobile: {
     width: 375, // Mobile viewport width (iPhone standard)
     gridColumns: 1, // Single column for mobile
-    minHeight: 800, // Taller minimum for mobile scrolling
+    minHeight: 500, // Reduced minimum for content-adaptive sizing (was 800)
   },
   minZoom: 0.5, // 50% zoom for overview
   maxZoom: 2.0, // 200% zoom for precision
@@ -56,14 +56,23 @@ export function WYSIWYGCanvas() {
     id: 'wysiwyg-canvas',
   });
 
-  // Calculate canvas height based on content and viewport - ZERO MARGIN SYSTEM
+  // Calculate canvas height based on content and viewport - CONTENT-ADAPTIVE SYSTEM
   const canvasHeight = useMemo(() => {
-    const maxY = Math.max(
+    const positionsArray = Object.values(currentPositions);
+    
+    if (positionsArray.length === 0) {
+      // No content: use minimum height
+      return currentCanvasConfig.minHeight;
+    }
+    
+    // Content exists: calculate height with bottom margin for breathing room
+    const contentBottomEdge = Math.max(...positionsArray.map(pos => pos.y + pos.height));
+    const BOTTOM_MARGIN = 60; // Visual breathing room after last block
+    
+    return Math.max(
       currentCanvasConfig.minHeight,
-      // ZERO MARGIN: No bottom padding - blocks can reach canvas bottom edge
-      ...Object.values(currentPositions).map(pos => pos.y + pos.height)
+      contentBottomEdge + BOTTOM_MARGIN
     );
-    return maxY;
   }, [currentPositions, currentCanvasConfig.minHeight]);
 
   // Initialize positions for new nodes with content-aware sizing
@@ -136,7 +145,7 @@ export function WYSIWYGCanvas() {
 
   return (
     <div className="flex-1 relative bg-gray-50 min-h-0">
-      {/* Canvas container with zoom - ZERO MARGIN SYSTEM */}
+      {/* Canvas container with zoom - CONTENT-ADAPTIVE SYSTEM */}
       <div
         className="flex justify-center"
         style={{ transform: `scale(${canvasZoom})`, transformOrigin: 'top center' }}

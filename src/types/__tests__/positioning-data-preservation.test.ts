@@ -41,7 +41,7 @@ describe('Positioning Data Preservation - Integration Tests', () => {
         },
         canvas: {
           canvasWidth: 800,
-          canvasHeight: 600,
+          canvasHeight: 400,
           gridColumns: 12,
           snapTolerance: 10
         }
@@ -95,7 +95,7 @@ describe('Positioning Data Preservation - Integration Tests', () => {
         },
         canvas: {
           canvasWidth: 800,
-          canvasHeight: 600, 
+          canvasHeight: 400, 
           gridColumns: 12,
           snapTolerance: 10
         }
@@ -146,7 +146,7 @@ describe('Positioning Data Preservation - Integration Tests', () => {
         },
         canvas: {
           canvasWidth: 800,
-          canvasHeight: 600,
+          canvasHeight: 400,
           gridColumns: 12, 
           snapTolerance: 10
         },
@@ -192,7 +192,7 @@ describe('Positioning Data Preservation - Integration Tests', () => {
         // No positions or mobilePositions provided
         canvas: {
           canvasWidth: 800,
-          canvasHeight: 600,
+          canvasHeight: 400,
           gridColumns: 12,
           snapTolerance: 10
         }
@@ -323,7 +323,7 @@ describe('Positioning Data Preservation - Integration Tests', () => {
       
       // Verify canvas dimensions preserved (or default if recovery was used)
       expect(result.canvas.canvasWidth).toBe(800);
-      expect(result.canvas.canvasHeight).toBeGreaterThanOrEqual(600); // Can be 600 (default) or 750 (preserved)
+      expect(result.canvas.canvasHeight).toBeGreaterThanOrEqual(400); // Can be 400 (default) or 750 (preserved)
     });
   });
 });

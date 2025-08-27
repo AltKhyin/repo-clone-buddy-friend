@@ -10,12 +10,12 @@ const CANVAS_CONFIG = {
   desktop: {
     width: 800, // Fixed width matching editor output
     gridColumns: 12, // 12-column grid for snapping
-    minHeight: 600, // Minimum canvas height
+    minHeight: 400, // Reduced minimum for content-adaptive sizing (was 600)
   },
   mobile: {
     width: 375, // Mobile viewport width (iPhone standard) - used for scaling calculations
     gridColumns: 1, // Single column for mobile
-    minHeight: 800, // Taller minimum for mobile scrolling
+    minHeight: 500, // Reduced minimum for content-adaptive sizing (was 800)
   }
 };
 
@@ -55,14 +55,27 @@ export function ReadOnlyCanvas({
   // Track if we're using mobile-specific positions
   const usingMobilePositions = isMobile && !!content.mobilePositions;
 
-  // 🎯 CANVAS HEIGHT PARITY FIX: Use identical calculation as WYSIWYGCanvas
+  // 🎯 MOBILE CANVAS HEIGHT FIX: Always calculate height dynamically with mobile scaling support
   const canvasHeight = useMemo(() => {
-    const maxY = Math.max(
-      currentCanvasConfig.minHeight,
-      // ZERO MARGIN: No bottom padding - blocks can reach canvas bottom edge
-      ...Object.values(currentPositions).map(pos => pos.y + pos.height)
+    const positionsArray = Object.values(currentPositions);
+    
+    if (positionsArray.length === 0) {
+      // No content: use optimized minimum height (not legacy stored value)
+      return currentCanvasConfig.minHeight;
+    }
+    
+    // Content exists: calculate height with bottom margin for breathing room
+    const contentBottomEdge = Math.max(...positionsArray.map(pos => pos.y + pos.height));
+    const BOTTOM_MARGIN = 60; // Visual breathing room after last block
+    
+    // MOBILE HEIGHT OPTIMIZATION: Calculate logical height, visual scaling handled separately
+    const logicalHeight = Math.max(
+      currentCanvasConfig.minHeight, // 400px desktop / 500px mobile (not legacy 600px/800px)
+      contentBottomEdge + BOTTOM_MARGIN
     );
-    return maxY;
+    
+    // Return logical height - visual scaling applied via CSS transform
+    return logicalHeight;
   }, [currentPositions, currentCanvasConfig.minHeight]);
 
   // Validate content structure
@@ -106,22 +119,21 @@ export function ReadOnlyCanvas({
   const positionedNodes = content.nodes.filter(node => currentPositions?.[node.id]);
   const unpositionedNodes = content.nodes.filter(node => !currentPositions?.[node.id]);
 
-  // 🎯 MOBILE PADDING AUDIT: Check what data structure we're receiving from content
-  console.log('[ReadOnlyCanvas] 🔍 CONTENT STRUCTURE AUDIT:', {
+  // 🎯 MOBILE CANVAS HEIGHT DEBUG: Check canvas height calculation
+  console.log('[ReadOnlyCanvas] 🔍 MOBILE CANVAS HEIGHT DEBUG:', {
+    isMobile,
+    viewport: isMobile ? 'mobile' : 'desktop',
+    currentCanvasConfigMinHeight: currentCanvasConfig.minHeight,
+    usingMobilePositions,
     totalNodes: content.nodes.length,
     positionedNodes: positionedNodes.length,
-    richBlockNodes: content.nodes.filter(n => n.type === 'richBlock').length,
-    'SAMPLE NODE DATA': positionedNodes.length > 0 ? {
-      nodeId: positionedNodes[0].id,
-      nodeType: positionedNodes[0].type,
-      hasData: Boolean(positionedNodes[0].data),
-      dataKeys: positionedNodes[0].data ? Object.keys(positionedNodes[0].data) : [],
-      hasMobilePadding: Boolean(positionedNodes[0].data?.mobilePadding),
-      hasDesktopPadding: Boolean(positionedNodes[0].data?.desktopPadding),
-      mobilePaddingValue: positionedNodes[0].data?.mobilePadding,
-      desktopPaddingValue: positionedNodes[0].data?.desktopPadding,
-      dataSample: positionedNodes[0].data ? JSON.stringify(positionedNodes[0].data).substring(0, 200) + '...' : 'null'
-    } : 'No positioned nodes'
+    currentPositionsCount: Object.keys(currentPositions).length,
+    calculatedCanvasHeight: canvasHeight,
+    contentStructure: {
+      hasDesktopPositions: content.positions ? Object.keys(content.positions).length : 0,
+      hasMobilePositions: content.mobilePositions ? Object.keys(content.mobilePositions).length : 0,
+      positionsUsed: isMobile && content.mobilePositions ? 'mobile' : 'desktop'
+    }
   });
 
   return (

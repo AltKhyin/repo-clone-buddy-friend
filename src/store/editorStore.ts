@@ -23,7 +23,7 @@ const AUTOSAVE_DELAY = 30000; // 30 seconds as per user requirements
 // WYSIWYG Canvas Configuration
 const initialWYSIWYGCanvas: WYSIWYGCanvas = {
   canvasWidth: 800,
-  canvasHeight: 600,
+  canvasHeight: 400, // Reduced initial height for content-adaptive sizing (was 600)
   gridColumns: 12,
   snapTolerance: 10,
 };
@@ -32,7 +32,7 @@ const initialWYSIWYGCanvas: WYSIWYGCanvas = {
 const initialPositions: BlockPositions = {};
 const initialMobilePositions: BlockPositions = {};
 
-// ZERO MARGIN SYSTEM: Find available position for Rich Block - blocks can touch canvas edges
+// CONTENT-ADAPTIVE SYSTEM: Find available position for Rich Block - blocks can touch canvas edges
 const findAvailablePosition = (
   existingPositions: BlockPositions,
   blockType?: string
@@ -43,7 +43,7 @@ const findAvailablePosition = (
   };
 
   const { width: defaultWidth, height: defaultHeight } = getDefaultDimensions(blockType);
-  let y = 0; // ZERO MARGIN: Start at canvas top edge
+  let y = 0; // CONTENT-ADAPTIVE: Start at canvas top edge
 
   // Find first available Y position with zero margins
   while (true) {
@@ -51,7 +51,7 @@ const findAvailablePosition = (
       pos =>
         y < pos.y + pos.height &&
         y + defaultHeight > pos.y &&
-        0 < pos.x + pos.width && // ZERO MARGIN: Check from canvas left edge
+        0 < pos.x + pos.width && // CONTENT-ADAPTIVE: Check from canvas left edge
         0 + defaultWidth > pos.x
     );
 
@@ -61,14 +61,14 @@ const findAvailablePosition = (
 
   return {
     id: '', // Will be set by caller
-    x: 0, // ZERO MARGIN: Position at canvas left edge
+    x: 0, // CONTENT-ADAPTIVE: Position at canvas left edge
     y,
     width: defaultWidth,
     height: defaultHeight,
   };
 };
 
-// Simple mobile position generator - ZERO MARGIN SYSTEM - blocks can touch all canvas edges
+// Simple mobile position generator - CONTENT-ADAPTIVE SYSTEM - blocks can touch all canvas edges
 const generateMobilePositions = (nodes: NodeObject[], desktopPositions: BlockPositions): BlockPositions => {
   const mobilePositions: BlockPositions = {};
   const MOBILE_CANVAS_WIDTH = 375; // Mobile canvas total width
@@ -89,7 +89,7 @@ const generateMobilePositions = (nodes: NodeObject[], desktopPositions: BlockPos
     if (desktopPos) {
       mobilePositions[node.id] = {
         id: node.id,
-        x: 0, // ZERO MARGIN: Position at canvas left edge
+        x: 0, // CONTENT-ADAPTIVE: Position at canvas left edge
         y: currentY,
         width: MOBILE_CONTENT_WIDTH, // Full canvas width (375px)
         height: desktopPos.height, // Keep original height
@@ -223,27 +223,27 @@ const countRestoredFields = (data: any, fieldName: string): number => {
   return count;
 };
 
-// Canvas boundary validation utilities - ZERO MARGIN SYSTEM
+// Canvas boundary validation utilities - CONTENT-ADAPTIVE SYSTEM
 const CANVAS_BOUNDARIES = {
   desktop: {
     width: 800,
-    height: 600, // Minimum, will extend based on content
+    height: 400, // Reduced minimum for content-adaptive sizing (was 600)
     margin: 0, // Zero margins - blocks can touch canvas edges
   },
   mobile: {
     width: 375,
-    height: 800, // Minimum, will extend based on content  
+    height: 500, // Reduced minimum for content-adaptive sizing (was 800)  
     margin: 0, // Zero margins - blocks can touch canvas edges on mobile too
   }
 } as const;
 
-// Calculate dynamic canvas height based on current content positions - ZERO MARGIN SYSTEM
+// Calculate dynamic canvas height based on current content positions - CONTENT-ADAPTIVE SYSTEM
 const calculateCanvasHeight = (
   positions: BlockPositions, 
   viewport: 'desktop' | 'mobile'
 ): number => {
   const minHeight = CANVAS_BOUNDARIES[viewport].height;
-  // ZERO MARGIN: No extra padding below content - blocks can reach canvas bottom edge
+  // CONTENT-ADAPTIVE: Dynamic bottom margin based on content presence
   
   if (Object.keys(positions).length === 0) {
     return minHeight;
@@ -274,13 +274,13 @@ const validatePosition = (
   // Only constrain if trying to position above minimum boundaries
   const maxY = Math.max(canvasHeight - position.height - boundaries.margin, minY);
 
-  // Constrain position within boundaries - ZERO MARGIN SYSTEM
+  // Constrain position within boundaries - CONTENT-ADAPTIVE SYSTEM
   const constrainedPosition: BlockPosition = {
     ...position,
     x: Math.max(minX, Math.min(maxX, position.x)),
     // For Y, only constrain upward movement, allow downward expansion
     y: Math.max(minY, position.y), // Remove maxY constraint to allow canvas expansion
-    // ZERO MARGIN: Width can use full canvas width on both desktop and mobile
+    // CONTENT-ADAPTIVE: Width can use full canvas width on both desktop and mobile
     width: Math.min(position.width, boundaries.width),
   };
 

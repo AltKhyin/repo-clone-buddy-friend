@@ -1257,7 +1257,7 @@ const createCleanV3Structure = (content: any): StructuredContentV3 => {
     mobilePositions,
     canvas: {
       canvasWidth: 800,
-      canvasHeight: 600,
+      canvasHeight: 400,
       gridColumns: 12,
       snapTolerance: 10
     },
@@ -1347,7 +1347,7 @@ const migrateStructuredContent = (content: any): any => {
     // Add V3 canvas properties
     migratedContent.canvas = {
       canvasWidth: DESKTOP_GRID_WIDTH,
-      canvasHeight: 600,
+      canvasHeight: 400,
       gridColumns: GRID_COLS,
       snapTolerance: 10
     };
