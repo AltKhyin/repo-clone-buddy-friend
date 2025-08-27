@@ -11,10 +11,12 @@ import { toast } from 'sonner';
 import { useNavigate, Link } from 'react-router-dom';
 import { Checkbox } from '@/components/ui/checkbox';
 import GoogleIcon from '@/components/icons/GoogleIcon';
+import { useAuthFormTransition } from '@/hooks/useAuthFormTransition';
 
 const LoginForm = () => {
   const navigate = useNavigate();
   const mutation = useLoginMutation();
+  const { switchToRegister } = useAuthFormTransition();
   const form = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
     defaultValues: { email: '', password: '' },
@@ -121,7 +123,7 @@ const LoginForm = () => {
       <div className="mt-6 text-center text-sm">
         <p className="text-gray-700">
           Não tem uma conta?{' '}
-          <button type="button" onClick={() => navigate('/signup')} className="text-black font-medium hover:underline">
+          <button type="button" onClick={switchToRegister} className="text-black font-medium hover:underline">
             Registrar
           </button>
         </p>

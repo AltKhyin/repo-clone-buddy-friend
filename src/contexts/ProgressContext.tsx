@@ -48,10 +48,16 @@ export const ProgressProvider: React.FC<ProgressProviderProps> = ({ children }) 
   }, []);
 
   const setProgress = useCallback((percent: number) => {
-    setProgressState(prev => ({
-      ...prev,
-      progress: Math.min(100, Math.max(0, percent)),
-    }));
+    setProgressState(prev => {
+      // Prevent backwards progression - only allow progress to increase
+      const newProgress = Math.min(100, Math.max(0, percent));
+      const currentProgress = prev.progress || 0;
+      
+      return {
+        ...prev,
+        progress: Math.max(currentProgress, newProgress),
+      };
+    });
   }, []);
 
   const hideProgress = useCallback(() => {

@@ -65,7 +65,7 @@ echo "4. AUTH COMPONENTS:"
 analyze_component "AuthSessionProvider" "src/components/auth/AuthSessionProvider.tsx"
 analyze_component "LoginForm" "src/components/auth/LoginForm.tsx"
 analyze_component "ProtectedRoute" "src/components/auth/ProtectedRoute.tsx"
-analyze_component "SignupForm" "src/components/auth/SignupForm.tsx"
+# analyze_component "SignupForm" "src/components/auth/SignupForm.tsx" # REMOVED - replaced with RegistrationForm
 analyze_component "SplitScreenAuthLayout" "src/components/auth/SplitScreenAuthLayout.tsx"
 
 echo "5. COMMUNITY COMPONENTS:"

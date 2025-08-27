@@ -111,7 +111,11 @@ export const ArchivePageContent = () => {
   }
 
   return (
-    <StandardLayout type="content-only" contentClassName="px-6 pb-6">
+    <StandardLayout 
+      type="content-only" 
+      containerClassName="w-full max-w-[1200px] mx-auto px-0 py-6 lg:px-8" 
+      contentClassName="px-0 lg:px-6 pb-6"
+    >
       {/* Page Header within StandardLayout width constraints */}
       <PageHeader pageId="acervo" className="mb-6" />
         {/* Desktop: Horizontal Tags Panel */}

@@ -1,18 +1,18 @@
+// ABOUTME: Registration page using shared auth layout pattern
 
-// ABOUTME: Login page with form validation and authentication handling.
 import React from 'react';
-import LoginForm from '@/components/auth/LoginForm';
+import RegistrationForm from '@/components/auth/RegistrationForm';
 import SplitScreenAuthLayout from '@/components/auth/SplitScreenAuthLayout';
 import { AuthFormContainer } from '@/components/auth/AuthFormContainer';
 
-const LoginPage = () => {
+const RegistrationPage = () => {
   return (
     <SplitScreenAuthLayout>
       <AuthFormContainer>
-        <LoginForm />
+        <RegistrationForm />
       </AuthFormContainer>
     </SplitScreenAuthLayout>
   );
 };
 
-export default LoginPage;
+export default RegistrationPage;

@@ -3,11 +3,17 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../src/integrations/supabase/client';
 
-// Simplified types matching cleaned database schema
+// Enhanced types with title system enhancements
 export interface PageSettings {
   id: string;
   page_id: string;
   title: string | null;
+  title_prefix: string | null;      // Prefix text like "R."
+  title_color: string | null;       // Title color (theme token or hex)
+  prefix_color: string | null;      // Prefix color (theme token or hex)
+  font_family: string | null;       // Font family for title/prefix
+  title_size: string | null;        // Title text size (Tailwind classes)
+  prefix_size: string | null;       // Prefix text size (Tailwind classes)
   banner_url: string | null;
   avatar_url: string | null;
   is_active: boolean;
@@ -17,6 +23,12 @@ export interface PageSettings {
 
 export interface UpdatePageSettingsData {
   title?: string | null;
+  title_prefix?: string | null;
+  title_color?: string | null;
+  prefix_color?: string | null;
+  font_family?: string | null;
+  title_size?: string | null;
+  prefix_size?: string | null;
   banner_url?: string | null;
   avatar_url?: string | null;
 }

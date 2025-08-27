@@ -40,7 +40,7 @@ export const UniversalRouteProtection: React.FC<UniversalRouteProtectionProps> =
   const location = useLocation();
   const navigate = useNavigate();
   const { user, session, isLoading: authLoading } = useAuthStore();
-  const { showProgress, hideProgress } = useProgress();
+  const { showProgress, hideProgress, setProgress } = useProgress();
   
   // Track background verification state
   const [verificationComplete, setVerificationComplete] = useState(false);
@@ -78,10 +78,16 @@ export const UniversalRouteProtection: React.FC<UniversalRouteProtectionProps> =
       return;
     }
 
-    // Show progress during verification
+    // Show progress during verification (Stage 1: 0% - 30%)
     const isVerifying = authLoading || pageAccessLoading;
     if (isVerifying) {
       showProgress();
+      // Auth verification stage progress
+      if (authLoading) {
+        showProgress({ progress: 15 }); // Auth loading
+      } else if (pageAccessLoading) {
+        showProgress({ progress: 25 }); // Access config loading
+      }
     }
 
     // Don't proceed with checks while still loading
@@ -139,9 +145,10 @@ export const UniversalRouteProtection: React.FC<UniversalRouteProtectionProps> =
           finalRedirectUrl
         );
       }
-      hideProgress();
+      setProgress(100); // Complete progress before redirect
       setVerificationComplete(true);
       setAccessDenied(true);
+      setTimeout(() => hideProgress(), 100); // Brief delay then hide
       navigate(finalRedirectUrl, { replace: true });
       return;
     }
@@ -166,16 +173,17 @@ export const UniversalRouteProtection: React.FC<UniversalRouteProtectionProps> =
             finalRedirectUrl
           );
         }
-        hideProgress();
+        setProgress(100); // Complete progress before redirect
         setVerificationComplete(true);
         setAccessDenied(true);
+        setTimeout(() => hideProgress(), 100); // Brief delay then hide
         navigate(finalRedirectUrl, { replace: true });
         return;
       }
     }
 
-    // Verification complete and access granted
-    hideProgress();
+    // Verification complete and access granted (Stage 1 complete: 30%)
+    setProgress(30); // Access verification complete, ready for content loading
     setVerificationComplete(true);
     setAccessDenied(false);
     
@@ -197,6 +205,7 @@ export const UniversalRouteProtection: React.FC<UniversalRouteProtectionProps> =
     databaseRedirectUrl,
     showProgress,
     hideProgress,
+    setProgress,
   ]);
 
   // Only block rendering if access has been explicitly denied

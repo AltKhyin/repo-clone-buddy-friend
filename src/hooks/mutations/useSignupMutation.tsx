@@ -7,7 +7,15 @@ import { z } from 'zod';
 export const signupSchema = z.object({
   fullName: z.string().min(3, { message: 'Nome completo é obrigatório.' }),
   email: z.string().email({ message: 'Email inválido.' }),
-  password: z.string().min(8, { message: 'Senha deve ter pelo menos 8 caracteres.' }),
+  password: z.string()
+    .min(8, { message: 'Mínimo 8 caracteres.' })
+    .regex(/[a-zA-Z]/, { message: 'Deve conter pelo menos uma letra.' })
+    .regex(/[0-9]/, { message: 'Deve conter pelo menos um número.' }),
+  confirmPassword: z.string().min(1, { message: 'Confirmação de senha é obrigatória.' }),
+  birthday: z.string().min(1, { message: 'Data de nascimento é obrigatória.' }),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Senhas não coincidem.",
+  path: ["confirmPassword"],
 });
 
 export type SignupPayload = z.infer<typeof signupSchema>;
@@ -21,6 +29,7 @@ const signUpUser = async (payload: SignupPayload) => {
     options: {
       data: {
         full_name: payload.fullName,
+        birthday: payload.birthday,
       },
       // This is critical for email confirmation flow
       emailRedirectTo: `${window.location.origin}/`,

@@ -18,8 +18,14 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
 }) => {
   const { data: settings, isLoading } = usePageSettings(pageId);
 
-  // Simplified data access - no configuration layers
+  // Enhanced data access with title system enhancements
   const title = settings?.title || pageId.charAt(0).toUpperCase() + pageId.slice(1);
+  const titlePrefix = settings?.title_prefix;
+  const titleColor = settings?.title_color;
+  const prefixColor = settings?.prefix_color;
+  const fontFamily = settings?.font_family || 'Inter';
+  const titleSize = settings?.title_size || 'text-4xl';
+  const prefixSize = settings?.prefix_size || 'text-4xl';
   const bannerUrl = settings?.banner_url;
   const avatarUrl = settings?.avatar_url;
 
@@ -33,8 +39,8 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
         {/* Content skeleton uses parent container constraints */}
         <div className="relative -mt-10 px-4">
           <div className="flex items-end gap-4">
-            {/* Reddit 80px avatar skeleton */}
-            <Skeleton className="w-20 h-20 rounded-full bg-white border-4 border-white shadow-sm" />
+            {/* Enhanced 96px avatar skeleton (20% larger) */}
+            <Skeleton className="w-24 h-24 rounded-full bg-white border-4 border-white shadow-sm" />
             
             {/* Title skeleton */}
             <div className="flex flex-col pb-2">
@@ -59,26 +65,45 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
         <div className="flex items-end justify-between">
           {/* Left section: Avatar + Title */}
           <div className="flex items-end gap-4">
-            {/* Reddit 80px avatar - fixed size */}
+            {/* Enhanced 96px avatar (20% larger than 80px) */}
             <div className="relative">
               {avatarUrl ? (
                 <img 
                   src={avatarUrl} 
                   alt={`${title} avatar`}
-                  className="w-20 h-20 rounded-full border-4 border-white shadow-sm object-cover bg-white"
+                  className="w-24 h-24 rounded-full border-4 border-white shadow-sm object-cover bg-white"
                   loading="lazy"
                 />
               ) : (
-                <div className="w-20 h-20 rounded-full border-4 border-white shadow-sm flex items-center justify-center font-bold text-2xl bg-slate-200 text-slate-600">
+                <div className="w-24 h-24 rounded-full border-4 border-white shadow-sm flex items-center justify-center font-bold text-3xl bg-slate-200 text-slate-600">
                   {title?.charAt(0).toUpperCase() || '?'}
                 </div>
               )}
             </div>
 
-            {/* Title section - No description for Reddit parity */}
-            <div className="flex flex-col pb-2">
-              <h1 className="text-4xl font-bold text-foreground leading-tight">
-                {title}
+            {/* Enhanced Title section aligned with avatar bottom */}
+            <div className="flex flex-col justify-end pb-1">
+              <h1 
+                className="font-bold leading-none"
+                style={{ 
+                  fontFamily: fontFamily,
+                  color: !titleColor && !prefixColor ? 'inherit' : undefined  // Use default foreground when no colors set
+                }}
+              >
+                {titlePrefix && (
+                  <span 
+                    className={prefixSize}
+                    style={{ color: prefixColor || 'inherit' }}
+                  >
+                    {titlePrefix}
+                  </span>
+                )}
+                <span 
+                  className={titleSize}
+                  style={{ color: titleColor || 'inherit' }}
+                >
+                  {title}
+                </span>
               </h1>
             </div>
           </div>

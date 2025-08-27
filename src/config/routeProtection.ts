@@ -162,6 +162,7 @@ export const PUBLIC_ROUTES = [
   '/reviews/:slug', // Individual review pages
   '/comunidade/:postId', // Individual community posts
   '/login', // Login page
+  '/registrar', // Registration page
   '/acesso-negado', // Unauthorized page
   '/nao-autorizado', // Legacy unauthorized page
   '/salvar-post', // Save post utility

@@ -1,6 +1,6 @@
 // ABOUTME: Hook for automatically tracking page content loading progress using TanStack Query states
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useIsFetching, useIsMutating } from '@tanstack/react-query';
 import { useProgress } from '@/contexts/ProgressContext';
 
@@ -9,30 +9,38 @@ import { useProgress } from '@/contexts/ProgressContext';
  * active TanStack Query requests for the current page
  */
 export const usePageLoadingProgress = () => {
-  const { showProgress, hideProgress, setProgress } = useProgress();
+  const { setProgress, hideProgress } = useProgress();
   const isFetching = useIsFetching();
   const isMutating = useIsMutating();
+  const prevLoadingRef = useRef(false);
   
   const isLoading = isFetching > 0 || isMutating > 0;
   
   useEffect(() => {
+    const wasLoading = prevLoadingRef.current;
+    prevLoadingRef.current = isLoading;
+    
     if (isLoading) {
-      // Show indeterminate progress for data loading
-      showProgress({ duration: 3000 });
-    } else {
-      // Hide progress when all queries complete
-      hideProgress();
-    }
-  }, [isLoading, showProgress, hideProgress]);
-
-  // Calculate progress based on number of active requests
-  useEffect(() => {
-    if (isLoading) {
+      // Content loading phase: 50% - 95%
+      // Start from 50% to build on access verification (which ends at ~30%)
       const totalRequests = isFetching + isMutating;
-      const baseProgress = Math.min(30 + (totalRequests * 15), 85);
-      setProgress(baseProgress);
+      let contentProgress;
+      
+      if (totalRequests === 1) {
+        contentProgress = 75; // Single query loading
+      } else if (totalRequests === 2) {
+        contentProgress = 85; // Multiple queries
+      } else {
+        contentProgress = Math.min(50 + (totalRequests * 10), 95);
+      }
+      
+      setProgress(contentProgress);
+    } else if (wasLoading && !isLoading) {
+      // All content loaded - complete to 100% and hide
+      setProgress(100);
+      setTimeout(() => hideProgress(), 200);
     }
-  }, [isFetching, isMutating, isLoading, setProgress]);
+  }, [isLoading, isFetching, isMutating, setProgress, hideProgress]);
 
   return {
     isLoading,

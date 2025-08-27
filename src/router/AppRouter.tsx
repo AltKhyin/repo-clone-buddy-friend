@@ -14,6 +14,7 @@ import SettingsPage from '@/pages/SettingsPage';
 import SuggestionPage from '@/pages/SuggestionPage';
 import UnauthorizedPage from '@/pages/UnauthorizedPage';
 import LoginPage from '@/pages/LoginPage';
+import RegistrationPage from '@/pages/RegistrationPage';
 import { UniversalRouteProtection } from '@/components/routes/UniversalRouteProtection';
 import { AdminDashboard } from '@/pages/AdminDashboard';
 import ContentManagement from '@/pages/ContentManagement';
@@ -29,10 +30,14 @@ import { AdminProtectedRoute } from '@/components/routes/AdminProtectedRoute';
 import DebugSidebar from '@/pages/DebugSidebar';
 
 const router = createBrowserRouter([
-  // Standalone Login Route (outside ProtectedAppShell)
+  // Standalone Auth Routes (outside ProtectedAppShell)
   {
     path: '/login',
     element: <LoginPage />,
+  },
+  {
+    path: '/registrar',
+    element: <RegistrationPage />,
   },
   {
     path: '/',
