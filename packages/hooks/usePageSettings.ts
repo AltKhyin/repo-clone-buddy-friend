@@ -3,7 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../src/integrations/supabase/client';
 
-// Enhanced types with title system enhancements
+// Enhanced types with title system and icon avatar enhancements
 export interface PageSettings {
   id: string;
   page_id: string;
@@ -14,8 +14,17 @@ export interface PageSettings {
   font_family: string | null;       // Font family for title/prefix
   title_size: string | null;        // Title text size (Tailwind classes)
   prefix_size: string | null;       // Prefix text size (Tailwind classes)
+  title_size_custom: number | null; // Custom title size in pixels
+  prefix_size_custom: number | null;// Custom prefix size in pixels
+  show_avatar: boolean | null;       // Whether to show avatar
+  title_shadow: boolean | null;      // Whether title has shadow
+  prefix_shadow: boolean | null;     // Whether prefix has shadow
   banner_url: string | null;
   avatar_url: string | null;
+  avatar_type: string | null;       // 'image' or 'icon' - avatar type selector
+  avatar_icon: string | null;       // Icon name for icon-based avatars
+  avatar_icon_color: string | null; // Icon color (theme token or hex)
+  avatar_background_color: string | null; // Avatar background color
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -29,8 +38,17 @@ export interface UpdatePageSettingsData {
   font_family?: string | null;
   title_size?: string | null;
   prefix_size?: string | null;
+  title_size_custom?: number | null;
+  prefix_size_custom?: number | null;
+  show_avatar?: boolean | null;
+  title_shadow?: boolean | null;
+  prefix_shadow?: boolean | null;
   banner_url?: string | null;
   avatar_url?: string | null;
+  avatar_type?: string | null;
+  avatar_icon?: string | null;
+  avatar_icon_color?: string | null;
+  avatar_background_color?: string | null;
 }
 
 // Hook for fetching page settings by page_id

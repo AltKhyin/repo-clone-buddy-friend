@@ -5,9 +5,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Save, Upload, Edit, Image, X, Type, Palette } from 'lucide-react';
+import { 
+  Save, Upload, Edit, Image, X, Type, Palette, User, Sparkles,
+  Home, BookOpen, Users, Settings, Shield, FileText, Tags, Layout, 
+  TrendingUp, MessageSquare, Heart, Star, Crown, Award, Target, 
+  Zap, Flame, Sun, Moon, Flower, Leaf, Tree, Mountain, Coffee, 
+  Music, Camera, Brush, Pen, Book, Calendar, Clock, Globe, 
+  Mail, Phone, Laptop, Wifi, Battery, Volume2
+} from 'lucide-react';
 import { UnifiedColorPicker } from '@/components/editor/shared/UnifiedColorPicker';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { 
   useAllPageSettings, 
   useUpdatePageSettings,
@@ -30,8 +38,17 @@ interface PageSettingsForm {
   font_family: string;
   title_size: string;
   prefix_size: string;
+  title_size_custom: number | null;
+  prefix_size_custom: number | null;
+  show_avatar: boolean;
+  title_shadow: boolean;
+  prefix_shadow: boolean;
   banner_url: string;
   avatar_url: string;
+  avatar_type: 'image' | 'icon'; // New field to choose avatar type
+  avatar_icon: string;
+  avatar_icon_color: string;
+  avatar_background_color: string;
 }
 
 interface UploadState {
@@ -59,8 +76,17 @@ const AdminLayoutManagement: React.FC = () => {
     font_family: 'Inter',
     title_size: 'text-4xl',
     prefix_size: 'text-4xl',
+    title_size_custom: null,
+    prefix_size_custom: null,
+    show_avatar: true,
+    title_shadow: false,
+    prefix_shadow: false,
     banner_url: '',
     avatar_url: '',
+    avatar_type: 'image', // Default to image type
+    avatar_icon: '',
+    avatar_icon_color: '',
+    avatar_background_color: '',
   });
 
   const [uploadState, setUploadState] = useState<UploadState>({
@@ -78,7 +104,7 @@ const AdminLayoutManagement: React.FC = () => {
   // Get current page settings (simplified)
   const currentSettings = allSettings?.find(s => s.page_id === selectedPageId);
   
-  // Enhanced form initialization with title system fields
+  // Enhanced form initialization with all title system fields including advanced features
   React.useEffect(() => {
     if (currentSettings) {
       setFormData({
@@ -89,8 +115,17 @@ const AdminLayoutManagement: React.FC = () => {
         font_family: currentSettings.font_family || 'Inter',
         title_size: currentSettings.title_size || 'text-4xl',
         prefix_size: currentSettings.prefix_size || 'text-4xl',
+        title_size_custom: currentSettings.title_size_custom || null,
+        prefix_size_custom: currentSettings.prefix_size_custom || null,
+        show_avatar: currentSettings.show_avatar !== false, // Default to true
+        title_shadow: currentSettings.title_shadow || false,
+        prefix_shadow: currentSettings.prefix_shadow || false,
         banner_url: currentSettings.banner_url || '',
         avatar_url: currentSettings.avatar_url || '',
+        avatar_type: (currentSettings.avatar_type as 'image' | 'icon') || 'image', // Default to image
+        avatar_icon: currentSettings.avatar_icon || '',
+        avatar_icon_color: currentSettings.avatar_icon_color || '',
+        avatar_background_color: currentSettings.avatar_background_color || '',
       });
     }
   }, [currentSettings]);
@@ -234,7 +269,7 @@ const AdminLayoutManagement: React.FC = () => {
         }
       }
 
-      // Save settings with uploaded URLs and enhanced title system
+      // Save settings with uploaded URLs and complete title system including advanced features and icon avatars
       await updatePageSettings.mutateAsync({
         pageId: selectedPageId,
         updates: {
@@ -245,8 +280,17 @@ const AdminLayoutManagement: React.FC = () => {
           font_family: formData.font_family || 'Inter',
           title_size: formData.title_size || 'text-4xl',
           prefix_size: formData.prefix_size || 'text-4xl',
+          title_size_custom: formData.title_size_custom || null,
+          prefix_size_custom: formData.prefix_size_custom || null,
+          show_avatar: formData.show_avatar,
+          title_shadow: formData.title_shadow,
+          prefix_shadow: formData.prefix_shadow,
           banner_url: bannerUrl || null,
           avatar_url: avatarUrl || null,
+          avatar_type: formData.avatar_type,
+          avatar_icon: formData.avatar_icon || null,
+          avatar_icon_color: formData.avatar_icon_color || null,
+          avatar_background_color: formData.avatar_background_color || null,
         }
       });
       
@@ -473,43 +517,99 @@ const AdminLayoutManagement: React.FC = () => {
                 {/* Title Size */}
                 <div className="space-y-2">
                   <Label htmlFor="title_size">Tamanho do Título</Label>
-                  <Select
-                    value={formData.title_size}
-                    onValueChange={(value) => handleInputChange('title_size', value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione o tamanho" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="text-2xl">Pequeno (2xl)</SelectItem>
-                      <SelectItem value="text-3xl">Médio (3xl)</SelectItem>
-                      <SelectItem value="text-4xl">Grande (4xl) - Padrão</SelectItem>
-                      <SelectItem value="text-5xl">Muito Grande (5xl)</SelectItem>
-                      <SelectItem value="text-6xl">Gigante (6xl)</SelectItem>
-                      <SelectItem value="text-7xl">Colossal (7xl)</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Select
+                      value={formData.title_size}
+                      onValueChange={(value) => {
+                        handleInputChange('title_size', value);
+                        // Clear custom size when preset is selected
+                        if (value) handleInputChange('title_size_custom', null);
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Preset" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="text-2xl">Pequeno (2xl)</SelectItem>
+                        <SelectItem value="text-3xl">Médio (3xl)</SelectItem>
+                        <SelectItem value="text-4xl">Grande (4xl)</SelectItem>
+                        <SelectItem value="text-5xl">Muito Grande (5xl)</SelectItem>
+                        <SelectItem value="text-6xl">Gigante (6xl)</SelectItem>
+                        <SelectItem value="text-7xl">Colossal (7xl)</SelectItem>
+                        <SelectItem value="text-8xl">Enorme (8xl)</SelectItem>
+                        <SelectItem value="text-9xl">Máximo (9xl)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <div className="flex items-center gap-1">
+                      <Input
+                        type="number"
+                        min="12"
+                        max="200"
+                        placeholder="px"
+                        className="text-xs"
+                        value={formData.title_size_custom || ''}
+                        onChange={(e) => {
+                          const value = e.target.value ? parseInt(e.target.value) : null;
+                          handleInputChange('title_size_custom', value);
+                          // Clear preset when custom size is set
+                          if (value) handleInputChange('title_size', '');
+                        }}
+                      />
+                      <span className="text-xs text-muted-foreground">px</span>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Use preset ou digite pixels personalizados
+                  </p>
                 </div>
 
                 {/* Prefix Size */}
                 <div className="space-y-2">
                   <Label htmlFor="prefix_size">Tamanho do Prefixo</Label>
-                  <Select
-                    value={formData.prefix_size}
-                    onValueChange={(value) => handleInputChange('prefix_size', value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione o tamanho" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="text-2xl">Pequeno (2xl)</SelectItem>
-                      <SelectItem value="text-3xl">Médio (3xl)</SelectItem>
-                      <SelectItem value="text-4xl">Grande (4xl) - Padrão</SelectItem>
-                      <SelectItem value="text-5xl">Muito Grande (5xl)</SelectItem>
-                      <SelectItem value="text-6xl">Gigante (6xl)</SelectItem>
-                      <SelectItem value="text-7xl">Colossal (7xl)</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Select
+                      value={formData.prefix_size}
+                      onValueChange={(value) => {
+                        handleInputChange('prefix_size', value);
+                        // Clear custom size when preset is selected
+                        if (value) handleInputChange('prefix_size_custom', null);
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Preset" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="text-2xl">Pequeno (2xl)</SelectItem>
+                        <SelectItem value="text-3xl">Médio (3xl)</SelectItem>
+                        <SelectItem value="text-4xl">Grande (4xl)</SelectItem>
+                        <SelectItem value="text-5xl">Muito Grande (5xl)</SelectItem>
+                        <SelectItem value="text-6xl">Gigante (6xl)</SelectItem>
+                        <SelectItem value="text-7xl">Colossal (7xl)</SelectItem>
+                        <SelectItem value="text-8xl">Enorme (8xl)</SelectItem>
+                        <SelectItem value="text-9xl">Máximo (9xl)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <div className="flex items-center gap-1">
+                      <Input
+                        type="number"
+                        min="12"
+                        max="200"
+                        placeholder="px"
+                        className="text-xs"
+                        value={formData.prefix_size_custom || ''}
+                        onChange={(e) => {
+                          const value = e.target.value ? parseInt(e.target.value) : null;
+                          handleInputChange('prefix_size_custom', value);
+                          // Clear preset when custom size is set
+                          if (value) handleInputChange('prefix_size', '');
+                        }}
+                      />
+                      <span className="text-xs text-muted-foreground">px</span>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Use preset ou digite pixels personalizados
+                  </p>
                 </div>
               </div>
 
@@ -564,27 +664,123 @@ const AdminLayoutManagement: React.FC = () => {
                 </div>
               </div>
 
-              {/* Preview */}
-              <div className="p-3 border rounded bg-white">
-                <p className="text-xs text-muted-foreground mb-2">Preview:</p>
-                <div 
-                  className="font-bold leading-tight"
-                  style={{ fontFamily: formData.font_family }}
-                >
-                  {formData.title_prefix && (
-                    <span 
-                      className={formData.prefix_size}
-                      style={{ color: formData.prefix_color || 'inherit' }}
-                    >
-                      {formData.title_prefix}
+              {/* Avatar and Shadow Controls */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Avatar Visibility */}
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <User className="h-3 w-3" />
+                    Exibir Avatar
+                  </Label>
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      checked={formData.show_avatar}
+                      onCheckedChange={(checked) => handleInputChange('show_avatar', checked)}
+                    />
+                    <span className="text-sm text-muted-foreground">
+                      {formData.show_avatar ? 'Visível' : 'Oculto'}
                     </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Mostrar ou ocultar o avatar no cabeçalho
+                  </p>
+                </div>
+
+                {/* Title Shadow */}
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <Sparkles className="h-3 w-3" />
+                    Sombra do Título
+                  </Label>
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      checked={formData.title_shadow}
+                      onCheckedChange={(checked) => handleInputChange('title_shadow', checked)}
+                    />
+                    <span className="text-sm text-muted-foreground">
+                      {formData.title_shadow ? 'Com sombra' : 'Sem sombra'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Adicionar sombra ao texto do título
+                  </p>
+                </div>
+
+                {/* Prefix Shadow */}
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <Sparkles className="h-3 w-3" />
+                    Sombra do Prefixo
+                  </Label>
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      checked={formData.prefix_shadow}
+                      onCheckedChange={(checked) => handleInputChange('prefix_shadow', checked)}
+                    />
+                    <span className="text-sm text-muted-foreground">
+                      {formData.prefix_shadow ? 'Com sombra' : 'Sem sombra'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Adicionar sombra ao texto do prefixo
+                  </p>
+                </div>
+              </div>
+
+              {/* Enhanced Preview */}
+              <div className="p-4 border rounded bg-white">
+                <p className="text-xs text-muted-foreground mb-3">Preview:</p>
+                <div className="flex items-center gap-3">
+                  {/* Avatar Preview */}
+                  {formData.show_avatar && (
+                    <div className="w-12 h-12 rounded-full border-2 border-white shadow-lg flex items-center justify-center font-bold text-lg bg-slate-200 text-slate-600 flex-shrink-0">
+                      {formData.title?.charAt(0).toUpperCase() || 'T'}
+                    </div>
                   )}
-                  <span 
-                    className={formData.title_size}
-                    style={{ color: formData.title_color || 'inherit' }}
+                  
+                  {/* Title Preview */}
+                  <div 
+                    className="font-bold leading-tight"
+                    style={{ fontFamily: formData.font_family }}
                   >
-                    {formData.title || 'Título da Página'}
-                  </span>
+                    {formData.title_prefix && (
+                      <span 
+                        className={formData.prefix_size_custom ? '' : formData.prefix_size}
+                        style={{ 
+                          color: formData.prefix_color || 'inherit',
+                          fontSize: formData.prefix_size_custom ? `${formData.prefix_size_custom}px` : undefined,
+                          textShadow: formData.prefix_shadow ? '0 1px 3px rgba(0, 0, 0, 0.3)' : 'none'
+                        }}
+                      >
+                        {formData.title_prefix}
+                      </span>
+                    )}
+                    <span 
+                      className={formData.title_size_custom ? '' : formData.title_size}
+                      style={{ 
+                        color: formData.title_color || 'inherit',
+                        fontSize: formData.title_size_custom ? `${formData.title_size_custom}px` : undefined,
+                        textShadow: formData.title_shadow ? '0 1px 3px rgba(0, 0, 0, 0.3)' : 'none'
+                      }}
+                    >
+                      {formData.title || 'Título da Página'}
+                    </span>
+                  </div>
+                </div>
+                
+                {/* Preview Details */}
+                <div className="mt-3 pt-2 border-t text-xs text-muted-foreground space-y-1">
+                  <div>
+                    <strong>Título:</strong> {formData.title_size_custom ? `${formData.title_size_custom}px` : formData.title_size || 'text-4xl'} 
+                    {formData.title_shadow && ' (com sombra)'}
+                  </div>
+                  {formData.title_prefix && (
+                    <div>
+                      <strong>Prefixo:</strong> {formData.prefix_size_custom ? `${formData.prefix_size_custom}px` : formData.prefix_size || 'text-4xl'}
+                      {formData.prefix_shadow && ' (com sombra)'}
+                    </div>
+                  )}
+                  <div><strong>Avatar:</strong> {formData.show_avatar ? 'Visível' : 'Oculto'}</div>
                 </div>
               </div>
             </div>
@@ -656,7 +852,7 @@ const AdminLayoutManagement: React.FC = () => {
                     <img
                       src={uploadState.bannerPreview || formData.banner_url}
                       alt="Banner preview"
-                      className="w-full h-16 object-cover bg-slate-100"
+                      className="w-full h-16 object-cover bg-slate-100 shadow-sm"
                       loading="lazy"
                     />
                   </div>
@@ -664,76 +860,236 @@ const AdminLayoutManagement: React.FC = () => {
               </div>
             </div>
 
-            {/* Avatar Section with Upload */}
+            {/* Avatar Section with Type Selection */}
             <div className="space-y-4">
               <Label>Avatar da Página (96px)</Label>
               
+              {/* Avatar Type Selector */}
               <div className="space-y-3">
-                {/* URL Input */}
                 <div>
-                  <Label htmlFor="avatar_url" className="text-sm text-muted-foreground">
-                    URL do Avatar
-                  </Label>
-                  <Input
-                    id="avatar_url"
-                    value={formData.avatar_url}
-                    onChange={(e) => handleInputChange('avatar_url', e.target.value)}
-                    placeholder="https://exemplo.com/avatar.jpg"
-                  />
-                </div>
-
-                {/* File Upload */}
-                <div>
-                  <Label className="text-sm text-muted-foreground">
-                    ou Fazer Upload
-                  </Label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      ref={avatarInputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) handleFileSelect(file, 'avatar');
-                      }}
-                      className="hidden"
-                    />
+                  <Label className="text-sm font-medium">Tipo de Avatar</Label>
+                  <div className="flex gap-2 mt-2">
                     <Button
                       type="button"
-                      variant="outline"
+                      variant={formData.avatar_type === 'image' ? 'default' : 'outline'}
                       size="sm"
-                      onClick={() => avatarInputRef.current?.click()}
-                      disabled={uploadState.uploading}
+                      onClick={() => {
+                        handleInputChange('avatar_type', 'image');
+                        // Clear icon-related fields when switching to image
+                        handleInputChange('avatar_icon', '');
+                        handleInputChange('avatar_icon_color', '');
+                        handleInputChange('avatar_background_color', '');
+                      }}
                       className="flex items-center gap-2"
                     >
-                      <Image className="h-4 w-4" />
-                      Upload Avatar
+                      <Image size={14} />
+                      Imagem
                     </Button>
-                    
-                    {uploadState.avatarFile && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => clearFile('avatar')}
-                        className="flex items-center gap-1 text-destructive"
-                      >
-                        <X className="h-3 w-3" />
-                        Remover
-                      </Button>
-                    )}
+                    <Button
+                      type="button"
+                      variant={formData.avatar_type === 'icon' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => {
+                        handleInputChange('avatar_type', 'icon');
+                        // Clear image-related fields when switching to icon
+                        handleInputChange('avatar_url', '');
+                        setUploadState(prev => ({ ...prev, avatarFile: null, avatarPreview: null }));
+                      }}
+                      className="flex items-center gap-2"
+                    >
+                      <Star size={14} />
+                      Ícone
+                    </Button>
                   </div>
                 </div>
 
-                {/* Avatar Preview */}
-                {(uploadState.avatarPreview || formData.avatar_url) && (
-                  <div className="flex justify-start">
-                    <img
-                      src={uploadState.avatarPreview || formData.avatar_url}
-                      alt="Avatar preview"
-                      className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-sm bg-slate-100"
-                      loading="lazy"
-                    />
+                {/* Image Avatar Section */}
+                {formData.avatar_type === 'image' && (
+                  <div className="space-y-3 p-3 border rounded-md bg-muted/10">
+                    {/* URL Input */}
+                    <div>
+                      <Label htmlFor="avatar_url" className="text-sm text-muted-foreground">
+                        URL do Avatar
+                      </Label>
+                      <Input
+                        id="avatar_url"
+                        value={formData.avatar_url}
+                        onChange={(e) => handleInputChange('avatar_url', e.target.value)}
+                        placeholder="https://exemplo.com/avatar.jpg"
+                      />
+                    </div>
+
+                    {/* File Upload */}
+                    <div>
+                      <Label className="text-sm text-muted-foreground">
+                        ou Fazer Upload
+                      </Label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          ref={avatarInputRef}
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleFileSelect(file, 'avatar');
+                          }}
+                          className="hidden"
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => avatarInputRef.current?.click()}
+                          disabled={uploadState.uploading}
+                          className="flex items-center gap-2"
+                        >
+                          <Image className="h-4 w-4" />
+                          Upload Avatar
+                        </Button>
+                        
+                        {uploadState.avatarFile && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => clearFile('avatar')}
+                            className="flex items-center gap-1 text-destructive"
+                          >
+                            <X className="h-3 w-3" />
+                            Remover
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Image Avatar Preview */}
+                    {(uploadState.avatarPreview || formData.avatar_url) && (
+                      <div className="flex justify-start">
+                        <img
+                          src={uploadState.avatarPreview || formData.avatar_url}
+                          alt="Avatar preview"
+                          className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-lg bg-slate-100"
+                          loading="lazy"
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Icon Avatar Section */}
+                {formData.avatar_type === 'icon' && (
+                  <div className="space-y-3 p-3 border rounded-md bg-muted/10">
+                  
+                  {/* Icon Selection Grid */}
+                  <div className="space-y-3">
+                    <div>
+                      <Label className="text-xs font-medium">Selecionar Ícone</Label>
+                      <div className="grid grid-cols-8 gap-2 p-3 border rounded-md bg-muted/20">
+                        {[
+                          { name: 'User', icon: User },
+                          { name: 'Users', icon: Users }, 
+                          { name: 'BookOpen', icon: BookOpen },
+                          { name: 'Home', icon: Home },
+                          { name: 'Settings', icon: Settings },
+                          { name: 'Heart', icon: Heart },
+                          { name: 'Star', icon: Star },
+                          { name: 'Crown', icon: Crown },
+                          { name: 'Shield', icon: Shield },
+                          { name: 'Award', icon: Award },
+                          { name: 'Target', icon: Target },
+                          { name: 'Zap', icon: Zap },
+                          { name: 'Flame', icon: Flame },
+                          { name: 'Sun', icon: Sun },
+                          { name: 'Moon', icon: Moon },
+                          { name: 'Coffee', icon: Coffee },
+                          { name: 'Music', icon: Volume2 },
+                          { name: 'Camera', icon: Camera },
+                          { name: 'Palette', icon: Palette },
+                          { name: 'Brush', icon: Brush },
+                          { name: 'Pen', icon: Pen },
+                          { name: 'Book', icon: Book },
+                          { name: 'Calendar', icon: Calendar },
+                          { name: 'Globe', icon: Globe }
+                        ].map(({ name, icon: IconComponent }) => (
+                          <Button
+                            key={name}
+                            type="button"
+                            variant={formData.avatar_icon === name ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => handleInputChange('avatar_icon', name)}
+                            className="h-10 w-10 p-0"
+                            title={name}
+                          >
+                            <IconComponent size={16} />
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Icon Colors */}
+                    {formData.avatar_icon && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div className="space-y-2">
+                          <Label className="text-xs font-medium">Cor do Ícone</Label>
+                          <UnifiedColorPicker
+                            value={formData.avatar_icon_color}
+                            onColorSelect={(color) => handleInputChange('avatar_icon_color', color)}
+                            onColorClear={() => handleInputChange('avatar_icon_color', '')}
+                            label="Cor do ícone"
+                            placeholder="Cor padrão"
+                            allowClear={true}
+                            variant="button"
+                          />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label className="text-xs font-medium">Cor de Fundo</Label>
+                          <UnifiedColorPicker
+                            value={formData.avatar_background_color}
+                            onColorSelect={(color) => handleInputChange('avatar_background_color', color)}
+                            onColorClear={() => handleInputChange('avatar_background_color', '')}
+                            label="Cor de fundo do avatar"
+                            placeholder="Cor padrão"
+                            allowClear={true}
+                            variant="button"
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Icon Avatar Preview */}
+                    {formData.avatar_icon && (
+                      <div className="space-y-2">
+                        <Label className="text-xs font-medium">Preview do Avatar com Ícone</Label>
+                        <div className="flex justify-start">
+                          <div 
+                            className="w-24 h-24 rounded-full border-4 border-white shadow-lg flex items-center justify-center"
+                            style={{ 
+                              backgroundColor: formData.avatar_background_color || 'hsl(var(--muted))',
+                              color: formData.avatar_icon_color || 'hsl(var(--muted-foreground))'
+                            }}
+                          >
+                            {/* Render actual Lucide icon */}
+                            {(() => {
+                              const iconMap: Record<string, any> = {
+                                'User': User, 'Users': Users, 'BookOpen': BookOpen, 'Home': Home,
+                                'Settings': Settings, 'Heart': Heart, 'Star': Star, 'Crown': Crown,
+                                'Shield': Shield, 'Award': Award, 'Target': Target, 'Zap': Zap,
+                                'Flame': Flame, 'Sun': Sun, 'Moon': Moon, 'Coffee': Coffee,
+                                'Music': Volume2, 'Camera': Camera, 'Palette': Palette, 'Brush': Brush,
+                                'Pen': Pen, 'Book': Book, 'Calendar': Calendar, 'Globe': Globe
+                              };
+                              const IconComponent = iconMap[formData.avatar_icon];
+                              return IconComponent ? <IconComponent size={32} /> : <User size={32} />;
+                            })()}
+                          </div>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Avatar com ícone personalizado
+                        </p>
+                      </div>
+                    )}
+                    </div>
                   </div>
                 )}
               </div>
