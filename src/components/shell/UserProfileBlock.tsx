@@ -3,6 +3,9 @@
 import React from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
+import { LogIn, User } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useUserProfileQuery } from '@packages/hooks/useUserProfileQuery';
 
 interface UserProfileBlockProps {
@@ -12,6 +15,7 @@ interface UserProfileBlockProps {
 export const UserProfileBlock = ({ isCollapsed }: UserProfileBlockProps) => {
   // Independent data fetching - completely decoupled from any global context
   const { data: userProfile, isLoading, isError } = useUserProfileQuery();
+  const navigate = useNavigate();
 
   console.log('UserProfileBlock state:', {
     isLoading,
@@ -33,16 +37,34 @@ export const UserProfileBlock = ({ isCollapsed }: UserProfileBlockProps) => {
     );
   }
 
-  // Error state handling - graceful degradation
+  // Error state handling - graceful degradation with login CTA
   if (isError || !userProfile) {
+    const handleLoginClick = () => {
+      navigate('/auth');
+    };
+
     return (
       <div
         className={`flex items-center gap-3 ${isCollapsed ? 'justify-center p-2' : 'p-3'}`}
-        data-testid="error-state"
+        data-testid="login-cta-state"
       >
-        <div className="h-9 w-9 rounded-full bg-muted" />
+        {/* Discrete avatar with user icon */}
+        <Avatar className="h-9 w-9">
+          <AvatarFallback className="bg-muted-foreground/10 text-muted-foreground">
+            <User className="h-4 w-4" />
+          </AvatarFallback>
+        </Avatar>
+        
         {!isCollapsed && (
-          <span className="text-sm text-muted-foreground">Visitante</span>
+          <Button 
+            variant="ghost" 
+            size="sm"
+            onClick={handleLoginClick}
+            className="h-auto p-0 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <LogIn className="h-3 w-3 mr-1.5" />
+            Entrar/Criar conta
+          </Button>
         )}
       </div>
     );

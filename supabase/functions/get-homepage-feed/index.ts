@@ -123,22 +123,7 @@ serve(async (req: Request) => {
     // --- Define all data queries ---
     const promises = [
       supabase.from('SiteSettings').select('value').eq('key', 'homepage_layout').single(),
-      supabase
-        .from('Reviews')
-        .select(
-          `
-        id, title, description, cover_image_url, published_at, view_count,
-        reading_time_minutes, custom_author_name, custom_author_avatar_url, edicao,
-        author:Practitioners!Reviews_author_id_fkey(id, full_name, avatar_url),
-        content_types:ReviewContentTypes(
-          content_type:ContentTypes(id, label, text_color, border_color, background_color)
-        )
-      `
-        )
-        .eq('status', 'published')
-        .order('published_at', { ascending: false })
-        .limit(1)
-        .maybeSingle(),
+      supabase.from('SiteSettings').select('value').eq('key', 'featured_review_id').single(),
       supabase
         .from('Reviews')
         .select(
@@ -191,7 +176,7 @@ serve(async (req: Request) => {
     const results = await Promise.allSettled(promises);
     const [
       layoutResult,
-      featuredResult,
+      featuredReviewIdResult,
       recentResult,
       suggestionsResult,
       popularResult,
@@ -199,6 +184,51 @@ serve(async (req: Request) => {
       userProfileResult,
       notificationCountResult,
     ] = results;
+
+    // --- Featured Review Logic: Manual vs Automatic Selection ---
+    let featuredReview: Review | null = null;
+    const featuredReviewId = getResultData(featuredReviewIdResult, null)?.value;
+    
+    if (featuredReviewId && featuredReviewId !== 'null' && featuredReviewId !== null) {
+      // Manual selection: try to fetch the specific review
+      const { data: manualFeaturedReview } = await supabase
+        .from('Reviews')
+        .select(`
+          id, title, description, cover_image_url, published_at, view_count,
+          reading_time_minutes, custom_author_name, custom_author_avatar_url, edicao,
+          author:Practitioners!Reviews_author_id_fkey(id, full_name, avatar_url),
+          content_types:ReviewContentTypes(
+            content_type:ContentTypes(id, label, text_color, border_color, background_color)
+          )
+        `)
+        .eq('id', featuredReviewId)
+        .eq('status', 'published')
+        .maybeSingle();
+      
+      if (manualFeaturedReview) {
+        featuredReview = transformSingleReview(manualFeaturedReview);
+      }
+    }
+    
+    // Fallback: if no manual selection or manual selection failed, use most recent
+    if (!featuredReview) {
+      const { data: autoFeaturedReview } = await supabase
+        .from('Reviews')
+        .select(`
+          id, title, description, cover_image_url, published_at, view_count,
+          reading_time_minutes, custom_author_name, custom_author_avatar_url, edicao,
+          author:Practitioners!Reviews_author_id_fkey(id, full_name, avatar_url),
+          content_types:ReviewContentTypes(
+            content_type:ContentTypes(id, label, text_color, border_color, background_color)
+          )
+        `)
+        .eq('status', 'published')
+        .order('published_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      
+      featuredReview = transformSingleReview(autoFeaturedReview);
+    }
 
     // --- CORRECTLY Assemble the final response object ---
     const responseData: ConsolidatedHomepageData = {
@@ -209,7 +239,7 @@ serve(async (req: Request) => {
         'suggestions',
         'popular',
       ],
-      featured: transformSingleReview(getResultData(featuredResult, null)),
+      featured: featuredReview,
       recent: transformReviewData(getResultData(recentResult, [])),
       popular: transformReviewData(getResultData(popularResult, [])),
       suggestions: getResultData(suggestionsResult, []),

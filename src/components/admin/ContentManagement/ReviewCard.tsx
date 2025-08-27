@@ -5,11 +5,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
-import { Calendar, Clock, User, ImageIcon, FileText, Users, Edit } from 'lucide-react';
+import { Calendar, Clock, User, ImageIcon, FileText, Users, Edit, Star, Send, Archive, Trash2, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { ReviewQueueItem } from '../../../../packages/hooks/useAdminContentQueue';
 import type { ContentType } from '@/types';
 import { ContentTypeEditModal } from '../ReviewManagement/ContentTypeEditModal';
+import { useSetFeaturedReviewMutation } from '../../../../packages/hooks/useSetFeaturedReviewMutation';
+import { usePublicationActionMutation } from '../../../../packages/hooks/usePublicationActionMutation';
+import { useToast } from '../../../hooks/use-toast';
 
 interface ReviewCardProps {
   review: ReviewQueueItem;
@@ -95,6 +98,98 @@ const ArticleMetadataSection = ({ review }: { review: ReviewQueueItem }) => {
 export const ReviewCard = ({ review, isSelected, onSelect }: ReviewCardProps) => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingContentType, setEditingContentType] = useState<any>(null);
+  const { toast } = useToast();
+  const setFeaturedMutation = useSetFeaturedReviewMutation();
+  const publicationMutation = usePublicationActionMutation();
+
+  // Action handlers
+  const handleSetFeatured = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      const result = await setFeaturedMutation.mutateAsync({
+        reviewId: review.id,
+      });
+      toast({
+        title: 'Success',
+        description: `Review "${review.title}" is now featured on the homepage!`,
+      });
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Failed to set featured review',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handlePublish = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await publicationMutation.mutateAsync({
+        reviewId: review.id,
+        action: 'publish',
+      });
+      toast({
+        title: 'Success',
+        description: 'Review published successfully!',
+      });
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Failed to publish review',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleArchive = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (confirm('Are you sure you want to archive this review?')) {
+      try {
+        await publicationMutation.mutateAsync({
+          reviewId: review.id,
+          action: 'archive',
+        });
+        toast({
+          title: 'Success',
+          description: 'Review archived successfully!',
+        });
+      } catch (error) {
+        toast({
+          title: 'Error',
+          description: error instanceof Error ? error.message : 'Failed to archive review',
+          variant: 'destructive',
+        });
+      }
+    }
+  };
+
+  const handleDelete = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const confirmed = confirm(
+      `⚠️ ATENÇÃO: Esta ação é IRREVERSÍVEL!\n\nVocê está prestes a deletar PERMANENTEMENTE o review "${review.title}".\n\nTem certeza de que deseja continuar?`
+    );
+    
+    if (confirmed) {
+      try {
+        await publicationMutation.mutateAsync({
+          reviewId: review.id,
+          action: 'delete',
+        });
+        toast({
+          title: 'Success',
+          description: 'Review deleted successfully!',
+        });
+      } catch (error) {
+        toast({
+          title: 'Error',
+          description: error instanceof Error ? error.message : 'Failed to delete review',
+          variant: 'destructive',
+        });
+      }
+    }
+  };
+
   const getStatusInfo = (review: ReviewQueueItem) => {
     // Priority: show publication status first (status field), then review status
     const primaryStatus = review.status;
@@ -295,26 +390,114 @@ export const ReviewCard = ({ review, isSelected, onSelect }: ReviewCardProps) =>
               )}
             </div>
 
-            {/* Action Buttons */}
-            <div className="flex gap-2 flex-shrink-0">
-              <Link to={`/reviews/${review.id}`}>
+            {/* Action Buttons - Responsive layout to prevent overflow */}
+            <div className="flex flex-col gap-2 min-w-0">
+              {/* Primary Action Row */}
+              <div className="flex gap-2 flex-wrap">
+                <Link to={`/reviews/${review.id}`}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 px-3 text-xs font-medium"
+                  >
+                    Visualizar
+                  </Button>
+                </Link>
+                <Link to={`/admin/review/${review.id}`}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 px-3 text-xs font-medium"
+                  >
+                    Manage
+                  </Button>
+                </Link>
+              </div>
+
+              {/* Secondary Action Row - Publication Actions */}
+              <div className="flex gap-2 flex-wrap">
+                {/* Set as Featured - Only for published reviews */}
+                {review.status === 'published' && (
+                  <Button
+                    onClick={handleSetFeatured}
+                    variant="outline"
+                    size="sm"
+                    className="h-8 px-3 text-xs font-medium"
+                    disabled={setFeaturedMutation.isPending}
+                  >
+                    {setFeaturedMutation.isPending ? (
+                      <Loader2 className="h-3 w-3 mr-1.5 animate-spin" />
+                    ) : (
+                      <Star className="h-3 w-3 mr-1.5" />
+                    )}
+                    Featured
+                  </Button>
+                )}
+
+                {/* Publish - Only for draft reviews */}
+                {review.status === 'draft' && (
+                  <Button
+                    onClick={handlePublish}
+                    variant="outline"
+                    size="sm"
+                    className="h-8 px-3 text-xs font-medium"
+                    disabled={publicationMutation.isPending}
+                  >
+                    {publicationMutation.isPending ? (
+                      <Loader2 className="h-3 w-3 mr-1.5 animate-spin" />
+                    ) : (
+                      <Send className="h-3 w-3 mr-1.5" />
+                    )}
+                    Publicar
+                  </Button>
+                )}
+
+                {/* Schedule - For draft and published reviews */}
+                <Link to={`/admin/review/${review.id}`}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 px-3 text-xs font-medium"
+                  >
+                    <Calendar className="h-3 w-3 mr-1.5" />
+                    Agendar
+                  </Button>
+                </Link>
+
+                {/* Archive - Only for published/scheduled reviews */}
+                {(review.status === 'published' || review.status === 'scheduled') && (
+                  <Button
+                    onClick={handleArchive}
+                    variant="outline"
+                    size="sm"
+                    className="h-8 px-3 text-xs font-medium"
+                    disabled={publicationMutation.isPending}
+                  >
+                    {publicationMutation.isPending ? (
+                      <Loader2 className="h-3 w-3 mr-1.5 animate-spin" />
+                    ) : (
+                      <Archive className="h-3 w-3 mr-1.5" />
+                    )}
+                    Arquivar
+                  </Button>
+                )}
+
+                {/* Delete - Always available */}
                 <Button
-                  variant="outline"
+                  onClick={handleDelete}
+                  variant="destructive"
                   size="sm"
-                  className="h-8 px-3 text-xs font-medium min-w-[80px]"
+                  className="h-8 px-3 text-xs font-medium"
+                  disabled={publicationMutation.isPending}
                 >
-                  Visualizar
+                  {publicationMutation.isPending ? (
+                    <Loader2 className="h-3 w-3 mr-1.5 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-3 w-3 mr-1.5" />
+                  )}
+                  Delete
                 </Button>
-              </Link>
-              <Link to={`/admin/review/${review.id}`}>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 px-3 text-xs font-medium min-w-[70px]"
-                >
-                  Manage
-                </Button>
-              </Link>
+              </div>
             </div>
           </div>
         </div>

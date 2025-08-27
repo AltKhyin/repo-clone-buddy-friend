@@ -6,9 +6,10 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ReviewManagementData } from '../../../../packages/hooks/useReviewManagementQuery';
 import { usePublicationActionMutation } from '../../../../packages/hooks/usePublicationActionMutation';
+import { useSetFeaturedReviewMutation } from '../../../../packages/hooks/useSetFeaturedReviewMutation';
 import { PublishScheduleModal } from './PublishScheduleModal';
 import { PublicationHistoryPanel } from './PublicationHistoryPanel';
-import { Send, Calendar, Archive, Eye, AlertTriangle, CheckCircle, Loader2, Trash2 } from 'lucide-react';
+import { Send, Calendar, Archive, Eye, AlertTriangle, CheckCircle, Loader2, Trash2, Star } from 'lucide-react';
 import { useToast } from '../../../hooks/use-toast';
 
 interface PublicationControlPanelProps {
@@ -19,6 +20,7 @@ export const PublicationControlPanel: React.FC<PublicationControlPanelProps> = (
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const { toast } = useToast();
   const publicationMutation = usePublicationActionMutation();
+  const setFeaturedMutation = useSetFeaturedReviewMutation();
 
   const handlePublishNow = async () => {
     try {
@@ -91,6 +93,25 @@ export const PublicationControlPanel: React.FC<PublicationControlPanelProps> = (
     }
   };
 
+  const handleSetFeatured = async () => {
+    try {
+      const result = await setFeaturedMutation.mutateAsync({
+        reviewId: review.id,
+      });
+
+      toast({
+        title: 'Success',
+        description: `Review "${result.data.reviewTitle}" is now featured on the homepage!`,
+      });
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Failed to set featured review',
+        variant: 'destructive',
+      });
+    }
+  };
+
   const getStatusInfo = () => {
     switch (review.status) {
       case 'published':
@@ -146,8 +167,8 @@ export const PublicationControlPanel: React.FC<PublicationControlPanelProps> = (
           </div>
         </div>
 
-        {/* Publication Actions - Now handled by unified save buttons in header */}
-        <div className="space-y-3">
+        {/* Publication Actions - Responsive button layout to prevent overflow */}
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
           <Button
             onClick={() => setShowScheduleModal(true)}
             variant="outline"
@@ -157,6 +178,22 @@ export const PublicationControlPanel: React.FC<PublicationControlPanelProps> = (
             <Calendar className="h-4 w-4 mr-2" />
             Schedule Publication
           </Button>
+
+          {review.status === 'published' && (
+            <Button
+              onClick={handleSetFeatured}
+              variant="outline"
+              className="w-full"
+              disabled={setFeaturedMutation.isPending}
+            >
+              {setFeaturedMutation.isPending ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Star className="h-4 w-4 mr-2" />
+              )}
+              {setFeaturedMutation.isPending ? 'Setting Featured...' : 'Set as Featured'}
+            </Button>
+          )}
 
           {(review.status === 'published' || review.status === 'scheduled') && (
             <Button

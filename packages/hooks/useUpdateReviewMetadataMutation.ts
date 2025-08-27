@@ -56,6 +56,18 @@ const updateReviewMetadata = async ({ reviewId, metadata }: UpdateMetadataData) 
     cleanedReviewData.custom_author_avatar_url = null;
   }
 
+  // Convert empty strings to null for integer fields
+  if (cleanedReviewData.reading_time_minutes === '' || 
+      cleanedReviewData.reading_time_minutes === undefined || 
+      (typeof cleanedReviewData.reading_time_minutes === 'string' && cleanedReviewData.reading_time_minutes.trim() === '') ||
+      (cleanedReviewData.reading_time_minutes !== null && isNaN(Number(cleanedReviewData.reading_time_minutes)))) {
+    cleanedReviewData.reading_time_minutes = null;
+  } else if (cleanedReviewData.reading_time_minutes !== null && cleanedReviewData.reading_time_minutes !== undefined) {
+    // Ensure it's a proper number
+    const parsedValue = Number(cleanedReviewData.reading_time_minutes);
+    cleanedReviewData.reading_time_minutes = parsedValue > 0 ? parsedValue : null;
+  }
+
   // Update review metadata (including new fields)
   const { error: reviewError } = await supabase
     .from('Reviews')

@@ -46,6 +46,8 @@ export const ReviewMetadataPanel: React.FC<ReviewMetadataPanelProps> = ({ review
     custom_author_avatar_url: review.custom_author_avatar_url || '',
   });
 
+  const [validationErrors, setValidationErrors] = useState<{ [key: string]: string }>({});
+
   const [selectedTagIds, setSelectedTagIds] = useState<number[]>(
     review.tags?.map(tag => tag.id) || []
   );
@@ -57,8 +59,49 @@ export const ReviewMetadataPanel: React.FC<ReviewMetadataPanelProps> = ({ review
   const updateMutation = useUpdateReviewMetadataMutation();
   const { updateField } = useSaveContext();
 
+  const validateReadingTime = (value: string): string | null => {
+    if (value === '' || value === null || value === undefined) {
+      return null; // Empty is valid (will be converted to null)
+    }
+    
+    const numValue = Number(value);
+    if (isNaN(numValue)) {
+      return 'Reading time must be a number';
+    }
+    
+    if (numValue <= 0) {
+      return 'Reading time must be greater than 0';
+    }
+    
+    if (!Number.isInteger(numValue)) {
+      return 'Reading time must be a whole number';
+    }
+    
+    if (numValue > 999) {
+      return 'Reading time cannot exceed 999 minutes';
+    }
+    
+    return null;
+  };
+
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+    
+    // Special validation for reading_time_minutes
+    if (field === 'reading_time_minutes') {
+      const error = validateReadingTime(value);
+      setValidationErrors(prev => ({
+        ...prev,
+        [field]: error || ''
+      }));
+    } else {
+      // Clear any existing errors for other fields
+      setValidationErrors(prev => ({
+        ...prev,
+        [field]: ''
+      }));
+    }
+    
     updateField(field, value);
   };
 
@@ -180,10 +223,17 @@ export const ReviewMetadataPanel: React.FC<ReviewMetadataPanelProps> = ({ review
               id="reading_time_minutes"
               type="number"
               min="1"
+              max="999"
               value={formData.reading_time_minutes}
               onChange={e => handleInputChange('reading_time_minutes', e.target.value)}
               placeholder="Ex: 8"
+              className={validationErrors.reading_time_minutes ? 'border-red-500 focus-visible:ring-red-500' : ''}
             />
+            {validationErrors.reading_time_minutes && (
+              <p className="text-sm text-red-600 dark:text-red-400">
+                {validationErrors.reading_time_minutes}
+              </p>
+            )}
           </div>
 
           {/* Custom Author Name */}
