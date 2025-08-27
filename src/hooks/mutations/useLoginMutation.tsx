@@ -18,6 +18,10 @@ const loginWithPassword = async (payload: LoginPayload) => {
   });
 
   if (error) {
+    // Enhanced error handling for unconfirmed email
+    if (error.message.includes('email_not_confirmed') || error.message.includes('not confirmed')) {
+      throw new Error('EMAIL_NOT_CONFIRMED');
+    }
     throw new Error(error.message);
   }
 };

@@ -26,7 +26,7 @@ describe('RegistrationForm', () => {
     
     expect(screen.getByPlaceholderText('Nome completo')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('Email')).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('Data de nascimento')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('dd/mm/aaaa')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('Senha')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('Confirmar senha')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Criar conta' })).toBeInTheDocument();

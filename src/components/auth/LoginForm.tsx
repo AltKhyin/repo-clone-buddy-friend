@@ -12,28 +12,79 @@ import { useNavigate, Link } from 'react-router-dom';
 import { Checkbox } from '@/components/ui/checkbox';
 import GoogleIcon from '@/components/icons/GoogleIcon';
 import { useAuthFormTransition } from '@/hooks/useAuthFormTransition';
+import { useState } from 'react';
+import { Mail } from 'lucide-react';
 
 const LoginForm = () => {
   const navigate = useNavigate();
   const mutation = useLoginMutation();
   const { switchToRegister } = useAuthFormTransition();
+  const [showEmailConfirmation, setShowEmailConfirmation] = useState(false);
+  const [userEmail, setUserEmail] = useState('');
+  
   const form = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
     defaultValues: { email: '', password: '' },
   });
 
   const onSubmit = (values: z.infer<typeof loginSchema>) => {
+    setUserEmail(values.email);
     mutation.mutate(values, {
       onSuccess: () => {
         toast.success('Login bem-sucedido!');
         navigate('/');
       },
       onError: (error) => {
-        toast.error('Email ou senha inválidos.');
-        console.error(error);
+        if (error.message === 'EMAIL_NOT_CONFIRMED') {
+          setShowEmailConfirmation(true);
+        } else {
+          toast.error('Email ou senha inválidos.');
+          console.error(error);
+        }
       },
     });
   };
+
+  // Email confirmation prompt state
+  if (showEmailConfirmation) {
+    return (
+      <div className="bg-white/95 backdrop-blur-sm p-8 rounded-xl shadow-lg w-full max-w-[350px]">
+        <div className="text-center">
+          <div className="flex justify-center mb-4">
+            <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
+              <Mail className="h-6 w-6 text-blue-600" />
+            </div>
+          </div>
+          
+          <h2 className="text-xl font-serif tracking-tight text-black mb-2">
+            Confirme seu email
+          </h2>
+          
+          <p className="text-sm text-gray-600 mb-6">
+            Precisamos que você confirme o email{' '}
+            <span className="font-medium text-black">{userEmail}</span>{' '}
+            antes de fazer login. Verifique sua caixa de entrada e clique no link de confirmação.
+          </p>
+          
+          <Button 
+            onClick={() => setShowEmailConfirmation(false)}
+            variant="outline" 
+            className="w-full bg-white hover:bg-gray-50 border-gray-300 text-gray-700 mb-3"
+          >
+            Tentar novamente
+          </Button>
+          
+          <button 
+            type="button" 
+            onClick={switchToRegister} 
+            className="text-sm text-gray-600 hover:text-black underline"
+          >
+            Criar nova conta
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white/95 backdrop-blur-sm p-8 rounded-xl shadow-lg w-full max-w-[350px]">
