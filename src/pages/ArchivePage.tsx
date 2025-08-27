@@ -12,6 +12,7 @@ import MasonryGrid from '@/components/acervo/MasonryGrid';
 import { ClientSideSorter } from '@/components/acervo/ClientSideSorter';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { StandardLayout } from '@/components/layout/StandardLayout';
+import PageHeader from '@/components/page/PageHeader';
 
 export const ArchivePageContent = () => {
   const isMobile = useIsMobile();
@@ -119,8 +120,12 @@ export const ArchivePageContent = () => {
   }
 
   return (
-    <StandardLayout type="content-only" contentClassName="px-6 pb-6">
-      {/* Desktop: Horizontal Tags Panel */}
+    <div className="w-full">
+      {/* Page Header */}
+      <PageHeader pageId="acervo" className="mb-6" />
+      
+      <StandardLayout type="content-only" contentClassName="px-6 pb-6">
+        {/* Desktop: Horizontal Tags Panel */}
       {!isMobile && (
         <TagsPanel
           allTags={acervoData.tags}
@@ -183,7 +188,8 @@ export const ArchivePageContent = () => {
           </>
         )}
       </ClientSideSorter>
-    </StandardLayout>
+      </StandardLayout>
+    </div>
   );
 };
 

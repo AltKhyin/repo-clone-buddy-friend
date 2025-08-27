@@ -11,6 +11,7 @@ import { CategoryFilterProvider, useCategoryFilter } from '../contexts/CategoryF
 import { Alert, AlertDescription } from '../components/ui/alert';
 import { Button } from '../components/ui/button';
 import { AlertCircle, RefreshCw, WifiOff } from 'lucide-react';
+import PageHeader from '@/components/page/PageHeader';
 
 // Internal component that uses the category filter context
 function CommunityPageContent() {
@@ -90,10 +91,14 @@ function CommunityPageContent() {
     );
   }
 
-  // Standard shell integration - no extra containers
+  // Standard shell integration with page header
   return (
-    <CommunityErrorBoundary context="página principal da comunidade">
-      <CommunityFeedWithSidebar
+    <div className="w-full">
+      {/* Page Header */}
+      <PageHeader pageId="comunidade" className="mb-6" />
+      
+      <CommunityErrorBoundary context="página principal da comunidade">
+        <CommunityFeedWithSidebar
         posts={data?.posts || []}
         sidebarData={data?.sidebarData}
         onLoadMore={fetchNextPage}
@@ -102,8 +107,9 @@ function CommunityPageContent() {
         lastSync={lastSync}
         isLoading={isLoading}
         error={error}
-      />
-    </CommunityErrorBoundary>
+        />
+      </CommunityErrorBoundary>
+    </div>
   );
 }
 
