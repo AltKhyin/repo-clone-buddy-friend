@@ -40,7 +40,7 @@ export const UserProfileBlock = ({ isCollapsed }: UserProfileBlockProps) => {
   // Error state handling - graceful degradation with login CTA
   if (isError || !userProfile) {
     const handleLoginClick = () => {
-      navigate('/auth');
+      navigate('/login');
     };
 
     return (

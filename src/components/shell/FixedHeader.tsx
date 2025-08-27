@@ -25,7 +25,7 @@ const FixedHeader = ({ className, children, isCollapsed, isMobile }: FixedHeader
   const isLoggedIn = !!user;
 
   const handleLoginClick = () => {
-    navigate('/auth');
+    navigate('/login');
   };
 
   return (
