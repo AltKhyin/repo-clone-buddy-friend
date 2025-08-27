@@ -3,7 +3,7 @@
 /**
  * Enhanced color token categories for comprehensive organization
  */
-export type ColorTokenCategory = 'text' | 'background' | 'accent' | 'semantic' | 'neutral' | 'editor';
+export type ColorTokenCategory = 'text' | 'background' | 'accent' | 'semantic' | 'neutral' | 'editor' | 'takeaway';
 
 /**
  * Enhanced color token with comprehensive metadata and theme integration

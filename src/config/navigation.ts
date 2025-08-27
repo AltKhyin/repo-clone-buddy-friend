@@ -2,7 +2,7 @@
 
 import {
   Home,
-  BookOpen,
+  Package,
   Users,
   User,
   Settings,
@@ -39,7 +39,7 @@ export const navigationItems: NavigationItem[] = [
     path: '/acervo',
     label: 'Acervo',
     mobileLabel: 'Acervo',
-    icon: BookOpen,
+    icon: Package,
     showOnMobile: true,
     showOnDesktop: true,
   },

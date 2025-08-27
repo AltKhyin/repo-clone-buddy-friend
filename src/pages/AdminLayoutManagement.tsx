@@ -29,6 +29,8 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuthStore } from '@/store/auth';
 import PageHeader from '@/components/page/PageHeader';
+import { iconLibrary, getIconsByCategory, getIconComponent, type IconCategory } from '@/config/icon-library';
+import { cn } from '@/lib/utils';
 
 interface PageSettingsForm {
   title: string;
@@ -44,11 +46,13 @@ interface PageSettingsForm {
   title_shadow: boolean;
   prefix_shadow: boolean;
   banner_url: string;
+  banner_background_color: string;
   avatar_url: string;
   avatar_type: 'image' | 'icon'; // New field to choose avatar type
   avatar_icon: string;
   avatar_icon_color: string;
   avatar_background_color: string;
+  avatar_icon_size: number;
 }
 
 interface UploadState {
@@ -58,6 +62,104 @@ interface UploadState {
   avatarPreview: string | null;
   uploading: boolean;
 }
+
+// Real-time preview component that uses form data instead of database data
+const PageHeaderPreview: React.FC<{ 
+  formData: PageSettingsForm;
+  selectedPageId: string;
+}> = ({ formData, selectedPageId }) => {
+  const pageOptions = [
+    { id: 'acervo', label: 'Acervo' },
+    { id: 'comunidade', label: 'Comunidade' }
+  ];
+
+  const title = formData.title || pageOptions.find(p => p.id === selectedPageId)?.label || selectedPageId;
+  
+  return (
+    <div className="w-full relative overflow-hidden">
+      {/* Banner Section */}
+      <div 
+        className="h-16 bg-center bg-cover bg-slate-100 shadow-lg -mt-22 pt-22 rounded-b-lg"
+        style={{
+          backgroundImage: formData.banner_url ? `url('${formData.banner_url}')` : undefined,
+          backgroundColor: formData.banner_background_color || undefined
+        }}
+      />
+      
+      {/* Header Content */}
+      <div className="relative -mt-10 px-4 pb-2">
+        <div className="flex items-end justify-between">
+          <div className="flex items-end gap-4">
+            {/* Avatar */}
+            {formData.show_avatar && (
+              <div className="relative">
+                {formData.avatar_type === 'icon' && formData.avatar_icon ? (
+                  <div 
+                    className="w-24 h-24 rounded-full border-4 border-white shadow-lg flex items-center justify-center"
+                    style={{
+                      backgroundColor: formData.avatar_background_color || 'hsl(var(--muted))',
+                      color: formData.avatar_icon_color || 'hsl(var(--muted-foreground))'
+                    }}
+                  >
+                    {(() => {
+                      const IconComponent = getIconComponent(formData.avatar_icon);
+                      return <IconComponent size={formData.avatar_icon_size || 37} />;
+                    })()}
+                  </div>
+                ) : formData.avatar_url ? (
+                  <img 
+                    src={formData.avatar_url} 
+                    alt={`${title} avatar`}
+                    className="w-24 h-24 rounded-full border-4 border-white shadow-lg object-cover bg-white"
+                    loading="lazy"
+                  />
+                ) : (
+                  <div className="w-24 h-24 rounded-full border-4 border-white shadow-lg flex items-center justify-center font-bold text-3xl bg-slate-200 text-slate-600">
+                    {title?.charAt(0).toUpperCase() || '?'}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Title */}
+            <div className="flex flex-col justify-end pb-2">
+              <h1 
+                className="font-bold leading-none"
+                style={{ 
+                  fontFamily: formData.font_family || 'Inter',
+                  color: !formData.title_color && !formData.prefix_color ? 'inherit' : undefined
+                }}
+              >
+                {formData.title_prefix && (
+                  <span 
+                    className={formData.prefix_size_custom ? '' : (formData.prefix_size || 'text-4xl')}
+                    style={{ 
+                      color: formData.prefix_color || 'inherit',
+                      fontSize: formData.prefix_size_custom ? `${formData.prefix_size_custom}px` : undefined,
+                      textShadow: formData.prefix_shadow ? '0 1px 3px rgba(0, 0, 0, 0.3)' : 'none'
+                    }}
+                  >
+                    {formData.title_prefix}
+                  </span>
+                )}
+                <span 
+                  className={formData.title_size_custom ? '' : (formData.title_size || 'text-4xl')}
+                  style={{ 
+                    color: formData.title_color || 'inherit',
+                    fontSize: formData.title_size_custom ? `${formData.title_size_custom}px` : undefined,
+                    textShadow: formData.title_shadow ? '0 1px 3px rgba(0, 0, 0, 0.3)' : 'none'
+                  }}
+                >
+                  {title}
+                </span>
+              </h1>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const AdminLayoutManagement: React.FC = () => {
   const { data: allSettings, isLoading, error, refetch } = useAllPageSettings();
@@ -82,11 +184,13 @@ const AdminLayoutManagement: React.FC = () => {
     title_shadow: false,
     prefix_shadow: false,
     banner_url: '',
+    banner_background_color: '',
     avatar_url: '',
     avatar_type: 'image', // Default to image type
     avatar_icon: '',
     avatar_icon_color: '',
     avatar_background_color: '',
+    avatar_icon_size: 37,
   });
 
   const [uploadState, setUploadState] = useState<UploadState>({
@@ -121,11 +225,13 @@ const AdminLayoutManagement: React.FC = () => {
         title_shadow: currentSettings.title_shadow || false,
         prefix_shadow: currentSettings.prefix_shadow || false,
         banner_url: currentSettings.banner_url || '',
+        banner_background_color: currentSettings.banner_background_color || '',
         avatar_url: currentSettings.avatar_url || '',
         avatar_type: (currentSettings.avatar_type as 'image' | 'icon') || 'image', // Default to image
         avatar_icon: currentSettings.avatar_icon || '',
         avatar_icon_color: currentSettings.avatar_icon_color || '',
         avatar_background_color: currentSettings.avatar_background_color || '',
+        avatar_icon_size: currentSettings.avatar_icon_size || 37,
       });
     }
   }, [currentSettings]);
@@ -286,11 +392,13 @@ const AdminLayoutManagement: React.FC = () => {
           title_shadow: formData.title_shadow,
           prefix_shadow: formData.prefix_shadow,
           banner_url: bannerUrl || null,
+          banner_background_color: formData.banner_background_color || null,
           avatar_url: avatarUrl || null,
           avatar_type: formData.avatar_type,
           avatar_icon: formData.avatar_icon || null,
           avatar_icon_color: formData.avatar_icon_color || null,
           avatar_background_color: formData.avatar_background_color || null,
+          avatar_icon_size: formData.avatar_icon_size || null,
         }
       });
       
@@ -358,73 +466,101 @@ const AdminLayoutManagement: React.FC = () => {
 
   return (
     <ErrorBoundary>
-      <StandardLayout type="centered" contentClassName="space-y-6">
-        <div className="mb-6">
-          <h2 className="text-2xl font-bold text-foreground mb-2">
+      <StandardLayout type="full-width" contentClassName="space-y-6 max-w-7xl mx-auto px-4">
+        {/* Header Section */}
+        <div className="mb-8 text-center">
+          <h1 className="text-3xl font-bold text-foreground mb-3">
             Personalização de Páginas
-          </h2>
-          <p className="text-muted-foreground">
-            Configure títulos, banners e avatares com preview em tempo real.
+          </h1>
+          <p className="text-muted-foreground text-lg">
+            Configure títulos, banners e avatares com preview em tempo real
           </p>
         </div>
 
-        {/* Page Selection */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Selecionar Página</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Page Selection - Compact Horizontal */}
+        <div className="mb-8">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            <Label className="text-sm font-medium text-muted-foreground whitespace-nowrap">
+              Página:
+            </Label>
+            <div className="flex gap-2">
               {pageOptions.map((page) => (
                 <Button
                   key={page.id}
                   variant={selectedPageId === page.id ? "default" : "outline"}
-                  className="justify-start h-auto p-4 flex-col items-start"
+                  size="sm"
+                  className="px-4 py-2"
                   onClick={() => setSelectedPageId(page.id)}
                 >
-                  <span className="font-semibold">{page.label}</span>
-                  <span className="text-sm text-muted-foreground font-normal">
-                    {page.description}
-                  </span>
+                  {page.label}
                 </Button>
               ))}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
-        {/* Always-On Preview */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Edit className="h-4 w-4" />
-              Preview em Tempo Real
-            </CardTitle>
-            <CardDescription>
-              As mudanças aparecem imediatamente no preview abaixo
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="border rounded-lg overflow-hidden">
-              <PageHeader pageId={selectedPageId} />
-            </div>
-          </CardContent>
-        </Card>
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Left Column: Live Preview */}
+          <div className="order-2 lg:order-1">
+            <Card className="sticky top-6 z-10">
+              <CardHeader className="pb-4">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Edit className="h-5 w-5" />
+                  Preview em Tempo Real
+                </CardTitle>
+                <CardDescription>
+                  Visualize suas mudanças instantaneamente
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="border rounded-lg overflow-hidden bg-background">
+                  <PageHeaderPreview formData={formData} selectedPageId={selectedPageId} />
+                </div>
+              </CardContent>
+            </Card>
 
-        {/* Simplified Settings Form */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Configurações</CardTitle>
-            <CardDescription>
-              Configure apenas os campos essenciais para Reddit parity
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Enhanced Title System */}
-            <div className="space-y-6 border rounded-lg p-4 bg-slate-50/50">
-              <div className="flex items-center gap-2">
-                <Type className="h-4 w-4 text-muted-foreground" />
-                <Label className="text-sm font-medium">Sistema de Título Aprimorado</Label>
-              </div>
+            {/* Save Actions */}
+            <Card className="mt-6">
+              <CardContent className="pt-6">
+                <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+                  <div className="text-sm text-muted-foreground text-center sm:text-left">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                      Todas as mudanças são aplicadas em tempo real no preview
+                    </div>
+                  </div>
+                  
+                  <Button 
+                    onClick={handleSave} 
+                    disabled={isSaving || !currentSettings}
+                    className="flex items-center gap-2 px-6 py-2"
+                    size="lg"
+                  >
+                    <Save className="h-4 w-4" />
+                    {isSaving ? 'Salvando...' : 'Salvar Configurações'}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Right Column: Configuration */}
+          <div className="order-1 lg:order-2">
+            <div className="max-h-[calc(72vh-1.44rem)] overflow-y-auto space-y-6 pr-2">
+            
+            {/* Title Configuration */}
+            <Card>
+              <CardHeader className="pb-4">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Type className="h-5 w-5" />
+                  Configuração do Título
+                </CardTitle>
+                <CardDescription>
+                  Personalize título, prefixo e estilo da tipografia
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
 
               {/* Title Field */}
               <div className="space-y-2">
@@ -727,67 +863,21 @@ const AdminLayoutManagement: React.FC = () => {
                 </div>
               </div>
 
-              {/* Enhanced Preview */}
-              <div className="p-4 border rounded bg-white">
-                <p className="text-xs text-muted-foreground mb-3">Preview:</p>
-                <div className="flex items-center gap-3">
-                  {/* Avatar Preview */}
-                  {formData.show_avatar && (
-                    <div className="w-12 h-12 rounded-full border-2 border-white shadow-lg flex items-center justify-center font-bold text-lg bg-slate-200 text-slate-600 flex-shrink-0">
-                      {formData.title?.charAt(0).toUpperCase() || 'T'}
-                    </div>
-                  )}
-                  
-                  {/* Title Preview */}
-                  <div 
-                    className="font-bold leading-tight"
-                    style={{ fontFamily: formData.font_family }}
-                  >
-                    {formData.title_prefix && (
-                      <span 
-                        className={formData.prefix_size_custom ? '' : formData.prefix_size}
-                        style={{ 
-                          color: formData.prefix_color || 'inherit',
-                          fontSize: formData.prefix_size_custom ? `${formData.prefix_size_custom}px` : undefined,
-                          textShadow: formData.prefix_shadow ? '0 1px 3px rgba(0, 0, 0, 0.3)' : 'none'
-                        }}
-                      >
-                        {formData.title_prefix}
-                      </span>
-                    )}
-                    <span 
-                      className={formData.title_size_custom ? '' : formData.title_size}
-                      style={{ 
-                        color: formData.title_color || 'inherit',
-                        fontSize: formData.title_size_custom ? `${formData.title_size_custom}px` : undefined,
-                        textShadow: formData.title_shadow ? '0 1px 3px rgba(0, 0, 0, 0.3)' : 'none'
-                      }}
-                    >
-                      {formData.title || 'Título da Página'}
-                    </span>
-                  </div>
-                </div>
-                
-                {/* Preview Details */}
-                <div className="mt-3 pt-2 border-t text-xs text-muted-foreground space-y-1">
-                  <div>
-                    <strong>Título:</strong> {formData.title_size_custom ? `${formData.title_size_custom}px` : formData.title_size || 'text-4xl'} 
-                    {formData.title_shadow && ' (com sombra)'}
-                  </div>
-                  {formData.title_prefix && (
-                    <div>
-                      <strong>Prefixo:</strong> {formData.prefix_size_custom ? `${formData.prefix_size_custom}px` : formData.prefix_size || 'text-4xl'}
-                      {formData.prefix_shadow && ' (com sombra)'}
-                    </div>
-                  )}
-                  <div><strong>Avatar:</strong> {formData.show_avatar ? 'Visível' : 'Oculto'}</div>
-                </div>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
             
-            {/* Banner Section with Upload */}
-            <div className="space-y-4">
-              <Label>Banner da Página (64px altura)</Label>
+            {/* Banner Configuration */}
+            <Card>
+              <CardHeader className="pb-4">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Image className="h-5 w-5" />
+                  Configuração do Banner
+                </CardTitle>
+                <CardDescription>
+                  Configure a imagem de fundo e cores do banner (64px altura)
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
               
               <div className="space-y-3">
                 {/* URL Input */}
@@ -800,6 +890,21 @@ const AdminLayoutManagement: React.FC = () => {
                     value={formData.banner_url}
                     onChange={(e) => handleInputChange('banner_url', e.target.value)}
                     placeholder="https://exemplo.com/banner.jpg"
+                  />
+                </div>
+
+                {/* Banner Background Color */}
+                <div>
+                  <Label htmlFor="banner_background_color" className="text-sm text-muted-foreground">
+                    Cor de Fundo do Banner
+                  </Label>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    Útil para banners com transparência
+                  </p>
+                  <UnifiedColorPicker
+                    value={formData.banner_background_color}
+                    onColorSelect={(color) => handleInputChange('banner_background_color', color)}
+                    placeholder="Selecione uma cor de fundo"
                   />
                 </div>
 
@@ -846,23 +951,22 @@ const AdminLayoutManagement: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Banner Preview */}
-                {(uploadState.bannerPreview || formData.banner_url) && (
-                  <div className="border rounded-lg overflow-hidden">
-                    <img
-                      src={uploadState.bannerPreview || formData.banner_url}
-                      alt="Banner preview"
-                      className="w-full h-16 object-cover bg-slate-100 shadow-sm"
-                      loading="lazy"
-                    />
-                  </div>
-                )}
               </div>
-            </div>
+              </CardContent>
+            </Card>
 
-            {/* Avatar Section with Type Selection */}
-            <div className="space-y-4">
-              <Label>Avatar da Página (96px)</Label>
+            {/* Avatar Configuration */}
+            <Card>
+              <CardHeader className="pb-4">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <User className="h-5 w-5" />
+                  Configuração do Avatar
+                </CardTitle>
+                <CardDescription>
+                  Configure o avatar da página com imagem ou ícone (96px)
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
               
               {/* Avatar Type Selector */}
               <div className="space-y-3">
@@ -962,17 +1066,6 @@ const AdminLayoutManagement: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* Image Avatar Preview */}
-                    {(uploadState.avatarPreview || formData.avatar_url) && (
-                      <div className="flex justify-start">
-                        <img
-                          src={uploadState.avatarPreview || formData.avatar_url}
-                          alt="Avatar preview"
-                          className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-lg bg-slate-100"
-                          loading="lazy"
-                        />
-                      </div>
-                    )}
                   </div>
                 )}
 
@@ -984,133 +1077,109 @@ const AdminLayoutManagement: React.FC = () => {
                   <div className="space-y-3">
                     <div>
                       <Label className="text-xs font-medium">Selecionar Ícone</Label>
-                      <div className="grid grid-cols-8 gap-2 p-3 border rounded-md bg-muted/20">
-                        {[
-                          { name: 'User', icon: User },
-                          { name: 'Users', icon: Users }, 
-                          { name: 'BookOpen', icon: BookOpen },
-                          { name: 'Home', icon: Home },
-                          { name: 'Settings', icon: Settings },
-                          { name: 'Heart', icon: Heart },
-                          { name: 'Star', icon: Star },
-                          { name: 'Crown', icon: Crown },
-                          { name: 'Shield', icon: Shield },
-                          { name: 'Award', icon: Award },
-                          { name: 'Target', icon: Target },
-                          { name: 'Zap', icon: Zap },
-                          { name: 'Flame', icon: Flame },
-                          { name: 'Sun', icon: Sun },
-                          { name: 'Moon', icon: Moon },
-                          { name: 'Coffee', icon: Coffee },
-                          { name: 'Music', icon: Volume2 },
-                          { name: 'Camera', icon: Camera },
-                          { name: 'Palette', icon: Palette },
-                          { name: 'Brush', icon: Brush },
-                          { name: 'Pen', icon: Pen },
-                          { name: 'Book', icon: Book },
-                          { name: 'Calendar', icon: Calendar },
-                          { name: 'Globe', icon: Globe }
-                        ].map(({ name, icon: IconComponent }) => (
-                          <Button
-                            key={name}
-                            type="button"
-                            variant={formData.avatar_icon === name ? "default" : "outline"}
-                            size="sm"
-                            onClick={() => handleInputChange('avatar_icon', name)}
-                            className="h-10 w-10 p-0"
-                            title={name}
-                          >
-                            <IconComponent size={16} />
-                          </Button>
-                        ))}
-                      </div>
+                      
+                      {/* Icon Selection by Category */}
+                      {(['storage', 'general', 'healthcare', 'emergency', 'science', 'ui'] as IconCategory[]).map(category => {
+                        const categoryIcons = getIconsByCategory(category);
+                        if (categoryIcons.length === 0) return null;
+                        
+                        return (
+                          <div key={category} className="space-y-2">
+                            <Label className="text-xs text-muted-foreground capitalize">
+                              {category === 'storage' ? 'Armazenamento' :
+                               category === 'general' ? 'Geral' :
+                               category === 'healthcare' ? 'Saúde' :
+                               category === 'emergency' ? 'Emergência' :
+                               category === 'science' ? 'Ciência' :
+                               category === 'ui' ? 'Interface' : category}
+                            </Label>
+                            <div className="grid grid-cols-8 gap-2 p-2 border rounded-md bg-muted/20">
+                              {categoryIcons.map(({ id, name, component: IconComponent }) => (
+                                <Button
+                                  key={id}
+                                  type="button"
+                                  variant={formData.avatar_icon === id ? "default" : "outline"}
+                                  size="sm"
+                                  onClick={() => handleInputChange('avatar_icon', id)}
+                                  className="h-10 w-10 p-0"
+                                  title={name}
+                                >
+                                  <IconComponent size={18} />
+                                </Button>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
 
-                    {/* Icon Colors */}
+                    {/* Icon Colors and Size */}
                     {formData.avatar_icon && (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <div className="space-y-2">
-                          <Label className="text-xs font-medium">Cor do Ícone</Label>
-                          <UnifiedColorPicker
-                            value={formData.avatar_icon_color}
-                            onColorSelect={(color) => handleInputChange('avatar_icon_color', color)}
-                            onColorClear={() => handleInputChange('avatar_icon_color', '')}
-                            label="Cor do ícone"
-                            placeholder="Cor padrão"
-                            allowClear={true}
-                            variant="button"
-                          />
+                      <div className="space-y-3">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <div className="space-y-2">
+                            <Label className="text-xs font-medium">Cor do Ícone</Label>
+                            <UnifiedColorPicker
+                              value={formData.avatar_icon_color}
+                              onColorSelect={(color) => handleInputChange('avatar_icon_color', color)}
+                              onColorClear={() => handleInputChange('avatar_icon_color', '')}
+                              label="Cor do ícone"
+                              placeholder="Cor padrão"
+                              allowClear={true}
+                              variant="button"
+                            />
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <Label className="text-xs font-medium">Cor de Fundo</Label>
+                            <UnifiedColorPicker
+                              value={formData.avatar_background_color}
+                              onColorSelect={(color) => handleInputChange('avatar_background_color', color)}
+                              onColorClear={() => handleInputChange('avatar_background_color', '')}
+                              label="Cor de fundo do avatar"
+                              placeholder="Cor padrão"
+                              allowClear={true}
+                              variant="button"
+                            />
+                          </div>
                         </div>
                         
+                        {/* Icon Size Control */}
                         <div className="space-y-2">
-                          <Label className="text-xs font-medium">Cor de Fundo</Label>
-                          <UnifiedColorPicker
-                            value={formData.avatar_background_color}
-                            onColorSelect={(color) => handleInputChange('avatar_background_color', color)}
-                            onColorClear={() => handleInputChange('avatar_background_color', '')}
-                            label="Cor de fundo do avatar"
-                            placeholder="Cor padrão"
-                            allowClear={true}
-                            variant="button"
-                          />
+                          <Label className="text-xs font-medium">Tamanho do Ícone</Label>
+                          <div className="flex items-center gap-3">
+                            <Input
+                              type="number"
+                              value={formData.avatar_icon_size}
+                              onChange={(e) => handleInputChange('avatar_icon_size', parseInt(e.target.value) || 37)}
+                              min="16"
+                              max="64"
+                              className="h-8 w-20 text-xs"
+                            />
+                            <span className="text-xs text-muted-foreground">px (16-64)</span>
+                            <input
+                              type="range"
+                              value={formData.avatar_icon_size}
+                              onChange={(e) => handleInputChange('avatar_icon_size', parseInt(e.target.value))}
+                              min="16"
+                              max="64"
+                              className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                            />
+                          </div>
                         </div>
                       </div>
                     )}
 
-                    {/* Icon Avatar Preview */}
-                    {formData.avatar_icon && (
-                      <div className="space-y-2">
-                        <Label className="text-xs font-medium">Preview do Avatar com Ícone</Label>
-                        <div className="flex justify-start">
-                          <div 
-                            className="w-24 h-24 rounded-full border-4 border-white shadow-lg flex items-center justify-center"
-                            style={{ 
-                              backgroundColor: formData.avatar_background_color || 'hsl(var(--muted))',
-                              color: formData.avatar_icon_color || 'hsl(var(--muted-foreground))'
-                            }}
-                          >
-                            {/* Render actual Lucide icon */}
-                            {(() => {
-                              const iconMap: Record<string, any> = {
-                                'User': User, 'Users': Users, 'BookOpen': BookOpen, 'Home': Home,
-                                'Settings': Settings, 'Heart': Heart, 'Star': Star, 'Crown': Crown,
-                                'Shield': Shield, 'Award': Award, 'Target': Target, 'Zap': Zap,
-                                'Flame': Flame, 'Sun': Sun, 'Moon': Moon, 'Coffee': Coffee,
-                                'Music': Volume2, 'Camera': Camera, 'Palette': Palette, 'Brush': Brush,
-                                'Pen': Pen, 'Book': Book, 'Calendar': Calendar, 'Globe': Globe
-                              };
-                              const IconComponent = iconMap[formData.avatar_icon];
-                              return IconComponent ? <IconComponent size={32} /> : <User size={32} />;
-                            })()}
-                          </div>
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          Avatar com ícone personalizado
-                        </p>
-                      </div>
-                    )}
                     </div>
                   </div>
                 )}
               </div>
-            </div>
+              </CardContent>
+            </Card>
 
-            <div className="flex justify-between items-center pt-4">
-              <div className="text-sm text-muted-foreground">
-                ✅ Enhanced design: 64px banner, 96px avatar, aligned title
-              </div>
-              
-              <Button 
-                onClick={handleSave} 
-                disabled={isSaving || !currentSettings}
-                className="flex items-center gap-2"
-              >
-                <Save className="h-4 w-4" />
-                {isSaving ? 'Salvando...' : 'Salvar'}
-              </Button>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </StandardLayout>
     </ErrorBoundary>
   );

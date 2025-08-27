@@ -8,6 +8,7 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { TopProgressBar } from './components/ui/TopProgressBar';
 import { useProgress } from './contexts/ProgressContext';
 import { usePageLoadingProgress } from './hooks/usePageLoadingProgress';
+import { useAppVersion } from './hooks/useAppVersion';
 import './App.css';
 
 // Internal component to access ProgressContext
@@ -16,6 +17,9 @@ const AppContent = () => {
   
   // Automatically track page content loading across all TanStack Query requests
   usePageLoadingProgress();
+  
+  // Automatically handle app updates silently
+  useAppVersion();
   
   return (
     <>

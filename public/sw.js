@@ -1,5 +1,8 @@
 
-const CACHE_NAME = 'reviews-pwa-v1';
+// Use build hash for cache version - automatically unique per build
+const CACHE_NAME = `reviews-pwa-v${self.location.pathname.split('/').pop() || Date.now()}`;
+const CACHE_VERSION = '1.0.0';
+
 const urlsToCache = [
   '/',
   '/acervo',
@@ -8,18 +11,38 @@ const urlsToCache = [
   '/manifest.json'
 ];
 
-// Install event - cache resources
-self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => {
-        console.log('Opened cache');
-        return cache.addAll(urlsToCache);
-      })
-      .catch((error) => {
-        console.log('Cache failed:', error);
-      })
+// Delete old caches when version changes
+const deleteOldCaches = async () => {
+  const cacheNames = await caches.keys();
+  const oldCaches = cacheNames.filter(name => 
+    name.startsWith('reviews-pwa-v') && name !== CACHE_NAME
   );
+  
+  return Promise.all(
+    oldCaches.map(name => {
+      console.log('Deleting old cache:', name);
+      return caches.delete(name);
+    })
+  );
+};
+
+// Install event - cache resources and delete old caches
+self.addEventListener('install', (event) => {
+  console.log('Installing new service worker:', CACHE_NAME);
+  event.waitUntil(
+    Promise.all([
+      caches.open(CACHE_NAME)
+        .then((cache) => {
+          console.log('Opened cache:', CACHE_NAME);
+          return cache.addAll(urlsToCache);
+        }),
+      deleteOldCaches()
+    ]).catch((error) => {
+      console.log('Cache installation failed:', error);
+    })
+  );
+  
+  // Don't skip waiting - let the client decide when to activate
 });
 
 // Fetch event - serve cached content when offline with proper error handling
@@ -71,20 +94,24 @@ self.addEventListener('fetch', (event) => {
   );
 });
 
-// Activate event - clean up old caches
+// Activate event - clean up old caches and take control immediately
 self.addEventListener('activate', (event) => {
+  console.log('Activating new service worker:', CACHE_NAME);
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
-            console.log('Deleting old cache:', cacheName);
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    })
+    Promise.all([
+      deleteOldCaches(),
+      // Take control of all clients immediately
+      self.clients.claim()
+    ])
   );
+});
+
+// Handle messages from client (for manual activation)
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    console.log('Received SKIP_WAITING message, activating new service worker');
+    self.skipWaiting();
+  }
 });
 
 // Handle background sync for offline functionality

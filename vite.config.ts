@@ -17,4 +17,17 @@ export default defineConfig(({ mode }) => ({
       '@packages': path.resolve(__dirname, './packages'),
     },
   },
+  build: {
+    // Enhanced cache busting - Vite already does this well, just ensure it's enabled
+    rollupOptions: {
+      output: {
+        // Use Vite's built-in hash-based cache busting (more reliable)
+        entryFileNames: 'assets/[name]-[hash].js',
+        chunkFileNames: 'assets/[name]-[hash].js', 
+        assetFileNames: 'assets/[name]-[hash].[ext]',
+      },
+    },
+    // Generate source maps for better debugging
+    sourcemap: mode === 'production' ? false : true,
+  },
 }));

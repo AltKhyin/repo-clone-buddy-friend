@@ -1,7 +1,7 @@
 
 {
   "name": "Reviews - Plataforma de Revisões Médicas",
-  "short_name": "Reviews",
+  "short_name": "Reviews", 
   "description": "Plataforma digital para revisões médicas sistemáticas e medicina baseada em evidências",
   "start_url": "/",
   "display": "standalone",

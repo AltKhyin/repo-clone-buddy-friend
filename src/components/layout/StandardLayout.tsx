@@ -35,7 +35,7 @@ export const StandardLayout: React.FC<StandardLayoutProps> = ({
   // All other layouts use the simplified container approach
   return (
     <div className={cn(getSimpleLayoutClasses(type), className)}>
-      <div className={cn('w-full max-w-[1200px] mx-auto px-4 py-6 lg:px-8', containerClassName)}>
+      <div className={cn('w-full max-w-[1200px] mx-auto px-4 lg:px-8', containerClassName)}>
         {shouldShowSidebar ? (
           // Two-column layout with sidebar
           <div className="grid grid-cols-1 lg:grid-cols-[756px_316px] gap-6 lg:gap-8">

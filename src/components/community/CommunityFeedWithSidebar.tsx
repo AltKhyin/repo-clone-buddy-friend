@@ -67,7 +67,7 @@ export const CommunityFeedWithSidebar = ({
   // Custom layout to position header spanning full grid width
   return (
     <div className="w-full min-h-screen bg-background pb-6">
-      <div className="w-full max-w-[1200px] mx-auto px-4 py-6 lg:px-8">
+      <div className="w-full max-w-[1200px] mx-auto px-4 lg:px-8">
         {/* Header Component spanning full grid width */}
         {headerComponent && (
           <div className="mb-6">

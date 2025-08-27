@@ -20,11 +20,13 @@ export interface PageSettings {
   title_shadow: boolean | null;      // Whether title has shadow
   prefix_shadow: boolean | null;     // Whether prefix has shadow
   banner_url: string | null;
+  banner_background_color: string | null; // Banner background color for transparency support
   avatar_url: string | null;
   avatar_type: string | null;       // 'image' or 'icon' - avatar type selector
   avatar_icon: string | null;       // Icon name for icon-based avatars
   avatar_icon_color: string | null; // Icon color (theme token or hex)
   avatar_background_color: string | null; // Avatar background color
+  avatar_icon_size: number | null;  // Avatar icon size in pixels
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -44,11 +46,13 @@ export interface UpdatePageSettingsData {
   title_shadow?: boolean | null;
   prefix_shadow?: boolean | null;
   banner_url?: string | null;
+  banner_background_color?: string | null;
   avatar_url?: string | null;
   avatar_type?: string | null;
   avatar_icon?: string | null;
   avatar_icon_color?: string | null;
   avatar_background_color?: string | null;
+  avatar_icon_size?: number | null;
 }
 
 // Hook for fetching page settings by page_id

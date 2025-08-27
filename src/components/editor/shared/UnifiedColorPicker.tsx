@@ -224,7 +224,7 @@ const UnifiedColorPickerComponent: React.FC<UnifiedColorPickerProps> = ({
             {(mode === 'tokens' || mode === 'both') && (
               <div className="p-2 space-y-2">
                 {/* Token Categories with List Display */}
-                {(['text', 'background', 'semantic', 'accent', 'neutral', 'editor'] as ColorTokenCategory[]).map(categoryKey => {
+                {(['text', 'background', 'semantic', 'accent', 'neutral', 'editor', 'takeaway'] as ColorTokenCategory[]).map(categoryKey => {
                   const tokens = getTokensByCategory(categoryKey);
                   if (tokens.length === 0) return null;
                   

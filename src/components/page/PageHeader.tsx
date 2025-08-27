@@ -4,11 +4,8 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 import { usePageSettings } from '../../../packages/hooks/usePageSettings';
 import { Skeleton } from '@/components/ui/skeleton';
-import { 
-  User, Users, BookOpen, Home, Settings, Heart, Star, Crown, 
-  Shield, Award, Target, Zap, Flame, Sun, Moon, Coffee, 
-  Volume2, Camera, Palette, Brush, Pen, Book, Calendar, Globe 
-} from 'lucide-react';
+import { User } from 'lucide-react';
+import { getIconComponent } from '@/config/icon-library';
 
 interface PageHeaderProps {
   pageId: string;
@@ -37,23 +34,17 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
   const titleShadow = settings?.title_shadow || false;
   const prefixShadow = settings?.prefix_shadow || false;
   const bannerUrl = settings?.banner_url;
+  const bannerBackgroundColor = settings?.banner_background_color;
   const avatarUrl = settings?.avatar_url;
   const avatarType = settings?.avatar_type || 'image';
   const avatarIcon = settings?.avatar_icon;
   const avatarIconColor = settings?.avatar_icon_color;
   const avatarBackgroundColor = settings?.avatar_background_color;
+  const avatarIconSize = settings?.avatar_icon_size || 37;
 
-  // Helper function to render Lucide icon based on name
-  const renderIcon = (iconName: string, size: number = 32) => {
-    const iconMap: Record<string, any> = {
-      'User': User, 'Users': Users, 'BookOpen': BookOpen, 'Home': Home,
-      'Settings': Settings, 'Heart': Heart, 'Star': Star, 'Crown': Crown,
-      'Shield': Shield, 'Award': Award, 'Target': Target, 'Zap': Zap,
-      'Flame': Flame, 'Sun': Sun, 'Moon': Moon, 'Coffee': Coffee,
-      'Music': Volume2, 'Camera': Camera, 'Palette': Palette, 'Brush': Brush,
-      'Pen': Pen, 'Book': Book, 'Calendar': Calendar, 'Globe': Globe
-    };
-    const IconComponent = iconMap[iconName] || User;
+  // Enhanced helper function using centralized icon library with comprehensive healthcare icons
+  const renderIcon = (iconName: string, size: number = 37) => {
+    const IconComponent = getIconComponent(iconName.toLowerCase());
     return <IconComponent size={size} />;
   };
 
@@ -62,7 +53,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
     return (
       <div className={cn("w-full relative overflow-hidden", className)}>
         {/* Banner skeleton - Reddit 64px height with enhanced shadow and upward overflow */}
-        <Skeleton className="w-full h-16 bg-slate-100 shadow-lg -mt-6 pt-6" />
+        <Skeleton className="w-full h-16 bg-slate-100 shadow-lg -mt-22 pt-22" />
         
         {/* Content skeleton uses parent container constraints */}
         <div className="relative -mt-10 px-4 pb-2">
@@ -84,10 +75,13 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
 
   return (
     <div className={cn("w-full relative overflow-hidden", className)}>
-      {/* Banner Section - Fixed 64px Reddit height with enhanced shadow and upward overflow */}
+      {/* Banner Section - 80px height (30% taller than original) with rounded bottom corners and top overflow */}
       <div 
-        className="h-16 bg-center bg-cover bg-slate-100 shadow-lg -mt-6 pt-6"
-        style={bannerUrl ? { backgroundImage: `url('${bannerUrl}')` } : {}}
+        className="h-20 bg-center bg-cover bg-slate-100 shadow-lg -mt-22 pt-22 rounded-b-lg"
+        style={{
+          backgroundImage: bannerUrl ? `url('${bannerUrl}')` : undefined,
+          backgroundColor: bannerBackgroundColor || undefined
+        }}
       />
       
       {/* Header Content - Uses parent container constraints */}
@@ -107,7 +101,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
                       color: avatarIconColor || 'hsl(var(--muted-foreground))'
                     }}
                   >
-                    {renderIcon(avatarIcon, 32)}
+                    {renderIcon(avatarIcon, avatarIconSize)}
                   </div>
                 ) : avatarType === 'image' && avatarUrl ? (
                   // Image avatar type
@@ -126,8 +120,8 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
               </div>
             )}
 
-            {/* Enhanced Title section with custom sizing and shadow support - moved significantly lower */}
-            <div className={`flex flex-col justify-end ${showAvatar ? 'pb-0' : 'pb-1'}`}>
+            {/* Enhanced Title section with custom sizing and shadow support - consistent positioning */}
+            <div className="flex flex-col justify-end pb-2">
               <h1 
                 className="font-bold leading-none"
                 style={{ 
