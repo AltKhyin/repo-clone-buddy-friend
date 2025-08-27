@@ -1,6 +1,6 @@
 // ABOUTME: Centralized API helper functions for Edge Functions with consistent error handling and responses
 
-import { corsHeaders } from './cors.ts';
+import { getCorsHeaders } from './cors.ts';
 
 // Enhanced authentication helper
 export async function authenticateUser(supabase: any, authHeader: string | null) {
@@ -21,7 +21,7 @@ export async function authenticateUser(supabase: any, authHeader: string | null)
 }
 
 // Standardized success response
-export function createSuccessResponse(data: any, additionalHeaders: Record<string, string> = {}) {
+export function createSuccessResponse(data: any, additionalHeaders: Record<string, string> = {}, origin?: string) {
   return new Response(
     JSON.stringify({
       success: true,
@@ -31,7 +31,7 @@ export function createSuccessResponse(data: any, additionalHeaders: Record<strin
       status: 200,
       headers: {
         'Content-Type': 'application/json',
-        ...corsHeaders,
+        ...getCorsHeaders(origin),
         ...additionalHeaders,
       },
     }
@@ -39,7 +39,7 @@ export function createSuccessResponse(data: any, additionalHeaders: Record<strin
 }
 
 // Standardized error response with proper error handling
-export function createErrorResponse(error: any, additionalHeaders: Record<string, string> = {}) {
+export function createErrorResponse(error: any, additionalHeaders: Record<string, string> = {}, origin?: string) {
   let status = 500;
   let code = 'INTERNAL_ERROR';
   let message = 'An unexpected error occurred';
@@ -75,7 +75,7 @@ export function createErrorResponse(error: any, additionalHeaders: Record<string
       status,
       headers: {
         'Content-Type': 'application/json',
-        ...corsHeaders,
+        ...getCorsHeaders(origin),
         ...additionalHeaders,
       },
     }

@@ -67,7 +67,7 @@ export const MobileUserMenu = ({ className }: MobileUserMenuProps) => {
       });
 
       // Navigate to login page
-      navigate('/auth');
+      navigate('/login');
     } catch (error) {
       console.error('Logout error:', error);
       toast({

@@ -43,7 +43,7 @@ export const ProfileMenu = ({ isCollapsed }: ProfileMenuProps) => {
       });
 
       // Navigate to login page
-      navigate('/auth');
+      navigate('/login');
     } catch (error) {
       console.error('Logout error:', error);
       toast({

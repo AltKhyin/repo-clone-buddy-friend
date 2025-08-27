@@ -7,9 +7,13 @@ const getAllowedOrigin = (requestOrigin?: string): string => {
     'http://localhost:3000',
     'http://localhost:5173',  
     'http://localhost:8080',
-    // Add your production domains here
-    // 'https://your-production-domain.com',
-    // 'https://www.your-production-domain.com'
+    // Network development access
+    'http://192.168.0.97:8080',
+    // Production domains
+    'https://reviews.igoreckert.com.br',
+    'https://www.reviews.igoreckert.com.br',
+    // Vercel deployment domains (if any)
+    'https://evidens-reviews.vercel.app',
   ];
   
   // Allow environment variable override for production
@@ -34,9 +38,10 @@ export const getCorsHeaders = (requestOrigin?: string) => ({
 // Legacy export for backward compatibility - now secure
 export const corsHeaders = getCorsHeaders();
 
-export function handleCorsPreflightRequest(): Response {
+export function handleCorsPreflightRequest(req?: Request): Response {
+  const origin = req?.headers.get('Origin');
   return new Response(null, {
     status: 200,
-    headers: corsHeaders
+    headers: getCorsHeaders(origin)
   });
 }

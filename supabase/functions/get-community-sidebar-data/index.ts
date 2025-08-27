@@ -2,7 +2,7 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.0';
-import { corsHeaders, handleCorsPreflightRequest } from '../_shared/cors.ts';
+import { getCorsHeaders, handleCorsPreflightRequest } from '../_shared/cors.ts';
 import { createSuccessResponse, createErrorResponse } from '../_shared/api-helpers.ts';
 
 interface CommunitySidebarData {
@@ -18,14 +18,16 @@ interface CommunitySidebarData {
 }
 
 serve(async (req: Request) => {
+  const origin = req.headers.get('Origin');
+  
   // STEP 1: CORS Preflight Handling (MANDATORY FIRST)
   if (req.method === 'OPTIONS') {
-    return handleCorsPreflightRequest();
+    return handleCorsPreflightRequest(req);
   }
 
   // Only allow GET requests for this endpoint
   if (req.method !== 'GET') {
-    return createErrorResponse(new Error('METHOD_NOT_ALLOWED: Only GET requests are allowed'));
+    return createErrorResponse(new Error('METHOD_NOT_ALLOWED: Only GET requests are allowed'), {}, origin);
   }
 
   try {
@@ -257,9 +259,9 @@ serve(async (req: Request) => {
     console.log(`- ${sidebarData.moderators.length} moderators`);
 
     // STEP 8: Standardized Success Response
-    return createSuccessResponse(sidebarData);
+    return createSuccessResponse(sidebarData, {}, origin);
   } catch (error) {
     console.error('[Community Sidebar API Error]:', error);
-    return createErrorResponse(error);
+    return createErrorResponse(error, {}, origin);
   }
 });

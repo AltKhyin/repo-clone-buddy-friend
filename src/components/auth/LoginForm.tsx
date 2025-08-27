@@ -37,7 +37,7 @@ const LoginForm = () => {
     <div className="bg-white/95 backdrop-blur-sm p-8 rounded-xl shadow-lg w-full max-w-[350px]">
       <div className="flex items-center space-x-2 text-black">
         <span className="h-1.5 w-1.5 rounded-full bg-black"></span>
-        <h2 className="text-xl font-serif tracking-tight">Sign In</h2>
+        <h2 className="text-xl font-serif tracking-tight">Entrar</h2>
       </div>
       
       <Form {...form}>
@@ -66,7 +66,7 @@ const LoginForm = () => {
                 <FormControl>
                   <Input
                     type="password"
-                    placeholder="Password"
+                    placeholder="Senha"
                     {...field}
                     className="bg-white border-gray-300 focus:border-black focus:ring-0 text-black placeholder:text-gray-500"
                   />
@@ -86,16 +86,16 @@ const LoginForm = () => {
                 htmlFor="remember-me"
                 className="text-sm text-gray-700 select-none"
               >
-                Remember me
+                Lembrar de mim
               </label>
             </div>
             <button type="button" className="text-sm text-gray-700 hover:text-black">
-              Forgot?
+              Esqueceu?
             </button>
           </div>
           
           <Button type="submit" className="w-full !mt-8 !bg-black hover:!bg-gray-800 !text-white" disabled={mutation.isPending}>
-            {mutation.isPending ? 'Signing In...' : 'Sign In'}
+            {mutation.isPending ? 'Entrando...' : 'Entrar'}
           </Button>
         </form>
       </Form>
@@ -106,7 +106,7 @@ const LoginForm = () => {
         </div>
         <div className="relative flex justify-center text-sm">
           <span className="px-2 bg-white text-gray-600">
-            or continue with
+            ou continue com
           </span>
         </div>
       </div>
@@ -120,9 +120,9 @@ const LoginForm = () => {
 
       <div className="mt-6 text-center text-sm">
         <p className="text-gray-700">
-          Don't have an account?{' '}
+          Não tem uma conta?{' '}
           <button type="button" onClick={() => navigate('/signup')} className="text-black font-medium hover:underline">
-            Register
+            Registrar
           </button>
         </p>
       </div>

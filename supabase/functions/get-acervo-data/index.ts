@@ -2,7 +2,7 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.0';
-import { corsHeaders, handleCorsPreflightRequest } from '../_shared/cors.ts';
+import { getCorsHeaders, handleCorsPreflightRequest } from '../_shared/cors.ts';
 import {
   createSuccessResponse,
   createErrorResponse,
@@ -11,9 +11,10 @@ import {
 import { checkRateLimit, rateLimitHeaders, RateLimitError } from '../_shared/rate-limit.ts';
 
 serve(async req => {
+  const origin = req.headers.get('Origin');
   // STEP 1: CORS Preflight Handling
   if (req.method === 'OPTIONS') {
-    return handleCorsPreflightRequest();
+    return handleCorsPreflightRequest(req);
   }
 
   try {
@@ -227,10 +228,10 @@ serve(async req => {
     };
 
     // STEP 6: Standardized Success Response
-    return createSuccessResponse(result, rateLimitHeaders(rateLimitResult));
+    return createSuccessResponse(result, rateLimitHeaders(rateLimitResult), origin);
   } catch (error) {
     // STEP 7: Centralized Error Handling
     console.error('Error in get-acervo-data:', error);
-    return createErrorResponse(error);
+    return createErrorResponse(error, {}, origin);
   }
 });

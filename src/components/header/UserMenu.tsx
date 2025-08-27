@@ -37,7 +37,7 @@ export const UserMenu = ({ className }: UserMenuProps) => {
       });
 
       // Navigate to login page
-      navigate('/auth');
+      navigate('/login');
     } catch (error) {
       console.error('Logout error:', error);
       toast({

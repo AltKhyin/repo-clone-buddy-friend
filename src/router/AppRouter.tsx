@@ -29,6 +29,11 @@ import { AdminProtectedRoute } from '@/components/routes/AdminProtectedRoute';
 import DebugSidebar from '@/pages/DebugSidebar';
 
 const router = createBrowserRouter([
+  // Standalone Login Route (outside ProtectedAppShell)
+  {
+    path: '/login',
+    element: <LoginPage />,
+  },
   {
     path: '/',
     element: <ProtectedAppShell />,
@@ -107,10 +112,6 @@ const router = createBrowserRouter([
       {
         path: 'nao-autorizado',
         element: <UnauthorizedPage />,
-      },
-      {
-        path: 'login',
-        element: <LoginPage />,
       },
 
       // Admin Routes - Flattened structure, each page standalone

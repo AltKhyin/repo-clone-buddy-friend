@@ -42,7 +42,7 @@ export const UserProfileBlock = ({ isCollapsed }: UserProfileBlockProps) => {
       >
         <div className="h-9 w-9 rounded-full bg-muted" />
         {!isCollapsed && (
-          <span className="text-sm text-muted-foreground">Error loading profile</span>
+          <span className="text-sm text-muted-foreground">Visitante</span>
         )}
       </div>
     );
