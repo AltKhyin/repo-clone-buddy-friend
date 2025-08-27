@@ -8,12 +8,9 @@ interface SetFeaturedReviewData {
 }
 
 interface SetFeaturedReviewResponse {
-  success: true;
-  data: {
-    message: string;
-    reviewId: number;
-    reviewTitle: string;
-  };
+  message: string;
+  reviewId: number;
+  reviewTitle: string;
 }
 
 const setFeaturedReview = async ({ reviewId }: SetFeaturedReviewData): Promise<SetFeaturedReviewResponse> => {
@@ -38,7 +35,7 @@ export const useSetFeaturedReviewMutation = () => {
   return useMutation({
     mutationFn: setFeaturedReview,
     onSuccess: (data, variables) => {
-      console.log(`Successfully set review ${variables.reviewId} as featured: ${data.data.reviewTitle}`);
+      console.log(`Successfully set review ${variables.reviewId} as featured: ${data.reviewTitle}`);
       
       // Invalidate homepage feed cache to reflect the change
       queryClient.invalidateQueries({ 
