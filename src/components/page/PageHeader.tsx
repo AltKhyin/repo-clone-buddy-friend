@@ -75,9 +75,9 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
 
   return (
     <div className={cn("w-full relative overflow-hidden", className)}>
-      {/* Banner Section - 80px height (30% taller than original) with rounded bottom corners and top overflow */}
+      {/* Banner Section - 96px height (69% taller than original 64px) with rounded bottom corners and top overflow */}
       <div 
-        className="h-20 bg-center bg-cover bg-slate-100 shadow-lg -mt-22 pt-22 rounded-b-lg"
+        className="h-24 bg-center bg-cover bg-slate-100 shadow-lg -mt-22 pt-22 rounded-b-lg"
         style={{
           backgroundImage: bannerUrl ? `url('${bannerUrl}')` : undefined,
           backgroundColor: bannerBackgroundColor || undefined
