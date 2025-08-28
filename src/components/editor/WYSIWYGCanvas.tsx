@@ -57,13 +57,11 @@ export function WYSIWYGCanvas() {
     id: 'wysiwyg-canvas',
   });
 
-  // Calculate canvas height - Simple approach: find lowest content bottom + margin
+  // Calculate canvas height based on content with phantom position filtering
   const canvasHeight = useMemo(() => {
-    // Only remove phantom positions (nodes that don't exist), keep all valid positions regardless of Y coordinate
     const validator = new PositionDataValidator();
     const phantomIds = validator.detectPhantomPositions(currentPositions, editorNodes);
     
-    // Remove only phantom positions, keep everything else
     const validPositions = Object.fromEntries(
       Object.entries(currentPositions).filter(([id]) => !phantomIds.includes(id))
     );
@@ -74,7 +72,6 @@ export function WYSIWYGCanvas() {
       return currentCanvasConfig.minHeight;
     }
     
-    // Simple: find the block with the lowest bottom edge and add margin
     const lowestBottomEdge = Math.max(...positionsArray.map(pos => pos.y + pos.height));
     const BOTTOM_MARGIN = 60;
     
@@ -84,43 +81,6 @@ export function WYSIWYGCanvas() {
     );
   }, [currentPositions, currentCanvasConfig, editorNodes]);
 
-  // 🎯 WYSIWYG CANVAS HEIGHT DEBUG: Show phantom removal effect
-  React.useEffect(() => {
-    const validator = new PositionDataValidator();
-    const phantomIds = validator.detectPhantomPositions(currentPositions, editorNodes);
-    
-    const originalArray = Object.values(currentPositions);
-    const validPositions = Object.fromEntries(
-      Object.entries(currentPositions).filter(([id]) => !phantomIds.includes(id))
-    );
-    const validArray = Object.values(validPositions);
-    
-    const originalBottomEdge = originalArray.length > 0 
-      ? Math.max(...originalArray.map(pos => pos.y + pos.height))
-      : 0;
-    const validBottomEdge = validArray.length > 0 
-      ? Math.max(...validArray.map(pos => pos.y + pos.height))
-      : 0;
-
-    console.log('[WYSIWYGCanvas] 🎯 EDITOR HEIGHT DEBUG (PHANTOM REMOVAL ONLY):', {
-      viewport: currentViewport,
-      phantomRemoval: {
-        originalPositionsCount: originalArray.length,
-        validPositionsCount: validArray.length,
-        phantomsRemoved: phantomIds.length,
-        phantomIds: phantomIds,
-        originalBottomEdge,
-        validBottomEdge,
-        heightReduction: originalBottomEdge - validBottomEdge,
-      },
-      heightCalculation: {
-        finalCalculatedHeight: canvasHeight,
-        heightSource: canvasHeight === currentCanvasConfig.minHeight ? 'MIN_HEIGHT' : 'CONTENT_BASED',
-        lowestContentBottom: validBottomEdge,
-        margin: 60,
-      }
-    });
-  }, [currentPositions, currentCanvasConfig, canvasHeight, currentViewport, editorNodes]);
 
   // Initialize positions for new nodes with content-aware sizing
   React.useEffect(() => {

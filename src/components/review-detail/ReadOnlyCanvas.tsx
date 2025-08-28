@@ -56,13 +56,11 @@ export function ReadOnlyCanvas({
   // Track if we're using mobile-specific positions
   const usingMobilePositions = isMobile && !!content.mobilePositions;
 
-  // 🎯 CANVAS HEIGHT FIX: Simple approach - find lowest content bottom + margin  
+  // Calculate canvas height based on content with phantom position filtering
   const canvasHeight = useMemo(() => {
-    // Only remove phantom positions (nodes that don't exist), keep all valid positions regardless of Y coordinate
     const validator = new PositionDataValidator();
     const phantomIds = validator.detectPhantomPositions(currentPositions, content.nodes);
     
-    // Remove only phantom positions, keep everything else
     const validPositions = Object.fromEntries(
       Object.entries(currentPositions).filter(([id]) => !phantomIds.includes(id))
     );
@@ -73,7 +71,6 @@ export function ReadOnlyCanvas({
       return currentCanvasConfig.minHeight;
     }
     
-    // Simple: find the block with the lowest bottom edge and add margin
     const lowestBottomEdge = Math.max(...positionsArray.map(pos => pos.y + pos.height));
     const BOTTOM_MARGIN = 60;
     
@@ -83,43 +80,6 @@ export function ReadOnlyCanvas({
     );
   }, [currentPositions, currentCanvasConfig.minHeight, content.nodes]);
 
-  // 🎯 READONLY CANVAS HEIGHT DEBUG: Show phantom removal effect
-  React.useEffect(() => {
-    const validator = new PositionDataValidator();
-    const phantomIds = validator.detectPhantomPositions(currentPositions, content.nodes);
-    
-    const originalArray = Object.values(currentPositions);
-    const validPositions = Object.fromEntries(
-      Object.entries(currentPositions).filter(([id]) => !phantomIds.includes(id))
-    );
-    const validArray = Object.values(validPositions);
-    
-    const originalBottomEdge = originalArray.length > 0 
-      ? Math.max(...originalArray.map(pos => pos.y + pos.height))
-      : 0;
-    const validBottomEdge = validArray.length > 0 
-      ? Math.max(...validArray.map(pos => pos.y + pos.height))
-      : 0;
-
-    console.log('[ReadOnlyCanvas] 🎯 READONLY HEIGHT DEBUG (PHANTOM REMOVAL ONLY):', {
-      viewport: isMobile ? 'mobile' : 'desktop',
-      phantomRemoval: {
-        originalPositionsCount: originalArray.length,
-        validPositionsCount: validArray.length,
-        phantomsRemoved: phantomIds.length,
-        phantomIds: phantomIds,
-        originalBottomEdge,
-        validBottomEdge,
-        heightReduction: originalBottomEdge - validBottomEdge,
-      },
-      heightCalculation: {
-        finalCalculatedHeight: canvasHeight,
-        heightSource: canvasHeight === currentCanvasConfig.minHeight ? 'MIN_HEIGHT' : 'CONTENT_BASED',
-        lowestContentBottom: validBottomEdge,
-        margin: 60,
-      }
-    });
-  }, [currentPositions, currentCanvasConfig, canvasHeight, isMobile, content.nodes]);
 
   // Validate content structure
   if (!content || content.version !== '3.0.0') {
@@ -162,124 +122,6 @@ export function ReadOnlyCanvas({
   const positionedNodes = content.nodes.filter(node => currentPositions?.[node.id]);
   const unpositionedNodes = content.nodes.filter(node => !currentPositions?.[node.id]);
 
-  // 🎯 ENHANCED MOBILE CANVAS HEIGHT DEBUG: Deep analysis of height calculation
-  const positionsArray = Object.values(currentPositions);
-  const contentBottomEdge = positionsArray.length > 0 
-    ? Math.max(...positionsArray.map(pos => pos.y + pos.height))
-    : 0;
-  const BOTTOM_MARGIN = 60;
-  const calculatedContentHeight = positionsArray.length > 0 
-    ? contentBottomEdge + BOTTOM_MARGIN 
-    : 0;
-  
-  console.log('[ReadOnlyCanvas] 🔍 ENHANCED MOBILE HEIGHT DEBUG:', {
-    // Basic info
-    isMobile,
-    viewport: isMobile ? 'mobile' : 'desktop',
-    usingMobilePositions,
-    
-    // Canvas configuration
-    canvasConfig: {
-      desktopMinHeight: CANVAS_CONFIG.desktop.minHeight,
-      mobileMinHeight: CANVAS_CONFIG.mobile.minHeight,
-      currentMinHeight: currentCanvasConfig.minHeight,
-      minHeightReduced: isMobile ? 'REDUCED from 500px to 300px' : 'unchanged at 400px',
-    },
-    
-    // Position data analysis
-    positionData: {
-      totalNodes: content.nodes.length,
-      positionedNodes: positionedNodes.length,
-      currentPositionsCount: Object.keys(currentPositions).length,
-      hasDesktopPositions: content.positions ? Object.keys(content.positions).length : 0,
-      hasMobilePositions: content.mobilePositions ? Object.keys(content.mobilePositions).length : 0,
-      positionsUsed: isMobile && content.mobilePositions ? 'mobile' : 'desktop',
-    },
-    
-    // Height calculation breakdown
-    heightCalculation: {
-      positionsArrayLength: positionsArray.length,
-      contentBottomEdge,
-      bottomMargin: BOTTOM_MARGIN,
-      calculatedContentHeight,
-      minHeightConstraint: currentCanvasConfig.minHeight,
-      finalCalculatedHeight: canvasHeight,
-      excessHeight: canvasHeight > calculatedContentHeight ? canvasHeight - calculatedContentHeight : 0,
-      isMinHeightActive: canvasHeight === currentCanvasConfig.minHeight,
-      heightSource: canvasHeight === currentCanvasConfig.minHeight ? 'MIN_HEIGHT' : 'CONTENT_BASED',
-    },
-    
-    // Position samples for debugging
-    positionSamples: positionsArray.length > 0 ? positionsArray.slice(0, 3).map(pos => ({
-      id: pos.id,
-      x: pos.x,
-      y: pos.y,
-      width: pos.width,
-      height: pos.height,
-      bottomEdge: pos.y + pos.height,
-    })) : [],
-    
-    // Desktop vs mobile comparison
-    comparisonData: isMobile ? {
-      mobilePositionsCount: content.mobilePositions ? Object.keys(content.mobilePositions).length : 0,
-      desktopPositionsCount: content.positions ? Object.keys(content.positions).length : 0,
-      fallbackToDesktop: !content.mobilePositions,
-      mobileConfigWidth: CANVAS_CONFIG.mobile.width,
-      desktopConfigWidth: CANVAS_CONFIG.desktop.width,
-    } : null,
-  });
-
-  // 🎯 CRITICAL HEIGHT COMPARISON: What if we used desktop vs mobile positions?
-  if (isMobile && content.positions && content.mobilePositions) {
-    const desktopPositions = Object.values(content.positions);
-    const mobilePositions = Object.values(content.mobilePositions);
-    
-    const desktopBottomEdge = desktopPositions.length > 0 
-      ? Math.max(...desktopPositions.map(pos => pos.y + pos.height))
-      : 0;
-    const mobileBottomEdge = mobilePositions.length > 0 
-      ? Math.max(...mobilePositions.map(pos => pos.y + pos.height))
-      : 0;
-
-    const desktopHeightIfUsed = Math.max(CANVAS_CONFIG.mobile.minHeight, desktopBottomEdge + 60);
-    const mobileHeightIfUsed = Math.max(CANVAS_CONFIG.mobile.minHeight, mobileBottomEdge + 60);
-
-    console.log('[ReadOnlyCanvas] ⚖️ CRITICAL POSITION DATA COMPARISON:', {
-      scenario: 'Mobile viewport with both position datasets available',
-      currentlyUsing: 'mobile positions',
-      
-      desktopPositions: {
-        count: desktopPositions.length,
-        bottomEdge: desktopBottomEdge,
-        calculatedHeight: desktopHeightIfUsed,
-        samplePositions: desktopPositions.slice(0, 2).map(pos => ({
-          id: pos.id, y: pos.y, height: pos.height, bottomEdge: pos.y + pos.height
-        })),
-      },
-      
-      mobilePositions: {
-        count: mobilePositions.length,
-        bottomEdge: mobileBottomEdge,
-        calculatedHeight: mobileHeightIfUsed,
-        samplePositions: mobilePositions.slice(0, 2).map(pos => ({
-          id: pos.id, y: pos.y, height: pos.height, bottomEdge: pos.y + pos.height
-        })),
-      },
-      
-      heightDifference: Math.abs(desktopHeightIfUsed - mobileHeightIfUsed),
-      potentialIssue: desktopHeightIfUsed > mobileHeightIfUsed + 100 ? 
-        'DESKTOP POSITIONS WOULD CREATE EXCESSIVE HEIGHT' : 
-        mobileHeightIfUsed > desktopHeightIfUsed + 100 ?
-        'MOBILE POSITIONS ARE CREATING EXCESSIVE HEIGHT' :
-        'HEIGHT DIFFERENCE IS REASONABLE',
-        
-      recommendation: desktopHeightIfUsed > mobileHeightIfUsed + 100 ?
-        'Mobile positions are correct, but something else is wrong' :
-        mobileHeightIfUsed > desktopHeightIfUsed + 100 ?
-        'Mobile position data might have incorrect Y/height values' :
-        'Position data looks reasonable, check minHeight constraint'
-    });
-  }
 
   return (
     <div className={`readonly-canvas-container readonly-content ${className}`}>

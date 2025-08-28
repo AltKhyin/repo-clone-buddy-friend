@@ -37,18 +37,8 @@ describe('Real Data Validation', () => {
     
     const mobileCanvasConfig = { width: 375, minHeight: 300, gridColumns: 1 };
     
-    // Generate report showing the problem
+    // Generate report to validate phantom detection works
     const report = validator.generateSanitizationReport(mobilePositions, actualNodes, mobileCanvasConfig);
-    
-    console.log('📊 REAL DATA VALIDATION REPORT:');
-    console.log('Original height:', report.original.calculatedHeight);
-    console.log('Sanitized height:', report.sanitized.calculatedHeight);
-    console.log('Height reduction:', report.improvement.heightReduction);
-    console.log('Phantoms eliminated:', report.improvement.phantomsEliminated);
-    console.log('Original content bounds:', report.original.contentBounds);
-    console.log('Sanitized content bounds:', report.sanitized.contentBounds);
-    console.log('Original phantom positions:', report.original.phantomPositions);
-    console.log('Original invalid bounds:', report.original.invalidBounds);
     
     // Validate that we detect the phantom positions
     expect(report.original.phantomPositions.length).toBeGreaterThan(0);
@@ -69,7 +59,5 @@ describe('Real Data Validation', () => {
     expect(report.sanitized.validPositions).toContain("0496d2d1-c3bf-458f-9f10-4c021c35f208");
     expect(report.sanitized.validPositions).toContain("0966e13b-419e-49c2-97d0-5f2f5473c26b");
     expect(report.sanitized.validPositions).toContain("1fea1376-cd03-4e24-a622-2c612ea35cc4");
-    
-    console.log('✅ Phantom position detection and sanitization working correctly!');
   });
 });
