@@ -127,11 +127,11 @@ serve(async req => {
       userCanModerate = userData?.role === 'admin' || userData?.role === 'editor';
     }
 
-    // Get reply count for the post
-    const { count: replyCount } = await supabase
-      .from('CommunityPosts')
-      .select('id', { count: 'exact' })
-      .eq('parent_post_id', postId);
+    // Get recursive reply count for the post (includes all nested comments)
+    const { data: replyCountData } = await supabase
+      .rpc('get_total_comment_count', { post_id: postId });
+    
+    const replyCount = replyCountData || 0;
 
     // Format response with proper fallbacks
     const response = {

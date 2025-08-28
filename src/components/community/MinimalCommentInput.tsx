@@ -20,7 +20,7 @@ export const MinimalCommentInput = ({
   parentPostId, 
   rootPostId,
   onCommentPosted, 
-  placeholder = "Join the conversation",
+  placeholder = "Participar da conversa",
   className 
 }: MinimalCommentInputProps) => {
   const [isExpanded, setIsExpanded] = useState(false);

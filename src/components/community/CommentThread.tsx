@@ -1,12 +1,12 @@
 
-// ABOUTME: Enhanced comment tree with Reddit-style expand/collapse threading and visual hierarchy.
+// ABOUTME: Reddit-style comment threading with exact visual hierarchy, proper terminology, and optimized performance.
 
 import React, { useState, useMemo } from 'react';
 import { Comment } from './Comment';
 import { Button } from '../ui/button';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronRight, Minus, Plus } from 'lucide-react';
 import { cn } from '../../lib/utils';
-import type { CommunityPost } from '../../types/community';
+import type { CommunityPost, RedditCommentTreeNode, RedditThreadState } from '../../types/community';
 
 interface CommentThreadProps {
   comments: CommunityPost[];
@@ -14,77 +14,68 @@ interface CommentThreadProps {
   onCommentPosted: () => void;
 }
 
-// Enhanced comment type with replies and thread state
-type EnhancedComment = CommunityPost & { 
-  replies: EnhancedComment[];
-  depth: number;
-  hasReplies: boolean;
-};
-
-interface ThreadState {
-  collapsedComments: Set<number>;
-  expandedPaths: Map<number, boolean>;
-}
+// Reddit-style constants for exact visual matching
+const REDDIT_INDENT_WIDTH = 12; // pixels per depth level (Reddit's standard)
+const REDDIT_MAX_VISIBLE_DEPTH = 8; // Before "Continue this thread" link
+// Use CSS custom property instead of hardcoded color for theme consistency
 
 export const CommentThread = ({ comments, rootPostId, onCommentPosted }: CommentThreadProps) => {
-  const [threadState, setThreadState] = useState<ThreadState>({
+  const [threadState, setThreadState] = useState<RedditThreadState>({
     collapsedComments: new Set(),
-    expandedPaths: new Map()
+    showMoreReplies: new Map()
   });
 
-  // Build hierarchical tree from flat list with depth tracking
+  // Build Reddit-style hierarchical tree with proper depth calculation
   const commentTree = useMemo(() => {
-    console.log('Building comment tree from comments:', comments);
+    console.log('Building Reddit-style comment tree from comments:', comments);
     
-    const commentMap = new Map<number, EnhancedComment>();
-    const rootComments: EnhancedComment[] = [];
+    const commentMap = new Map<number, RedditCommentTreeNode>();
+    const rootComments: RedditCommentTreeNode[] = [];
 
-    // First pass: Create enhanced comment objects
+    // First pass: Create Reddit-style comment tree nodes
     comments.forEach(comment => {
-      const enhancedComment = { 
+      const redditNode: RedditCommentTreeNode = { 
         ...comment, 
         replies: [],
         depth: 0,
-        hasReplies: false
+        hasReplies: false,
+        isCollapsed: false // Will be set in rendering logic
       };
-      commentMap.set(comment.id, enhancedComment);
-      console.log(`Created enhanced comment ${comment.id}, parent_post_id: ${comment.parent_post_id}`);
+      commentMap.set(comment.id, redditNode);
     });
 
-    // Second pass: Build tree structure and calculate depth
-    // Sort comments by nesting_level to process parents before children
+    // Second pass: Build Reddit-style tree structure with proper depth
+    // Sort by nesting_level to ensure parents are processed before children
     const sortedComments = [...comments].sort((a, b) => (a.nesting_level || 0) - (b.nesting_level || 0));
     
     sortedComments.forEach(comment => {
-      const enhancedComment = commentMap.get(comment.id)!;
+      const redditNode = commentMap.get(comment.id)!;
       
-      // Find the parent in our comment map (for threaded replies)
+      // Find parent comment for Reddit-style threading
       const parentComment = comment.parent_post_id ? commentMap.get(comment.parent_post_id) : null;
       
       if (parentComment) {
-        // This is a reply to another comment in our tree
-        enhancedComment.depth = parentComment.depth + 1;
-        enhancedComment.nesting_level = comment.nesting_level || (parentComment.nesting_level || 0) + 1;
-        parentComment.replies.push(enhancedComment);
+        // Reply to another comment - calculate Reddit-style depth
+        redditNode.depth = Math.min(parentComment.depth + 1, REDDIT_MAX_VISIBLE_DEPTH);
+        redditNode.nesting_level = comment.nesting_level || (parentComment.nesting_level || 0) + 1;
+        parentComment.replies.push(redditNode);
         parentComment.hasReplies = true;
-        console.log(`Added comment ${comment.id} as reply to ${comment.parent_post_id} at depth ${enhancedComment.depth}`);
       } else {
-        // This is a top-level comment (direct reply to the main post)
-        enhancedComment.depth = 0;
-        enhancedComment.nesting_level = comment.nesting_level || 1;
-        rootComments.push(enhancedComment);
-        console.log(`Added comment ${comment.id} as root comment`);
+        // Top-level comment (direct reply to main post)
+        redditNode.depth = 0;
+        redditNode.nesting_level = comment.nesting_level || 1;
+        rootComments.push(redditNode);
       }
     });
-
-    console.log('Built comment tree:', { rootComments: rootComments.length, totalComments: comments.length });
     
-    // Sort root comments by creation date (newest first for better UX)
+    // Sort root comments chronologically (Reddit-style)
     rootComments.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
     
+    console.log('Built Reddit-style tree:', { rootComments: rootComments.length, totalComments: comments.length });
     return rootComments;
-  }, [comments]);
+  }, [comments, threadState.collapsedComments]);
 
+  // Reddit-style thread collapse/expand functionality
   const toggleThread = (commentId: number) => {
     setThreadState(prev => {
       const newCollapsed = new Set(prev.collapsedComments);
@@ -106,89 +97,80 @@ export const CommentThread = ({ comments, rootPostId, onCommentPosted }: Comment
     return threadState.collapsedComments.has(commentId);
   };
 
-  // Recursive function to render comments with threading lines
-  const renderComments = (
-    commentsToRender: EnhancedComment[],
-    level: number = 0
+  // Calculate total visible comments for Reddit-style counting
+  const getTotalComments = (nodes: RedditCommentTreeNode[]): number => {
+    return nodes.reduce((total, node) => {
+      return total + 1 + (node.replies ? getTotalComments(node.replies) : 0);
+    }, 0);
+  };
+
+  // Reddit-style comment rendering with exact visual hierarchy
+  const renderRedditComments = (
+    commentsToRender: RedditCommentTreeNode[],
+    depth: number = 0
   ): React.ReactNode => {
     return commentsToRender.map((comment, index) => {
       const isCollapsed = isThreadCollapsed(comment.id);
-      const isLastInLevel = index === commentsToRender.length - 1;
+      const replyCount = getTotalComments(comment.replies);
+      
       
       return (
-        <div key={comment.id} className="relative">
-          {/* Threading line - only show for nested comments */}
-          {level > 0 && (
-            <div 
-              className={cn(
-                "absolute left-0 top-0 bottom-0 w-0.5 bg-border/30",
-                "hover:bg-border/50 transition-colors duration-150"
-              )}
-              style={{ left: `${(level - 1) * 24 + 12}px` }}
-            />
-          )}
+        <div key={comment.id} className="comment-thread-item">
           
-          {/* Thread toggle button for comments with replies */}
-          {comment.hasReplies && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className={cn(
-                "absolute z-10 w-4 h-4 p-0 bg-background border border-border rounded-sm",
-                "hover:bg-surface-muted hover:border-border-hover transition-colors duration-150",
-                "flex items-center justify-center"
-              )}
-              style={{ 
-                left: `${level * 24 + 4}px`,
-                top: '12px'
-              }}
-              onClick={() => toggleThread(comment.id)}
-            >
-              {isCollapsed ? (
-                <ChevronRight className="w-2.5 h-2.5" />
-              ) : (
-                <ChevronDown className="w-2.5 h-2.5" />
-              )}
-            </Button>
-          )}
-
-          {/* Comment content with proper indentation */}
-          <div 
+          {/* Natural comment layout with collapse button and nesting indicators */}
+          <div
             className={cn(
-              "transition-all duration-200",
-              isCollapsed && "opacity-60"
+              "comment-with-nesting flex transition-all duration-200",
+              isCollapsed && "opacity-50"
             )}
-            style={{ 
-              marginLeft: `${level * 24}px`,
-              paddingLeft: level > 0 ? '16px' : '0'
+            style={{
+              marginLeft: `${depth * REDDIT_INDENT_WIDTH}px`
             }}
           >
-            <Comment 
-              comment={comment} 
-              indentationLevel={level}
-              rootPostId={rootPostId}
-              onCommentPosted={onCommentPosted}
-            />
             
-            {/* Collapsed thread indicator */}
-            {isCollapsed && comment.replies.length > 0 && (
-              <div className="ml-4 mt-2 mb-4">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-xs text-muted-foreground hover:text-foreground"
-                  onClick={() => toggleThread(comment.id)}
-                >
-                  [{comment.replies.length} {comment.replies.length === 1 ? 'resposta oculta' : 'respostas ocultas'}]
-                </Button>
-              </div>
-            )}
+            {/* Comment content with depth-aware styling */}
+            <div
+              className={cn(
+                "comment-content flex-1",
+                depth > 0 && "border-l border-border/20 pl-3", // Subtle left border for nested comments
+                depth > 2 && "border-l-2", // Stronger border for deeper nesting
+                depth > 4 && "bg-surface-muted/30 rounded-r-md" // Background for very deep nesting
+              )}
+            >
+              <Comment
+                comment={comment}
+                indentationLevel={depth}
+                rootPostId={rootPostId}
+                onCommentPosted={onCommentPosted}
+                hasReplies={comment.hasReplies}
+                isCollapsed={isCollapsed}
+                onToggleCollapse={() => toggleThread(comment.id)}
+                replyCount={replyCount}
+              />
+
+            </div>
           </div>
 
-          {/* Render nested replies if not collapsed */}
+          {/* Nested replies */}
           {!isCollapsed && comment.replies && comment.replies.length > 0 && (
-            <div className="relative">
-              {renderComments(comment.replies, level + 1)}
+            <div className="nested-replies">
+              {comment.depth < REDDIT_MAX_VISIBLE_DEPTH ? (
+                renderRedditComments(comment.replies, depth + 1)
+              ) : (
+                <div 
+                  className="continue-thread mt-2 mb-4"
+                  style={{ marginLeft: `${(depth + 1) * REDDIT_INDENT_WIDTH + 24}px` }}
+                >
+                  <Button
+                    variant="link"
+                    size="sm"
+                    className="text-accent hover:text-accent/80 text-xs p-0 h-auto"
+                    onClick={() => console.log('Navigate to comment permalink')}
+                  >
+                    Continuar esta conversa →
+                  </Button>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -196,9 +178,10 @@ export const CommentThread = ({ comments, rootPostId, onCommentPosted }: Comment
     });
   };
 
+  // Reddit-style empty state
   if (comments.length === 0) {
     return (
-      <div className="text-center py-12 text-muted-foreground">
+      <div className="reddit-empty-state text-center py-12 text-muted-foreground">
         <div className="space-y-2">
           <p className="text-base">Ainda não há comentários nesta discussão.</p>
           <p className="text-sm">Seja o primeiro a comentar!</p>
@@ -207,17 +190,17 @@ export const CommentThread = ({ comments, rootPostId, onCommentPosted }: Comment
     );
   }
 
-  const totalComments = comments.length;
+  const totalComments = getTotalComments(commentTree);
   const collapsedCount = threadState.collapsedComments.size;
 
   return (
-    <div className="space-y-1">
-      {/* Thread stats */}
-      <div className="flex items-center justify-between mb-3 pb-2 border-b border-border/30">
-        <div className="text-sm text-muted-foreground">
+    <div className="reddit-comment-thread space-y-1">
+      {/* Reddit-style thread header with proper terminology */}
+      <div className="reddit-thread-header flex items-center justify-between mb-4 pb-2 border-b border-border/20">
+        <div className="text-sm text-muted-foreground font-medium">
           {totalComments} {totalComments === 1 ? 'comentário' : 'comentários'}
           {collapsedCount > 0 && (
-            <span className="ml-2">
+            <span className="ml-2 text-accent">
               ({collapsedCount} {collapsedCount === 1 ? 'thread oculta' : 'threads ocultas'})
             </span>
           )}
@@ -225,12 +208,12 @@ export const CommentThread = ({ comments, rootPostId, onCommentPosted }: Comment
         
         {collapsedCount > 0 && (
           <Button
-            variant="ghost"
+            variant="outline"
             size="sm"
-            className="text-xs"
-            onClick={() => setThreadState({ 
+            className="reddit-expand-all text-xs h-7 px-3"
+            onClick={() => setThreadState({
               collapsedComments: new Set(),
-              expandedPaths: new Map()
+              showMoreReplies: new Map()
             })}
           >
             Expandir todas
@@ -238,9 +221,9 @@ export const CommentThread = ({ comments, rootPostId, onCommentPosted }: Comment
         )}
       </div>
 
-      {/* Comment tree */}
-      <div className="reddit-comment-thread">
-        {renderComments(commentTree)}
+      {/* Reddit-style comment tree */}
+      <div className="reddit-comments-container">
+        {renderRedditComments(commentTree)}
       </div>
     </div>
   );

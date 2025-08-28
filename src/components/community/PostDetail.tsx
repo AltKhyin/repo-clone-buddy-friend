@@ -37,7 +37,7 @@ export const PostDetail = ({ post, comments }: PostDetailProps) => {
           parentPostId={post.id}
           rootPostId={post.id}
           onCommentPosted={handleCommentPosted}
-          placeholder="Join the conversation"
+          placeholder="Participar da conversa"
         />
       )}
       

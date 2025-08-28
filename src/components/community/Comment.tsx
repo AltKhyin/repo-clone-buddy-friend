@@ -1,4 +1,4 @@
-// ABOUTME: Core UI component for displaying a single comment with nesting support and reward badges.
+// ABOUTME: Reddit-style individual comment component with exact visual hierarchy and proper terminology.
 
 import React, { useState } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -8,7 +8,7 @@ import { formatDistanceToNow, isValid, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { MinimalCommentInput } from './MinimalCommentInput';
 import { PostActionMenu } from './PostActionMenu';
-import { Award } from 'lucide-react';
+import { Award, ChevronDown, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { CommunityPost } from '../../types/community';
 import { VoteButton } from '../ui/VoteButton';
@@ -16,9 +16,14 @@ import { CommentAuthor } from './CommunityAuthor';
 
 interface CommentProps {
   comment: CommunityPost;
-  indentationLevel: number;
+  indentationLevel: number;  // Represents nesting depth
   rootPostId: number;
   onCommentPosted: () => void;
+  // Collapse/expand functionality
+  hasReplies?: boolean;
+  isCollapsed?: boolean;
+  onToggleCollapse?: () => void;
+  replyCount?: number;
 }
 
 // Safe date formatting helper
@@ -58,12 +63,17 @@ export const Comment = ({
   indentationLevel,
   rootPostId,
   onCommentPosted,
+  hasReplies = false,
+  isCollapsed = false,
+  onToggleCollapse,
+  replyCount = 0,
 }: CommentProps) => {
   const [isReplying, setIsReplying] = useState(false);
 
-  // Calculate left margin for nesting effect (max 6 levels to prevent UI overflow)
-  const effectiveLevel = Math.min(indentationLevel, 6);
-  const indentationStyle = { marginLeft: `${effectiveLevel * 1.5}rem` };
+  // Natural depth handling with visual awareness
+  const nestingDepth = indentationLevel;
+  const isDeepNested = nestingDepth > 3;
+  const isNested = nestingDepth > 0;
 
   const handleReplyPosted = () => {
     setIsReplying(false);
@@ -77,29 +87,26 @@ export const Comment = ({
   return (
     <div 
       className={cn(
-        "flex gap-2 mt-3 transition-all duration-200",
+        "natural-comment flex gap-2 mt-2 transition-all duration-200",
         isOptimistic && "opacity-70 animate-pulse",
-        isLoading && "bg-muted/20 rounded-lg p-1"
-      )} 
-      style={indentationStyle}
-    >
-      {/* Vertical connector line for nested comments */}
-      {indentationLevel > 0 && (
-        <div className="flex flex-col items-center">
-          <div className="w-0.5 bg-border flex-grow min-h-[60px]"></div>
-        </div>
+        isLoading && "bg-blue-50/30 rounded-md p-1",
+        isDeepNested && "text-sm", // Slightly smaller text for deeply nested comments
+        isNested && "mt-1" // Tighter spacing for nested comments
       )}
-
-      <div className="flex-1">
+    >
+      {/* Natural comment content with nesting awareness */}
+      <div className="flex-1 comment-body">
         <div
           className={cn(
-            'p-2 transition-colors hover:bg-surface/20',
+            'comment-container p-2 rounded-sm transition-colors',
+            'hover:bg-surface-hover',
             comment.is_rewarded &&
-              'border-l-2 border-yellow-500 bg-yellow-50/50 dark:bg-yellow-950/20'
+              'border-l-2 border-accent bg-accent/10',
+            isDeepNested && "p-1.5", // Slightly tighter padding for deep comments
           )}
         >
-          {/* Comment Header */}
-          <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
+          {/* Comment header with collapse control */}
+          <div className="comment-header flex items-center justify-between text-xs text-muted-foreground mb-2">
             <div className="flex items-center gap-2">
               <CommentAuthor
                 author={comment.author}
@@ -108,10 +115,36 @@ export const Comment = ({
                 timestamp={isLoading ? 'Enviando...' : formatCommentDate(comment.created_at)}
                 className="flex-1"
               />
+              
+              {/* Thread collapse/expand control */}
+              {hasReplies && onToggleCollapse && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onToggleCollapse}
+                  className={cn(
+                    "thread-toggle-btn h-6 px-1.5 rounded-md",
+                    "hover:bg-surface-hover text-muted-foreground hover:text-foreground",
+                    "flex items-center gap-1 transition-all duration-150",
+                    "border border-transparent hover:border-border/40"
+                  )}
+                  title={isCollapsed ? `Mostrar ${replyCount} respostas` : 'Ocultar respostas'}
+                >
+                  {isCollapsed ? (
+                    <>
+                      <ChevronRight className="w-3.5 h-3.5" strokeWidth={2} />
+                      <span className="text-xs font-medium">{replyCount}</span>
+                    </>
+                  ) : (
+                    <ChevronDown className="w-3.5 h-3.5" strokeWidth={2} />
+                  )}
+                </Button>
+              )}
+              
               {comment.is_rewarded && (
                 <Badge
                   variant="secondary"
-                  className="text-yellow-600 border-yellow-500/50 bg-yellow-100 dark:bg-yellow-900/30"
+                  className="reward-badge text-accent border-accent/60 bg-accent/20 text-xs px-1.5 py-0.5"
                 >
                   <Award className="w-3 h-3 mr-1" />
                   Recompensa
@@ -121,15 +154,15 @@ export const Comment = ({
             <PostActionMenu post={comment} />
           </div>
 
-          {/* Comment Body */}
+          {/* Reddit-style comment body */}
           <div
-            className="prose dark:prose-invert prose-sm max-w-none mb-2"
+            className="reddit-comment-text max-w-none mb-3 text-sm leading-relaxed text-foreground"
             dangerouslySetInnerHTML={{ __html: comment.content }}
           />
 
-          {/* Comment Actions - Reddit Style Bottom Row */}
-          <div className="flex items-center gap-3 text-muted-foreground">
-            {/* Vote Section */}
+          {/* Natural action bar */}
+          <div className="comment-actions flex items-center gap-1 text-muted-foreground text-xs">
+            {/* Horizontal vote controls */}
             <VoteButton
               entityId={comment.id.toString()}
               entityType="community_post"
@@ -137,29 +170,33 @@ export const Comment = ({
               downvotes={comment.downvotes || 0}
               userVote={comment.user_vote}
               orientation="horizontal"
-              size="sm"
+              size={isDeepNested ? "xs" : "sm"}
             />
 
-            {/* Reply Button */}
+            {/* Reply button */}
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setIsReplying(!isReplying)}
-              className="h-8 px-2 text-xs hover:bg-surface-muted/50"
+              className={cn(
+                "reply-btn h-7 px-2 text-xs hover:bg-action-hover hover:text-accent transition-colors",
+                isDeepNested && "h-6 px-1.5" // Smaller for deep comments
+              )}
             >
               {isReplying ? 'Cancelar' : 'Responder'}
             </Button>
+
           </div>
         </div>
 
-        {/* Reply Input */}
+        {/* Natural reply input */}
         {isReplying && (
-          <div className="mt-2 ml-4">
+          <div className="reply-input mt-3">
             <MinimalCommentInput
               parentPostId={comment.id}
               rootPostId={rootPostId}
               onCommentPosted={handleReplyPosted}
-              placeholder="Reply to this comment"
+              placeholder="Responder a este comentário..."
             />
           </div>
         )}

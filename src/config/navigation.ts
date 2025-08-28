@@ -12,6 +12,7 @@ import {
   Layout,
   TrendingUp,
   MessageSquare,
+  CreditCard,
 } from 'lucide-react';
 import { LucideIcon } from 'lucide-react';
 
@@ -112,6 +113,14 @@ export const navigationItems: NavigationItem[] = [
     path: '/admin/access-control',
     label: 'Controle de Acesso',
     icon: Shield,
+    requiredRoles: ['admin', 'editor'],
+    showOnMobile: false,
+    showOnDesktop: true,
+  },
+  {
+    path: '/admin/payment',
+    label: 'Gestão de Pagamentos',
+    icon: CreditCard,
     requiredRoles: ['admin', 'editor'],
     showOnMobile: false,
     showOnDesktop: true,

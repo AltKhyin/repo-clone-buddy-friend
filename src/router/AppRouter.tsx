@@ -15,6 +15,7 @@ import SuggestionPage from '@/pages/SuggestionPage';
 import UnauthorizedPage from '@/pages/UnauthorizedPage';
 import LoginPage from '@/pages/LoginPage';
 import RegistrationPage from '@/pages/RegistrationPage';
+import PaymentPage from '@/pages/PaymentPage';
 import { UniversalRouteProtection } from '@/components/routes/UniversalRouteProtection';
 import { AdminDashboard } from '@/pages/AdminDashboard';
 import ContentManagement from '@/pages/ContentManagement';
@@ -24,6 +25,7 @@ import AdminLayoutManagement from '@/pages/AdminLayoutManagement';
 import AdminAnalytics from '@/pages/AdminAnalytics';
 import AdminAccessControl from '@/pages/AdminAccessControl';
 import AdminCommunityManagement from '@/pages/AdminCommunityManagement';
+import AdminPayment from '@/pages/AdminPayment';
 import EditorPage from '@/pages/EditorPage';
 import ReviewManagementPage from '@/pages/ReviewManagementPage';
 import { AdminProtectedRoute } from '@/components/routes/AdminProtectedRoute';
@@ -38,6 +40,10 @@ const router = createBrowserRouter([
   {
     path: '/registrar',
     element: <RegistrationPage />,
+  },
+  {
+    path: '/pagar',
+    element: <PaymentPage />,
   },
   {
     path: '/',
@@ -181,6 +187,14 @@ const router = createBrowserRouter([
         element: (
           <AdminProtectedRoute>
             <AdminAccessControl />
+          </AdminProtectedRoute>
+        ),
+      },
+      {
+        path: '/admin/payment',
+        element: (
+          <AdminProtectedRoute>
+            <AdminPayment />
           </AdminProtectedRoute>
         ),
       },

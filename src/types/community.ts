@@ -191,3 +191,32 @@ export interface VotePayload {
   postId: number;
   voteType: Exclude<VoteType, null>;
 }
+
+// Reddit-style threading interfaces
+export interface RedditThreadState {
+  collapsedComments: Set<number>;
+  showMoreReplies: Map<number, boolean>;
+}
+
+export interface RedditCommentTreeNode extends CommunityPost {
+  replies: RedditCommentTreeNode[];
+  depth: number;
+  hasReplies: boolean;
+  isCollapsed?: boolean;
+  showMoreReplies?: boolean;
+}
+
+// Reddit-style component props
+export interface RedditCommentProps {
+  comment: RedditCommentTreeNode;
+  rootPostId: number;
+  onCommentPosted: () => void;
+  onToggleCollapse?: (commentId: number) => void;
+  isCollapsed?: boolean;
+}
+
+export interface RedditThreadProps {
+  comments: CommunityPost[];
+  rootPostId: number;
+  onCommentPosted: () => void;
+}
