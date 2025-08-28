@@ -13,8 +13,8 @@ export default defineConfig({
     // STRATEGIC: Fast feedback for critical tests only
     testTimeout: 3000, // 3 second timeout - tests should be fast
 
-    // SIMPLE: Basic test file patterns
-    include: ['src/**/*.test.{ts,tsx}'],
+    // SIMPLE: Basic test file patterns - includes hooks tests
+    include: ['src/**/*.test.{ts,tsx}', 'packages/**/*.test.{ts,tsx}'],
     exclude: ['node_modules/**', 'dist/**', 'supabase/**'],
 
     // STRATEGIC: Coverage focused on quality, not quantity

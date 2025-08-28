@@ -11,15 +11,11 @@ interface PostWithCommentsData {
 
 /**
  * Fetches a single post with its complete comment tree.
- * Uses multiple fallback strategies for maximum reliability.
+ * Uses Edge Function approach only, following [C6.2] Data Access Layer principles.
  * @param postId The ID of the post to fetch
  */
 const fetchPostWithComments = async (postId: number): Promise<PostWithCommentsData> => {
-  console.log('=== fetchPostWithComments START ===');
-  console.log('Input postId:', postId, 'Type:', typeof postId);
-
   if (!postId || postId <= 0) {
-    console.error('Invalid postId provided:', postId);
     throw new Error(`Invalid post ID: ${postId}. Expected a positive number.`);
   }
 
@@ -28,16 +24,11 @@ const fetchPostWithComments = async (postId: number): Promise<PostWithCommentsDa
     data: { user },
     error: authError,
   } = await supabase.auth.getUser();
-  if (authError) {
-    console.error('Auth error:', authError);
-  }
-
+  
   const userId = user?.id || '00000000-0000-0000-0000-000000000000';
-  console.log('Current user ID:', userId);
-
-  // Strategy 1: Try edge function approach
+  
   try {
-    console.log('Attempting edge function approach...');
+    // Fetch post details via Edge Function (now with fixed CORS)
     const { data: postData, error: postError } = await supabase.functions.invoke(
       'get-community-post-detail',
       {
@@ -46,20 +37,15 @@ const fetchPostWithComments = async (postId: number): Promise<PostWithCommentsDa
     );
 
     if (postError) {
-      console.error('Edge function error:', postError);
-      throw new Error(`Edge function failed: ${postError.message}`);
+      throw new Error(`Failed to load post: ${postError.message || 'Unknown error'}`);
     }
 
     if (!postData) {
-      console.error('No post data returned from edge function');
-      throw new Error(`Post with ID ${postId} not found via edge function`);
+      throw new Error(`Post with ID ${postId} not found`);
     }
-
-    console.log('Post fetched successfully via edge function:', postData);
 
     // Extract the actual post data from the response
     const actualPostData = postData?.data || postData;
-    console.log('Extracted post data:', actualPostData);
 
     // Fetch comments using the optimized RPC function
     const { data: comments, error: commentsError } = await supabase.rpc('get_comments_for_post', {
@@ -68,173 +54,92 @@ const fetchPostWithComments = async (postId: number): Promise<PostWithCommentsDa
     });
 
     if (commentsError) {
-      console.error('Comments RPC error:', commentsError);
-      // Don't fail the entire query if comments fail
+      // Don't fail the entire query if comments fail - show post without comments
       return { post: actualPostData as CommunityPost, comments: [] };
     }
-
-    console.log('Comments fetched successfully:', comments?.length || 0, 'comments');
 
     return {
       post: actualPostData as CommunityPost,
       comments: (comments || []) as CommunityPost[],
     };
-  } catch (edgeFunctionError) {
-    console.error('Edge function approach failed, trying direct query:', edgeFunctionError);
-
-    // Strategy 2: Fallback to direct database query with vote data
-    try {
-      console.log('Attempting direct database query with vote data...');
-
-      // Get basic post data
-      const { data: post, error: postError } = await supabase
-        .from('CommunityPosts')
-        .select(
-          `
-          *,
-          author:Practitioners!CommunityPosts_author_id_fkey (
-            id,
-            full_name,
-            avatar_url,
-            role,
-            profession
-          )
-        `
-        )
-        .eq('id', postId)
-        .is('parent_post_id', null) // Ensure it's a top-level post
-        .single();
-
-      if (postError) {
-        console.error('Direct query post error:', postError);
-        throw new Error(`Failed to fetch post via direct query: ${postError.message}`);
+  } catch (error) {
+    
+    // Enhanced error messaging for better debugging
+    if (error instanceof Error) {
+      if (error.message.includes('CORS')) {
+        throw new Error('Connection blocked. Please ensure you\'re using the correct domain or refresh the page.');
       }
-
-      if (!post) {
-        console.error('No post found with direct query');
-        throw new Error(`Post with ID ${postId} not found via direct query`);
+      if (error.message.includes('Network')) {
+        throw new Error('Network connection issue. Please check your internet connection and try again.');
       }
-
-      console.log('Post fetched successfully via direct query:', post);
-
-      // Get user's vote data if authenticated
-      let userVote = null;
-      let isSaved = false;
-
-      if (user) {
-        // Get user's vote on this post
-        const { data: voteData } = await supabase
-          .from('CommunityPost_Votes')
-          .select('vote_type')
-          .eq('post_id', postId)
-          .eq('practitioner_id', user.id)
-          .single();
-
-        userVote = voteData?.vote_type || null;
-
-        // Check if post is saved by user
-        const { data: savedData } = await supabase
-          .from('SavedPosts')
-          .select('id')
-          .eq('post_id', postId)
-          .eq('practitioner_id', user.id)
-          .single();
-
-        isSaved = !!savedData;
+      if (error.message.includes('401') || error.message.includes('Unauthorized')) {
+        throw new Error('Authentication required. Please log in to view this post.');
       }
-
-      // Get reply count for the post
-      const { count: replyCount } = await supabase
-        .from('CommunityPosts')
-        .select('id', { count: 'exact' })
-        .eq('parent_post_id', postId);
-
-      // Enhance post with vote data
-      const enhancedPost = {
-        ...post,
-        user_vote: userVote,
-        reply_count: replyCount || 0,
-        is_saved: isSaved,
-      };
-
-      console.log('Enhanced post with vote data:', enhancedPost);
-
-      // Fetch comments using the optimized RPC function
-      const { data: comments, error: commentsError } = await supabase.rpc('get_comments_for_post', {
-        p_post_id: postId,
-        p_user_id: userId,
-      });
-
-      if (commentsError) {
-        console.error('Comments RPC error (fallback):', commentsError);
-        // Don't fail the entire query if comments fail
-        return { post: enhancedPost as CommunityPost, comments: [] };
+      if (error.message.includes('403') || error.message.includes('Forbidden')) {
+        throw new Error('You don\'t have permission to view this post.');
       }
-
-      console.log('=== fetchPostWithComments SUCCESS ===');
-      return {
-        post: enhancedPost as CommunityPost,
-        comments: (comments || []) as CommunityPost[],
-      };
-    } catch (directQueryError) {
-      console.error('Direct query also failed:', directQueryError);
-
-      // Strategy 3: Final fallback - try to get just basic post data
-      console.log('Attempting minimal post query as last resort...');
-
-      const { data: minimalPost, error: minimalError } = await supabase
-        .from('CommunityPosts')
-        .select('*')
-        .eq('id', postId)
-        .single();
-
-      if (minimalError || !minimalPost) {
-        console.error('All fetch strategies failed. Final error:', minimalError);
-        throw new Error(
-          `Post with ID ${postId} could not be found using any method. This may indicate the post doesn't exist or you don't have permission to view it.`
-        );
+      if (error.message.includes('404') || error.message.includes('not found')) {
+        throw new Error('This post was not found. It may have been deleted or moved.');
       }
-
-      console.log('Minimal post data retrieved as fallback:', minimalPost);
-
-      // Add minimal vote data structure for compatibility
-      const minimalEnhancedPost = {
-        ...minimalPost,
-        user_vote: null,
-        reply_count: 0,
-        is_saved: false,
-      };
-
-      return {
-        post: minimalEnhancedPost as CommunityPost,
-        comments: [],
-      };
     }
+    
+    // Generic fallback error
+    throw new Error('Unable to load post. Please try refreshing the page or contact support if the problem persists.');
   }
 };
 
 /**
  * Custom hook for fetching a post with all its comments.
- * Follows [D3.4] Data Access Layer patterns with enhanced debugging.
+ * Follows [D3.4] Data Access Layer patterns with optimized caching and reliability.
  * @param postId The ID of the post to fetch
  */
 export const usePostWithCommentsQuery = (postId: number) => {
-  console.log('usePostWithCommentsQuery called with postId:', postId, 'Type:', typeof postId);
-
   return useQuery({
     queryKey: ['postWithComments', postId],
-    queryFn: () => {
-      console.log('Query function executing with postId:', postId);
-      return fetchPostWithComments(postId);
-    },
+    queryFn: () => fetchPostWithComments(postId),
     enabled: !!postId && postId > 0 && !isNaN(postId),
-    staleTime: 30 * 1000, // 30 seconds - comments change frequently
+    
+    // PERFORMANCE OPTIMIZATIONS:
+    staleTime: 2 * 60 * 1000, // 2 minutes - balance between freshness and performance
+    gcTime: 10 * 60 * 1000, // 10 minutes - keep in cache longer for back navigation
+    
+    // RELIABILITY OPTIMIZATIONS:
     retry: (failureCount, error) => {
-      console.log(`Query retry attempt ${failureCount}:`, error);
-      return failureCount < 3; // Retry up to 3 times
+      // Don't retry on client-side errors (400-499)
+      if (error instanceof Error) {
+        if (error.message.includes('401') || error.message.includes('403') || 
+            error.message.includes('404') || error.message.includes('not found')) {
+          return false;
+        }
+      }
+      
+      // Exponential backoff: 1s, 2s, 4s
+      return failureCount < 3;
     },
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 4000),
+    
+    // UX OPTIMIZATIONS:
+    refetchOnWindowFocus: true, // Refresh when user returns to tab
+    refetchOnMount: 'stale', // Only refetch if data is stale
+    refetchInterval: false, // Don't auto-refresh comments (user-driven)
+    
+    // BACKGROUND UPDATES:
+    refetchOnReconnect: true, // Refetch when network reconnects
+    refetchIntervalInBackground: false, // Don't waste resources in background
+    
     meta: {
       errorMessage: `Failed to load post details for ID: ${postId}`,
+    },
+    
+    // STRUCTURED ERROR HANDLING:
+    throwOnError: (error) => {
+      // Let authentication and permission errors bubble up to UI
+      if (error instanceof Error && 
+          (error.message.includes('401') || error.message.includes('403'))) {
+        return true;
+      }
+      // Suppress other errors to avoid breaking the UI
+      return false;
     },
   });
 };

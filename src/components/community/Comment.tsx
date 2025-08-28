@@ -70,8 +70,19 @@ export const Comment = ({
     onCommentPosted();
   };
 
+  // Handle optimistic update visual feedback
+  const isOptimistic = comment._isOptimistic;
+  const isLoading = comment._isLoading;
+
   return (
-    <div className="flex gap-2 mt-3" style={indentationStyle}>
+    <div 
+      className={cn(
+        "flex gap-2 mt-3 transition-all duration-200",
+        isOptimistic && "opacity-70 animate-pulse",
+        isLoading && "bg-muted/20 rounded-lg p-1"
+      )} 
+      style={indentationStyle}
+    >
       {/* Vertical connector line for nested comments */}
       {indentationLevel > 0 && (
         <div className="flex flex-col items-center">
@@ -94,7 +105,7 @@ export const Comment = ({
                 author={comment.author}
                 size="sm"
                 showTimestamp={true}
-                timestamp={formatCommentDate(comment.created_at)}
+                timestamp={isLoading ? 'Enviando...' : formatCommentDate(comment.created_at)}
                 className="flex-1"
               />
               {comment.is_rewarded && (

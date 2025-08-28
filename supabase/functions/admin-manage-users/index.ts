@@ -1,18 +1,16 @@
 // ABOUTME: Working admin endpoint with simplified architecture
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.0';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-};
+import { getCorsHeaders, handleCorsPreflightRequest } from '../_shared/cors.ts';
 
 Deno.serve(async (req: Request) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return handleCorsPreflightRequest(req);
   }
+
+  // Extract origin for CORS handling
+  const origin = req.headers.get('Origin');
 
   try {
     // Initialize Supabase client
@@ -27,7 +25,7 @@ Deno.serve(async (req: Request) => {
     if (!authHeader) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
         status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(origin), 'Content-Type': 'application/json' },
       });
     }
 
@@ -39,7 +37,7 @@ Deno.serve(async (req: Request) => {
     if (authError || !user) {
       return new Response(JSON.stringify({ error: 'Invalid authentication' }), {
         status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(origin), 'Content-Type': 'application/json' },
       });
     }
 
@@ -89,7 +87,7 @@ Deno.serve(async (req: Request) => {
       if (listError) {
         return new Response(JSON.stringify({ error: `Failed to list users: ${listError.message}` }), {
           status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...getCorsHeaders(origin), 'Content-Type': 'application/json' },
         });
       }
 
@@ -171,21 +169,21 @@ Deno.serve(async (req: Request) => {
       };
 
       return new Response(JSON.stringify(result), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(origin), 'Content-Type': 'application/json' },
       });
     }
 
     // Default response for other actions (can be extended)
     return new Response(JSON.stringify({ error: `Action ${action} not implemented yet` }), {
       status: 400,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...getCorsHeaders(origin), 'Content-Type': 'application/json' },
     });
 
   } catch (error) {
     console.error('Admin user management error:', error);
     return new Response(JSON.stringify({ error: error.message || 'Internal server error' }), {
       status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...getCorsHeaders(origin), 'Content-Type': 'application/json' },
     });
   }
 });

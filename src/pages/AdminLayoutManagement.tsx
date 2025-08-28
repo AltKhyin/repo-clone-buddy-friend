@@ -67,7 +67,8 @@ interface UploadState {
 const PageHeaderPreview: React.FC<{ 
   formData: PageSettingsForm;
   selectedPageId: string;
-}> = ({ formData, selectedPageId }) => {
+  uploadState?: { bannerPreview?: string | null; avatarPreview?: string | null };
+}> = ({ formData, selectedPageId, uploadState }) => {
   const pageOptions = [
     { id: 'acervo', label: 'Acervo' },
     { id: 'comunidade', label: 'Comunidade' }
@@ -81,7 +82,7 @@ const PageHeaderPreview: React.FC<{
       <div 
         className="h-16 bg-center bg-cover bg-slate-100 shadow-lg -mt-22 pt-22 rounded-b-lg"
         style={{
-          backgroundImage: formData.banner_url ? `url('${formData.banner_url}')` : undefined,
+          backgroundImage: (uploadState?.bannerPreview || formData.banner_url) ? `url('${uploadState?.bannerPreview || formData.banner_url}')` : undefined,
           backgroundColor: formData.banner_background_color || undefined
         }}
       />
@@ -106,9 +107,9 @@ const PageHeaderPreview: React.FC<{
                       return <IconComponent size={formData.avatar_icon_size || 37} />;
                     })()}
                   </div>
-                ) : formData.avatar_url ? (
+                ) : (uploadState?.avatarPreview || formData.avatar_url) ? (
                   <img 
-                    src={formData.avatar_url} 
+                    src={uploadState?.avatarPreview || formData.avatar_url} 
                     alt={`${title} avatar`}
                     className="w-24 h-24 rounded-full border-4 border-white shadow-lg object-cover bg-white"
                     loading="lazy"
@@ -515,7 +516,7 @@ const AdminLayoutManagement: React.FC = () => {
               </CardHeader>
               <CardContent className="p-0">
                 <div className="border rounded-lg overflow-hidden bg-background">
-                  <PageHeaderPreview formData={formData} selectedPageId={selectedPageId} />
+                  <PageHeaderPreview formData={formData} selectedPageId={selectedPageId} uploadState={uploadState} />
                 </div>
               </CardContent>
             </Card>

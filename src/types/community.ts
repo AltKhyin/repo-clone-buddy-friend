@@ -56,6 +56,9 @@ export interface CommunityPost {
   is_rewarded?: boolean;
   parent_post_id?: number | null;
   nesting_level?: number;
+  // NEW: Optimistic update flags for comment mutations
+  _isOptimistic?: boolean;
+  _isLoading?: boolean;
 }
 
 // Optimized type definitions with proper enums and unions

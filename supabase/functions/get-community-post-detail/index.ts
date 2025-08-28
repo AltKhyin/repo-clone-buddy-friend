@@ -17,23 +17,26 @@ interface PostDetailRequest {
 serve(async req => {
   // STEP 1: CORS Preflight Handling
   if (req.method === 'OPTIONS') {
-    return handleCorsPreflightRequest();
+    return handleCorsPreflightRequest(req);
   }
 
+  // STEP 2: Extract origin for CORS handling
+  const origin = req.headers.get('Origin');
+
   try {
-    // STEP 2: Create Supabase client
+    // STEP 3: Create Supabase client
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // STEP 3: Rate Limiting
+    // STEP 4: Rate Limiting
     const rateLimitResult = await checkRateLimit(req, { windowMs: 60000, maxRequests: 60 });
     if (!rateLimitResult.success) {
       throw RateLimitError;
     }
 
-    // STEP 4: Authentication (optional for this endpoint)
+    // STEP 5: Authentication (optional for this endpoint)
     let user = null;
     const authHeader = req.headers.get('Authorization');
 
@@ -46,7 +49,7 @@ serve(async req => {
       }
     }
 
-    // STEP 5: Input Validation
+    // STEP 6: Input Validation
     let postId: number;
 
     if (req.method === 'GET') {
@@ -69,7 +72,7 @@ serve(async req => {
       postId = body.post_id;
     }
 
-    // STEP 6: Core Business Logic
+    // STEP 7: Core Business Logic
     const { data: post, error: postError } = await supabase
       .from('CommunityPosts')
       .select(
@@ -158,11 +161,11 @@ serve(async req => {
       user_can_moderate: userCanModerate,
     };
 
-    // STEP 7: Standardized Success Response
-    return createSuccessResponse(response, rateLimitHeaders(rateLimitResult));
+    // STEP 8: Standardized Success Response
+    return createSuccessResponse(response, rateLimitHeaders(rateLimitResult), origin);
   } catch (error) {
-    // STEP 8: Centralized Error Handling
+    // STEP 9: Centralized Error Handling
     console.error('Error in get-community-post-detail:', error);
-    return createErrorResponse(error);
+    return createErrorResponse(error, {}, origin);
   }
 });

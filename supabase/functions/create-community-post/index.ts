@@ -28,23 +28,26 @@ interface CreatePostResponse {
 serve(async (req) => {
   // STEP 1: CORS Preflight Handling
   if (req.method === 'OPTIONS') {
-    return handleCorsPreflightRequest();
+    return handleCorsPreflightRequest(req);
   }
 
+  // STEP 2: Extract origin for CORS handling
+  const origin = req.headers.get('Origin');
+
   try {
-    // STEP 2: Create Supabase client
+    // STEP 3: Create Supabase client
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // STEP 3: Rate Limiting
+    // STEP 4: Rate Limiting
     const rateLimitResult = await checkRateLimit(req, { windowMs: 60000, maxRequests: 10 });
     if (!rateLimitResult.success) {
       throw RateLimitError;
     }
 
-    // STEP 4: Authentication (Required for post creation)
+    // STEP 5: Authentication (Required for post creation)
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       throw new Error('UNAUTHORIZED: Authentication required to create posts');
@@ -52,7 +55,7 @@ serve(async (req) => {
 
     const user = await authenticateUser(supabase, authHeader);
 
-    // STEP 5: Input Validation
+    // STEP 6: Input Validation
     const body: CreatePostRequest = await req.json();
     
     if (!body.content || body.content.trim().length === 0) {
@@ -91,7 +94,7 @@ serve(async (req) => {
       throw new Error('VALIDATION_FAILED: Post title exceeds maximum length (200 characters)');
     }
 
-    // STEP 6: Core Business Logic
+    // STEP 7: Core Business Logic
     const { data: result, error: createError } = await supabase
       .rpc('create_post_and_auto_vote', {
         p_author_id: user.id,
@@ -162,12 +165,12 @@ serve(async (req) => {
       message: body.parent_post_id ? 'Comment created successfully' : 'Post created successfully'
     };
 
-    // STEP 7: Standardized Success Response
-    return createSuccessResponse(response, rateLimitHeaders(rateLimitResult));
+    // STEP 8: Standardized Success Response
+    return createSuccessResponse(response, rateLimitHeaders(rateLimitResult), origin);
 
   } catch (error) {
-    // STEP 8: Centralized Error Handling
+    // STEP 9: Centralized Error Handling
     console.error('Error in create-community-post:', error);
-    return createErrorResponse(error);
+    return createErrorResponse(error, {}, origin);
   }
 });
