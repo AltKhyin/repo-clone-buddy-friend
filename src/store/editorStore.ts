@@ -1386,6 +1386,42 @@ export const useEditorStore = create<EditorState>((set, get) => {
           throw new Error('Invalid template format');
         }
         
+        // 🎯 CRITICAL FIX: Detect if this is a normal export (UUID keys) vs AI template (semantic keys)
+        const isNormalExport = actualTemplateData.positions && 
+          Object.keys(actualTemplateData.positions).some(key => 
+            key.length > 10 && key.includes('-') // Detect UUID format
+          );
+        
+        console.log('[ImportFromTemplate] 🔍 Import type detection:', {
+          isNormalExport,
+          hasAIMetadata: !!templateData.__aiMetadata,
+          positionKeys: actualTemplateData.positions ? Object.keys(actualTemplateData.positions).slice(0, 2) : [],
+          nodeCount: actualTemplateData.nodes.length
+        });
+        
+        // 🎯 NORMAL EXPORT PATH: Direct import without ID regeneration
+        if (isNormalExport) {
+          console.log('[ImportFromTemplate] 📥 Processing normal export with UUID preservation');
+          
+          // For normal exports, use the data as-is (positions already have correct UUID keys)
+          const restoredTemplate = restoreProblematicFields(actualTemplateData);
+          
+          // Direct import without regenerating IDs - positions already match node IDs
+          get().loadFromJSON(restoredTemplate);
+          
+          console.log('Normal export imported successfully:', {
+            nodeCount: restoredTemplate.nodes.length,
+            hasPositions: restoredTemplate.positions ? Object.keys(restoredTemplate.positions).length : 0,
+            hasMobilePositions: restoredTemplate.mobilePositions ? Object.keys(restoredTemplate.mobilePositions).length : 0,
+            preservedUUIDs: true
+          });
+          
+          return;
+        }
+        
+        // 🎯 AI TEMPLATE PATH: ID regeneration for semantic templates
+        console.log('[ImportFromTemplate] 🤖 Processing AI template with ID regeneration');
+        
         // Restore problematic fields that were replaced (if it's an AI template)
         const restoredTemplate = restoreProblematicFields(actualTemplateData);
         
@@ -1432,7 +1468,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
         // Use existing loadFromJSON - it handles validation perfectly!
         get().loadFromJSON(reconstructedData);
         
-        console.log('Template imported successfully:', {
+        console.log('AI template imported successfully:', {
           nodeCount: nodesWithNewIds.length,
           hasPositions: Object.keys(newPositions).length > 0,
           hasMobilePositions: Object.keys(newMobilePositions).length > 0,
@@ -1442,8 +1478,8 @@ export const useEditorStore = create<EditorState>((set, get) => {
         });
         
       } catch (error) {
-        console.error('AI template import failed:', error);
-        throw new Error(`Template import failed: ${error.message}`);
+        console.error('Import failed:', error);
+        throw new Error(`Import failed: ${error.message}`);
       }
     },
 

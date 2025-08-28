@@ -6,6 +6,7 @@ import { useEditorStore, useEditorActions, useCanvasState } from '@/store/editor
 import { DraggableBlock } from './DraggableBlock';
 import { useEditorTheme } from '../../hooks/useEditorTheme';
 import { BlockPosition } from '@/types/editor';
+import { PositionDataValidator } from '@/utils/positionDataValidator';
 
 // Canvas configuration constants - Dual viewport support
 const CANVAS_CONFIG = {
@@ -17,7 +18,7 @@ const CANVAS_CONFIG = {
   mobile: {
     width: 375, // Mobile viewport width (iPhone standard)
     gridColumns: 1, // Single column for mobile
-    minHeight: 500, // Reduced minimum for content-adaptive sizing (was 800)
+    minHeight: 300, // 🎯 MOBILE HEIGHT FIX: Reduced from 500px to match ReadOnlyCanvas
   },
   minZoom: 0.5, // 50% zoom for overview
   maxZoom: 2.0, // 200% zoom for precision
@@ -56,24 +57,70 @@ export function WYSIWYGCanvas() {
     id: 'wysiwyg-canvas',
   });
 
-  // Calculate canvas height based on content and viewport - CONTENT-ADAPTIVE SYSTEM
+  // Calculate canvas height - Simple approach: find lowest content bottom + margin
   const canvasHeight = useMemo(() => {
-    const positionsArray = Object.values(currentPositions);
+    // Only remove phantom positions (nodes that don't exist), keep all valid positions regardless of Y coordinate
+    const validator = new PositionDataValidator();
+    const phantomIds = validator.detectPhantomPositions(currentPositions, editorNodes);
+    
+    // Remove only phantom positions, keep everything else
+    const validPositions = Object.fromEntries(
+      Object.entries(currentPositions).filter(([id]) => !phantomIds.includes(id))
+    );
+    
+    const positionsArray = Object.values(validPositions);
     
     if (positionsArray.length === 0) {
-      // No content: use minimum height
       return currentCanvasConfig.minHeight;
     }
     
-    // Content exists: calculate height with bottom margin for breathing room
-    const contentBottomEdge = Math.max(...positionsArray.map(pos => pos.y + pos.height));
-    const BOTTOM_MARGIN = 60; // Visual breathing room after last block
+    // Simple: find the block with the lowest bottom edge and add margin
+    const lowestBottomEdge = Math.max(...positionsArray.map(pos => pos.y + pos.height));
+    const BOTTOM_MARGIN = 60;
     
     return Math.max(
       currentCanvasConfig.minHeight,
-      contentBottomEdge + BOTTOM_MARGIN
+      lowestBottomEdge + BOTTOM_MARGIN
     );
-  }, [currentPositions, currentCanvasConfig.minHeight]);
+  }, [currentPositions, currentCanvasConfig, editorNodes]);
+
+  // 🎯 WYSIWYG CANVAS HEIGHT DEBUG: Show phantom removal effect
+  React.useEffect(() => {
+    const validator = new PositionDataValidator();
+    const phantomIds = validator.detectPhantomPositions(currentPositions, editorNodes);
+    
+    const originalArray = Object.values(currentPositions);
+    const validPositions = Object.fromEntries(
+      Object.entries(currentPositions).filter(([id]) => !phantomIds.includes(id))
+    );
+    const validArray = Object.values(validPositions);
+    
+    const originalBottomEdge = originalArray.length > 0 
+      ? Math.max(...originalArray.map(pos => pos.y + pos.height))
+      : 0;
+    const validBottomEdge = validArray.length > 0 
+      ? Math.max(...validArray.map(pos => pos.y + pos.height))
+      : 0;
+
+    console.log('[WYSIWYGCanvas] 🎯 EDITOR HEIGHT DEBUG (PHANTOM REMOVAL ONLY):', {
+      viewport: currentViewport,
+      phantomRemoval: {
+        originalPositionsCount: originalArray.length,
+        validPositionsCount: validArray.length,
+        phantomsRemoved: phantomIds.length,
+        phantomIds: phantomIds,
+        originalBottomEdge,
+        validBottomEdge,
+        heightReduction: originalBottomEdge - validBottomEdge,
+      },
+      heightCalculation: {
+        finalCalculatedHeight: canvasHeight,
+        heightSource: canvasHeight === currentCanvasConfig.minHeight ? 'MIN_HEIGHT' : 'CONTENT_BASED',
+        lowestContentBottom: validBottomEdge,
+        margin: 60,
+      }
+    });
+  }, [currentPositions, currentCanvasConfig, canvasHeight, currentViewport, editorNodes]);
 
   // Initialize positions for new nodes with content-aware sizing
   React.useEffect(() => {
