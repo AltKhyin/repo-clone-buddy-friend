@@ -1,12 +1,12 @@
 // ABOUTME: Custom theme provider optimized for Vite environment, replacing next-themes.
 import React, { createContext, useContext, useEffect, useState } from 'react';
 
-type Theme = 'dark' | 'light' | 'black';
+type Theme = 'dark' | 'light' | 'black' | 'escuro-alt' | 'black-alt';
 
 interface ThemeContextType {
   theme: Theme;
   setTheme: (theme: Theme) => void;
-  actualTheme: 'dark' | 'light' | 'black';
+  actualTheme: 'dark' | 'light' | 'black' | 'escuro-alt' | 'black-alt';
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -29,7 +29,7 @@ export function CustomThemeProvider({
   useEffect(() => {
     try {
       const savedTheme = localStorage.getItem(storageKey) as Theme;
-      if (savedTheme && ['dark', 'light', 'black'].includes(savedTheme)) {
+      if (savedTheme && ['dark', 'light', 'black', 'escuro-alt', 'black-alt'].includes(savedTheme)) {
         setThemeState(savedTheme);
       } else {
         setThemeState(defaultTheme);
@@ -47,19 +47,23 @@ export function CustomThemeProvider({
     updateDocumentTheme(theme);
   }, [theme]);
 
-  const updateDocumentTheme = (newTheme: 'dark' | 'light' | 'black') => {
+  const updateDocumentTheme = (newTheme: 'dark' | 'light' | 'black' | 'escuro-alt' | 'black-alt') => {
     const root = document.documentElement;
     const body = document.body;
 
     // Remove all theme classes and add the new one
-    root.classList.remove('light', 'dark', 'black');
+    root.classList.remove('light', 'dark', 'black', 'escuro-alt', 'black-alt');
     root.classList.add(newTheme);
 
     // Ensure body has proper background
     if (newTheme === 'dark') {
-      body.style.backgroundColor = 'hsl(0 0% 7%)'; // --background dark
+      body.style.backgroundColor = 'hsl(220 13% 9%)'; // --background dark (sophisticated slate)
+    } else if (newTheme === 'escuro-alt') {
+      body.style.backgroundColor = 'hsl(60 2.6% 7.6%)'; // --background escuro-alt (Claude.ai warm dark)
     } else if (newTheme === 'black') {
       body.style.backgroundColor = 'hsl(0 0% 0%)'; // --background black pure black
+    } else if (newTheme === 'black-alt') {
+      body.style.backgroundColor = 'hsl(0 0% 0%)'; // --background black-alt pure black with orange
     } else {
       body.style.backgroundColor = 'hsl(48 33.3% 97.1%)'; // --background light (formerly anthropic)
     }
@@ -78,6 +82,12 @@ export function CustomThemeProvider({
     if (newTheme === 'black') {
       setActualTheme('black');
       updateDocumentTheme('black');
+    } else if (newTheme === 'black-alt') {
+      setActualTheme('black-alt');
+      updateDocumentTheme('black-alt');
+    } else if (newTheme === 'escuro-alt') {
+      setActualTheme('escuro-alt');
+      updateDocumentTheme('escuro-alt');
     } else {
       setActualTheme(newTheme);
       updateDocumentTheme(newTheme);

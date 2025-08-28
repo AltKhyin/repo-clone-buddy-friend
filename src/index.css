@@ -157,43 +157,43 @@
   }
 
   .dark {
-    /* Dark Theme Tokens (v3.1 - Refined Dark Palette) */
-    --background: 0 0% 7%; /* #121212 - Deepest background */
-    --foreground: 210 40% 95%; /* Soft off-white text */
+    /* Escuro Redesign - Orange-Hero Dark Theme with sophisticated slate foundations */
+    --background: 220 13% 9%; /* Deep slate - sophisticated, complements orange */
+    --foreground: 210 40% 98%; /* Crisp cool white for maximum readability */
 
-    --surface: 0 0% 10%; /* #1a1a1a - Primary surfaces (sidebar, cards) */
-    --surface-muted: 0 0% 13%; /* #212121 - Input fields, secondary surfaces */
+    --surface: 220 13% 11%; /* Cool slate surfaces - perfect orange complement */
+    --surface-muted: 220 9% 14%; /* Slightly desaturated for input fields */
 
-    --border: 0 0% 16%; /* #2a2a2a - Subtle borders */
-    --border-hover: 0 0% 18%; /* #2d2d2d - Slightly brighter border on hover */
+    --border: 220 9% 18%; /* Cool slate borders */
+    --border-hover: 220 9% 22%; /* Hover state borders */
 
-    /* Primary action color is high-contrast white */
-    --primary: 210 40% 98%;
-    --primary-foreground: 0 0% 7%;
+    /* Hero Orange - Claro's signature color untouched */
+    --primary: 15 63.1% 59.6%; /* Claro's beloved orange - the star of the show */
+    --primary-foreground: 210 40% 98%; /* Crisp white for maximum orange contrast */
 
-    --text-primary: 210 40% 95%;
-    --text-secondary: 0 0% 65%; /* #a6a6a6 - IMPROVED: Better contrast secondary text */
+    --text-primary: 210 40% 98%; /* Crisp primary text */
+    --text-secondary: 220 9% 64%; /* Cool medium gray secondary text */
 
-    /* NEW: Enhanced hierarchy tokens for Reddit-style clarity */
-    --text-tertiary: 0 0% 50%; /* IMPROVED: For less important metadata */
-    --surface-hover: 0 0% 12%; /* For subtle hover backgrounds */
-    --border-strong: 0 0% 22%; /* For emphasized separators */
-    --comment-thread: 0 0% 20%; /* For threading lines */
-    --action-hover: 0 0% 15%; /* For action button hovers */
+    /* Sophisticated hierarchy - all designed to complement orange hero */
+    --text-tertiary: 220 9% 46%; /* Muted slate text */
+    --surface-hover: 220 11% 13%; /* Subtle slate hover */
+    --border-strong: 220 9% 26%; /* Emphasized slate borders */
+    --comment-thread: 220 9% 24%; /* Threading lines */
+    --action-hover: 220 13% 16%; /* Action button hover backgrounds */
 
-    /* Legacy tokens for compatibility - updated to match new scheme */
-    --card: 0 0% 10%; /* #1a1a1a */
-    --card-foreground: 210 40% 95%;
-    --popover: 0 0% 10%; /* #1a1a1a */
-    --popover-foreground: 210 40% 95%;
-    --secondary: 0 0% 13%; /* #212121 */
-    --secondary-foreground: 210 40% 95%;
-    --muted: 0 0% 13%; /* #212121 */
-    --muted-foreground: 0 0% 65%; /* #a6a6a6 - IMPROVED: Better contrast for muted text */
-    --accent: 0 0% 13%; /* #212121 */
-    --accent-foreground: 210 40% 95%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
+    /* Legacy tokens - cohesive slate system with orange hero */
+    --card: 220 13% 11%; /* Cards match surface system */
+    --card-foreground: 210 40% 98%; /* Crisp white text */
+    --popover: 220 9% 14%; /* Elevated surfaces */
+    --popover-foreground: 210 40% 98%; /* Crisp text */
+    --secondary: 220 9% 14%; /* Secondary surfaces */
+    --secondary-foreground: 210 40% 98%; /* Crisp text */
+    --muted: 220 9% 14%; /* Muted surfaces */
+    --muted-foreground: 220 9% 64%; /* Cool muted text */
+    --accent: 15 63.1% 59.6%; /* HERO ORANGE - unchanged from Claro */
+    --accent-foreground: 210 40% 98%; /* Crisp white on orange */
+    --destructive: 0 84.2% 60.2%; /* Bright red for dark theme */
+    --destructive-foreground: 210 40% 98%; /* Crisp white on red */
 
     /* Vote colors for upvote/downvote functionality */
     --success: 140 60% 45%; /* Green for upvotes */
@@ -206,32 +206,32 @@
     --error-muted: 0 40% 15%; /* Dark red background */
     --error-muted-hover: 0 40% 18%; /* Hover state */
 
-    /* Enhanced semantic color tokens - Dark Theme */
-    --warning: 38 92% 60%; /* Yellow for warnings (brighter in dark mode) */
-    --warning-foreground: 0 0% 7%;
-    --warning-muted: 38 40% 15%; /* Dark yellow background */
-    --warning-muted-hover: 38 40% 18%; /* Hover state */
+    /* Enhanced semantic color tokens - Orange-hero dark theme */
+    --warning: 38 87% 55%; /* Rich amber that bridges to orange */
+    --warning-foreground: 220 13% 9%;
+    --warning-muted: 38 30% 12%; /* Dark amber background on slate */
+    --warning-muted-hover: 38 30% 15%; /* Hover state */
 
-    --danger: 0 84.2% 60.2%; /* Bright red for critical/danger actions */
-    --danger-foreground: 0 0% 7%;
-    --danger-muted: 0 40% 12%; /* Dark danger background */
-    --danger-muted-hover: 0 40% 15%; /* Hover state */
+    --danger: 0 84% 60%; /* Clear red that works on slate */
+    --danger-foreground: 220 13% 9%;
+    --danger-muted: 0 35% 12%; /* Dark danger background on slate */
+    --danger-muted-hover: 0 35% 15%; /* Hover state */
 
-    /* Additional muted tokens for enhanced hierarchy - Dark Theme */
-    --muted-accent: 0 0% 25%; /* Even more muted accent for dark mode */
-    --further-muted-text: 0 0% 40%; /* More muted than --muted-foreground for very subtle text */
+    /* Additional muted tokens for enhanced hierarchy - Orange-hero */
+    --muted-accent: 220 13% 25%; /* Muted slate accent */
+    --further-muted-text: 220 13% 40%; /* Subtle slate text hierarchy */
 
     --input: 0 0% 13%; /* #212121 */
     --ring: 240 4.9% 83.9%;
 
-    /* Reddit Design Tokens - Dark Theme */
-    --reddit-sidebar-background: 0 0% 2%; /* #080807 - Slightly darker than main background */
-    --reddit-background-main: 0 0% 7%; /* #121211 - Main background */
-    --reddit-divider: 0 0% 16%; /* Subtle divider between sections */
-    --reddit-text-primary: 210 40% 95%; /* Primary text */
-    --reddit-text-secondary: 0 0% 65%; /* Secondary/muted text */
-    --reddit-text-meta: 0 0% 50%; /* Meta text (slightly darker than secondary) */
-    --reddit-hover-background: 0 0% 12%; /* Subtle hover state */
+    /* Reddit Design Tokens - Orange-hero dark theme */
+    --reddit-sidebar-background: 220 13% 8%; /* Darker slate sidebar */
+    --reddit-background-main: 220 13% 9%; /* Consistent with main background */
+    --reddit-divider: 220 13% 20%; /* Slate divider between sections */
+    --reddit-text-primary: 210 40% 98%; /* Crisp white primary text */
+    --reddit-text-secondary: 220 13% 65%; /* Slate secondary text */
+    --reddit-text-meta: 220 13% 50%; /* Subtle slate meta text */
+    --reddit-hover-background: 220 13% 12%; /* Slate hover state */
 
     /* Reddit Spacing Variables (same in both themes) */
     --rem6: 0.375rem; /* 6px */
@@ -239,65 +239,65 @@
     --rem12: 0.75rem; /* 12px */
     --radius-2: calc(var(--radius) - 4px); /* Reddit's rounded-2 */
 
-    /* Editor-specific semantic tokens - Dark Theme */
-    --editor-canvas-background: 0 0% 7%; /* Match main background */
-    --editor-canvas-rulers: 0 0% 16%; /* Ruler lines */
-    --editor-canvas-text: 0 0% 65%; /* Ruler text */
-    --editor-canvas-guidelines: 210 40% 98%; /* Guideline color */
-    --editor-canvas-fill: 210 40% 95%; /* Canvas fill areas */
+    /* Editor-specific semantic tokens - Orange-hero dark theme */
+    --editor-canvas-background: 220 13% 9%; /* Match main slate background */
+    --editor-canvas-rulers: 220 13% 20%; /* Slate ruler lines */
+    --editor-canvas-text: 220 13% 65%; /* Slate ruler text */
+    --editor-canvas-guidelines: 15 63.1% 59.6%; /* Orange guidelines */
+    --editor-canvas-fill: 210 40% 98%; /* Crisp white fill areas */
 
-    /* Block-specific semantic tokens - Dark Theme */
-    --block-border-default: 0 0% 16%; /* Default block borders */
-    --block-border-focus: 210 40% 98%; /* Focused block borders */
-    --block-background-hover: 0 0% 12%; /* Block hover states */
+    /* Block-specific semantic tokens - Orange-hero dark theme */
+    --block-border-default: 220 13% 20%; /* Slate block borders */
+    --block-border-focus: 15 63.1% 59.6%; /* Orange focused borders */
+    --block-background-hover: 220 13% 12%; /* Slate hover states */
 
-    /* Quote block tokens - Dark Theme */
-    --quote-border: 210 40% 98%; /* Quote left border */
-    --quote-background: 0 0% 13%; /* Quote background */
-    --quote-text: 210 40% 95%; /* Quote text */
-    --quote-citation: 0 0% 65%; /* Citation text */
-    --quote-accent: 210 40% 98%; /* Quote accent elements */
+    /* Quote block tokens - Orange-hero dark theme */
+    --quote-border: 15 63.1% 59.6%; /* Orange quote left border */
+    --quote-background: 220 13% 13%; /* Slate quote background */
+    --quote-text: 210 40% 98%; /* Crisp white quote text */
+    --quote-citation: 220 13% 65%; /* Slate citation text */
+    --quote-accent: 15 63.1% 59.6%; /* Orange accent elements */
 
-    /* Separator tokens - Dark Theme */
-    --separator-default: 0 0% 65%; /* Default separator color */
-    --separator-subtle: 0 0% 16%; /* Subtle separator */
-    --separator-emphasis: 210 40% 95%; /* Emphasized separator */
+    /* Separator tokens - Orange-hero dark theme */
+    --separator-default: 220 13% 65%; /* Default slate separator */
+    --separator-subtle: 220 13% 20%; /* Subtle slate separator */
+    --separator-emphasis: 15 63.1% 59.6%; /* Orange emphasized separator */
 
-    /* Table tokens - Dark Theme */
-    --table-border: 0 0% 16%; /* Table borders */
-    --table-header-background: 0 0% 13%; /* Header background */
-    --table-header-text: 210 40% 95%; /* Header text */
-    --table-cell-background: 0 0% 10%; /* Cell background */
-    --table-cell-text: 210 40% 95%; /* Cell text */
-    --table-row-alternate: 0 0% 8%; /* Alternate row background */
+    /* Table tokens - Orange-hero dark theme */
+    --table-border: 220 13% 20%; /* Slate table borders */
+    --table-header-background: 220 13% 13%; /* Slate header background */
+    --table-header-text: 210 40% 98%; /* Crisp white header text */
+    --table-cell-background: 220 13% 11%; /* Slate cell background */
+    --table-cell-text: 210 40% 98%; /* Crisp white cell text */
+    --table-row-alternate: 220 13% 12%; /* Alternate row slate background */
 
-    /* Key takeaway tokens - Dark Theme */
-    --takeaway-info-background: 196 40% 15%; /* Info background */
-    --takeaway-info-border: 196 73% 52%; /* Info border */
-    --takeaway-info-text: 196 73% 80%; /* Info text */
-    --takeaway-success-background: 140 40% 15%; /* Success background */
-    --takeaway-success-border: 140 60% 45%; /* Success border */
-    --takeaway-success-text: 140 60% 80%; /* Success text */
-    --takeaway-warning-background: 38 60% 15%; /* Warning background */
-    --takeaway-warning-border: 38 92% 50%; /* Warning border */
-    --takeaway-warning-text: 38 92% 80%; /* Warning text */
-    --takeaway-error-background: 0 40% 15%; /* Error background */
-    --takeaway-error-border: 0 62% 50%; /* Error border */
-    --takeaway-error-text: 0 62% 80%; /* Error text */
+    /* Key takeaway tokens - Orange-hero dark theme */
+    --takeaway-info-background: 212 35% 12%; /* Slate-blue info background */
+    --takeaway-info-border: 212 100% 57%; /* Cool blue info border */
+    --takeaway-info-text: 212 100% 80%; /* Info text */
+    --takeaway-success-background: 142 35% 12%; /* Slate-green success background */
+    --takeaway-success-border: 142 69% 58%; /* Success green border */
+    --takeaway-success-text: 142 69% 80%; /* Success text */
+    --takeaway-warning-background: 38 35% 12%; /* Slate-amber warning background */
+    --takeaway-warning-border: 38 87% 55%; /* Amber warning border */
+    --takeaway-warning-text: 38 87% 80%; /* Warning text */
+    --takeaway-error-background: 0 35% 12%; /* Slate-red error background */
+    --takeaway-error-border: 0 84% 60%; /* Red error border */
+    --takeaway-error-text: 0 84% 80%; /* Error text */
 
-    /* Poll block tokens - Dark Theme */
-    --poll-option-background: 0 0% 13%; /* Poll option background */
-    --poll-result-bar: 210 40% 98%; /* Poll result bar */
-    --poll-result-bar-selected: 196 73% 52%; /* Selected poll result bar */
+    /* Poll block tokens - Orange-hero dark theme */
+    --poll-option-background: 220 13% 13%; /* Slate poll option background */
+    --poll-result-bar: 15 63.1% 59.6%; /* Orange poll result bar */
+    --poll-result-bar-selected: 15 63.1% 45%; /* Darker orange for selected */
 
-    /* Inspector tokens - Dark Theme */
-    --inspector-background: 0 0% 7%; /* Inspector panel background */
-    --inspector-border: 0 0% 16%; /* Inspector borders */
-    --inspector-text: 210 40% 95%; /* Inspector text */
-    --inspector-text-secondary: 0 0% 65%; /* Secondary text */
-    --inspector-control-background: 0 0% 13%; /* Control backgrounds */
-    --inspector-control-border: 0 0% 16%; /* Control borders */
-    --inspector-control-focus: 210 40% 98%; /* Control focus state */
+    /* Inspector tokens - Orange-hero dark theme */
+    --inspector-background: 220 13% 8%; /* Deep slate inspector background */
+    --inspector-border: 220 13% 22%; /* Slate inspector borders */
+    --inspector-text: 210 40% 98%; /* Crisp white inspector text */
+    --inspector-text-secondary: 220 13% 65%; /* Slate secondary text */
+    --inspector-control-background: 220 13% 13%; /* Slate control backgrounds */
+    --inspector-control-border: 220 13% 22%; /* Slate control borders */
+    --inspector-control-focus: 15 63.1% 59.6%; /* Orange control focus state */
   }
 
   .black {
@@ -426,6 +426,264 @@
     --inspector-control-background: 210 6% 25%; /* Control backgrounds */
     --inspector-control-border: 210 6% 20%; /* Control borders */
     --inspector-control-focus: 196 73% 52%; /* Control focus state */
+  }
+
+  .escuro-alt {
+    /* Escuro Alt Theme - Claude.ai inspired sophisticated warm dark */
+    
+    /* === CORE FOUNDATION TOKENS - Claude.ai warm dark system === */
+    --background: 60 2.6% 7.6%; /* Deep warm dark background */
+    --foreground: 48 33.3% 97.1%; /* Warm white text for optimal readability */
+
+    --surface: 60 2.7% 14.5%; /* Primary warm dark surfaces */
+    --surface-muted: 30 3.3% 11.8%; /* Input fields and secondary surfaces */
+
+    --border: 50 20.7% 25%; /* Subtle warm gray borders */
+    --border-hover: 51 16.5% 30%; /* Slightly lighter border on hover */
+
+    /* === PRIMARY SYSTEM - Orange hero accent === */
+    --primary: 15 63.1% 59.6%; /* Claude's signature orange */
+    --primary-foreground: 0 0% 100%; /* Pure white on orange */
+
+    /* === TEXT HIERARCHY - Warm sophisticated system === */
+    --text-primary: 48 33.3% 97.1%; /* Warm white primary text */
+    --text-secondary: 50 9% 73.7%; /* Medium warm gray secondary text */
+
+    /* === LEGACY COMPATIBILITY TOKENS === */
+    --card: 60 2.7% 14.5%; /* Cards match surface */
+    --card-foreground: 48 33.3% 97.1%; /* Warm white card text */
+    --popover: 60 2.7% 14.5%; /* Popovers match surface */
+    --popover-foreground: 48 33.3% 97.1%; /* Warm white popover text */
+    --secondary: 50 9% 73.7%; /* Secondary elements */
+    --secondary-foreground: 48 33.3% 97.1%; /* Text on secondary */
+    --muted: 30 3.3% 11.8%; /* Muted backgrounds */
+    --muted-foreground: 48 4.8% 59.2%; /* Darker warm gray for muted text */
+    --accent: 15 63.1% 59.6%; /* Orange accent */
+    --accent-foreground: 0 0% 100%; /* White on orange accent */
+    --destructive: 0 82.4% 66.7%; /* Light red for errors */
+    --destructive-foreground: 0 0% 100%; /* White on destructive */
+    --input: 30 3.3% 11.8%; /* Input background */
+    --ring: 15 63.1% 59.6%; /* Orange focus rings */
+
+    /* === ENHANCED SEMANTIC TOKENS - Multi-accent system === */
+    --success: 142 69% 58%; /* Success green that harmonizes */
+    --success-foreground: 0 0% 100%; /* White on success */
+    --success-muted: 142 35% 12%; /* Dark success background */
+    --success-muted-hover: 142 35% 15%; /* Success hover */
+
+    --error: 0 82.4% 66.7%; /* Claude's light red */
+    --error-foreground: 0 0% 100%; /* White on error */
+    --error-muted: 0 35% 12%; /* Dark error background */
+    --error-muted-hover: 0 35% 15%; /* Error hover */
+
+    --warning: 38 87% 55%; /* Rich amber warning */
+    --warning-foreground: 0 0% 100%; /* White on warning */
+    --warning-muted: 38 30% 12%; /* Dark amber background */
+    --warning-muted-hover: 38 30% 15%; /* Warning hover */
+
+    /* === MULTI-ACCENT SYSTEM - Claude.ai inspired === */
+    --accent-secondary: 210 70.9% 51.6%; /* Blue secondary accent */
+    --accent-pro: 251 40.2% 54.1%; /* Purple pro accent */
+    --accent-brand: 15 63.1% 59.6%; /* Orange brand accent (same as primary) */
+
+    /* === SOPHISTICATED TEXT HIERARCHY === */
+    --text-tertiary: 48 4.8% 59.2%; /* Darker warm gray for metadata */
+    --surface-hover: 60 2.1% 18.4%; /* Subtle warm hover backgrounds */
+    --border-strong: 50 20.7% 35%; /* Emphasized separators */
+
+    /* === REDDIT DESIGN TOKENS - Warm Claude.ai aesthetic === */
+    --reddit-sidebar-background: 60 2.1% 18.4%; /* Lighter warm sidebar */
+    --reddit-background-main: 60 2.6% 7.6%; /* Main warm background */
+    --reddit-divider: 50 20.7% 25%; /* Subtle warm dividers */
+    --reddit-text-primary: 48 33.3% 97.1%; /* Warm white primary text */
+    --reddit-text-secondary: 50 9% 73.7%; /* Warm gray secondary */
+    --reddit-text-meta: 48 4.8% 59.2%; /* Subtle warm meta text */
+    --reddit-hover-background: 60 2.1% 18.4%; /* Warm hover state */
+
+    /* === EDITOR TOKENS - Professional Claude.ai interface === */
+    --editor-canvas-background: 60 2.6% 7.6%; /* Match main background */
+    --editor-canvas-rulers: 50 20.7% 30%; /* Subtle warm rulers */
+    --editor-canvas-text: 50 9% 73.7%; /* Warm gray ruler text */
+    --editor-canvas-guidelines: 15 63.1% 59.6%; /* Orange guidelines */
+    --editor-canvas-fill: 48 33.3% 97.1%; /* Warm white fills */
+
+    /* === BLOCK TOKENS - Claude.ai content styling === */
+    --block-border-default: 50 20.7% 25%; /* Subtle warm borders */
+    --block-border-focus: 15 63.1% 59.6%; /* Orange focus borders */
+    --block-background-hover: 60 2.1% 18.4%; /* Warm hover states */
+
+    /* === QUOTE TOKENS - Elegant Claude.ai quotes === */
+    --quote-border: 15 63.1% 59.6%; /* Orange quote border */
+    --quote-background: 30 3.3% 11.8%; /* Warm quote background */
+    --quote-text: 48 33.3% 97.1%; /* Warm white quote text */
+    --quote-citation: 50 9% 73.7%; /* Warm gray citations */
+    --quote-accent: 15 63.1% 59.6%; /* Orange accents */
+
+    /* === SEPARATOR TOKENS - Sophisticated warm dividers === */
+    --separator-default: 50 9% 73.7%; /* Default warm separator */
+    --separator-subtle: 50 20.7% 25%; /* Subtle warm separator */
+    --separator-emphasis: 15 63.1% 59.6%; /* Orange emphasized separator */
+
+    /* === TABLE TOKENS - Claude.ai table styling === */
+    --table-border: 50 20.7% 25%; /* Subtle warm table borders */
+    --table-header-background: 30 3.3% 11.8%; /* Warm header background */
+    --table-header-text: 48 33.3% 97.1%; /* Warm white headers */
+    --table-cell-background: 60 2.7% 14.5%; /* Warm cell background */
+    --table-cell-text: 48 33.3% 97.1%; /* Warm white cell text */
+    --table-row-alternate: 60 2.1% 18.4%; /* Alternate warm rows */
+
+    /* === TAKEAWAY TOKENS - Multi-accent takeaway blocks === */
+    --takeaway-info-background: 210 35% 12%; /* Blue info background */
+    --takeaway-info-border: 210 70.9% 51.6%; /* Blue info border */
+    --takeaway-info-text: 210 70.9% 80%; /* Blue info text */
+    --takeaway-success-background: 142 35% 12%; /* Green success background */
+    --takeaway-success-border: 142 69% 58%; /* Green success border */
+    --takeaway-success-text: 142 69% 80%; /* Green success text */
+    --takeaway-warning-background: 38 35% 12%; /* Amber warning background */
+    --takeaway-warning-border: 38 87% 55%; /* Amber warning border */
+    --takeaway-warning-text: 38 87% 80%; /* Amber warning text */
+    --takeaway-error-background: 0 35% 12%; /* Red error background */
+    --takeaway-error-border: 0 82.4% 66.7%; /* Red error border */
+    --takeaway-error-text: 0 82.4% 80%; /* Red error text */
+
+    /* === POLL TOKENS - Interactive Claude.ai polls === */
+    --poll-option-background: 30 3.3% 11.8%; /* Warm poll backgrounds */
+    --poll-result-bar: 15 63.1% 59.6%; /* Orange result bars */
+    --poll-result-bar-selected: 15 54.2% 51.2%; /* Darker orange selected */
+
+    /* === INSPECTOR TOKENS - Professional development interface === */
+    --inspector-background: 60 2.6% 7.6%; /* Deep warm inspector */
+    --inspector-border: 50 20.7% 25%; /* Subtle warm borders */
+    --inspector-text: 48 33.3% 97.1%; /* Warm white inspector text */
+    --inspector-text-secondary: 50 9% 73.7%; /* Warm gray secondary */
+    --inspector-control-background: 30 3.3% 11.8%; /* Warm control backgrounds */
+    --inspector-control-border: 50 20.7% 25%; /* Subtle warm control borders */
+    --inspector-control-focus: 15 63.1% 59.6%; /* Orange control focus */
+  }
+
+  .black-alt {
+    /* Black Alt Theme - Pure black with orange accents (based on Black theme) */
+    
+    /* === CORE FOUNDATION TOKENS - Pure black system === */
+    --background: 0 0% 0%; /* Pure black background */
+    --foreground: 0 0% 90%; /* Almost white text with slight dimming */
+
+    --surface: 210 6% 28%; /* Dark gray surfaces */
+    --surface-muted: 210 6% 25%; /* Slightly darker for inputs */
+
+    --border: 210 6% 20%; /* Dark borders for definition */
+    --border-hover: 210 6% 25%; /* Slightly lighter on hover */
+
+    /* === PRIMARY SYSTEM - Orange hero accent (CHANGED) === */
+    --primary: 15 63.1% 59.6%; /* Orange instead of blue */
+    --primary-foreground: 0 0% 100%; /* Pure white on orange */
+
+    /* === TEXT HIERARCHY - High contrast system === */
+    --text-primary: 0 0% 90%; /* Almost white primary text */
+    --text-secondary: 0 0% 70%; /* Dimmed secondary text */
+
+    /* === ENHANCED HIERARCHY TOKENS === */
+    --text-tertiary: 0 0% 60%; /* More dimmed for metadata */
+    --surface-hover: 210 6% 30%; /* Subtle hover backgrounds */
+    --border-strong: 210 6% 35%; /* Emphasized separators */
+    --comment-thread: 210 6% 22%; /* Threading lines */
+    --action-hover: 210 6% 32%; /* Action button hovers */
+
+    /* === LEGACY COMPATIBILITY TOKENS === */
+    --card: 210 6% 28%; /* Cards match surface */
+    --card-foreground: 0 0% 90%; /* High contrast text */
+    --popover: 210 6% 25%; /* Slightly darker for depth */
+    --popover-foreground: 0 0% 90%; /* High contrast popover text */
+    --secondary: 210 6% 25%; /* Secondary surfaces */
+    --secondary-foreground: 0 0% 90%; /* High contrast secondary text */
+    --muted: 210 6% 25%; /* Muted surfaces */
+    --muted-foreground: 0 0% 60%; /* Muted text */
+    --accent: 15 63.1% 59.6%; /* Orange accent (CHANGED) */
+    --accent-foreground: 0 0% 100%; /* White on orange */
+    --destructive: 6 93% 71%; /* Notion red preserved */
+    --destructive-foreground: 0 0% 100%; /* White on destructive */
+    --input: 210 6% 25%; /* Input backgrounds */
+    --ring: 15 63.1% 59.6%; /* Orange focus rings (CHANGED) */
+
+    /* === SEMANTIC TOKENS - Black theme with orange accents === */
+    --success: 140 60% 45%; /* Green for upvotes */
+    --success-foreground: 0 0% 98%; /* White on success */
+    --success-muted: 140 40% 15%; /* Dark green background */
+    --success-muted-hover: 140 40% 18%; /* Success hover */
+
+    --error: 0 62.8% 50%; /* Red for downvotes */
+    --error-foreground: 0 0% 98%; /* White on error */
+    --error-muted: 0 40% 15%; /* Dark red background */
+    --error-muted-hover: 0 40% 18%; /* Error hover */
+
+    /* === REDDIT DESIGN TOKENS - Pure black aesthetic === */
+    --reddit-sidebar-background: 0 0% 0%; /* Pure black sidebar */
+    --reddit-background-main: 0 0% 0%; /* Pure black main background */
+    --reddit-divider: 210 6% 20%; /* Subtle gray dividers */
+    --reddit-text-primary: 0 0% 90%; /* High contrast primary text */
+    --reddit-text-secondary: 0 0% 70%; /* Secondary text */
+    --reddit-text-meta: 0 0% 60%; /* Meta text */
+    --reddit-hover-background: 210 6% 30%; /* Subtle hover state */
+
+    /* === EDITOR TOKENS - Professional black interface === */
+    --editor-canvas-background: 0 0% 0%; /* Match main background */
+    --editor-canvas-rulers: 210 6% 20%; /* Gray ruler lines */
+    --editor-canvas-text: 0 0% 70%; /* Ruler text */
+    --editor-canvas-guidelines: 15 63.1% 59.6%; /* Orange guidelines (CHANGED) */
+    --editor-canvas-fill: 0 0% 90%; /* Canvas fill areas */
+
+    /* === BLOCK TOKENS - Orange-accented content === */
+    --block-border-default: 210 6% 20%; /* Default gray borders */
+    --block-border-focus: 15 63.1% 59.6%; /* Orange focus borders (CHANGED) */
+    --block-background-hover: 210 6% 30%; /* Block hover states */
+
+    /* === QUOTE TOKENS - Orange-accented quotes === */
+    --quote-border: 15 63.1% 59.6%; /* Orange quote border (CHANGED) */
+    --quote-background: 210 6% 25%; /* Dark gray quote background */
+    --quote-text: 0 0% 90%; /* High contrast quote text */
+    --quote-citation: 0 0% 70%; /* Citation text */
+    --quote-accent: 15 63.1% 59.6%; /* Orange accents (CHANGED) */
+
+    /* === SEPARATOR TOKENS - High contrast dividers === */
+    --separator-default: 0 0% 70%; /* Default gray separator */
+    --separator-subtle: 210 6% 20%; /* Subtle separator */
+    --separator-emphasis: 0 0% 90%; /* Emphasized white separator */
+
+    /* === TABLE TOKENS - Pure black table styling === */
+    --table-border: 210 6% 20%; /* Gray table borders */
+    --table-header-background: 210 6% 25%; /* Dark header background */
+    --table-header-text: 0 0% 90%; /* High contrast headers */
+    --table-cell-background: 210 6% 28%; /* Cell background */
+    --table-cell-text: 0 0% 90%; /* High contrast cell text */
+    --table-row-alternate: 210 6% 22%; /* Alternate row background */
+
+    /* === TAKEAWAY TOKENS - Orange-accented takeaway blocks === */
+    --takeaway-info-background: 15 35% 12%; /* Orange info background (CHANGED) */
+    --takeaway-info-border: 15 63.1% 59.6%; /* Orange info border (CHANGED) */
+    --takeaway-info-text: 15 63.1% 80%; /* Orange info text (CHANGED) */
+    --takeaway-success-background: 140 40% 15%; /* Green success background */
+    --takeaway-success-border: 140 60% 45%; /* Green success border */
+    --takeaway-success-text: 140 60% 80%; /* Green success text */
+    --takeaway-warning-background: 38 60% 15%; /* Amber warning background */
+    --takeaway-warning-border: 38 92% 50%; /* Amber warning border */
+    --takeaway-warning-text: 38 92% 80%; /* Amber warning text */
+    --takeaway-error-background: 0 40% 15%; /* Red error background */
+    --takeaway-error-border: 6 93% 71%; /* Red error border */
+    --takeaway-error-text: 6 93% 80%; /* Red error text */
+
+    /* === POLL TOKENS - Orange-accented polls === */
+    --poll-option-background: 210 6% 25%; /* Dark poll backgrounds */
+    --poll-result-bar: 0 0% 90%; /* White result bars */
+    --poll-result-bar-selected: 15 63.1% 59.6%; /* Orange selected bars (CHANGED) */
+
+    /* === INSPECTOR TOKENS - Professional development interface === */
+    --inspector-background: 0 0% 0%; /* Pure black inspector */
+    --inspector-border: 210 6% 20%; /* Gray borders */
+    --inspector-text: 0 0% 90%; /* High contrast inspector text */
+    --inspector-text-secondary: 0 0% 70%; /* Secondary inspector text */
+    --inspector-control-background: 210 6% 25%; /* Control backgrounds */
+    --inspector-control-border: 210 6% 20%; /* Control borders */
+    --inspector-control-focus: 15 63.1% 59.6%; /* Orange control focus (CHANGED) */
   }
 
   /* Universal Semantic & Utility Tokens */

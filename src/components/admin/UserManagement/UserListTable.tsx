@@ -1,8 +1,13 @@
-// ABOUTME: Advanced user list table with filtering, pagination, and bulk operations for admin user management
+// ABOUTME: Unified admin user management interface with precise role/tier tracking and inline editing capabilities
 
 import React, { useState } from 'react';
-import { useUserListQuery } from '../../../../packages/hooks/useUserManagementQuery';
-import { useAvailableRolesQuery } from '../../../../packages/hooks/useRoleManagementQuery';
+import { 
+  useUnifiedUserListQuery,
+  useBulkAdminOperationMutation,
+  useCellUpdateMutation,
+  type UnifiedUserData,
+  type RoleTrackingData
+} from '../../../../packages/hooks/useUserManagementQuery';
 import {
   Table,
   TableBody,
@@ -25,24 +30,17 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
   Search,
-  Filter,
-  MoreHorizontal,
   Users,
-  UserCheck,
   Shield,
   Calendar,
   Award,
+  Plus,
+  Settings,
 } from 'lucide-react';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { UserDetailModal } from './UserDetailModal';
-import { RoleAssignmentModal } from './RoleAssignmentModal';
-import { BulkOperationsPanel } from './BulkOperationsPanel';
+import { EditableRoleCell } from './EditableRoleCell';
+import { EditableSubscriptionCell } from './EditableSubscriptionCell';
+import { AdditionalRolesList } from './AdditionalRolesList';
+import { JWTClaimsDisplay } from './JWTClaimsDisplay';
 
 interface UserManagementFilters {
   role?: string;
@@ -58,14 +56,14 @@ export const UserListTable = () => {
     limit: 20,
   });
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
-  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
-  const [showUserDetail, setShowUserDetail] = useState(false);
-  const [showRoleAssignment, setShowRoleAssignment] = useState(false);
-  const [showBulkOperations, setShowBulkOperations] = useState(false);
+  const [inlineEditMode, setInlineEditMode] = useState(false);
 
-  // Fetch user data and available roles
-  const { data: userListData, isLoading, error } = useUserListQuery(filters);
-  const { data: rolesData } = useAvailableRolesQuery();
+  // Fetch unified user data with role tracking
+  const { data: userListData, isLoading, error } = useUnifiedUserListQuery(filters);
+  
+  // Mutations for data updates
+  const bulkAdminMutation = useBulkAdminOperationMutation();
+  const cellUpdateMutation = useCellUpdateMutation();
 
   // Handle search input
   const handleSearch = (searchTerm: string) => {
@@ -108,20 +106,35 @@ export const UserListTable = () => {
     }
   };
 
-  // Handle user actions
-  const handleUserAction = (userId: string, action: 'view' | 'assign-role' | 'edit') => {
-    setSelectedUserId(userId);
+  // Cell editing is now handled directly in the Select components
+  // This simplifies the state management and provides immediate feedback
 
-    switch (action) {
-      case 'view':
-        setShowUserDetail(true);
-        break;
-      case 'assign-role':
-        setShowRoleAssignment(true);
-        break;
-      case 'edit':
-        setShowUserDetail(true);
-        break;
+  // Handle bulk operations
+  const handleBulkGrantAdmin = async () => {
+    if (selectedUserIds.length === 0) return;
+
+    try {
+      await bulkAdminMutation.mutateAsync({
+        userIds: selectedUserIds,
+        operation: 'grant_admin',
+      });
+      setSelectedUserIds([]);
+    } catch (error) {
+      console.error('Bulk grant admin failed:', error);
+    }
+  };
+
+  const handleBulkRemoveAdmin = async () => {
+    if (selectedUserIds.length === 0) return;
+
+    try {
+      await bulkAdminMutation.mutateAsync({
+        userIds: selectedUserIds,
+        operation: 'remove_admin',
+      });
+      setSelectedUserIds([]);
+    } catch (error) {
+      console.error('Bulk remove admin failed:', error);
     }
   };
 
@@ -228,15 +241,49 @@ export const UserListTable = () => {
             </div>
           </div>
 
+          {/* Inline Editing Mode Toggle */}
+          <div className="flex items-center gap-4">
+            <div className="flex items-center space-x-2">
+              <Checkbox 
+                id="inline-edit-mode"
+                checked={inlineEditMode}
+                onCheckedChange={setInlineEditMode}
+              />
+              <label htmlFor="inline-edit-mode" className="text-sm font-medium">
+                Modo de Edição Inline
+              </label>
+            </div>
+            {inlineEditMode && (
+              <div className="text-xs text-muted-foreground">
+                Clique nas células de papel/plano para editar diretamente
+              </div>
+            )}
+          </div>
+
           {/* Bulk Operations */}
           {hasSelectedUsers && (
             <div className="flex items-center justify-between p-3 bg-surface-muted rounded-lg border border-border">
               <span className="text-sm text-foreground">
                 {selectedUserIds.length} usuário(s) selecionado(s)
               </span>
-              <Button variant="outline" size="sm" onClick={() => setShowBulkOperations(true)}>
-                Operações em Massa
-              </Button>
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleBulkGrantAdmin}
+                  disabled={bulkAdminMutation.isPending}
+                >
+                  {bulkAdminMutation.isPending ? 'Processando...' : 'Conceder Admin'}
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleBulkRemoveAdmin}
+                  disabled={bulkAdminMutation.isPending}
+                >
+                  {bulkAdminMutation.isPending ? 'Processando...' : 'Remover Admin'}
+                </Button>
+              </div>
             </div>
           )}
         </CardContent>
@@ -245,8 +292,8 @@ export const UserListTable = () => {
       {/* User Table */}
       <Card className="bg-surface border-border shadow-sm">
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <Table>
+          <div className="overflow-x-auto" role="region" aria-label="Tabela de gestão de usuários com scroll horizontal">
+            <Table role="table" aria-label="Tabela de gestão unificada de usuários" className="min-w-[800px]">
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-12">
@@ -256,22 +303,48 @@ export const UserListTable = () => {
                         selectedUserIds.length === userListData.users.length
                       }
                       onCheckedChange={handleSelectAll}
+                      aria-label="Selecionar todos os usuários"
                     />
                   </TableHead>
                   <TableHead>Usuário</TableHead>
-                  <TableHead>Papel</TableHead>
-                  <TableHead>Plano</TableHead>
+                  <TableHead className="min-w-32">
+                    <div className="flex items-center gap-1">
+                      <Shield className="h-4 w-4" />
+                      Papel Principal
+                      <span className="text-xs text-muted-foreground">(DB)</span>
+                    </div>
+                  </TableHead>
+                  <TableHead className="min-w-32">
+                    <div className="flex items-center gap-1">
+                      <Award className="h-4 w-4" />
+                      Plano
+                      <span className="text-xs text-muted-foreground">(DB)</span>
+                    </div>
+                  </TableHead>
+                  <TableHead className="min-w-40">
+                    <div className="flex items-center gap-1">
+                      <Plus className="h-4 w-4" />
+                      Papéis Adicionais
+                      <span className="text-xs text-muted-foreground">(UserRoles)</span>
+                    </div>
+                  </TableHead>
+                  <TableHead className="min-w-32">
+                    <div className="flex items-center gap-1">
+                      <Settings className="h-4 w-4" />
+                      JWT Claims
+                      <span className="text-xs text-muted-foreground">(Somente leitura)</span>
+                    </div>
+                  </TableHead>
                   <TableHead>Pontuação</TableHead>
                   <TableHead>Cadastrado em</TableHead>
-                  <TableHead className="w-16">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
                   // Loading rows
-                  Array.from({ length: 5 }).map((_, i) => (
+                  Array.from({ length: 3 }).map((_, i) => (
                     <TableRow key={i}>
-                      <TableCell colSpan={7} className="text-center py-8">
+                      <TableCell colSpan={8} className="text-center py-8">
                         <div className="flex items-center justify-center">
                           <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
                           <span className="ml-2 text-foreground">Carregando usuários...</span>
@@ -281,21 +354,25 @@ export const UserListTable = () => {
                   ))
                 ) : userListData?.users?.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                       Nenhum usuário encontrado
                     </TableCell>
                   </TableRow>
                 ) : (
                   userListData?.users?.map(user => (
                     <TableRow key={user.id}>
+                      {/* Selection Checkbox */}
                       <TableCell>
                         <Checkbox
                           checked={selectedUserIds.includes(user.id)}
                           onCheckedChange={checked =>
                             handleUserSelection(user.id, checked as boolean)
                           }
+                          aria-label={`Selecionar usuário ${user.full_name || 'sem nome'}`}
                         />
                       </TableCell>
+                      
+                      {/* User Info */}
                       <TableCell>
                         <div className="flex items-center gap-3">
                           <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
@@ -311,42 +388,79 @@ export const UserListTable = () => {
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell>{formatRole(user.role)}</TableCell>
-                      <TableCell>{formatSubscriptionTier(user.subscription_tier)}</TableCell>
+                      
+                      {/* Primary Role Cell (Editable) */}
+                      <TableCell>
+                        <EditableRoleCell
+                          value={user.roleTracking.primaryRole.value}
+                          isEditing={inlineEditMode}
+                          isPending={cellUpdateMutation.isPending}
+                          onValueChange={(value) => 
+                            cellUpdateMutation.mutate({
+                              userId: user.id,
+                              dataSource: 'primary_role',
+                              newValue: value,
+                            })
+                          }
+                        />
+                      </TableCell>
+
+                      {/* Subscription Tier Cell (Editable) */}
+                      <TableCell>
+                        <EditableSubscriptionCell
+                          value={user.roleTracking.subscriptionTier.value}
+                          isEditing={inlineEditMode}
+                          isPending={cellUpdateMutation.isPending}
+                          onValueChange={(value) => 
+                            cellUpdateMutation.mutate({
+                              userId: user.id,
+                              dataSource: 'subscription_tier',
+                              newValue: value,
+                              currentRole: user.roleTracking.primaryRole.value, // Include current role for subscription updates
+                            })
+                          }
+                        />
+                      </TableCell>
+
+                      {/* Additional Roles Cell */}
+                      <TableCell>
+                        <AdditionalRolesList
+                          roles={user.roleTracking.additionalRoles}
+                          isEditing={inlineEditMode}
+                          isPending={cellUpdateMutation.isPending}
+                          onRemoveRole={(roleName) => 
+                            cellUpdateMutation.mutate({
+                              userId: user.id,
+                              dataSource: 'additional_role',
+                              newValue: '',
+                              additionalRoleToRemove: roleName,
+                            })
+                          }
+                        />
+                      </TableCell>
+
+                      {/* JWT Claims Cell (Read-only) */}
+                      <TableCell>
+                        <JWTClaimsDisplay
+                          roleClaim={user.roleTracking.jwtClaims.role}
+                          subscriptionTierClaim={user.roleTracking.jwtClaims.subscriptionTier}
+                        />
+                      </TableCell>
+
+                      {/* Contribution Score */}
                       <TableCell>
                         <div className="flex items-center gap-1">
                           <Award className="h-4 w-4 text-accent" />
                           {user.contribution_score}
                         </div>
                       </TableCell>
+
+                      {/* Created At */}
                       <TableCell>
                         <div className="flex items-center gap-1 text-sm text-muted-foreground">
                           <Calendar className="h-3 w-3" />
                           {new Date(user.created_at).toLocaleDateString('pt-BR')}
                         </div>
-                      </TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleUserAction(user.id, 'view')}>
-                              Ver Detalhes
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => handleUserAction(user.id, 'assign-role')}
-                            >
-                              Gerenciar Papéis
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => handleUserAction(user.id, 'edit')}>
-                              Editar Usuário
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
                   ))
@@ -395,37 +509,56 @@ export const UserListTable = () => {
         </CardContent>
       </Card>
 
-      {/* Modals */}
-      {selectedUserId && (
-        <>
-          <UserDetailModal
-            userId={selectedUserId}
-            open={showUserDetail}
-            onOpenChange={open => {
-              setShowUserDetail(open);
-              if (!open) setSelectedUserId(null);
-            }}
-          />
-          <RoleAssignmentModal
-            userId={selectedUserId}
-            open={showRoleAssignment}
-            onOpenChange={open => {
-              setShowRoleAssignment(open);
-              if (!open) setSelectedUserId(null);
-            }}
-          />
-        </>
+      {/* Status Messages */}
+      {bulkAdminMutation.isPending && (
+        <div className="fixed bottom-4 right-4 bg-primary text-primary-foreground p-3 rounded-lg shadow-lg z-50">
+          <div className="flex items-center gap-2">
+            <div className="animate-spin rounded-full h-4 w-4 border-b border-current" />
+            <span>Processando operação em massa...</span>
+          </div>
+        </div>
+      )}
+      
+      {cellUpdateMutation.isPending && (
+        <div className="fixed bottom-4 right-4 bg-blue-600 text-white p-3 rounded-lg shadow-lg z-50">
+          <div className="flex items-center gap-2">
+            <div className="animate-spin rounded-full h-4 w-4 border-b border-current" />
+            <span>Salvando alteração...</span>
+          </div>
+        </div>
       )}
 
-      <BulkOperationsPanel
-        selectedUserIds={selectedUserIds}
-        open={showBulkOperations}
-        onOpenChange={setShowBulkOperations}
-        onComplete={() => {
-          setSelectedUserIds([]);
-          setShowBulkOperations(false);
-        }}
-      />
+      {bulkAdminMutation.isError && (
+        <div className="fixed bottom-4 right-4 bg-destructive text-destructive-foreground p-3 rounded-lg shadow-lg z-50">
+          <div className="flex items-center gap-2">
+            <span>❌ Erro na operação em massa</span>
+          </div>
+        </div>
+      )}
+
+      {cellUpdateMutation.isError && (
+        <div className="fixed bottom-4 right-4 bg-destructive text-destructive-foreground p-3 rounded-lg shadow-lg z-50">
+          <div className="flex items-center gap-2">
+            <span>❌ Erro ao salvar alteração</span>
+          </div>
+        </div>
+      )}
+
+      {bulkAdminMutation.isSuccess && (
+        <div className="fixed bottom-4 right-4 bg-green-600 text-white p-3 rounded-lg shadow-lg z-50">
+          <div className="flex items-center gap-2">
+            <span>✅ Operação em massa concluída</span>
+          </div>
+        </div>
+      )}
+
+      {cellUpdateMutation.isSuccess && (
+        <div className="fixed bottom-4 right-4 bg-green-600 text-white p-3 rounded-lg shadow-lg z-50">
+          <div className="flex items-center gap-2">
+            <span>✅ Alteração salva com sucesso</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
