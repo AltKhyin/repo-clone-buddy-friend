@@ -1,6 +1,6 @@
 // ABOUTME: Reddit-perfect page header component with exact 1088.04px width alignment and simplified structure
 
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useLayoutEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { usePageSettings } from '../../../packages/hooks/usePageSettings';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -22,9 +22,10 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
   const { data: settings, isLoading } = usePageSettings(pageId);
   const isMobile = useIsMobile();
   
-  // Smart overflow detection
+  // Instant overflow detection
   const containerRef = useRef<HTMLDivElement>(null);
   const titleRef = useRef<HTMLHeadingElement>(null);
+  const measureRef = useRef<HTMLHeadingElement>(null);
   const [scaleFactor, setScaleFactor] = useState<number>(1);
 
   // Enhanced data access with title system enhancements
@@ -49,39 +50,38 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
   const avatarBackgroundColor = settings?.avatar_background_color;
   const avatarIconSize = settings?.avatar_icon_size || 37;
 
-  // Smart overflow detection effect
-  useEffect(() => {
-    const checkOverflow = () => {
-      if (!containerRef.current || !titleRef.current || isLoading) return;
+  // Instant overflow detection with pre-calculation
+  useLayoutEffect(() => {
+    const calculateScale = () => {
+      if (!containerRef.current || !measureRef.current || isLoading || !title) return;
       
       const container = containerRef.current;
-      const titleElement = titleRef.current;
+      const measureElement = measureRef.current;
       
-      // Reset scale to measure natural size
-      setScaleFactor(1);
+      // Calculate available space
+      const containerWidth = container.offsetWidth;
+      const containerPadding = 32; // px-4 = 16px each side
+      const avatarWidth = showAvatar ? 96 + 16 : 0; // 96px avatar + 16px gap
+      const actionWidth = children ? 100 : 0; // Approximate width for actions
+      const availableWidth = containerWidth - containerPadding - avatarWidth - actionWidth;
       
-      // Use setTimeout to ensure DOM is updated
-      setTimeout(() => {
-        const containerWidth = container.offsetWidth;
-        const containerPadding = 32; // px-4 = 16px each side
-        const avatarWidth = showAvatar ? 96 + 16 : 0; // 96px avatar + 16px gap
-        const actionWidth = children ? 100 : 0; // Approximate width for actions
-        const availableWidth = containerWidth - containerPadding - avatarWidth - actionWidth;
-        
-        const titleWidth = titleElement.scrollWidth;
-        
-        if (titleWidth > availableWidth) {
-          const newScaleFactor = Math.max(0.6, availableWidth / titleWidth); // Min scale 60%
-          setScaleFactor(newScaleFactor);
-        }
-      }, 0);
+      // Measure text at full size using hidden element
+      const titleWidth = measureElement.scrollWidth;
+      
+      // Calculate scale factor immediately
+      if (titleWidth > availableWidth) {
+        const newScaleFactor = Math.max(0.6, availableWidth / titleWidth); // Min scale 60%
+        setScaleFactor(newScaleFactor);
+      } else {
+        setScaleFactor(1);
+      }
     };
 
-    checkOverflow();
+    calculateScale();
     
     // Re-check on window resize
-    window.addEventListener('resize', checkOverflow);
-    return () => window.removeEventListener('resize', checkOverflow);
+    window.addEventListener('resize', calculateScale);
+    return () => window.removeEventListener('resize', calculateScale);
   }, [isLoading, title, titlePrefix, showAvatar, children, titleSize, prefixSize, titleSizeCustom, prefixSizeCustom]);
 
   // Enhanced helper function using centralized icon library with comprehensive healthcare icons
@@ -171,8 +171,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
                   fontFamily: fontFamily,
                   color: !titleColor && !prefixColor ? 'inherit' : undefined,
                   transform: scaleFactor < 1 ? `scale(${scaleFactor})` : undefined,
-                  transformOrigin: 'left bottom',
-                  transition: 'transform 0.2s ease-out'
+                  transformOrigin: 'left bottom'
                 }}
               >
                 {titlePrefix && (
@@ -209,6 +208,37 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
           )}
         </div>
       </div>
+      
+      {/* Hidden measurement element for instant scale calculation */}
+      <h1 
+        ref={measureRef}
+        className="font-bold leading-none absolute invisible pointer-events-none"
+        style={{ 
+          fontFamily: fontFamily,
+          top: '-9999px',
+          left: '-9999px',
+          whiteSpace: 'nowrap'
+        }}
+      >
+        {titlePrefix && (
+          <span 
+            className={prefixSizeCustom ? '' : prefixSize}
+            style={{ 
+              fontSize: prefixSizeCustom ? `${prefixSizeCustom}px` : undefined
+            }}
+          >
+            {titlePrefix}
+          </span>
+        )}
+        <span 
+          className={titleSizeCustom ? '' : titleSize}
+          style={{ 
+            fontSize: titleSizeCustom ? `${titleSizeCustom}px` : undefined
+          }}
+        >
+          {title}
+        </span>
+      </h1>
     </div>
   );
 };
