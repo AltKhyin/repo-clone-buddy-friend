@@ -133,6 +133,16 @@ serve(async req => {
         throw new Error(`Failed to fetch community posts: ${fallbackError.message}`);
       }
 
+      // Get reply counts for fallback posts using the same recursive function as RPC
+      const postIds = (fallbackPosts || []).map(post => post.id);
+      const { data: replyCountsData } = await supabase
+        .rpc('get_multiple_comment_counts', { post_ids: postIds })
+        .throwOnError();
+
+      const replyCountsMap = new Map(
+        (replyCountsData || []).map(item => [item.post_id, item.count])
+      );
+
       // Transform fallback data to match RPC structure
       posts = (fallbackPosts || []).map(post => ({
         id: post.id,
@@ -158,7 +168,7 @@ serve(async req => {
             }
           : null,
         user_vote: null, // Will need separate query for user votes in fallback
-        reply_count: 0, // Will need separate query for reply counts in fallback
+        reply_count: replyCountsMap.get(post.id) || 0, // Use recursive comment count
       }));
 
       console.log(`Successfully fetched ${posts.length} community posts via fallback query`);

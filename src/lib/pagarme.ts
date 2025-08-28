@@ -232,15 +232,11 @@ export const validatePagarmeConfig = () => {
 };
 
 /**
- * Environment-specific configuration
+ * Configuration information utility
  */
 export const pagarmeEnvironment = {
-  isProduction: !PAGARME_CONFIG.publicKey?.includes('test'),
-  isDevelopment: PAGARME_CONFIG.publicKey?.includes('test'),
-  
-  getEnvironmentInfo() {
+  getConfigurationInfo() {
     return {
-      environment: this.isProduction ? 'production' : 'development',
       publicKey: PAGARME_CONFIG.publicKey ? `${PAGARME_CONFIG.publicKey.slice(0, 8)}...` : 'not-configured',
       configuredEndpoints: {
         api: PAGARME_CONFIG.baseURL,

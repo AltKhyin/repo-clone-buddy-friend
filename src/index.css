@@ -4,6 +4,17 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Comment nesting scope hover effects - constrained to comment area only */
+.comment-thread-item.show-nested-scope .comment-content .nested-replies {
+  background: hsl(var(--accent) / 0.05);
+  transition: background-color 0.2s ease-in-out;
+}
+
+.comment-thread-item.show-nested-scope .comment-content {
+  background: hsl(var(--accent) / 0.03);
+  transition: background-color 0.2s ease-in-out;
+}
+
 @layer base {
   /* Light Theme Tokens - Sophisticated monochromatic palette with warm undertones (formerly Clássico) */
   .light {

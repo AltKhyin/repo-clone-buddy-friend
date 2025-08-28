@@ -115,7 +115,7 @@ export const CommentThread = ({ comments, rootPostId, onCommentPosted }: Comment
       
       
       return (
-        <div key={comment.id} className="comment-thread-item">
+        <div key={comment.id} className="comment-thread-item" data-comment-id={comment.id}>
           
           {/* Natural comment layout with collapse button and nesting indicators */}
           <div
@@ -194,35 +194,9 @@ export const CommentThread = ({ comments, rootPostId, onCommentPosted }: Comment
   const collapsedCount = threadState.collapsedComments.size;
 
   return (
-    <div className="reddit-comment-thread space-y-1">
-      {/* Reddit-style thread header with proper terminology */}
-      <div className="reddit-thread-header flex items-center justify-between mb-4 pb-2 border-b border-border/20">
-        <div className="text-sm text-muted-foreground font-medium">
-          {totalComments} {totalComments === 1 ? 'comentário' : 'comentários'}
-          {collapsedCount > 0 && (
-            <span className="ml-2 text-accent">
-              ({collapsedCount} {collapsedCount === 1 ? 'thread oculta' : 'threads ocultas'})
-            </span>
-          )}
-        </div>
-        
-        {collapsedCount > 0 && (
-          <Button
-            variant="outline"
-            size="sm"
-            className="reddit-expand-all text-xs h-7 px-3"
-            onClick={() => setThreadState({
-              collapsedComments: new Set(),
-              showMoreReplies: new Map()
-            })}
-          >
-            Expandir todas
-          </Button>
-        )}
-      </div>
-
-      {/* Reddit-style comment tree */}
-      <div className="reddit-comments-container">
+    <div className="comment-thread space-y-1">
+      {/* Clean comment tree without redundant header */}
+      <div className="comments-container">
         {renderRedditComments(commentTree)}
       </div>
     </div>

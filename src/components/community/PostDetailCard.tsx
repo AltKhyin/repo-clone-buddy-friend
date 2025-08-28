@@ -21,6 +21,7 @@ import { PostAuthor } from './CommunityAuthor';
 
 interface PostDetailCardProps {
   post: CommunityPost;
+  totalComments?: number; // Total recursive comment count
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -87,7 +88,7 @@ const formatPostDate = (dateString: string | null | undefined): string => {
   }
 };
 
-export const PostDetailCard = ({ post }: PostDetailCardProps) => {
+export const PostDetailCard = ({ post, totalComments }: PostDetailCardProps) => {
   const { user } = useAuthStore();
   const { actualTheme } = useTheme();
   const savePostMutation = useSavePostMutation();
@@ -470,7 +471,10 @@ export const PostDetailCard = ({ post }: PostDetailCardProps) => {
             )}
           >
             <MessageCircle className="w-4 h-4 mr-1" />
-            {post.reply_count > 0 ? `${post.reply_count} comentários` : 'Nenhum comentário'}
+            {totalComments !== undefined 
+              ? (totalComments > 0 ? `${totalComments} comentários` : 'Nenhum comentário')
+              : (post.reply_count > 0 ? `${post.reply_count} comentários` : 'Nenhum comentário')
+            }
           </Button>
         </div>
       </div>

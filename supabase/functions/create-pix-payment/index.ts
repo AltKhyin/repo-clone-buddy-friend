@@ -48,6 +48,18 @@ const createPagarmeHeaders = () => {
     throw new Error('Pagar.me secret key not configured')
   }
   
+  // Check for placeholder credentials
+  if (PAGARME_SECRET_KEY.includes('placeholder') || 
+      PAGARME_SECRET_KEY.includes('your_real') ||
+      PAGARME_SECRET_KEY.includes('_here')) {
+    throw new Error('Pagar.me credentials not configured. Please configure real API keys in the admin panel.')
+  }
+  
+  // Validate key format
+  if (!PAGARME_SECRET_KEY.startsWith('sk_')) {
+    throw new Error('Invalid Pagar.me secret key format')
+  }
+  
   const authToken = btoa(`${PAGARME_SECRET_KEY}:`)
   
   return {
@@ -96,8 +108,30 @@ const createOrGetCustomer = async (customerData: any) => {
   })
 
   if (!response.ok) {
-    const error = await response.text()
-    throw new Error(`Failed to create customer: ${error}`)
+    let errorMessage = 'Failed to create customer'
+    
+    try {
+      const errorData = await response.json()
+      
+      if (response.status === 401) {
+        errorMessage = 'Credenciais do Pagar.me inválidas. Configure as chaves de API no painel administrativo.'
+      } else if (response.status === 400) {
+        errorMessage = errorData.message || 'Dados do cliente inválidos'
+      } else {
+        errorMessage = errorData.message || `Erro na API do Pagar.me (${response.status})`
+      }
+    } catch (parseError) {
+      const errorText = await response.text()
+      console.error('Failed to parse Pagar.me customer error response:', errorText)
+      
+      if (response.status === 401) {
+        errorMessage = 'Credenciais do Pagar.me inválidas. Configure as chaves de API no painel administrativo.'
+      } else {
+        errorMessage = `Erro na API do Pagar.me (${response.status}): ${errorText.substring(0, 100)}`
+      }
+    }
+    
+    throw new Error(errorMessage)
   }
 
   const customer = await response.json()
@@ -170,8 +204,30 @@ const createPixPayment = async (paymentData: any) => {
   })
 
   if (!response.ok) {
-    const error = await response.text()
-    throw new Error(`Failed to create PIX payment: ${error}`)
+    let errorMessage = 'Failed to create PIX payment'
+    
+    try {
+      const errorData = await response.json()
+      
+      if (response.status === 401) {
+        errorMessage = 'Credenciais do Pagar.me inválidas. Configure as chaves de API no painel administrativo.'
+      } else if (response.status === 400) {
+        errorMessage = errorData.message || 'Dados de pagamento inválidos'
+      } else {
+        errorMessage = errorData.message || `Erro na API do Pagar.me (${response.status})`
+      }
+    } catch (parseError) {
+      const errorText = await response.text()
+      console.error('Failed to parse Pagar.me error response:', errorText)
+      
+      if (response.status === 401) {
+        errorMessage = 'Credenciais do Pagar.me inválidas. Configure as chaves de API no painel administrativo.'
+      } else {
+        errorMessage = `Erro na API do Pagar.me (${response.status}): ${errorText.substring(0, 100)}`
+      }
+    }
+    
+    throw new Error(errorMessage)
   }
 
   const order = await response.json()

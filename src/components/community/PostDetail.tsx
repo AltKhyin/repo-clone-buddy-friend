@@ -17,6 +17,9 @@ interface PostDetailProps {
 export const PostDetail = ({ post, comments }: PostDetailProps) => {
   const { user } = useAuthStore();
 
+  // Calculate total recursive comment count (same logic as CommentThread)
+  const totalComments = comments.length;
+
   const handleCommentPosted = () => {
     // Comment posted successfully - TanStack Query will handle cache invalidation automatically
     // No need for manual reload as useCreateCommentMutation invalidates the postWithComments query
@@ -26,7 +29,7 @@ export const PostDetail = ({ post, comments }: PostDetailProps) => {
   return (
     <div className="space-y-4">
       {/* Main Post */}
-      <PostDetailCard post={post} />
+      <PostDetailCard post={post} totalComments={totalComments} />
       
       {/* Comment Section Separator */}
       <Separator className="border-border/50" />

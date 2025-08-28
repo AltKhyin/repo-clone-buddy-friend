@@ -15,7 +15,6 @@ import { useToast } from '../../../hooks/use-toast';
 interface PaymentConfigurationModalProps {
   isOpen: boolean;
   onClose: () => void;
-  configType: 'pagarme' | 'webhook';
 }
 
 interface PagarmeConfig {
@@ -23,7 +22,9 @@ interface PagarmeConfig {
   secretKey: string;
   apiVersion: string;
   webhookEndpointId: string;
-  environment: 'sandbox' | 'production';
+  webhookAuthEnabled: boolean;
+  webhookUser: string;
+  webhookPassword: string;
 }
 
 // Helper component for field labels with tooltips
@@ -50,20 +51,23 @@ const FieldLabel = ({ htmlFor, children, tooltip, required = false }: {
   </div>
 );
 
-export const PaymentConfigurationModal = ({ isOpen, onClose, configType }: PaymentConfigurationModalProps) => {
+export const PaymentConfigurationModal = ({ isOpen, onClose }: PaymentConfigurationModalProps) => {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSecretKey, setShowSecretKey] = useState(false);
+  const [showWebhookPassword, setShowWebhookPassword] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
   const [validationStatus, setValidationStatus] = useState<'idle' | 'valid' | 'invalid'>('idle');
 
-  // Configuration state
+  // Configuration state - unified Pagar.me + webhook config
   const [config, setConfig] = useState<PagarmeConfig>({
     publicKey: '',
     secretKey: '',
     apiVersion: '2019-09-01',
     webhookEndpointId: '',
-    environment: 'sandbox'
+    webhookAuthEnabled: false,
+    webhookUser: '',
+    webhookPassword: ''
   });
 
   // Load existing configuration on mount
@@ -81,22 +85,27 @@ export const PaymentConfigurationModal = ({ isOpen, onClose, configType }: Payme
       const storedApiVersion = localStorage.getItem('pagarme_api_version');
       const storedWebhookId = localStorage.getItem('pagarme_webhook_id');
       
+      // Load webhook authentication settings
+      const storedWebhookAuthEnabled = localStorage.getItem('pagarme_webhook_auth_enabled') === 'true';
+      const storedWebhookUser = localStorage.getItem('pagarme_webhook_user');
+      const storedWebhookPassword = localStorage.getItem('pagarme_webhook_password');
+      
       const existingConfig = {
         publicKey: storedPublicKey || 
-          (import.meta.env.VITE_PAGARME_PUBLIC_KEY !== 'pk_test_placeholder_key_for_testing' 
+          (!import.meta.env.VITE_PAGARME_PUBLIC_KEY?.includes('your_real') && 
+           !import.meta.env.VITE_PAGARME_PUBLIC_KEY?.includes('placeholder')
             ? import.meta.env.VITE_PAGARME_PUBLIC_KEY 
             : '') || '',
         secretKey: storedSecretKey || 
-          (import.meta.env.PAGARME_SECRET_KEY !== 'sk_test_placeholder_key_for_testing' 
+          (!import.meta.env.PAGARME_SECRET_KEY?.includes('your_real') && 
+           !import.meta.env.PAGARME_SECRET_KEY?.includes('placeholder')
             ? import.meta.env.PAGARME_SECRET_KEY 
             : '') || '',
         apiVersion: storedApiVersion || import.meta.env.PAGARME_API_VERSION || '2019-09-01',
         webhookEndpointId: storedWebhookId || import.meta.env.PAGARME_WEBHOOK_ENDPOINT_ID || '',
-        environment: (
-          (storedPublicKey || import.meta.env.VITE_PAGARME_PUBLIC_KEY)?.includes('test') 
-            ? 'sandbox' 
-            : 'production'
-        ) as 'sandbox' | 'production'
+        webhookAuthEnabled: storedWebhookAuthEnabled,
+        webhookUser: storedWebhookUser || '',
+        webhookPassword: storedWebhookPassword || ''
       };
       
       setConfig(existingConfig);
@@ -122,10 +131,8 @@ export const PaymentConfigurationModal = ({ isOpen, onClose, configType }: Payme
       // In a real implementation, you'd test the API connection
       const publicKeyValid = config.publicKey.startsWith('pk_');
       const secretKeyValid = config.secretKey.startsWith('sk_');
-      const environmentMatch = (config.publicKey.includes('test') && config.environment === 'sandbox') || 
-                             (!config.publicKey.includes('test') && config.environment === 'production');
 
-      if (publicKeyValid && secretKeyValid && environmentMatch) {
+      if (publicKeyValid && secretKeyValid) {
         setValidationStatus('valid');
         toast({
           title: "Chaves validadas",
@@ -135,7 +142,7 @@ export const PaymentConfigurationModal = ({ isOpen, onClose, configType }: Payme
         setValidationStatus('invalid');
         toast({
           title: "Erro de validação",
-          description: "Verifique o formato das chaves e o ambiente selecionado.",
+          description: "Verifique o formato das chaves da API.",
           variant: "destructive"
         });
       }
@@ -173,6 +180,11 @@ export const PaymentConfigurationModal = ({ isOpen, onClose, configType }: Payme
       localStorage.setItem('pagarme_api_version', config.apiVersion);
       localStorage.setItem('pagarme_webhook_id', config.webhookEndpointId);
       
+      // Store webhook authentication settings
+      localStorage.setItem('pagarme_webhook_auth_enabled', config.webhookAuthEnabled.toString());
+      localStorage.setItem('pagarme_webhook_user', config.webhookUser);
+      localStorage.setItem('pagarme_webhook_password', config.webhookPassword);
+      
       toast({
         title: "Configuração salva",
         description: "As credenciais do Pagar.me foram salvas com sucesso.",
@@ -204,10 +216,13 @@ export const PaymentConfigurationModal = ({ isOpen, onClose, configType }: Payme
       secretKey: '',
       apiVersion: '2019-09-01',
       webhookEndpointId: '',
-      environment: 'sandbox'
+      webhookAuthEnabled: false,
+      webhookUser: '',
+      webhookPassword: ''
     });
     setValidationStatus('idle');
     setShowSecretKey(false);
+    setShowWebhookPassword(false);
     onClose();
   };
 
@@ -220,25 +235,11 @@ export const PaymentConfigurationModal = ({ isOpen, onClose, configType }: Payme
   };
 
   const getModalTitle = () => {
-    switch (configType) {
-      case 'pagarme':
-        return 'Configurar Integração Pagar.me';
-      case 'webhook':
-        return 'Configurar Webhooks';
-      default:
-        return 'Configuração de Pagamento';
-    }
+    return 'Configurar Integração Pagar.me';
   };
 
   const getModalDescription = () => {
-    switch (configType) {
-      case 'pagarme':
-        return 'Configure suas credenciais da API Pagar.me para processar pagamentos.';
-      case 'webhook':
-        return 'Configure os webhooks para receber notificações automáticas de pagamento.';
-      default:
-        return 'Configure as opções de pagamento.';
-    }
+    return 'Configure suas credenciais da API Pagar.me e webhooks para processar pagamentos.';
   };
 
   return (
@@ -255,40 +256,6 @@ export const PaymentConfigurationModal = ({ isOpen, onClose, configType }: Payme
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Environment Selection */}
-          <div className="space-y-2">
-            <FieldLabel 
-              htmlFor="environment" 
-              tooltip="Ambiente do Pagar.me: Sandbox para testes (sem cobranças reais) ou Produção para pagamentos reais. Use sempre Sandbox durante desenvolvimento." 
-              required
-            >
-              Ambiente
-            </FieldLabel>
-            <Select
-              value={config.environment}
-              onValueChange={(value: 'sandbox' | 'production') => 
-                setConfig(prev => ({ ...prev, environment: value }))
-              }
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione o ambiente" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="sandbox">
-                  <div className="flex items-center gap-2">
-                    <Badge variant="secondary">Teste</Badge>
-                    Sandbox (Desenvolvimento)
-                  </div>
-                </SelectItem>
-                <SelectItem value="production">
-                  <div className="flex items-center gap-2">
-                    <Badge variant="destructive">Produção</Badge>
-                    Produção (Live)
-                  </div>
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
 
           {/* API Version */}
           <div className="space-y-2">
@@ -397,6 +364,92 @@ export const PaymentConfigurationModal = ({ isOpen, onClose, configType }: Payme
               placeholder="hook_..."
               disabled={isSubmitting}
             />
+          </div>
+
+          {/* Webhook Authentication Settings */}
+          <div className="space-y-4 p-4 border rounded-lg">
+            <h4 className="font-medium text-sm text-foreground">Autenticação de Webhook</h4>
+            
+            {/* Enable Webhook Authentication */}
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="webhookAuthEnabled"
+                checked={config.webhookAuthEnabled}
+                onChange={(e) => setConfig(prev => ({ ...prev, webhookAuthEnabled: e.target.checked }))}
+                disabled={isSubmitting}
+                className="rounded border-gray-300"
+              />
+              <FieldLabel 
+                htmlFor="webhookAuthEnabled" 
+                tooltip="Habilita autenticação HTTP Basic para webhooks. Quando ativado, o Pagar.me enviará credenciais de usuário/senha no cabeçalho Authorization do webhook."
+              >
+                Habilitar Autenticação
+              </FieldLabel>
+            </div>
+
+            {/* Webhook User (conditional) */}
+            {config.webhookAuthEnabled && (
+              <>
+                <div className="space-y-2">
+                  <FieldLabel 
+                    htmlFor="webhookUser" 
+                    tooltip="Nome de usuário para autenticação HTTP Basic do webhook. Este valor deve ser configurado também no dashboard do Pagar.me."
+                  >
+                    Usuário do Webhook
+                  </FieldLabel>
+                  <Input
+                    id="webhookUser"
+                    value={config.webhookUser}
+                    onChange={(e) => setConfig(prev => ({ ...prev, webhookUser: e.target.value }))}
+                    placeholder="usuario_webhook"
+                    disabled={isSubmitting}
+                  />
+                </div>
+
+                {/* Webhook Password (conditional) */}
+                <div className="space-y-2">
+                  <FieldLabel 
+                    htmlFor="webhookPassword" 
+                    tooltip="Senha para autenticação HTTP Basic do webhook. Este valor deve ser configurado também no dashboard do Pagar.me."
+                  >
+                    Senha do Webhook
+                  </FieldLabel>
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <Input
+                        id="webhookPassword"
+                        type={showWebhookPassword ? 'text' : 'password'}
+                        value={config.webhookPassword}
+                        onChange={(e) => setConfig(prev => ({ ...prev, webhookPassword: e.target.value }))}
+                        placeholder="senha_webhook"
+                        disabled={isSubmitting}
+                        className="pr-10"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 h-6 w-6"
+                        onClick={() => setShowWebhookPassword(!showWebhookPassword)}
+                      >
+                        {showWebhookPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                    {config.webhookPassword && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        onClick={() => copyToClipboard(config.webhookPassword, 'Senha do webhook')}
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Validation Status */}

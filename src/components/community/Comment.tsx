@@ -116,31 +116,6 @@ export const Comment = ({
                 className="flex-1"
               />
               
-              {/* Thread collapse/expand control */}
-              {hasReplies && onToggleCollapse && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={onToggleCollapse}
-                  className={cn(
-                    "thread-toggle-btn h-6 px-1.5 rounded-md",
-                    "hover:bg-surface-hover text-muted-foreground hover:text-foreground",
-                    "flex items-center gap-1 transition-all duration-150",
-                    "border border-transparent hover:border-border/40"
-                  )}
-                  title={isCollapsed ? `Mostrar ${replyCount} respostas` : 'Ocultar respostas'}
-                >
-                  {isCollapsed ? (
-                    <>
-                      <ChevronRight className="w-3.5 h-3.5" strokeWidth={2} />
-                      <span className="text-xs font-medium">{replyCount}</span>
-                    </>
-                  ) : (
-                    <ChevronDown className="w-3.5 h-3.5" strokeWidth={2} />
-                  )}
-                </Button>
-              )}
-              
               {comment.is_rewarded && (
                 <Badge
                   variant="secondary"
@@ -185,6 +160,44 @@ export const Comment = ({
             >
               {isReplying ? 'Cancelar' : 'Responder'}
             </Button>
+
+            {/* Thread collapse/expand control - positioned after Reply button */}
+            {hasReplies && onToggleCollapse && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onToggleCollapse}
+                className={cn(
+                  "thread-toggle-btn h-7 px-2 text-xs hover:bg-action-hover hover:text-accent transition-all duration-150",
+                  "flex items-center gap-1",
+                  isDeepNested && "h-6 px-1.5" // Smaller for deep comments
+                )}
+                title={isCollapsed ? `Mostrar ${replyCount} respostas` : 'Ocultar respostas'}
+                onMouseEnter={() => {
+                  // Add hover effect to show scope of nested comments
+                  const commentElement = document.querySelector(`[data-comment-id="${comment.id}"]`);
+                  if (commentElement) {
+                    commentElement.classList.add('show-nested-scope');
+                  }
+                }}
+                onMouseLeave={() => {
+                  // Remove hover effect
+                  const commentElement = document.querySelector(`[data-comment-id="${comment.id}"]`);
+                  if (commentElement) {
+                    commentElement.classList.remove('show-nested-scope');
+                  }
+                }}
+              >
+                {isCollapsed ? (
+                  <>
+                    <ChevronRight className="w-3.5 h-3.5" strokeWidth={2} />
+                    <span className="font-medium">{replyCount}</span>
+                  </>
+                ) : (
+                  <ChevronDown className="w-3.5 h-3.5" strokeWidth={2} />
+                )}
+              </Button>
+            )}
 
           </div>
         </div>

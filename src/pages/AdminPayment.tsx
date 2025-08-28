@@ -10,9 +10,8 @@ import { usePaymentStats, useRecentPayments, useSubscriptionPlans, usePaymentCon
 import { PaymentConfigurationModal } from '@/components/admin/PaymentManagement/PaymentConfigurationModal';
 
 const AdminPaymentContent = () => {
-  // Modal state management
+  // Modal state management - simplified to single unified configuration
   const [configModalOpen, setConfigModalOpen] = useState(false);
-  const [configModalType, setConfigModalType] = useState<'pagarme' | 'webhook'>('pagarme');
 
   // Real data hooks replacing mock data
   const { data: paymentStats, isLoading: statsLoading, error: statsError } = usePaymentStats();
@@ -20,14 +19,8 @@ const AdminPaymentContent = () => {
   const { data: subscriptionPlans, isLoading: plansLoading, error: plansError } = useSubscriptionPlans();
   const { data: paymentConfig, isLoading: configLoading } = usePaymentConfiguration();
 
-  // Modal handlers
-  const handleOpenPagarmeConfig = () => {
-    setConfigModalType('pagarme');
-    setConfigModalOpen(true);
-  };
-
-  const handleOpenWebhookConfig = () => {
-    setConfigModalType('webhook');
+  // Modal handler - unified configuration
+  const handleOpenConfig = () => {
     setConfigModalOpen(true);
   };
 
@@ -198,7 +191,7 @@ const AdminPaymentContent = () => {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* Pagar.me Integration Status */}
+            {/* Unified Pagar.me Configuration */}
             <div className="flex items-center justify-between p-4 border border-border rounded-lg">
               <div className="space-y-1">
                 <h3 className="font-semibold text-foreground flex items-center gap-2">
@@ -209,15 +202,20 @@ const AdminPaymentContent = () => {
                   ) : (
                     <AlertCircle className="h-4 w-4 text-yellow-500" />
                   )}
-                  Integração Pagar.me
+                  Configuração Pagar.me
                 </h3>
                 <p className="text-sm text-muted-foreground">
-                  {configLoading ? 'Verificando...' : `Ambiente: ${paymentConfig?.environment || 'Não configurado'}`}
+                  {configLoading 
+                    ? 'Verificando...' 
+                    : paymentConfig?.isConfigured 
+                      ? `API e webhooks configurados • ${paymentConfig?.pagarmeIntegration === 'active' ? 'Integração ativa' : 'Integração inativa'}`
+                      : 'Configure credenciais da API e webhooks'
+                  }
                 </p>
               </div>
-              <Button variant="outline" size="sm" onClick={handleOpenPagarmeConfig}>
+              <Button variant="outline" size="sm" onClick={handleOpenConfig}>
                 <Settings className="h-4 w-4 mr-2" />
-                Configurar
+                Configurar Pagar.me
               </Button>
             </div>
 
@@ -231,33 +229,6 @@ const AdminPaymentContent = () => {
                   <Badge variant="secondary">Boleto (em breve)</Badge>
                 </div>
               </div>
-            </div>
-
-            {/* Webhook Status */}
-            <div className="flex items-center justify-between p-4 border border-border rounded-lg">
-              <div className="space-y-1">
-                <h3 className="font-semibold text-foreground flex items-center gap-2">
-                  {configLoading ? (
-                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                  ) : paymentConfig?.webhookStatus === 'configured' ? (
-                    <CheckCircle className="h-4 w-4 text-green-500" />
-                  ) : (
-                    <AlertCircle className="h-4 w-4 text-yellow-500" />
-                  )}
-                  Webhooks
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  {configLoading 
-                    ? 'Verificando...' 
-                    : paymentConfig?.webhookStatus === 'configured' 
-                      ? 'Configurado corretamente' 
-                      : 'Configuração necessária'
-                  }
-                </p>
-              </div>
-              <Button variant="outline" size="sm" onClick={handleOpenWebhookConfig}>
-                Configurar
-              </Button>
             </div>
           </CardContent>
         </Card>
@@ -452,11 +423,10 @@ const AdminPaymentContent = () => {
         </Card>
       </div>
 
-      {/* Payment Configuration Modal */}
+      {/* Payment Configuration Modal - Unified Configuration */}
       <PaymentConfigurationModal
         isOpen={configModalOpen}
         onClose={() => setConfigModalOpen(false)}
-        configType={configModalType}
       />
     </StandardLayout>
   );

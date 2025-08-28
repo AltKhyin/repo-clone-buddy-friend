@@ -68,7 +68,7 @@ BEGIN
         END AS author,
         COALESCE(v.vote_type, 'none') AS user_vote,
         COALESCE(
-            (SELECT COUNT(*) FROM "CommunityPosts" AS replies WHERE replies.parent_post_id = cp.id),
+            get_total_comment_count(cp.id),
             0
         ) AS reply_count
     FROM

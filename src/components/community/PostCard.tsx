@@ -498,7 +498,7 @@ export const PostCard = ({ post }: PostCardProps) => {
             }}
           >
             <MessageCircle className="w-4 h-4 mr-1" />
-            {post.reply_count || 0}
+{post.reply_count > 0 ? `${post.reply_count} comentários` : 'Nenhum comentário'}
           </Button>
         </div>
       </div>

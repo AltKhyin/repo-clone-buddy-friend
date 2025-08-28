@@ -17,12 +17,44 @@ const supabase = createClient(
 )
 
 // =================================================================
-// Webhook Signature Verification
+// Dual Webhook Authentication System
 // =================================================================
 
+/**
+ * Validates HTTP Basic Authentication for webhooks
+ * Used when "Habilitar autenticação" is enabled in Pagar.me dashboard
+ */
+const validateBasicAuth = (authHeader: string | null): boolean => {
+  const webhookUser = Deno.env.get('PAGARME_WEBHOOK_USER')
+  const webhookPassword = Deno.env.get('PAGARME_WEBHOOK_PASSWORD')
+  
+  if (!authHeader || !webhookUser || !webhookPassword) {
+    return false
+  }
+
+  try {
+    // Extract credentials from "Basic base64encodedCredentials"
+    if (!authHeader.startsWith('Basic ')) {
+      return false
+    }
+    
+    const base64Credentials = authHeader.replace('Basic ', '')
+    const credentials = atob(base64Credentials)
+    const [username, password] = credentials.split(':')
+
+    return username === webhookUser && password === webhookPassword
+  } catch (error) {
+    console.error('Basic auth validation error:', error)
+    return false
+  }
+}
+
+/**
+ * Validates Pagar.me webhook signature
+ * Provides cryptographic verification of webhook authenticity
+ */
 const verifyWebhookSignature = async (request: Request, signature: string | null): Promise<boolean> => {
   if (!signature) {
-    console.error('Missing webhook signature header')
     return false
   }
 
@@ -31,7 +63,6 @@ const verifyWebhookSignature = async (request: Request, signature: string | null
     const webhookSecret = Deno.env.get('PAGARME_WEBHOOK_SECRET')
     
     if (!webhookSecret) {
-      console.error('Webhook secret not configured')
       return false
     }
 
@@ -55,8 +86,9 @@ const verifyWebhookSignature = async (request: Request, signature: string | null
       .map(b => b.toString(16).padStart(2, '0'))
       .join('')
     
-    // Compare signatures securely
-    return signature === `sha256=${computedHex}`
+    // Compare signatures securely (handle different signature formats)
+    const expectedSignature = `sha256=${computedHex}`
+    return signature === expectedSignature || signature === computedHex
   } catch (error) {
     console.error('Signature verification failed:', error)
     return false
@@ -357,17 +389,69 @@ serve(async (req: Request) => {
     return new Response(null, { status: 200, headers: corsHeaders })
   }
 
+  // Only accept POST requests for webhooks
+  if (req.method !== 'POST') {
+    return sendError('Method not allowed. Webhooks must use POST.', 405)
+  }
+
   try {
-    // [C6.4.2] Verify webhook signature
-    const signature = req.headers.get('x-hub-signature-256')
+    // =================================================================
+    // Dual Authentication Validation
+    // =================================================================
+
+    const authHeader = req.headers.get('Authorization')
+    const signatureHeader = req.headers.get('X-Hub-Signature-256') || 
+                           req.headers.get('X-Pagarme-Signature') ||
+                           req.headers.get('x-hub-signature-256')
+
+    console.log('Webhook received:', {
+      hasAuth: Boolean(authHeader),
+      hasSignature: Boolean(signatureHeader),
+      contentType: req.headers.get('Content-Type')
+    })
+
+    let authenticationPassed = false
+    const authResults = {
+      basicAuth: false,
+      signature: false
+    }
+
+    // Check HTTP Basic Authentication (when "Habilitar autenticação" is enabled)
+    const webhookUser = Deno.env.get('PAGARME_WEBHOOK_USER')
+    const webhookPassword = Deno.env.get('PAGARME_WEBHOOK_PASSWORD')
     
-    // Clone request for signature verification (body can only be read once)
-    const requestClone = req.clone()
-    const isValidSignature = await verifyWebhookSignature(requestClone, signature)
-    
-    if (!isValidSignature) {
-      console.error('Invalid webhook signature')
-      return sendError('Unauthorized', 401)
+    if (webhookUser && webhookPassword) {
+      authResults.basicAuth = validateBasicAuth(authHeader)
+      if (authResults.basicAuth) {
+        console.log('✅ HTTP Basic Auth validation passed')
+        authenticationPassed = true
+      } else {
+        console.log('❌ HTTP Basic Auth validation failed')
+      }
+    }
+
+    // Check signature verification (cryptographic validation)
+    const webhookSecret = Deno.env.get('PAGARME_WEBHOOK_SECRET')
+    if (webhookSecret && signatureHeader) {
+      // Clone request for signature verification (body can only be read once)
+      const requestClone = req.clone()
+      authResults.signature = await verifyWebhookSignature(requestClone, signatureHeader)
+      if (authResults.signature) {
+        console.log('✅ Webhook signature validation passed')
+        authenticationPassed = true
+      } else {
+        console.log('❌ Webhook signature validation failed')
+      }
+    }
+
+    // Require at least one authentication method to pass
+    if (!authenticationPassed) {
+      console.error('Webhook authentication failed:', {
+        basicAuthConfigured: Boolean(webhookUser && webhookPassword),
+        signatureConfigured: Boolean(webhookSecret),
+        authResults
+      })
+      return sendError('Webhook authentication failed. Invalid credentials or signature.', 401)
     }
 
     // [C6.4.3] Parse webhook payload
@@ -380,13 +464,14 @@ serve(async (req: Request) => {
     // [C6.4.4] Process webhook event
     await processPaymentEvent(webhookEvent)
     
-    console.log(`Successfully processed webhook: ${webhookEvent.id}`)
+    console.log(`Successfully processed webhook: ${webhookEvent.id} (auth: ${JSON.stringify(authResults)})`)
     
     // [C6.4.5] Return success response
     return sendSuccess({ 
       received: true,
       webhook_id: webhookEvent.id,
-      processed_at: new Date().toISOString()
+      processed_at: new Date().toISOString(),
+      authentication: authResults
     })
 
   } catch (error) {

@@ -1,6 +1,7 @@
 // ABOUTME: TanStack Query mutation hooks for Pagar.me payment operations in EVIDENS
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
+import { supabase } from '@/integrations/supabase/client';
 import { pagarmeClientConfig, type PagarmeOrder, type PixPaymentConfig, type CreditCardPaymentConfig } from '@/lib/pagarme';
 
 // =================================================================
@@ -65,12 +66,19 @@ export type CustomerCreationInput = z.infer<typeof customerCreationSchema>;
  * Edge Function will handle the actual Pagar.me API call with secret key
  */
 const createPixPayment = async (input: PixPaymentInput): Promise<PagarmeOrder> => {
+  // Get the current user session for JWT token
+  const { data: { session } } = await supabase.auth.getSession();
+  
+  if (!session?.access_token) {
+    throw new Error('Usuário não autenticado. Faça login para continuar.');
+  }
+
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
   const response = await fetch(`${supabaseUrl}/functions/v1/create-pix-payment`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+      'Authorization': `Bearer ${session.access_token}`
     },
     body: JSON.stringify(input)
   });
@@ -267,8 +275,7 @@ export const usePagarmeConfig = () => {
       const config = pagarmeClientConfig;
       return {
         isConfigured: config.isConfigured(),
-        publicKey: config.publicKey ? `${config.publicKey.slice(0, 8)}...` : 'não configurado',
-        environment: config.publicKey?.includes('test') ? 'teste' : 'produção'
+        publicKey: config.publicKey ? `${config.publicKey.slice(0, 8)}...` : 'não configurado'
       };
     },
     staleTime: Infinity, // Config doesn't change during runtime

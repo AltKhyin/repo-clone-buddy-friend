@@ -36,6 +36,9 @@ export const PostActionMenu = ({ post, isPinned = false }: PostActionMenuProps) 
   const moderationMutation = usePostModerationMutation();
   const deletePostMutation = useDeletePostMutation();
 
+  // Check if this is a comment (has parent_post_id) or a top-level post
+  const isComment = !!post.parent_post_id;
+
   // Permission checks
   const isLoggedIn = !!user;
   const isAuthor = user?.id === post.author_id;
@@ -159,17 +162,20 @@ export const PostActionMenu = ({ post, isPinned = false }: PostActionMenuProps) 
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-48">
-        {/* Save action - show for all users */}
-        <DropdownMenuItem onClick={handleSave} disabled={!isLoggedIn || savePostMutation.isPending}>
-          {post.is_saved ? (
-            <BookmarkCheck className="mr-2 h-4 w-4" />
-          ) : (
-            <Bookmark className="mr-2 h-4 w-4" />
-          )}
-          {post.is_saved ? 'Remover dos salvos' : 'Salvar post'}
-        </DropdownMenuItem>
-
-        <DropdownMenuSeparator />
+        {/* Save action - show for top-level posts only, not comments */}
+        {!isComment && (
+          <>
+            <DropdownMenuItem onClick={handleSave} disabled={!isLoggedIn || savePostMutation.isPending}>
+              {post.is_saved ? (
+                <BookmarkCheck className="mr-2 h-4 w-4" />
+              ) : (
+                <Bookmark className="mr-2 h-4 w-4" />
+              )}
+              {post.is_saved ? 'Remover dos salvos' : 'Salvar post'}
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+          </>
+        )}
 
         {/* Report action - show for logged users only */}
         {isLoggedIn && (
@@ -185,7 +191,7 @@ export const PostActionMenu = ({ post, isPinned = false }: PostActionMenuProps) 
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleEdit}>
               <Edit className="mr-2 h-4 w-4" />
-              Editar post
+              {isComment ? 'Editar comentário' : 'Editar post'}
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={handleDelete}
@@ -193,13 +199,13 @@ export const PostActionMenu = ({ post, isPinned = false }: PostActionMenuProps) 
               className="text-destructive"
             >
               <Trash2 className="mr-2 h-4 w-4" />
-              Deletar post
+              {isComment ? 'Deletar comentário' : 'Deletar post'}
             </DropdownMenuItem>
           </>
         )}
 
-        {/* Moderation actions - show for admins/editors */}
-        {canModerate && (
+        {/* Moderation actions - show for admins/editors, but only for top-level posts */}
+        {canModerate && !isComment && (
           <>
             <DropdownMenuSeparator />
             <DropdownMenuItem
@@ -219,6 +225,24 @@ export const PostActionMenu = ({ post, isPinned = false }: PostActionMenuProps) 
               >
                 <Trash2 className="mr-2 h-4 w-4" />
                 Deletar post
+              </DropdownMenuItem>
+            )}
+          </>
+        )}
+
+        {/* Moderation actions for comments - admins can delete comments but not pin them */}
+        {canModerate && isComment && (
+          <>
+            <DropdownMenuSeparator />
+            {/* Admin can also delete any comment */}
+            {!isAuthor && (
+              <DropdownMenuItem
+                onClick={handleDelete}
+                disabled={deletePostMutation.isPending}
+                className="text-destructive"
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Deletar comentário
               </DropdownMenuItem>
             )}
           </>
