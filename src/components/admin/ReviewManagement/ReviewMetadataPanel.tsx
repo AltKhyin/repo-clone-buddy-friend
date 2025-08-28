@@ -1,4 +1,5 @@
 // ABOUTME: Metadata editing panel for review title, description, tags, and settings
+// IMPORTANT: When saving published reviews, the published status and original published_at date are preserved
 
 import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';

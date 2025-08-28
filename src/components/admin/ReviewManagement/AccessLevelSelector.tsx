@@ -31,9 +31,17 @@ type AccessLevel = {
 
 const accessLevels: AccessLevel[] = [
   {
+    value: 'public',
+    label: 'Public',
+    description: 'Visible to everyone, including non-users',
+    icon: <Users className="h-4 w-4" data-testid="public-icon" />,
+    color: 'text-blue-600',
+    badge: 'Public',
+  },
+  {
     value: 'free',
     label: 'Free Users',
-    description: 'Available to all users',
+    description: 'Available to all registered users',
     icon: <Users className="h-4 w-4" data-testid="users-icon" />,
     color: 'text-green-600',
   },
@@ -46,7 +54,7 @@ const accessLevels: AccessLevel[] = [
     badge: 'Premium',
   },
   {
-    value: 'admin_editor',
+    value: 'admin',
     label: 'Admin/Editor Only',
     description: 'Restricted to admin and editors',
     icon: <Shield className="h-4 w-4" data-testid="shield-icon" />,

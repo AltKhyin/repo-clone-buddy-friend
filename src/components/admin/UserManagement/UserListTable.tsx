@@ -140,24 +140,8 @@ export const UserListTable = () => {
 
   // Format user role for display
   const formatRole = (role: string) => {
-    const roleVariant =
-      role === 'admin'
-        ? 'destructive'
-        : role === 'editor'
-          ? 'default'
-          : role === 'moderator'
-            ? 'secondary'
-            : 'outline';
-
-    const roleLabel =
-      role === 'admin'
-        ? 'Admin'
-        : role === 'editor'
-          ? 'Editor'
-          : role === 'moderator'
-            ? 'Moderador'
-            : 'Praticante';
-
+    const roleVariant = role === 'admin' ? 'destructive' : 'outline';
+    const roleLabel = role === 'admin' ? 'Admin' : 'Praticante';
     return <Badge variant={roleVariant}>{roleLabel}</Badge>;
   };
 
@@ -217,8 +201,6 @@ export const UserListTable = () => {
                 <SelectContent>
                   <SelectItem value="all">Todos os papéis</SelectItem>
                   <SelectItem value="admin">Admin</SelectItem>
-                  <SelectItem value="editor">Editor</SelectItem>
-                  <SelectItem value="moderator">Moderador</SelectItem>
                   <SelectItem value="practitioner">Praticante</SelectItem>
                 </SelectContent>
               </Select>
@@ -293,7 +275,7 @@ export const UserListTable = () => {
       <Card className="bg-surface border-border shadow-sm">
         <CardContent className="p-0">
           <div className="overflow-x-auto" role="region" aria-label="Tabela de gestão de usuários com scroll horizontal">
-            <Table role="table" aria-label="Tabela de gestão unificada de usuários" className="min-w-[800px]">
+            <Table role="table" aria-label="Tabela de gestão unificada de usuários" className="min-w-[1200px]">
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-12">
@@ -306,7 +288,7 @@ export const UserListTable = () => {
                       aria-label="Selecionar todos os usuários"
                     />
                   </TableHead>
-                  <TableHead>Usuário</TableHead>
+                  <TableHead className="min-w-48">Usuário</TableHead>
                   <TableHead className="min-w-32">
                     <div className="flex items-center gap-1">
                       <Shield className="h-4 w-4" />
@@ -335,6 +317,8 @@ export const UserListTable = () => {
                       <span className="text-xs text-muted-foreground">(Somente leitura)</span>
                     </div>
                   </TableHead>
+                  <TableHead className="min-w-32">Atividade</TableHead>
+                  <TableHead className="min-w-40">Redes Sociais</TableHead>
                   <TableHead>Pontuação</TableHead>
                   <TableHead>Cadastrado em</TableHead>
                 </TableRow>
@@ -344,7 +328,7 @@ export const UserListTable = () => {
                   // Loading rows
                   Array.from({ length: 3 }).map((_, i) => (
                     <TableRow key={i}>
-                      <TableCell colSpan={8} className="text-center py-8">
+                      <TableCell colSpan={10} className="text-center py-8">
                         <div className="flex items-center justify-center">
                           <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
                           <span className="ml-2 text-foreground">Carregando usuários...</span>
@@ -354,7 +338,7 @@ export const UserListTable = () => {
                   ))
                 ) : userListData?.users?.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
                       Nenhum usuário encontrado
                     </TableCell>
                   </TableRow>
@@ -375,14 +359,25 @@ export const UserListTable = () => {
                       {/* User Info */}
                       <TableCell>
                         <div className="flex items-center gap-3">
-                          <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                            {user.full_name?.charAt(0)?.toUpperCase() || 'U'}
-                          </div>
+                          {user.avatar_url ? (
+                            <img 
+                              src={user.avatar_url} 
+                              alt={user.full_name || 'User'} 
+                              className="h-8 w-8 rounded-full object-cover border border-border"
+                            />
+                          ) : (
+                            <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                              {user.full_name?.charAt(0)?.toUpperCase() || 'U'}
+                            </div>
+                          )}
                           <div>
                             <div className="font-medium text-foreground">
                               {user.full_name || 'Nome não informado'}
                             </div>
                             <div className="text-sm text-muted-foreground">
+                              {user.email || 'Email não encontrado'}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
                               ID: {user.id.slice(0, 8)}...
                             </div>
                           </div>
@@ -445,6 +440,98 @@ export const UserListTable = () => {
                           roleClaim={user.roleTracking.jwtClaims.role}
                           subscriptionTierClaim={user.roleTracking.jwtClaims.subscriptionTier}
                         />
+                      </TableCell>
+
+                      {/* Activity Metrics */}
+                      <TableCell>
+                        <div className="space-y-1 text-xs">
+                          <div className="flex items-center gap-1">
+                            <span className="text-muted-foreground">Reviews:</span>
+                            <span className="font-medium">{user.activityMetrics?.reviewsAuthored || 0}</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <span className="text-muted-foreground">Posts:</span>
+                            <span className="font-medium">{user.activityMetrics?.postsCount || 0}</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <span className="text-muted-foreground">Votos:</span>
+                            <span className="font-medium">{user.activityMetrics?.votesGiven || 0}</span>
+                          </div>
+                        </div>
+                      </TableCell>
+
+                      {/* Social Media Links */}
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          {user.socialMediaLinks?.instagram_url && (
+                            <a 
+                              href={user.socialMediaLinks.instagram_url} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center px-2 py-1 rounded text-xs bg-pink-100 text-pink-800 hover:bg-pink-200"
+                            >
+                              IG
+                            </a>
+                          )}
+                          {user.socialMediaLinks?.linkedin_url && (
+                            <a 
+                              href={user.socialMediaLinks.linkedin_url} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center px-2 py-1 rounded text-xs bg-blue-100 text-blue-800 hover:bg-blue-200"
+                            >
+                              LI
+                            </a>
+                          )}
+                          {user.socialMediaLinks?.facebook_url && (
+                            <a 
+                              href={user.socialMediaLinks.facebook_url} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center px-2 py-1 rounded text-xs bg-blue-100 text-blue-800 hover:bg-blue-200"
+                            >
+                              FB
+                            </a>
+                          )}
+                          {user.socialMediaLinks?.twitter_url && (
+                            <a 
+                              href={user.socialMediaLinks.twitter_url} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center px-2 py-1 rounded text-xs bg-sky-100 text-sky-800 hover:bg-sky-200"
+                            >
+                              TW
+                            </a>
+                          )}
+                          {user.socialMediaLinks?.youtube_url && (
+                            <a 
+                              href={user.socialMediaLinks.youtube_url} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center px-2 py-1 rounded text-xs bg-red-100 text-red-800 hover:bg-red-200"
+                            >
+                              YT
+                            </a>
+                          )}
+                          {user.socialMediaLinks?.website_url && (
+                            <a 
+                              href={user.socialMediaLinks.website_url} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center px-2 py-1 rounded text-xs bg-gray-100 text-gray-800 hover:bg-gray-200"
+                            >
+                              WEB
+                            </a>
+                          )}
+                          {!user.socialMediaLinks?.instagram_url && 
+                           !user.socialMediaLinks?.linkedin_url && 
+                           !user.socialMediaLinks?.facebook_url && 
+                           !user.socialMediaLinks?.twitter_url && 
+                           !user.socialMediaLinks?.youtube_url && 
+                           !user.socialMediaLinks?.website_url && (
+                            <span className="text-xs text-muted-foreground">-</span>
+                          )}
+                        </div>
                       </TableCell>
 
                       {/* Contribution Score */}

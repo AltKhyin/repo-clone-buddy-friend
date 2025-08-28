@@ -28,8 +28,26 @@ interface UpdateMetadataData {
 const updateReviewMetadata = async ({ reviewId, metadata }: UpdateMetadataData) => {
   const { tags, content_types, ...reviewData } = metadata;
 
+  // First, check if this review is already published
+  const { data: currentReview, error: fetchError } = await supabase
+    .from('Reviews')
+    .select('review_status, published_at')
+    .eq('id', reviewId)
+    .single();
+
+  if (fetchError) {
+    throw new Error(`Failed to fetch review status: ${fetchError.message}`);
+  }
+
   // Clean up data before sending to database
   const cleanedReviewData = { ...reviewData };
+
+  // If review is published, ensure we preserve the published status and date
+  if (currentReview?.review_status === 'published' && currentReview?.published_at) {
+    cleanedReviewData.review_status = 'published';
+    // Note: We don't set published_at here because we want to preserve the original date
+    // The database will keep the existing published_at value
+  }
 
   // Convert empty date strings to null for PostgreSQL
   if (cleanedReviewData.original_article_publication_date === '') {
@@ -139,6 +157,12 @@ export const useUpdateReviewMetadataMutation = () => {
 
       // Invalidate content types cache since usage might have changed
       queryClient.invalidateQueries({ queryKey: ['content-types'] });
+
+      // IMPORTANT: If review was published, invalidate public-facing caches
+      // This ensures published content updates are reflected immediately
+      queryClient.invalidateQueries({ queryKey: ['reviews'] });
+      queryClient.invalidateQueries({ queryKey: ['homepage'] });
+      queryClient.invalidateQueries({ queryKey: ['review-detail'] });
 
       console.log('Review metadata updated successfully');
     },

@@ -31,6 +31,7 @@ interface RoleDataSource {
   source: string;
   editable: boolean;
   lastUpdated?: string;
+  syncStatus?: 'synced' | 'drift_detected';
 }
 
 interface RoleTrackingData {
@@ -50,6 +51,7 @@ interface RoleTrackingData {
 interface UserWithRoles {
   id: string;
   full_name: string;
+  email: string;
   avatar_url?: string;
   role: string;
   subscription_tier: string;
@@ -57,11 +59,44 @@ interface UserWithRoles {
   display_hover_card: boolean;
   contribution_score: number;
   created_at: string;
+  
+  // Social media links
+  socialMediaLinks: {
+    facebook_url?: string;
+    instagram_url?: string;
+    linkedin_url?: string;
+    twitter_url?: string;
+    youtube_url?: string;
+    website_url?: string;
+  };
+  
+  // Additional roles from UserRoles table
   roles?: Array<{
     role_name: string;
     granted_at: string;
     expires_at?: string;
+    granted_by?: string;
+    is_active: boolean;
   }>;
+  
+  // Activity metrics
+  activityMetrics: {
+    postsCount: number;
+    commentsCount: number;
+    votesGiven: number;
+    reviewsAuthored: number;
+    lastLoginAt?: string;
+  };
+  
+  // JWT Claims for drift detection
+  jwtClaims: {
+    role?: string;
+    subscription_tier?: string;
+    syncStatus: {
+      roleMatch: boolean;
+      tierMatch: boolean;
+    };
+  };
 }
 
 // Extended user interface with unified tracking
@@ -136,14 +171,16 @@ const transformToUnifiedUserData = (user: UserWithRoles): UnifiedUserData => {
       })),
       jwtClaims: {
         role: {
-          value: user.role, // Assumed to be synced
+          value: user.jwtClaims?.role || 'N/A',
           source: 'JWT.app_metadata.role',
           editable: false,
+          syncStatus: user.jwtClaims?.syncStatus?.roleMatch ? 'synced' : 'drift_detected',
         },
         subscriptionTier: {
-          value: user.subscription_tier, // Assumed to be synced
-          source: 'JWT.app_metadata.subscription_tier',
+          value: user.jwtClaims?.subscription_tier || 'N/A',
+          source: 'JWT.app_metadata.subscription_tier', 
           editable: false,
+          syncStatus: user.jwtClaims?.syncStatus?.tierMatch ? 'synced' : 'drift_detected',
         },
       },
     },

@@ -69,7 +69,7 @@ Deno.serve(async (req: Request) => {
 
     switch (action) {
       case 'list':
-        // List users with filters - join with auth.users to get email
+        // List users with filters - comprehensive user data including social media and activity metrics
         let query = supabaseAdmin.from('Practitioners').select(
           `
             id, 
@@ -80,7 +80,13 @@ Deno.serve(async (req: Request) => {
             avatar_url,
             profession,
             display_hover_card,
-            contribution_score
+            contribution_score,
+            facebook_url,
+            instagram_url,
+            linkedin_url,
+            twitter_url,
+            youtube_url,
+            website_url
           `,
           { count: 'exact' }
         );
@@ -105,24 +111,92 @@ Deno.serve(async (req: Request) => {
         const { data: users, error: listError, count } = await query;
         if (listError) throw new Error(`Failed to list users: ${listError.message}`);
 
-        // Get emails from auth.users for each practitioner
+        // Get emails and JWT claims from auth.users for each practitioner
         const userIds = (users || []).map(user => user.id);
         const { data: authUsers } = await supabaseAdmin.auth.admin.listUsers();
         const emailMap = new Map(authUsers.users?.map(u => [u.id, u.email]) || []);
+        const jwtClaimsMap = new Map(authUsers.users?.map(u => [u.id, {
+          role: u.raw_app_meta_data?.role,
+          subscription_tier: u.raw_app_meta_data?.subscription_tier
+        }]) || []);
+
+        // Get additional roles from UserRoles table
+        const { data: userRoles } = await supabaseAdmin
+          .from('UserRoles')
+          .select('practitioner_id, role_name, granted_by, granted_at, expires_at, is_active')
+          .in('practitioner_id', userIds)
+          .eq('is_active', true);
+
+        // Group additional roles by user
+        const rolesMap = new Map();
+        userRoles?.forEach(role => {
+          if (!rolesMap.has(role.practitioner_id)) {
+            rolesMap.set(role.practitioner_id, []);
+          }
+          rolesMap.get(role.practitioner_id).push(role);
+        });
+
+        // Get activity metrics for all users
+        const { data: activityMetrics } = await supabaseAdmin.rpc('get_user_activity_metrics', {
+          user_ids: userIds
+        });
+
+        const metricsMap = new Map();
+        activityMetrics?.forEach(metric => {
+          metricsMap.set(metric.user_id, metric);
+        });
 
         // Normalize user data to ensure all required fields are present
-        const normalizedUsers = (users || []).map(user => ({
-          id: user.id,
-          full_name: user.full_name || 'Nome não informado',
-          email: emailMap.get(user.id) || 'Email não encontrado',
-          role: user.role || 'practitioner',
-          subscription_tier: user.subscription_tier || 'free',
-          created_at: user.created_at,
-          avatar_url: user.avatar_url,
-          profession: user.profession,
-          display_hover_card: user.display_hover_card || false,
-          contribution_score: user.contribution_score || 0,
-        }));
+        const normalizedUsers = (users || []).map(user => {
+          const userMetrics = metricsMap.get(user.id) || {};
+          const additionalRoles = rolesMap.get(user.id) || [];
+          const jwtClaims = jwtClaimsMap.get(user.id) || {};
+          
+          return {
+            id: user.id,
+            full_name: user.full_name || 'Nome não informado',
+            email: emailMap.get(user.id) || 'Email não encontrado',
+            role: user.role || 'practitioner',
+            subscription_tier: user.subscription_tier || 'free',
+            created_at: user.created_at,
+            avatar_url: user.avatar_url,
+            profession: user.profession,
+            display_hover_card: user.display_hover_card || false,
+            contribution_score: user.contribution_score || 0,
+            
+            // Social media links
+            socialMediaLinks: {
+              facebook_url: user.facebook_url,
+              instagram_url: user.instagram_url,
+              linkedin_url: user.linkedin_url,
+              twitter_url: user.twitter_url,
+              youtube_url: user.youtube_url,
+              website_url: user.website_url,
+            },
+            
+            // Additional roles
+            roles: additionalRoles,
+            
+            // Activity metrics
+            activityMetrics: {
+              postsCount: userMetrics.posts_count || 0,
+              commentsCount: userMetrics.comments_count || 0,
+              votesGiven: userMetrics.votes_given || 0,
+              reviewsAuthored: userMetrics.reviews_count || 0,
+              lastLoginAt: userMetrics.last_login_at,
+            },
+            
+            // JWT Claims for drift detection
+            jwtClaims: {
+              role: jwtClaims.role,
+              subscription_tier: jwtClaims.subscription_tier,
+              syncStatus: {
+                roleMatch: jwtClaims.role === user.role,
+                tierMatch: jwtClaims.subscription_tier === user.subscription_tier,
+              }
+            }
+          };
+        });
 
         result = {
           users: normalizedUsers,
@@ -144,7 +218,23 @@ Deno.serve(async (req: Request) => {
         const { data: singleUser, error: getUserError } = await supabaseAdmin
           .from('Practitioners')
           .select(
-            'id, full_name, role, subscription_tier, created_at, avatar_url, contribution_score, profession, display_hover_card'
+            `
+            id, 
+            full_name, 
+            role, 
+            subscription_tier, 
+            created_at, 
+            avatar_url,
+            profession,
+            display_hover_card,
+            contribution_score,
+            facebook_url,
+            instagram_url,
+            linkedin_url,
+            twitter_url,
+            youtube_url,
+            website_url
+            `
           )
           .eq('id', targetUserId)
           .single();
@@ -153,12 +243,48 @@ Deno.serve(async (req: Request) => {
           throw new Error(`Failed to fetch user: ${getUserError.message}`);
         }
 
-        // Get email from auth.users
+        // Get email and JWT claims from auth.users
         const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(targetUserId);
+
+        // Get activity metrics for the user
+        const { data: activityMetrics } = await supabaseAdmin.rpc('get_user_activity_metrics', {
+          user_ids: [targetUserId]
+        });
+
+        const userMetrics = activityMetrics?.[0] || {};
 
         result = {
           ...singleUser,
           email: authUser.user?.email || 'Email não encontrado',
+          
+          // Social media links
+          socialMediaLinks: {
+            facebook_url: singleUser.facebook_url,
+            instagram_url: singleUser.instagram_url,
+            linkedin_url: singleUser.linkedin_url,
+            twitter_url: singleUser.twitter_url,
+            youtube_url: singleUser.youtube_url,
+            website_url: singleUser.website_url,
+          },
+          
+          // Activity metrics
+          activityMetrics: {
+            postsCount: userMetrics.posts_count || 0,
+            commentsCount: userMetrics.comments_count || 0,
+            votesGiven: userMetrics.votes_given || 0,
+            reviewsAuthored: userMetrics.reviews_count || 0,
+            lastLoginAt: userMetrics.last_login_at,
+          },
+          
+          // JWT Claims for drift detection
+          jwtClaims: {
+            role: authUser.user?.raw_app_meta_data?.role,
+            subscription_tier: authUser.user?.raw_app_meta_data?.subscription_tier,
+            syncStatus: {
+              roleMatch: authUser.user?.raw_app_meta_data?.role === singleUser.role,
+              tierMatch: authUser.user?.raw_app_meta_data?.subscription_tier === singleUser.subscription_tier,
+            }
+          }
         };
         break;
 
