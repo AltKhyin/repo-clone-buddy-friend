@@ -86,20 +86,47 @@ const createOrGetCustomer = async (customerData: any) => {
   }
 
   // Create new customer in Pagar.me
+  console.log('🏗️ Creating new customer with data:', {
+    name: customerData.name,
+    email: customerData.email,
+    documentOriginal: customerData.document,
+    documentCleaned: customerData.document?.replace(/\D/g, ''),
+    documentLength: customerData.document?.replace(/\D/g, '').length
+  })
+  
+  // Clean and validate document
+  const cleanDocument = customerData.document?.replace(/\D/g, '') || ''
+  const documentType = cleanDocument.length === 14 ? 'company' : 'individual'
+  
+  // Validate document length
+  if (cleanDocument.length !== 11 && cleanDocument.length !== 14) {
+    throw new Error(`Invalid document format. CPF must have 11 digits, CNPJ must have 14 digits. Received: ${cleanDocument.length} digits`)
+  }
+  
   const customerPayload = {
     name: customerData.name,
     email: customerData.email,
-    document: customerData.document?.replace(/\D/g, ''),
-    type: customerData.document?.length > 11 ? 'company' : 'individual',
+    document: cleanDocument,
+    type: documentType,
+    phones: {
+      mobile_phone: {
+        country_code: '55',
+        area_code: '11', 
+        number: '999999999'
+      }
+    },
     address: {
       country: 'BR',
       state: 'SP',
       city: 'São Paulo',
+      neighborhood: 'Centro',
       street: 'Rua Exemplo',
       street_number: '123',
-      zipcode: '01234567'
+      zip_code: '01310100'
     }
   }
+
+  console.log('📦 Customer payload being sent to Pagar.me:', JSON.stringify(customerPayload, null, 2))
 
   const response = await fetch(`${PAGARME_API_URL}/customers`, {
     method: 'POST',
@@ -108,21 +135,24 @@ const createOrGetCustomer = async (customerData: any) => {
   })
 
   if (!response.ok) {
+    console.error(`❌ Pagar.me customer creation failed with status: ${response.status}`)
     let errorMessage = 'Failed to create customer'
     
     try {
       const errorData = await response.json()
+      console.error('🔍 Pagar.me customer creation error details:', JSON.stringify(errorData, null, 2))
       
       if (response.status === 401) {
         errorMessage = 'Credenciais do Pagar.me inválidas. Configure as chaves de API no painel administrativo.'
       } else if (response.status === 400) {
         errorMessage = errorData.message || 'Dados do cliente inválidos'
+        console.error('🔍 400 error specific details:', errorData)
       } else {
         errorMessage = errorData.message || `Erro na API do Pagar.me (${response.status})`
       }
     } catch (parseError) {
       const errorText = await response.text()
-      console.error('Failed to parse Pagar.me customer error response:', errorText)
+      console.error('❌ Failed to parse Pagar.me customer error response:', errorText)
       
       if (response.status === 401) {
         errorMessage = 'Credenciais do Pagar.me inválidas. Configure as chaves de API no painel administrativo.'
@@ -131,6 +161,7 @@ const createOrGetCustomer = async (customerData: any) => {
       }
     }
     
+    console.error('🚨 Final customer creation error:', errorMessage)
     throw new Error(errorMessage)
   }
 

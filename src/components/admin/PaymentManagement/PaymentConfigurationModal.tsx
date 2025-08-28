@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Settings, Shield, AlertCircle, CheckCircle, Eye, EyeOff, Copy, HelpCircle } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useToast } from '../../../hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface PaymentConfigurationModalProps {
   isOpen: boolean;
@@ -173,36 +174,73 @@ export const PaymentConfigurationModal = ({ isOpen, onClose }: PaymentConfigurat
     try {
       setIsSubmitting(true);
 
-      // PLACEHOLDER: Store in localStorage for development
-      // In production, this would be sent to a secure backend endpoint
+      // Get the current user session for authentication
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session?.access_token) {
+        throw new Error('Usuário não autenticado. Faça login para continuar.');
+      }
+
+      // Call Edge Function to update environment variables
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const response = await fetch(`${supabaseUrl}/functions/v1/admin-update-payment-config`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify(config)
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Falha ao salvar configuração no servidor');
+      }
+
+      const result = await response.json();
+
+      // Also store in localStorage for immediate UI updates
       localStorage.setItem('pagarme_public_key', config.publicKey);
       localStorage.setItem('pagarme_secret_key', config.secretKey);
       localStorage.setItem('pagarme_api_version', config.apiVersion);
       localStorage.setItem('pagarme_webhook_id', config.webhookEndpointId);
-      
-      // Store webhook authentication settings
       localStorage.setItem('pagarme_webhook_auth_enabled', config.webhookAuthEnabled.toString());
       localStorage.setItem('pagarme_webhook_user', config.webhookUser);
       localStorage.setItem('pagarme_webhook_password', config.webhookPassword);
       
-      toast({
-        title: "Configuração salva",
-        description: "As credenciais do Pagar.me foram salvas com sucesso.",
-      });
+      // Show success message with next steps
+      if (result.next_steps?.manual_update_required) {
+        toast({
+          title: "Configuração salva com sucesso",
+          description: "Configuração salva. Agora atualize as variáveis de ambiente conforme instruções no console.",
+          duration: 7000
+        });
+        
+        // Log detailed instructions for the developer
+        console.log('🔧 PAGAR.ME CONFIGURATION UPDATE REQUIRED:');
+        console.log('1. Update /supabase/.env file with these values:');
+        console.log('PAGARME_SECRET_KEY=' + config.secretKey);
+        console.log('PAGARME_API_VERSION=' + (config.apiVersion || '2019-09-01'));
+        console.log('PAGARME_WEBHOOK_ENDPOINT_ID=' + (config.webhookEndpointId || ''));
+        console.log('PAGARME_WEBHOOK_USER=' + (config.webhookAuthEnabled ? config.webhookUser : ''));
+        console.log('PAGARME_WEBHOOK_PASSWORD=' + (config.webhookAuthEnabled ? config.webhookPassword : ''));
+        console.log('2. Run: npx supabase secrets set --env-file ./supabase/.env');
+        console.log('3. Environment variables will be updated immediately');
+      } else {
+        toast({
+          title: "Configuração salva",
+          description: "As credenciais do Pagar.me foram atualizadas com sucesso.",
+        });
+      }
 
-      // Close modal and trigger parent component refresh
+      // Close modal
       handleClose();
-      
-      // Trigger a page reload to update environment variables
-      setTimeout(() => {
-        window.location.reload();
-      }, 1000);
 
     } catch (error) {
       console.error('Failed to save configuration:', error);
       toast({
         title: "Erro ao salvar",
-        description: "Não foi possível salvar a configuração.",
+        description: error.message || "Não foi possível salvar a configuração.",
         variant: "destructive"
       });
     } finally {
