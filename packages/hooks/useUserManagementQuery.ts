@@ -172,13 +172,13 @@ const transformToUnifiedUserData = (user: UserWithRoles): UnifiedUserData => {
       jwtClaims: {
         role: {
           value: user.jwtClaims?.role || 'N/A',
-          source: 'JWT.app_metadata.role',
+          source: 'JWT.raw_app_meta_data.role',
           editable: false,
           syncStatus: user.jwtClaims?.syncStatus?.roleMatch ? 'synced' : 'drift_detected',
         },
         subscriptionTier: {
           value: user.jwtClaims?.subscription_tier || 'N/A',
-          source: 'JWT.app_metadata.subscription_tier', 
+          source: 'JWT.raw_app_meta_data.subscription_tier', 
           editable: false,
           syncStatus: user.jwtClaims?.syncStatus?.tierMatch ? 'synced' : 'drift_detected',
         },
@@ -204,7 +204,7 @@ export const useUnifiedUserListQuery = (filters?: UserManagementFilters) => {
         },
       };
 
-      const { data, error } = await supabase.functions.invoke('admin-manage-users', {
+      const { data, error } = await supabase.functions.invoke('admin-manage-users-working', {
         body: payload,
       });
 
@@ -281,7 +281,7 @@ export const useBulkAdminOperationMutation = () => {
               break;
           }
 
-          const { data, error } = await supabase.functions.invoke('admin-manage-users', {
+          const { data, error } = await supabase.functions.invoke('admin-manage-users-working', {
             body: payload,
           });
 
@@ -337,7 +337,7 @@ export const useUserListQuery = (filters?: UserManagementFilters) => {
         },
       };
 
-      const { data, error } = await supabase.functions.invoke('admin-manage-users', {
+      const { data, error } = await supabase.functions.invoke('admin-manage-users-working', {
         body: payload,
       });
 
@@ -368,7 +368,7 @@ export const useUserDetailQuery = (userId: string) => {
   return useQuery({
     queryKey: ['admin-users', 'detail', userId],
     queryFn: async (): Promise<UserWithRoles> => {
-      const { data, error } = await supabase.functions.invoke('admin-manage-users', {
+      const { data, error } = await supabase.functions.invoke('admin-manage-users-working', {
         body: {
           action: 'get',
           targetUserId: userId,
@@ -416,7 +416,7 @@ export const useUpdateUserMutation = () => {
         throw new Error('Either role or profileData must be provided');
       }
 
-      const { data, error } = await supabase.functions.invoke('admin-manage-users', {
+      const { data, error } = await supabase.functions.invoke('admin-manage-users-working', {
         body: {
           action,
           ...payload,
@@ -457,7 +457,7 @@ export const useUserStatusMutation = () => {
       userId: string;
       action: 'deactivate' | 'reactivate';
     }) => {
-      const { data, error } = await supabase.functions.invoke('admin-manage-users', {
+      const { data, error } = await supabase.functions.invoke('admin-manage-users-working', {
         body: {
           action: action === 'deactivate' ? 'ban' : 'unban',
           targetUserId: userId,
@@ -488,7 +488,7 @@ export const useDeleteUserMutation = () => {
 
   return useMutation({
     mutationFn: async (userId: string) => {
-      const { data, error } = await supabase.functions.invoke('admin-manage-users', {
+      const { data, error } = await supabase.functions.invoke('admin-manage-users-working', {
         body: {
           action: 'delete',
           targetUserId: userId,
@@ -582,7 +582,7 @@ export const useCellUpdateMutation = () => {
       }
 
       // For primary_role and subscription_tier updates via admin-manage-users
-      const { data, error } = await supabase.functions.invoke('admin-manage-users', {
+      const { data, error } = await supabase.functions.invoke('admin-manage-users-working', {
         body: payload,
       });
 

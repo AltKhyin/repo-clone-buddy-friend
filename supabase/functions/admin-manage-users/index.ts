@@ -1,9 +1,7 @@
 // ABOUTME: Admin endpoint for comprehensive user management operations with role updates and JWT claim synchronization.
 
-import { handleCorsPreflightRequest } from '../_shared/cors.ts';
 import { getUserFromRequest } from '../_shared/auth.ts';
-import { createSuccessResponse, createErrorResponse } from '../_shared/api-helpers.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.0';
 
 interface UserManagementPayload {
   action: 'promote' | 'demote' | 'ban' | 'unban' | 'delete' | 'list' | 'update_profile' | 'get';
@@ -26,19 +24,28 @@ interface UserManagementPayload {
   };
 }
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+};
+
 Deno.serve(async (req: Request) => {
   const origin = req.headers.get('Origin');
   
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
-    return handleCorsPreflightRequest(req);
+    return new Response('ok', { headers: corsHeaders });
   }
 
   try {
     // Authenticate and verify admin privileges
     const { user, error: authError } = await getUserFromRequest(req);
     if (authError || !user) {
-      return createErrorResponse(new Error('Authentication required'), {}, origin);
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     // Initialize Supabase admin client
@@ -57,7 +64,10 @@ Deno.serve(async (req: Request) => {
 
     // Accept admin or editor role during transition (editor will be migrated to admin)
     if (!adminCheck?.role || !['admin', 'editor'].includes(adminCheck.role)) {
-      return createErrorResponse(new Error('FORBIDDEN: Admin or editor privileges required'), {}, origin);
+      return new Response(JSON.stringify({ error: 'Admin or editor privileges required' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     // Parse request body
@@ -212,7 +222,10 @@ Deno.serve(async (req: Request) => {
       case 'get':
         // Get single user details
         if (!targetUserId) {
-          return sendError('Target user ID required', 400);
+          return new Response(JSON.stringify({ error: 'Target user ID required' }), {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
         }
 
         const { data: singleUser, error: getUserError } = await supabaseAdmin
@@ -291,7 +304,10 @@ Deno.serve(async (req: Request) => {
       case 'promote':
       case 'demote':
         if (!targetUserId || !newRole) {
-          return sendError('Target user ID and new role required', 400);
+          return new Response(JSON.stringify({ error: 'Target user ID and new role required' }), {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
         }
 
         // Update role in database
@@ -329,7 +345,10 @@ Deno.serve(async (req: Request) => {
       case 'ban':
       case 'unban':
         if (!targetUserId) {
-          return sendError('Target user ID required', 400);
+          return new Response(JSON.stringify({ error: 'Target user ID required' }), {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
         }
 
         const banned = action === 'ban';
@@ -361,7 +380,7 @@ Deno.serve(async (req: Request) => {
 
       case 'update_profile':
         if (!targetUserId || !profileData) {
-          return sendError('Target user ID and profile data required', 400);
+          return createErrorResponse(new Error('VALIDATION_FAILED: Target user ID and profile data required'), {}, origin);
         }
 
         const { error: profileError } = await supabaseAdmin
@@ -381,7 +400,10 @@ Deno.serve(async (req: Request) => {
 
       case 'delete':
         if (!targetUserId) {
-          return sendError('Target user ID required', 400);
+          return new Response(JSON.stringify({ error: 'Target user ID required' }), {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
         }
 
         // This is a dangerous operation - require explicit confirmation
@@ -396,12 +418,20 @@ Deno.serve(async (req: Request) => {
         break;
 
       default:
-        return createErrorResponse(new Error(`VALIDATION_FAILED: Invalid action: ${action}`), {}, origin);
+        return new Response(JSON.stringify({ error: `Invalid action: ${action}` }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
     }
 
-    return createSuccessResponse(result, {}, origin);
+    return new Response(JSON.stringify(result), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   } catch (error) {
     console.error('Admin user management error:', error);
-    return createErrorResponse(error, {}, origin);
+    return new Response(JSON.stringify({ error: error.message || 'Internal server error' }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 });

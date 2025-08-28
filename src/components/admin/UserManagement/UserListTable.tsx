@@ -291,6 +291,12 @@ export const UserListTable = () => {
                   <TableHead className="min-w-48">Usuário</TableHead>
                   <TableHead className="min-w-32">
                     <div className="flex items-center gap-1">
+                      <span>Profissão</span>
+                      <span className="text-xs text-muted-foreground">(Practitioners.profession)</span>
+                    </div>
+                  </TableHead>
+                  <TableHead className="min-w-32">
+                    <div className="flex items-center gap-1">
                       <Shield className="h-4 w-4" />
                       Papel Principal
                       <span className="text-xs text-muted-foreground">(DB)</span>
@@ -381,6 +387,20 @@ export const UserListTable = () => {
                               ID: {user.id.slice(0, 8)}...
                             </div>
                           </div>
+                        </div>
+                      </TableCell>
+                      
+                      {/* Profession */}
+                      <TableCell>
+                        <div className="text-sm">
+                          {user.profession ? (
+                            <span className="text-foreground">{user.profession}</span>
+                          ) : (
+                            <span className="text-muted-foreground italic">Não informado</span>
+                          )}
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          Fonte: Practitioners.profession
                         </div>
                       </TableCell>
                       
