@@ -1,9 +1,8 @@
-// ABOUTME: Minimal Reddit-style comment input that expands on focus with essential controls only.
+// ABOUTME: Minimal Reddit-style comment input that expands on focus with essential text-only functionality.
 
 import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Image, FileText, Type } from 'lucide-react';
 import { useCreateCommentMutation } from '@packages/hooks/useCreateCommentMutation';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -25,7 +24,6 @@ export const MinimalCommentInput = ({
 }: MinimalCommentInputProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [content, setContent] = useState('');
-  const [isRichText, setIsRichText] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const createComment = useCreateCommentMutation();
 
@@ -36,7 +34,6 @@ export const MinimalCommentInput = ({
   const handleCancel = () => {
     setIsExpanded(false);
     setContent('');
-    setIsRichText(false);
   };
 
   const handleSubmit = () => {
@@ -55,7 +52,6 @@ export const MinimalCommentInput = ({
         toast.success('Comentário publicado!');
         setContent('');
         setIsExpanded(false);
-        setIsRichText(false);
         onCommentPosted();
       },
       onError: (error) => {
@@ -64,28 +60,6 @@ export const MinimalCommentInput = ({
         });
       }
     });
-  };
-
-  const handleImageClick = () => {
-    toast.info('Upload de imagens em comentários será implementado em breve');
-  };
-
-  const handleGifClick = () => {
-    toast.info('GIFs em comentários serão implementados em breve');
-  };
-
-  const toggleRichText = () => {
-    setIsRichText(!isRichText);
-    // Visual feedback for toggling
-    if (!isRichText) {
-      toast.info('Modo texto rico ativado (funcionalidade em desenvolvimento)');
-    } else {
-      toast.info('Modo texto simples ativado');
-    }
-    // Focus textarea after toggle
-    setTimeout(() => {
-      textareaRef.current?.focus();
-    }, 0);
   };
 
   if (!isExpanded) {
@@ -117,47 +91,8 @@ export const MinimalCommentInput = ({
       </div>
 
       {/* Bottom controls row */}
-      <div className="flex items-center justify-between">
-        {/* Left controls - minimal icons */}
-        <div className="flex items-center gap-1">
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-8 w-8 p-0 hover:bg-surface-muted/50"
-            onClick={handleImageClick}
-            title="Adicionar imagem"
-          >
-            <Image className="w-4 h-4" />
-          </Button>
-
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-8 w-8 p-0 hover:bg-surface-muted/50"
-            onClick={handleGifClick}
-            title="Adicionar GIF"
-          >
-            <FileText className="w-4 h-4" />
-          </Button>
-
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className={cn(
-              "h-8 w-8 p-0 hover:bg-surface-muted/50",
-              isRichText && "bg-surface-muted text-primary"
-            )}
-            onClick={toggleRichText}
-            title="Alternar editor de texto"
-          >
-            <Type className="w-4 h-4" />
-          </Button>
-        </div>
-
-        {/* Right controls - action buttons */}
+      <div className="flex items-center justify-end">
+        {/* Action buttons */}
         <div className="flex items-center gap-2">
           <Button
             type="button"
