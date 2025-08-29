@@ -884,21 +884,42 @@
   /* Mobile optimizations for Reddit-style components - ENHANCED */
   @media (max-width: 767px) {
     .reddit-post-item {
-      @apply px-4 py-3;
+      @apply px-3 py-4; /* Reduced horizontal padding, increased vertical for better breathing */
     }
 
     .reddit-action-button {
       @apply min-h-[44px] min-w-[44px] touch-target;
-      @apply px-3 text-sm; /* Larger touch targets with better spacing */
+      @apply px-4 text-sm; /* DOC_8 compliant 44x44px touch targets */
+      @apply gap-2; /* Better spacing between icon and text */
     }
 
-    /* Enhanced mobile typography */
+    /* Enhanced mobile typography - DOC_8 compliant */
     .reddit-post-title {
-      @apply text-base font-semibold; /* Slightly smaller on mobile */
+      @apply text-base font-semibold leading-tight; /* 16px minimum as per DOC_8 Rule 8 */
     }
 
     .reddit-post-body {
-      @apply text-sm leading-relaxed;
+      @apply text-base leading-relaxed; /* 16px minimum, 1.7 line-height per DOC_8 */
+    }
+
+    /* Optimize post content spacing */
+    .reddit-post-item .space-y-3 {
+      @apply space-y-4; /* Increase spacing between post elements */
+    }
+
+    /* Enhanced post creation area for mobile */
+    .reddit-post-item .p-4 {
+      @apply px-3 py-4; /* Match reduced padding */
+    }
+
+    /* Vote buttons optimization for mobile */
+    [data-testid*="vote-button"] {
+      @apply min-h-[44px] min-w-[44px]; /* Ensure vote buttons meet DOC_8 touch target */
+    }
+
+    /* Category badges and action menus touch optimization */
+    .reddit-post-item .flex.items-center.gap-2 button {
+      @apply min-h-[44px]; /* Action menu buttons meet touch standards */
     }
   }
 

@@ -67,7 +67,7 @@ export const CommunityFeedWithSidebar = ({
   // Custom layout to position header spanning full grid width
   return (
     <div className="w-full min-h-screen bg-background pb-6">
-      <div className="w-full max-w-[1200px] mx-auto px-4 lg:px-8">
+      <div className="w-full max-w-[1200px] mx-auto px-2 sm:px-4 lg:px-8">
         {/* Header Component spanning full grid width */}
         {headerComponent && (
           <div className="mb-6">
@@ -130,7 +130,7 @@ export const CommunityFeedWithSidebar = ({
 
               {/* Posts feed with enhanced error boundary */}
               <CommunityErrorBoundary context="feed da comunidade" showDetails={false}>
-                <div className="space-y-4">
+                <div className="space-y-3 sm:space-y-4">
                   {posts.length === 0 && !isLoading ? (
                     <div className="text-center py-12">
                       <p className="text-muted-foreground mb-4">Nenhuma discussão encontrada.</p>
