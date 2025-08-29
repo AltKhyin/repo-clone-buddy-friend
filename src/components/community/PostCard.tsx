@@ -18,6 +18,7 @@ import { toast } from 'sonner';
 import { processVideoUrl, getVideoType } from '../../lib/video-utils';
 import { VoteButton } from '../ui/VoteButton';
 import { useTheme } from '../theme/CustomThemeProvider';
+import { useIsMobile } from '../../hooks/use-mobile';
 import { PostAuthor } from './CommunityAuthor';
 
 interface PostCardProps {
@@ -62,10 +63,13 @@ const formatPostDate = (dateString: string | null | undefined): string => {
       return 'Data inválida';
     }
 
-    return formatDistanceToNow(date, {
+    const formattedDate = formatDistanceToNow(date, {
       addSuffix: true,
       locale: ptBR,
     });
+    
+    // Simplify "há cerca de" to just "há" for cleaner mobile display
+    return formattedDate.replace('há cerca de', 'há');
   } catch (error) {
     console.error('PostCard: Date formatting error:', error, 'for date:', dateString);
     return 'Data inválida';
@@ -76,6 +80,7 @@ export const PostCard = ({ post }: PostCardProps) => {
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const { actualTheme } = useTheme();
+  const isMobile = useIsMobile();
   const savePostMutation = useSavePostMutation();
 
   const handlePostClick = (e: React.MouseEvent) => {
@@ -188,6 +193,18 @@ export const PostCard = ({ post }: PostCardProps) => {
     }
   };
 
+  // Theme-aware outline for comment button pills (matches VoteButton logic)
+  const getCommentPillOutlineStyle = () => {
+    if (post.is_pinned) {
+      if (actualTheme === 'dark') {
+        return 'border-primary-foreground/30'; // Visible outline for pinned posts in dark theme
+      }
+      return 'border-accent-foreground/30'; // Visible outline for pinned posts in light theme
+    }
+    // Normal posts - more visible than before but still discrete
+    return 'border-border/40'; // Increased visibility for normal posts
+  };
+
   return (
     <div
       className={cn(
@@ -196,7 +213,7 @@ export const PostCard = ({ post }: PostCardProps) => {
         getPinnedBackgroundClass()
       )}
     >
-      <div className="p-4 cursor-pointer" onClick={handlePostClick}>
+      <div className="px-4 pt-4 pb-0 cursor-pointer" onClick={handlePostClick}> {/* Eliminated bottom padding */}
         {/* UNIFIED HEADER: Avatar + Author + Time + Badges (top-left alignment) */}
         <div className="flex items-start justify-between gap-4 mb-3">
           <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -463,9 +480,13 @@ export const PostCard = ({ post }: PostCardProps) => {
       </div>
 
       {/* Bottom Action Row - Mobile-Optimized Touch Targets */}
-      <div className="px-4 pb-3">
+      <div className="px-4 pt-3 pb-3"> {/* Minimal top padding for tight spacing */}
         <div
-          className={cn('flex items-center gap-3 text-muted-foreground', getPinnedMutedTextClass())}
+          className={cn(
+            'flex items-center text-muted-foreground',
+            isMobile ? 'gap-3' : 'gap-3', // Consistent spacing
+            getPinnedMutedTextClass()
+          )}
         >
           {/* Vote Section */}
           <div onClick={e => e.stopPropagation()}>
@@ -481,12 +502,14 @@ export const PostCard = ({ post }: PostCardProps) => {
             />
           </div>
 
-          {/* Comments */}
-          <Button
-            variant="ghost"
-            size="sm"
+          {/* Comments - Pill-shaped button for both mobile and desktop */}
+          <button
             className={cn(
-              'reddit-action-button',
+              'flex items-center justify-center',
+              'px-3 py-1.5 h-9 rounded-full border', // Reduced height from h-10 to h-9, py-2 to py-1.5
+              'text-muted-foreground hover:text-foreground',
+              'hover:bg-muted/10 transition-all duration-150',
+              getCommentPillOutlineStyle(),
               post.is_pinned && actualTheme === 'dark'
                 ? 'text-primary-foreground/70 hover:text-primary-foreground hover:bg-primary-foreground/10'
                 : post.is_pinned &&
@@ -497,9 +520,16 @@ export const PostCard = ({ post }: PostCardProps) => {
               navigate(`/comunidade/${post.id}`);
             }}
           >
-            <MessageCircle className="w-4 h-4 mr-1" />
-{post.reply_count > 0 ? `${post.reply_count} comentários` : 'Nenhum comentário'}
-          </Button>
+            <div className="flex items-center gap-1">
+              <MessageCircle className="w-4 h-4" />
+              <span className={cn('font-medium', isMobile ? 'text-xs' : 'text-sm')}>
+                {isMobile 
+                  ? post.reply_count 
+                  : post.reply_count > 0 ? `${post.reply_count} comentários` : 'Nenhum comentário'
+                }
+              </span>
+            </div>
+          </button>
         </div>
       </div>
     </div>

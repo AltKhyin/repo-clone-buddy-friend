@@ -8,6 +8,7 @@ import { cn } from '../../lib/utils';
 import { useCastVoteMutation } from '@packages/hooks/useCastVoteMutation';
 import { useAuthStore } from '../../store/auth';
 import { useTheme } from '../theme/CustomThemeProvider';
+import { useIsMobile } from '../../hooks/use-mobile';
 import { toast } from 'sonner';
 
 interface VoteButtonProps {
@@ -39,6 +40,7 @@ export const VoteButton = ({
 }: VoteButtonProps) => {
   const { user } = useAuthStore();
   const { actualTheme } = useTheme();
+  const isMobile = useIsMobile();
   const castVoteMutation = useCastVoteMutation();
 
   // Calculate net score (Reddit-style)
@@ -117,48 +119,42 @@ export const VoteButton = ({
 
   const scoreClass = orientation === 'vertical' ? 'order-2' : 'order-2';
 
-  return (
-    <div className={cn(containerClass, className)}>
-      {/* Net Score - Now on the left */}
-      <span
-        className={cn(
-          config.text,
-          'font-medium min-w-[2rem] text-center tabular-nums',
-          userVote === 'up' &&
-            (isPinned
-              ? actualTheme === 'dark'
-                ? 'text-primary-foreground'
-                : 'text-accent-foreground'
-              : actualTheme === 'light'
-                ? 'text-accent'
-                : 'text-primary'),
-          userVote === 'down' &&
-            (isPinned
-              ? actualTheme === 'dark'
-                ? 'text-primary-foreground/70'
-                : 'text-accent-foreground/70'
-              : 'text-muted-foreground'),
-          !userVote &&
-            (isPinned
-              ? actualTheme === 'dark'
-                ? 'text-primary-foreground'
-                : 'text-accent-foreground'
-              : 'text-foreground')
-        )}
-      >
-        {netScore}
-      </span>
+  // Theme-aware outline colors for mobile pills
+  const getPillOutlineStyle = () => {
+    if (isPinned) {
+      if (actualTheme === 'dark') {
+        return 'border-primary-foreground/30'; // Visible outline for pinned posts in dark theme
+      }
+      return 'border-accent-foreground/30'; // Visible outline for pinned posts in light theme
+    }
+    // Normal posts - more visible than before but still discrete
+    return 'border-border/40'; // Increased from /10 to /40 for visibility
+  };
 
-      {/* Vote Buttons Container - No gap between buttons */}
-      <div className="flex items-center">
-        {/* Upvote Button */}
-        <Button
-          variant="ghost"
-          size="sm"
+  const getSeparatorStyle = () => {
+    if (isPinned) {
+      if (actualTheme === 'dark') {
+        return 'bg-primary-foreground/20';
+      }
+      return 'bg-accent-foreground/20';
+    }
+    return 'bg-border/30'; // Slightly more visible separator
+  };
+
+  // Unified pill-shaped voting component for both mobile and desktop
+  if (showDownvote) {
+    return (
+      <div className={cn(
+        'flex items-center rounded-full border overflow-hidden',
+        'min-h-[36px] w-fit', // Reduced height from 40px to 36px
+        getPillOutlineStyle(),
+        className
+      )}>
+        {/* Combined Upvote + Score Area (20% wider touch area) */}
+        <button
           className={cn(
-            config.button,
-            'transition-all duration-150',
-            showDownvote ? 'rounded-r-none' : 'rounded-sm',
+            'flex items-center gap-1.5 px-3 py-1.5 min-h-[36px]', // Reduced height and padding
+            'flex-[4] transition-all duration-150 rounded-l-full',
             userVote === 'up' && getUpvoteStyle(),
             !userVote &&
               (isPinned
@@ -174,41 +170,122 @@ export const VoteButton = ({
         >
           <VoteArrowUp
             filled={userVote === 'up'}
-            size={config.icon}
-            className="transition-all duration-150"
+            size={Math.round(config.icon * 1.5)} // 50% larger icons
+            className="transition-all duration-150 flex-shrink-0"
           />
-        </Button>
-
-        {/* Downvote Button - Only show if enabled */}
-        {showDownvote && (
-          <Button
-            variant="ghost"
-            size="sm"
+          <span
             className={cn(
-              config.button,
-              'rounded-l-none transition-all duration-150',
+              config.text,
+              'font-medium tabular-nums',
+              userVote === 'up' &&
+                (isPinned
+                  ? actualTheme === 'dark'
+                    ? 'text-primary-foreground'
+                    : 'text-accent-foreground'
+                  : actualTheme === 'light'
+                    ? 'text-accent'
+                    : 'text-primary'),
               userVote === 'down' &&
                 (isPinned
-                  ? getDownvoteStyle()
-                  : 'text-muted-foreground bg-muted/20 hover:bg-muted/30'),
+                  ? actualTheme === 'dark'
+                    ? 'text-primary-foreground/70'
+                    : 'text-accent-foreground/70'
+                  : 'text-muted-foreground'),
               !userVote &&
                 (isPinned
                   ? actualTheme === 'dark'
-                    ? 'text-primary-foreground/70 hover:text-primary-foreground hover:bg-primary-foreground/10'
-                    : 'text-accent-foreground/70 hover:text-accent-foreground hover:bg-accent-foreground/10'
-                  : 'text-muted-foreground hover:text-muted-foreground hover:bg-muted/10')
+                    ? 'text-primary-foreground'
+                    : 'text-accent-foreground'
+                  : 'text-foreground')
             )}
-            onClick={() => handleVote('down')}
-            disabled={disabled || isLoading}
           >
-            <VoteArrowDown
-              filled={userVote === 'down'}
-              size={config.icon}
-              className="transition-all duration-150"
-            />
-          </Button>
-        )}
+            {netScore}
+          </span>
+        </button>
+
+        {/* Visual Separator */}
+        <div className={cn('w-px h-5', getSeparatorStyle())} />
+
+        {/* Downvote Area (narrower touch area) */}
+        <button
+          className={cn(
+            'flex items-center justify-center px-2 py-1.5 min-h-[36px] min-w-[36px]', // Reduced height
+            'flex-[1] transition-all duration-150 rounded-r-full',
+            userVote === 'down' &&
+              (isPinned
+                ? getDownvoteStyle()
+                : 'text-muted-foreground bg-muted/20 hover:bg-muted/30'),
+            !userVote &&
+              (isPinned
+                ? actualTheme === 'dark'
+                  ? 'text-primary-foreground/70 hover:text-primary-foreground hover:bg-primary-foreground/10'
+                  : 'text-accent-foreground/70 hover:text-accent-foreground hover:bg-accent-foreground/10'
+                : 'text-muted-foreground hover:text-foreground hover:bg-muted/10')
+          )}
+          onClick={() => handleVote('down')}
+          disabled={disabled || isLoading}
+        >
+          <VoteArrowDown
+            filled={userVote === 'down'}
+            size={Math.round(config.icon * 1.5)} // 50% larger icons
+            className="transition-all duration-150"
+          />
+        </button>
       </div>
+    );
+  }
+
+  // Fallback for upvote-only components (like suggestions)
+  return (
+    <div className={cn(containerClass, className)}>
+      <span
+        className={cn(
+          config.text,
+          'font-medium min-w-[2rem] text-center tabular-nums',
+          userVote === 'up' &&
+            (isPinned
+              ? actualTheme === 'dark'
+                ? 'text-primary-foreground'
+                : 'text-accent-foreground'
+              : actualTheme === 'light'
+                ? 'text-accent'
+                : 'text-primary'),
+          !userVote &&
+            (isPinned
+              ? actualTheme === 'dark'
+                ? 'text-primary-foreground'
+                : 'text-accent-foreground'
+              : 'text-foreground')
+        )}
+      >
+        {netScore}
+      </span>
+
+      <Button
+        variant="ghost"
+        size="sm"
+        className={cn(
+          config.button,
+          'transition-all duration-150 rounded-sm',
+          userVote === 'up' && getUpvoteStyle(),
+          !userVote &&
+            (isPinned
+              ? actualTheme === 'dark'
+                ? 'text-primary-foreground/70 hover:text-primary-foreground hover:bg-primary-foreground/10'
+                : 'text-accent-foreground/70 hover:text-accent-foreground hover:bg-accent-foreground/10'
+              : actualTheme === 'light'
+                ? 'text-muted-foreground hover:text-accent hover:bg-accent/10'
+                : 'text-muted-foreground hover:text-primary hover:bg-primary/10')
+        )}
+        onClick={() => handleVote('up')}
+        disabled={disabled || isLoading}
+      >
+        <VoteArrowUp
+          filled={userVote === 'up'}
+          size={config.icon}
+          className="transition-all duration-150"
+        />
+      </Button>
     </div>
   );
 };
