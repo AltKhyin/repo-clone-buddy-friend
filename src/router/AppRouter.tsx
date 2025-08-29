@@ -16,6 +16,7 @@ import UnauthorizedPage from '@/pages/UnauthorizedPage';
 import LoginPage from '@/pages/LoginPage';
 import RegistrationPage from '@/pages/RegistrationPage';
 import PaymentPage from '@/pages/PaymentPage';
+import EmbeddedPaymentPage from '@/pages/EmbeddedPaymentPage';
 import { UniversalRouteProtection } from '@/components/routes/UniversalRouteProtection';
 import { AdminDashboard } from '@/pages/AdminDashboard';
 import ContentManagement from '@/pages/ContentManagement';
@@ -44,6 +45,10 @@ const router = createBrowserRouter([
   {
     path: '/pagar',
     element: <PaymentPage />,
+  },
+  {
+    path: '/pagamento',
+    element: <EmbeddedPaymentPage />,
   },
   {
     path: '/',

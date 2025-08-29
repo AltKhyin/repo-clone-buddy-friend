@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
 import { useLoginMutation, loginSchema } from '../../hooks/mutations/useLoginMutation';
+import { useGoogleAuth } from '../../hooks/mutations/useGoogleAuth';
 import { toast } from 'sonner';
 import { useNavigate, Link } from 'react-router-dom';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -18,6 +19,7 @@ import { Mail } from 'lucide-react';
 const LoginForm = () => {
   const navigate = useNavigate();
   const mutation = useLoginMutation();
+  const googleAuthMutation = useGoogleAuth();
   const { switchToRegister } = useAuthFormTransition();
   const [showEmailConfirmation, setShowEmailConfirmation] = useState(false);
   const [userEmail, setUserEmail] = useState('');
@@ -165,9 +167,15 @@ const LoginForm = () => {
       </div>
       
       <div className="mt-6">
-        <Button variant="outline" className="w-full bg-white hover:bg-gray-50 border-gray-300 text-gray-700 flex items-center justify-center gap-2">
-            <GoogleIcon />
-            Google
+        <Button 
+          type="button"
+          onClick={() => googleAuthMutation.mutate()}
+          disabled={googleAuthMutation.isPending}
+          variant="outline" 
+          className="w-full bg-white hover:bg-gray-50 border-gray-300 text-gray-700 flex items-center justify-center gap-2"
+        >
+          <GoogleIcon />
+          {googleAuthMutation.isPending ? 'Conectando...' : 'Google'}
         </Button>
       </div>
 

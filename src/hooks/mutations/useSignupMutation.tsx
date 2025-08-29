@@ -13,6 +13,8 @@ export const signupSchema = z.object({
     .regex(/[0-9]/, { message: 'Deve conter pelo menos um número.' }),
   confirmPassword: z.string().min(1, { message: 'Confirmação de senha é obrigatória.' }),
   birthday: z.string().min(1, { message: 'Data de nascimento é obrigatória.' }),
+  phone: z.string().min(1, { message: 'Número de telefone é obrigatório.' }), // Mandatory phone field for Brazilian users
+  countryCode: z.string().default('+55'), // Default to Brazil
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Senhas não coincidem.",
   path: ["confirmPassword"],
@@ -30,6 +32,8 @@ const signUpUser = async (payload: SignupPayload) => {
       data: {
         full_name: payload.fullName,
         birthday: payload.birthday,
+        phone: payload.phone,
+        country_code: payload.countryCode,
       },
       // This is critical for email confirmation flow
       emailRedirectTo: `${window.location.origin}/`,

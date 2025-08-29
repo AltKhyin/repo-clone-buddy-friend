@@ -6,9 +6,12 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { BrazilianDateInput } from '@/components/ui/BrazilianDateInput';
+import { PhoneInput } from '@/components/ui/PhoneInput';
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
 import { PasswordStrengthIndicator } from '@/components/ui/PasswordStrengthIndicator';
 import { useSignupMutation, signupSchema } from '../../hooks/mutations/useSignupMutation';
+import { useGoogleAuth } from '../../hooks/mutations/useGoogleAuth';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import GoogleIcon from '@/components/icons/GoogleIcon';
@@ -18,6 +21,7 @@ import { Mail } from 'lucide-react';
 const RegistrationForm = () => {
   const navigate = useNavigate();
   const mutation = useSignupMutation();
+  const googleAuthMutation = useGoogleAuth();
   const { switchToLogin } = useAuthFormTransition();
   const [emailSent, setEmailSent] = useState(false);
   const [userEmail, setUserEmail] = useState('');
@@ -28,7 +32,9 @@ const RegistrationForm = () => {
       email: '', 
       password: '', 
       confirmPassword: '',
-      birthday: ''
+      birthday: '',
+      phone: '',
+      countryCode: '+55'
     },
   });
 
@@ -126,12 +132,29 @@ const RegistrationForm = () => {
             render={({ field }) => (
               <FormItem className="space-y-0">
                 <FormControl>
-                  <Input
-                    type="date"
-                    placeholder="dd/mm/aaaa"
-                    {...field}
+                  <BrazilianDateInput
+                    value={field.value}
+                    onChange={field.onChange}
                     className="bg-white border-gray-300 focus:border-black focus:ring-0 text-black placeholder:text-gray-500"
-                    lang="pt-BR"
+                    placeholder="Data de Nascimento"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="phone"
+            render={({ field }) => (
+              <FormItem className="space-y-0">
+                <FormControl>
+                  <PhoneInput
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    countryCode={form.watch('countryCode')}
+                    onCountryCodeChange={(code) => form.setValue('countryCode', code)}
+                    className="bg-white border-gray-300 focus:border-black focus:ring-0 text-black placeholder:text-gray-500"
                   />
                 </FormControl>
                 <FormMessage />
@@ -192,9 +215,15 @@ const RegistrationForm = () => {
       </div>
       
       <div className="mt-6">
-        <Button variant="outline" className="w-full bg-white hover:bg-gray-50 border-gray-300 text-gray-700 flex items-center justify-center gap-2">
-            <GoogleIcon />
-            Google
+        <Button 
+          type="button"
+          onClick={() => googleAuthMutation.mutate()}
+          disabled={googleAuthMutation.isPending}
+          variant="outline" 
+          className="w-full bg-white hover:bg-gray-50 border-gray-300 text-gray-700 flex items-center justify-center gap-2"
+        >
+          <GoogleIcon />
+          {googleAuthMutation.isPending ? 'Conectando...' : 'Google'}
         </Button>
       </div>
 
