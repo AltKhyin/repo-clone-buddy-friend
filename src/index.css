@@ -884,7 +884,9 @@
   /* Mobile optimizations for Reddit-style components - ENHANCED */
   @media (max-width: 767px) {
     .reddit-post-item {
-      @apply px-3 py-4; /* Reduced horizontal padding, increased vertical for better breathing */
+      @apply px-0 py-0; /* Remove all padding - content will handle its own spacing */
+      @apply rounded-none; /* Remove rounded corners for section-like appearance */
+      @apply border-b border-border/50; /* Keep bottom border for separation */
     }
 
     .reddit-action-button {
@@ -907,9 +909,19 @@
       @apply space-y-4; /* Increase spacing between post elements */
     }
 
-    /* Enhanced post creation area for mobile */
+    /* Enhanced post creation area for mobile - reduced padding */
     .reddit-post-item .p-4 {
-      @apply px-3 py-4; /* Match reduced padding */
+      @apply px-2 py-2; /* Half the original padding (was px-4 py-4) */
+    }
+
+    /* Post content sections get reduced internal padding on mobile */
+    .reddit-post-item > div {
+      @apply px-2 py-2; /* Half padding for main post content */
+    }
+
+    /* Bottom action row specific padding */
+    .reddit-post-item .px-4.pb-3 {
+      @apply px-2 pb-1; /* Reduced bottom action area padding */
     }
 
     /* Vote buttons optimization for mobile */
