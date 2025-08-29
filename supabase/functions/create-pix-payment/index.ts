@@ -305,7 +305,39 @@ serve(async (req: Request) => {
     const charge = order.charges?.[0]
     const transaction = charge?.last_transaction
     
+    // Check if payment actually succeeded
+    const paymentFailed = charge?.status === 'failed' || order.status === 'failed'
+    const hasPixData = transaction?.qr_code || transaction?.qr_code_url
+    
+    console.log(`📊 Payment status - Order: ${order.status}, Charge: ${charge?.status}, Has QR Code: ${Boolean(hasPixData)}`)
+    
+    if (paymentFailed) {
+      // Extract error details for better debugging
+      const gatewayError = transaction?.gateway_response?.errors?.[0]
+      const errorMessage = gatewayError?.message || 'PIX payment failed'
+      
+      console.error('🚨 PIX payment failed:', {
+        orderId: order.id,
+        chargeStatus: charge?.status,
+        orderStatus: order.status,
+        gatewayError: gatewayError
+      })
+      
+      // Check for specific PIX environment issue
+      if (errorMessage.includes('Sem ambiente configurado')) {
+        throw new Error('PIX não está habilitado para esta conta. Configure PIX no painel do Pagar.me.')
+      }
+      
+      throw new Error(`Falha no pagamento PIX: ${errorMessage}`)
+    }
+    
+    if (!hasPixData) {
+      console.error('⚠️ PIX payment created but no QR code generated')
+      throw new Error('PIX criado mas código QR não foi gerado. Tente novamente.')
+    }
+    
     const pixData = {
+      id: order.id, // This is what the frontend expects for orderId
       order_id: order.id,
       charge_id: charge?.id,
       status: charge?.status,
@@ -317,7 +349,7 @@ serve(async (req: Request) => {
       created_at: order.created_at
     }
 
-    console.log(`PIX payment created for user ${user.id}: ${order.id}`)
+    console.log(`✅ PIX payment created successfully for user ${user.id}: ${order.id}`)
 
     return sendSuccess(pixData)
 
