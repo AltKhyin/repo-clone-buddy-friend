@@ -480,7 +480,7 @@ export const PostCard = ({ post }: PostCardProps) => {
       </div>
 
       {/* Bottom Action Row - Mobile-Optimized Touch Targets */}
-      <div className="px-4 pt-3 pb-3"> {/* Minimal top padding for tight spacing */}
+      <div className="px-4 pb-3"> {/* Removed top padding for tighter spacing */}
         <div
           className={cn(
             'flex items-center text-muted-foreground',

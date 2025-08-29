@@ -18,6 +18,7 @@ import { processVideoUrl, getVideoType } from '../../lib/video-utils';
 import { VoteButton } from '../ui/VoteButton';
 import { useTheme } from '../theme/CustomThemeProvider';
 import { PostAuthor } from './CommunityAuthor';
+import { useIsMobile } from '../../hooks/use-mobile';
 
 interface PostDetailCardProps {
   post: CommunityPost;
@@ -91,6 +92,7 @@ const formatPostDate = (dateString: string | null | undefined): string => {
 export const PostDetailCard = ({ post, totalComments }: PostDetailCardProps) => {
   const { user } = useAuthStore();
   const { actualTheme } = useTheme();
+  const isMobile = useIsMobile();
   const savePostMutation = useSavePostMutation();
 
   const categoryLabel = CATEGORY_LABELS[post.category] || post.category;
@@ -160,6 +162,18 @@ export const PostDetailCard = ({ post, totalComments }: PostDetailCardProps) => 
     }
   };
 
+  // Theme-aware comment pill outline for consistency with VoteButton
+  const getCommentPillOutlineStyle = () => {
+    if (post.is_pinned) {
+      if (actualTheme === 'dark') {
+        return 'border-primary-foreground/30'; // Visible outline for pinned posts in dark theme
+      }
+      return 'border-accent-foreground/30'; // Visible outline for pinned posts in light theme
+    }
+    // Normal posts - consistent with VoteButton
+    return 'border-border/40'; // Same visibility as VoteButton
+  };
+
   return (
     <div
       className={cn(
@@ -189,7 +203,7 @@ export const PostDetailCard = ({ post, totalComments }: PostDetailCardProps) => 
 
             {/* Status indicators moved to separate section */}
             <div className="flex items-center gap-2 ml-2">
-              {post.is_pinned && (
+              {post.is_pinned && !isMobile && (
                 <div className={cn('flex items-center gap-1', getPinnedTextClass())}>
                   <Pin className="w-4 h-4" />
                   <span className="text-sm font-medium">Fixado</span>
@@ -441,41 +455,57 @@ export const PostDetailCard = ({ post, totalComments }: PostDetailCardProps) => 
         )}
       </div>
 
-      {/* Bottom Action Row - Mobile-Optimized Touch Targets (matching PostCard) */}
-      <div className="px-4 pb-3">
+      {/* Bottom Action Row - Mobile-Optimized Touch Targets (matching PostCard exactly) */}
+      <div className="px-4 pb-3"> {/* Removed top padding for tighter spacing */}
         <div
-          className={cn('flex items-center gap-3 text-muted-foreground', getPinnedMutedTextClass())}
+          className={cn(
+            'flex items-center text-muted-foreground',
+            isMobile ? 'gap-3' : 'gap-3', // Consistent spacing
+            getPinnedMutedTextClass()
+          )}
         >
           {/* Vote Section */}
-          <VoteButton
-            entityId={post.id.toString()}
-            entityType="community_post"
-            upvotes={post.upvotes}
-            downvotes={post.downvotes}
-            userVote={post.user_vote}
-            orientation="horizontal"
-            size="lg"
-            isPinned={post.is_pinned}
-          />
+          <div onClick={e => e.stopPropagation()}>
+            <VoteButton
+              entityId={post.id.toString()}
+              entityType="community_post"
+              upvotes={post.upvotes}
+              downvotes={post.downvotes}
+              userVote={post.user_vote}
+              orientation="horizontal"
+              size="md"
+              isPinned={post.is_pinned}
+            />
+          </div>
 
-          {/* Comments */}
-          <Button
-            variant="ghost"
-            size="sm"
+          {/* Comments - Pill-shaped button for both mobile and desktop (matching PostCard) */}
+          <button
             className={cn(
-              'reddit-action-button',
+              'flex items-center justify-center',
+              'px-3 py-1.5 h-9 rounded-full border', // Reduced height from h-10 to h-9, py-2 to py-1.5
+              'text-muted-foreground hover:text-foreground',
+              'hover:bg-muted/10 transition-all duration-150',
+              getCommentPillOutlineStyle(),
               post.is_pinned && actualTheme === 'dark'
                 ? 'text-primary-foreground/70 hover:text-primary-foreground hover:bg-primary-foreground/10'
                 : post.is_pinned &&
                     'text-accent-foreground/70 hover:text-accent-foreground hover:bg-accent-foreground/10'
             )}
+            onClick={e => e.stopPropagation()} // No navigation since we're already on the detail page
           >
-            <MessageCircle className="w-4 h-4 mr-1" />
-            {totalComments !== undefined 
-              ? (totalComments > 0 ? `${totalComments} comentários` : 'Nenhum comentário')
-              : (post.reply_count > 0 ? `${post.reply_count} comentários` : 'Nenhum comentário')
-            }
-          </Button>
+            <div className="flex items-center gap-1">
+              <MessageCircle className="w-6 h-6" /> {/* 50% larger icons */}
+              <span className={cn('font-medium', isMobile ? 'text-xs' : 'text-sm')}>
+                {isMobile 
+                  ? (totalComments !== undefined ? totalComments : post.reply_count)
+                  : (totalComments !== undefined 
+                      ? (totalComments > 0 ? `${totalComments} comentários` : 'Nenhum comentário')
+                      : (post.reply_count > 0 ? `${post.reply_count} comentários` : 'Nenhum comentário')
+                    )
+                }
+              </span>
+            </div>
+          </button>
         </div>
       </div>
     </div>

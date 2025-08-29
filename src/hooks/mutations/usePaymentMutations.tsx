@@ -74,13 +74,16 @@ const createPixPayment = async (input: PixPaymentInput): Promise<PagarmeOrder> =
   }
 
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  const response = await fetch(`${supabaseUrl}/functions/v1/create-pix-payment`, {
+  const response = await fetch(`${supabaseUrl}/functions/v1/evidens-create-payment`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${session.access_token}`
     },
-    body: JSON.stringify(input)
+    body: JSON.stringify({
+      ...input,
+      paymentMethod: 'pix'
+    })
   });
 
   if (!response.ok) {
@@ -95,13 +98,23 @@ const createPixPayment = async (input: PixPaymentInput): Promise<PagarmeOrder> =
  * Creates a Credit Card payment through EVIDENS Edge Function
  */
 const createCreditCardPayment = async (input: CreditCardPaymentInput): Promise<PagarmeOrder> => {
-  const response = await fetch('/functions/v1/create-credit-card-payment', {
+  const { data: { session } } = await supabase.auth.getSession();
+  
+  if (!session?.access_token) {
+    throw new Error('Usuário não autenticado. Faça login para continuar.');
+  }
+
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const response = await fetch(`${supabaseUrl}/functions/v1/evidens-create-payment`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+      'Authorization': `Bearer ${session.access_token}`
     },
-    body: JSON.stringify(input)
+    body: JSON.stringify({
+      ...input,
+      paymentMethod: 'credit_card'
+    })
   });
 
   if (!response.ok) {
@@ -116,11 +129,18 @@ const createCreditCardPayment = async (input: CreditCardPaymentInput): Promise<P
  * Creates a Pagar.me customer through EVIDENS Edge Function
  */
 const createPagarmeCustomer = async (input: CustomerCreationInput) => {
-  const response = await fetch('/functions/v1/create-pagarme-customer', {
+  const { data: { session } } = await supabase.auth.getSession();
+  
+  if (!session?.access_token) {
+    throw new Error('Usuário não autenticado. Faça login para continuar.');
+  }
+
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const response = await fetch(`${supabaseUrl}/functions/v1/evidens-manage-customer`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+      'Authorization': `Bearer ${session.access_token}`
     },
     body: JSON.stringify(input)
   });
@@ -137,9 +157,16 @@ const createPagarmeCustomer = async (input: CustomerCreationInput) => {
  * Polls payment status for real-time updates (PIX payments)
  */
 const checkPaymentStatus = async (orderId: string): Promise<PagarmeOrder> => {
-  const response = await fetch(`/functions/v1/check-payment-status?orderId=${orderId}`, {
+  const { data: { session } } = await supabase.auth.getSession();
+  
+  if (!session?.access_token) {
+    throw new Error('Usuário não autenticado. Faça login para continuar.');
+  }
+
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const response = await fetch(`${supabaseUrl}/functions/v1/evidens-payment-status?orderId=${orderId}`, {
     headers: {
-      'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+      'Authorization': `Bearer ${session.access_token}`
     }
   });
 
@@ -243,9 +270,16 @@ export const usePaymentHistory = (userId: string | undefined) => {
   return useQuery({
     queryKey: ['payment-history', userId],
     queryFn: async () => {
-      const response = await fetch(`/functions/v1/get-payment-history?userId=${userId}`, {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session?.access_token) {
+        throw new Error('Usuário não autenticado. Faça login para continuar.');
+      }
+
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const response = await fetch(`${supabaseUrl}/functions/v1/evidens-payment-history?userId=${userId}`, {
         headers: {
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+          'Authorization': `Bearer ${session.access_token}`
         }
       });
       
@@ -287,8 +321,8 @@ export const usePagarmeConfig = () => {
 // =================================================================
 
 /**
- * Card tokenization helper (client-side only)
- * This is safe to run in the browser as it only tokenizes card data
+ * Real Pagar.me card tokenization using their JavaScript SDK
+ * This integrates with Pagar.me's client-side tokenization API
  */
 export const tokenizeCard = async (cardData: {
   number: string;
@@ -297,45 +331,48 @@ export const tokenizeCard = async (cardData: {
   expirationYear: string;
   cvv: string;
 }) => {
-  // Validate Pagar.me configuration
   if (!pagarmeClientConfig.isConfigured()) {
     throw new Error('Pagar.me não está configurado');
   }
 
-  // This would integrate with Pagar.me's client-side tokenization library
-  // For now, we'll simulate the tokenization process
-  // In a real implementation, this would use Pagar.me's JavaScript SDK
+  const config = pagarmeClientConfig.getTokenizationConfig();
   
   try {
-    // Simulate tokenization delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // Real Pagar.me tokenization API call
+    const response = await fetch('https://api.pagar.me/core/v5/tokens', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Basic ${btoa(`${config.publicKey}:`)}`,
+      },
+      body: JSON.stringify({
+        type: 'card',
+        card: {
+          number: cardData.number.replace(/\s/g, ''),
+          holder_name: cardData.holderName,
+          exp_month: parseInt(cardData.expirationMonth),
+          exp_year: parseInt(cardData.expirationYear),
+          cvv: cardData.cvv
+        }
+      })
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Falha na tokenização do cartão');
+    }
+
+    const tokenData = await response.json();
     
-    // In production, this would call Pagar.me's tokenization API
-    // const token = await pagarmeJs.security.encrypt(cardData);
-    
-    // For now, return a mock token for development
     return {
       success: true,
-      token: `card_token_${Date.now()}`,
-      lastDigits: cardData.number.slice(-4),
-      brand: detectCardBrand(cardData.number)
+      token: tokenData.id,
+      lastDigits: tokenData.card.last_four_digits,
+      brand: tokenData.card.brand,
+      holderName: tokenData.card.holder_name
     };
   } catch (error) {
     console.error('Card tokenization failed:', error);
     throw new Error('Falha ao processar dados do cartão');
   }
-};
-
-/**
- * Helper function to detect card brand
- */
-const detectCardBrand = (cardNumber: string): string => {
-  const cleanNumber = cardNumber.replace(/\D/g, '');
-  
-  if (cleanNumber.match(/^4/)) return 'visa';
-  if (cleanNumber.match(/^5[1-5]/)) return 'mastercard';
-  if (cleanNumber.match(/^3[47]/)) return 'amex';
-  if (cleanNumber.match(/^6(?:011|5)/)) return 'discover';
-  
-  return 'unknown';
 };

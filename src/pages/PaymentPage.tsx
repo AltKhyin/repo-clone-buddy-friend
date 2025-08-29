@@ -9,9 +9,9 @@ const PaymentPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   
-  // Extract plan information from URL parameters
-  const planName = searchParams.get('plan') || 'Plano Mensal';
-  const planPrice = parseInt(searchParams.get('price') || '1990'); // Default R$ 19.90
+  // Extract plan information from URL parameters with sensible defaults
+  const planName = searchParams.get('plan') || 'Plano Básico';
+  const planPrice = parseInt(searchParams.get('price') || '2990'); // Default R$ 29.90
   const planDescription = searchParams.get('description') || 'Acesso completo à plataforma EVIDENS';
 
   const handlePaymentSuccess = (orderId: string) => {

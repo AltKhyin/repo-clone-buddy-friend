@@ -18,7 +18,7 @@ interface VoteButtonProps {
   downvotes: number;
   userVote?: 'up' | 'down' | null;
   orientation?: 'vertical' | 'horizontal';
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'xs' | 'sm' | 'md' | 'lg';
   disabled?: boolean;
   className?: string;
   showDownvote?: boolean;
@@ -68,6 +68,11 @@ export const VoteButton = ({
 
   // Size configurations
   const sizeConfig = {
+    xs: {
+      button: 'h-5 w-5 p-0.5',
+      icon: 10,
+      text: 'text-xs',
+    },
     sm: {
       button: 'h-6 w-6 p-1',
       icon: 12,
@@ -85,7 +90,7 @@ export const VoteButton = ({
     },
   };
 
-  const config = sizeConfig[size];
+  const config = sizeConfig[size] || sizeConfig.md; // Fallback to 'md' if invalid size
   const isLoading = castVoteMutation.isPending;
 
   // Theme-aware upvote styling: Use accent color for light theme, primary for others

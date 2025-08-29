@@ -77,9 +77,9 @@ interface PaymentFormProps {
 // =================================================================
 
 const PaymentForm: React.FC<PaymentFormProps> = ({
-  planName = "Plano Mensal", // HARDCODED: Default plan name
-  planPrice = 1990, // HARDCODED: R$ 19.90 in cents - should come from plan selection
-  planDescription = "Acesso completo à plataforma EVIDENS", // HARDCODED: Default description
+  planName = "Plano Básico",
+  planPrice = 2990, // Default R$ 29.90 in cents
+  planDescription = "Acesso completo à plataforma EVIDENS",
   onSuccess,
   onCancel
 }) => {
@@ -102,10 +102,9 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
 
   const onSubmit = (values: PixPaymentFormInput) => {
     if (selectedMethod === 'pix') {
-      // IMPLEMENTATION NOTE: Customer creation will be handled by the Edge Function
-      // The Edge Function will create/find customer using email and return the PIX data
+      // Customer creation handled by Edge Function using customer data
       const pixPaymentData: PixPaymentInput = {
-        customerId: 'temp_customer_id', // PLACEHOLDER: Edge function will handle customer creation
+        customerId: values.customerEmail, // Use email as identifier, Edge function will create/find customer
         amount: values.amount,
         description: values.description,
         metadata: {
