@@ -146,19 +146,22 @@ export const VoteButton = ({
     return 'bg-border/30'; // Slightly more visible separator
   };
 
-  // Unified pill-shaped voting component for both mobile and desktop
+  // Unified pill-shaped voting component with consistent sizing to match comment buttons
   if (showDownvote) {
     return (
       <div className={cn(
         'flex items-center rounded-full border overflow-hidden',
-        'min-h-[36px] w-fit', // Reduced height from 40px to 36px
+        // Match comment button sizing: h-9 (36px) for all platforms
+        'h-9 w-fit', // h-9 = 36px matches comment button reference
         getPillOutlineStyle(),
         className
       )}>
         {/* Combined Upvote + Score Area (20% wider touch area) */}
         <button
           className={cn(
-            'flex items-center gap-1.5 px-3 py-1.5 min-h-[36px]', // Reduced height and padding
+            'flex items-center gap-1.5 px-3',
+            // Match comment button sizing: py-1.5 h-9 for consistent appearance
+            'py-1.5 h-9', // h-9 = 36px matches comment button reference
             'flex-[4] transition-all duration-150 rounded-l-full',
             userVote === 'up' && getUpvoteStyle(),
             !userVote &&
@@ -175,12 +178,13 @@ export const VoteButton = ({
         >
           <VoteArrowUp
             filled={userVote === 'up'}
-            size={Math.round(config.icon * 1.5)} // 50% larger icons
+            // Match comment button icon sizing: 24px (w-6 h-6)
+            size={24} // 24px matches MessageCircle w-6 h-6 in comment button
             className="transition-all duration-150 flex-shrink-0"
           />
           <span
             className={cn(
-              config.text,
+              'text-xs', // Match comment button text size
               'font-medium tabular-nums',
               userVote === 'up' &&
                 (isPinned
@@ -209,12 +213,14 @@ export const VoteButton = ({
         </button>
 
         {/* Visual Separator */}
-        <div className={cn('w-px h-5', getSeparatorStyle())} />
+        <div className={cn('w-px h-4', getSeparatorStyle())} />
 
         {/* Downvote Area (narrower touch area) */}
         <button
           className={cn(
-            'flex items-center justify-center px-2 py-1.5 min-h-[36px] min-w-[36px]', // Reduced height
+            'flex items-center justify-center px-2',
+            // Match comment button sizing: py-1.5 h-9 for consistent appearance
+            'py-1.5 h-9 min-w-[36px]', // h-9 = 36px matches comment button reference
             'flex-[1] transition-all duration-150 rounded-r-full',
             userVote === 'down' &&
               (isPinned
@@ -232,7 +238,8 @@ export const VoteButton = ({
         >
           <VoteArrowDown
             filled={userVote === 'down'}
-            size={Math.round(config.icon * 1.5)} // 50% larger icons
+            // Match comment button icon sizing: 24px (w-6 h-6)
+            size={24} // 24px matches MessageCircle w-6 h-6 in comment button
             className="transition-all duration-150"
           />
         </button>

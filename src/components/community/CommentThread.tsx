@@ -14,20 +14,20 @@ interface CommentThreadProps {
   onCommentPosted: () => void;
 }
 
-// Reddit-style constants for exact visual matching
-const REDDIT_INDENT_WIDTH = 12; // pixels per depth level (Reddit's standard)
-const REDDIT_MAX_VISIBLE_DEPTH = 8; // Before "Continue this thread" link
-// Use CSS custom property instead of hardcoded color for theme consistency
+// Reddit-style constants for logical tree structure  
+const REDDIT_MAX_VISIBLE_DEPTH = 3; // Before "Ver mais respostas" button
 
 export const CommentThread = ({ comments, rootPostId, onCommentPosted }: CommentThreadProps) => {
   const [threadState, setThreadState] = useState<RedditThreadState>({
     collapsedComments: new Set(),
-    showMoreReplies: new Map()
+    showMoreReplies: new Map(),
+    isInFocusMode: false,
+    navigationHistory: [],
+    isTransitioning: false
   });
 
   // Build Reddit-style hierarchical tree with proper depth calculation
   const commentTree = useMemo(() => {
-    console.log('Building Reddit-style comment tree from comments:', comments);
     
     const commentMap = new Map<number, RedditCommentTreeNode>();
     const rootComments: RedditCommentTreeNode[] = [];
@@ -71,9 +71,86 @@ export const CommentThread = ({ comments, rootPostId, onCommentPosted }: Comment
     // Sort root comments chronologically (Reddit-style)
     rootComments.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
     
-    console.log('Built Reddit-style tree:', { rootComments: rootComments.length, totalComments: comments.length });
     return rootComments;
   }, [comments, threadState.collapsedComments]);
+
+  // Helper function to check if a comment is descendant of another
+  const isDescendantOf = (comment: CommunityPost, ancestorId: number, allComments: CommunityPost[]): boolean => {
+    let current = comment;
+    while (current.parent_post_id) {
+      if (current.parent_post_id === ancestorId) return true;
+      const parent = allComments.find(c => c.id === current.parent_post_id);
+      if (!parent) break;
+      current = parent;
+    }
+    return false;
+  };
+
+  // Build focused comment tree when in focus mode
+  const focusedCommentTree = useMemo(() => {
+    if (!threadState.isInFocusMode || !threadState.focusedCommentId) {
+      return null;
+    }
+    
+    // Find the focused comment in the original comments array
+    const focusedComment = comments.find(c => c.id === threadState.focusedCommentId);
+    if (!focusedComment) return null;
+    
+    // Build tree with focused comment as root
+    const commentMap = new Map<number, RedditCommentTreeNode>();
+    
+    // Filter all comments that are part of this conversation thread
+    // We need to show the focused comment AND all its descendants (any depth)
+    const threadComments = comments.filter(comment => {
+      // Include the focused comment itself
+      if (comment.id === threadState.focusedCommentId) return true;
+      // Include ALL descendants of the focused comment (no depth limit)
+      return isDescendantOf(comment, threadState.focusedCommentId, comments);
+    });
+    
+    // Create nodes for thread comments
+    threadComments.forEach(comment => {
+      const redditNode: RedditCommentTreeNode = { 
+        ...comment, 
+        replies: [],
+        depth: 0, // Will be recalculated for focused view
+        hasReplies: false,
+        isCollapsed: false
+      };
+      commentMap.set(comment.id, redditNode);
+    });
+    
+    // Build focused tree structure - focused comment becomes root (depth 0)
+    const focusedRoot = commentMap.get(threadState.focusedCommentId)!;
+    focusedRoot.depth = 0;
+    
+    // Build replies with flattened depth after limit
+    const buildFocusedReplies = (parentId: number, currentDepth: number) => {
+      const parentNode = commentMap.get(parentId);
+      if (!parentNode) return;
+      
+      const directReplies = threadComments.filter(c => c.parent_post_id === parentId);
+      
+      directReplies.forEach(reply => {
+        const replyNode = commentMap.get(reply.id)!;
+        // In focus mode, flatten depth after limit but keep building the tree
+        // This allows all comments to be visible but visually flattened
+        replyNode.depth = Math.min(currentDepth + 1, REDDIT_MAX_VISIBLE_DEPTH);
+        parentNode.replies.push(replyNode);
+        parentNode.hasReplies = true;
+        
+        // Continue recursively building replies but pass the actual depth for tree structure
+        buildFocusedReplies(reply.id, currentDepth + 1);
+      });
+      
+      // Sort replies chronologically
+      parentNode.replies.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+    };
+    
+    buildFocusedReplies(threadState.focusedCommentId, 0);
+    
+    return [focusedRoot];
+  }, [comments, threadState.focusedCommentId, threadState.isInFocusMode, threadState.collapsedComments]);
 
   // Reddit-style thread collapse/expand functionality
   const toggleThread = (commentId: number) => {
@@ -97,11 +174,62 @@ export const CommentThread = ({ comments, rootPostId, onCommentPosted }: Comment
     return threadState.collapsedComments.has(commentId);
   };
 
+  // Legacy deep comment functions (kept for backwards compatibility but unused)
+
+  // Focus mode functionality - replaces section instead of inline expansion
+  const enterFocusMode = (commentId: number) => {
+    setThreadState(prev => ({
+      ...prev,
+      isTransitioning: true,
+      focusedCommentId: commentId,
+      navigationHistory: [...prev.navigationHistory, commentId]
+    }));
+    
+    // Simulate microanimation timing
+    setTimeout(() => {
+      setThreadState(prev => ({
+        ...prev,
+        isInFocusMode: true,
+        isTransitioning: false
+      }));
+    }, 150);
+  };
+
+  const exitFocusMode = () => {
+    setThreadState(prev => ({
+      ...prev,
+      isTransitioning: true
+    }));
+    
+    // Simulate microanimation timing  
+    setTimeout(() => {
+      setThreadState(prev => ({
+        ...prev,
+        isInFocusMode: false,
+        focusedCommentId: undefined,
+        navigationHistory: [],
+        isTransitioning: false
+      }));
+    }, 150);
+  };
+
   // Calculate total visible comments for Reddit-style counting
   const getTotalComments = (nodes: RedditCommentTreeNode[]): number => {
     return nodes.reduce((total, node) => {
       return total + 1 + (node.replies ? getTotalComments(node.replies) : 0);
     }, 0);
+  };
+
+  // Count deep replies that are hidden beyond max depth
+  // This should match exactly what will be shown in focus mode
+  const getDeepRepliesCount = (node: RedditCommentTreeNode): number => {
+    // Find all descendants of this node in the original comments array
+    const allDescendants = comments.filter(comment => 
+      isDescendantOf(comment, node.id, comments)
+    );
+    
+    // Return the count of all descendants that would be shown in focus mode
+    return allDescendants.length;
   };
 
   // Reddit-style comment rendering with exact visual hierarchy
@@ -115,28 +243,29 @@ export const CommentThread = ({ comments, rootPostId, onCommentPosted }: Comment
       
       
       return (
-        <div key={comment.id} className="comment-thread-item" data-comment-id={comment.id}>
+        <div key={comment.id} className="comment-thread-item relative" data-comment-id={comment.id}>
           
-          {/* Natural comment layout with collapse button and nesting indicators */}
+          {/* Continuous nesting lines - one for each parent level */}
+          {Array.from({length: depth}, (_, lineLevel) => (
+            <div
+              key={`line-${lineLevel}`}
+              className="absolute top-0 bottom-0 w-0.5 bg-border/20 pointer-events-none"
+              style={{
+                left: `${lineLevel * 20 + 10}px`
+              }}
+            />
+          ))}
+          
+          {/* Natural comment layout */}
           <div
             className={cn(
-              "comment-with-nesting flex transition-all duration-200",
+              "comment-with-nesting flex transition-all duration-200 relative z-10",
               isCollapsed && "opacity-50"
             )}
-            style={{
-              marginLeft: `${depth * REDDIT_INDENT_WIDTH}px`
-            }}
           >
             
-            {/* Comment content with depth-aware styling */}
-            <div
-              className={cn(
-                "comment-content flex-1",
-                depth > 0 && "border-l border-border/20 pl-3", // Subtle left border for nested comments
-                depth > 2 && "border-l-2", // Stronger border for deeper nesting
-                depth > 4 && "bg-surface-muted/30 rounded-r-md" // Background for very deep nesting
-              )}
-            >
+            {/* Comment content */}
+            <div className="comment-content flex-1">
               <Comment
                 comment={comment}
                 indentationLevel={depth}
@@ -157,19 +286,19 @@ export const CommentThread = ({ comments, rootPostId, onCommentPosted }: Comment
               {comment.depth < REDDIT_MAX_VISIBLE_DEPTH ? (
                 renderRedditComments(comment.replies, depth + 1)
               ) : (
-                <div 
-                  className="continue-thread mt-2 mb-4"
-                  style={{ marginLeft: `${(depth + 1) * REDDIT_INDENT_WIDTH + 24}px` }}
-                >
-                  <Button
-                    variant="link"
-                    size="sm"
-                    className="text-accent hover:text-accent/80 text-xs p-0 h-auto"
-                    onClick={() => console.log('Navigate to comment permalink')}
-                  >
-                    Continuar esta conversa →
-                  </Button>
-                </div>
+                <>
+                  {/* Show "Ver mais respostas" button - now triggers focus mode */}
+                  <div className="deep-replies-toggle mt-2 mb-4 ml-4">
+                    <Button
+                      variant="link"
+                      size="sm"
+                      className="text-accent hover:text-accent/80 text-xs p-0 h-auto"
+                      onClick={() => enterFocusMode(comment.id)}
+                    >
+                      Ver mais {getDeepRepliesCount(comment)} respostas
+                    </Button>
+                  </div>
+                </>
               )}
             </div>
           )}
@@ -193,11 +322,35 @@ export const CommentThread = ({ comments, rootPostId, onCommentPosted }: Comment
   const totalComments = getTotalComments(commentTree);
   const collapsedCount = threadState.collapsedComments.size;
 
+  // Determine which tree to render
+  const activeTree = threadState.isInFocusMode ? focusedCommentTree : commentTree;
+  const showBreadcrumb = threadState.isInFocusMode;
+
   return (
     <div className="comment-thread space-y-1">
-      {/* Clean comment tree without redundant header */}
-      <div className="comments-container">
-        {renderRedditComments(commentTree)}
+      {/* Breadcrumb navigation for focus mode */}
+      {showBreadcrumb && (
+        <div className="focus-breadcrumb mb-4 pb-2 border-b border-border/30">
+          <Button
+            variant="link"
+            size="sm"
+            className="text-muted-foreground hover:text-foreground text-xs p-0 h-auto"
+            onClick={exitFocusMode}
+          >
+            ← Voltar aos comentários
+          </Button>
+          <div className="text-xs text-muted-foreground mt-1">
+            Visualizando conversa focada
+          </div>
+        </div>
+      )}
+
+      {/* Comments container with transition support */}
+      <div className={cn(
+        "comments-container transition-all duration-150",
+        threadState.isTransitioning && "opacity-50 scale-[0.98]"
+      )}>
+        {activeTree && renderRedditComments(activeTree)}
       </div>
     </div>
   );

@@ -196,6 +196,11 @@ export interface VotePayload {
 export interface RedditThreadState {
   collapsedComments: Set<number>;
   showMoreReplies: Map<number, boolean>;
+  // Focus mode state for comment section replacement
+  focusedCommentId?: number;
+  isInFocusMode: boolean;
+  navigationHistory: number[]; // For back navigation
+  isTransitioning: boolean; // For smooth animations
 }
 
 export interface RedditCommentTreeNode extends CommunityPost {

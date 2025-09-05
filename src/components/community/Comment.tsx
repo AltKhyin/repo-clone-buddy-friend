@@ -1,18 +1,16 @@
 // ABOUTME: Reddit-style individual comment component with exact visual hierarchy and proper terminology.
 
 import React, { useState } from 'react';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { formatDistanceToNow, isValid, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { MinimalCommentInput } from './MinimalCommentInput';
 import { PostActionMenu } from './PostActionMenu';
-import { Award, ChevronDown, ChevronRight } from 'lucide-react';
+import { Award } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { CommunityPost } from '../../types/community';
-import { VoteButton } from '../ui/VoteButton';
 import { CommentAuthor } from './CommunityAuthor';
+import { CommentActions } from './CommentActions';
 
 interface CommentProps {
   comment: CommunityPost;
@@ -70,10 +68,11 @@ export const Comment = ({
 }: CommentProps) => {
   const [isReplying, setIsReplying] = useState(false);
 
-  // Natural depth handling with visual awareness
+  // Simplified indentation for continuous nesting line system
   const nestingDepth = indentationLevel;
-  const isDeepNested = nestingDepth > 3;
   const isNested = nestingDepth > 0;
+  const lineSpacing = 20; // Space per nesting level
+  const totalIndentation = nestingDepth * lineSpacing;
 
   const handleReplyPosted = () => {
     setIsReplying(false);
@@ -87,22 +86,21 @@ export const Comment = ({
   return (
     <div 
       className={cn(
-        "natural-comment flex gap-2 mt-2 transition-all duration-200",
+        "natural-comment flex gap-2 mt-1 transition-all duration-200 relative",
         isOptimistic && "opacity-70 animate-pulse",
-        isLoading && "bg-blue-50/30 rounded-md p-1",
-        isDeepNested && "text-sm", // Slightly smaller text for deeply nested comments
-        isNested && "mt-1" // Tighter spacing for nested comments
+        isLoading && "bg-blue-50/30 rounded-md p-1"
       )}
+      style={{
+        paddingLeft: `${totalIndentation}px`
+      }}
     >
-      {/* Natural comment content with nesting awareness */}
       <div className="flex-1 comment-body">
         <div
           className={cn(
             'comment-container p-2 rounded-sm transition-colors',
             'hover:bg-surface-hover',
             comment.is_rewarded &&
-              'border-l-2 border-accent bg-accent/10',
-            isDeepNested && "p-1.5", // Slightly tighter padding for deep comments
+              'border-l-2 border-accent bg-accent/10'
           )}
         >
           {/* Comment header with collapse control */}
@@ -135,71 +133,18 @@ export const Comment = ({
             dangerouslySetInnerHTML={{ __html: comment.content }}
           />
 
-          {/* Natural action bar */}
-          <div className="comment-actions flex items-center gap-1 text-muted-foreground text-xs">
-            {/* Horizontal vote controls */}
-            <VoteButton
-              entityId={comment.id.toString()}
-              entityType="community_post"
-              upvotes={comment.upvotes || 0}
-              downvotes={comment.downvotes || 0}
-              userVote={comment.user_vote}
-              orientation="horizontal"
-              size={isDeepNested ? "xs" : "sm"}
-            />
-
-            {/* Reply button */}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setIsReplying(!isReplying)}
-              className={cn(
-                "reply-btn h-7 px-2 text-xs hover:bg-action-hover hover:text-accent transition-colors",
-                isDeepNested && "h-6 px-1.5" // Smaller for deep comments
-              )}
-            >
-              {isReplying ? 'Cancelar' : 'Responder'}
-            </Button>
-
-            {/* Thread collapse/expand control - positioned after Reply button */}
-            {hasReplies && onToggleCollapse && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onToggleCollapse}
-                className={cn(
-                  "thread-toggle-btn h-7 px-2 text-xs hover:bg-action-hover hover:text-accent transition-all duration-150",
-                  "flex items-center gap-1",
-                  isDeepNested && "h-6 px-1.5" // Smaller for deep comments
-                )}
-                title={isCollapsed ? `Mostrar ${replyCount} respostas` : 'Ocultar respostas'}
-                onMouseEnter={() => {
-                  // Add hover effect to show scope of nested comments
-                  const commentElement = document.querySelector(`[data-comment-id="${comment.id}"]`);
-                  if (commentElement) {
-                    commentElement.classList.add('show-nested-scope');
-                  }
-                }}
-                onMouseLeave={() => {
-                  // Remove hover effect
-                  const commentElement = document.querySelector(`[data-comment-id="${comment.id}"]`);
-                  if (commentElement) {
-                    commentElement.classList.remove('show-nested-scope');
-                  }
-                }}
-              >
-                {isCollapsed ? (
-                  <>
-                    <ChevronRight className="w-3.5 h-3.5" strokeWidth={2} />
-                    <span className="font-medium">{replyCount}</span>
-                  </>
-                ) : (
-                  <ChevronDown className="w-3.5 h-3.5" strokeWidth={2} />
-                )}
-              </Button>
-            )}
-
-          </div>
+          {/* Essential comment actions */}
+          <CommentActions
+            comment={comment}
+            isReplying={isReplying}
+            onToggleReply={() => setIsReplying(!isReplying)}
+            hasReplies={hasReplies}
+            isCollapsed={isCollapsed}
+            onToggleCollapse={onToggleCollapse}
+            replyCount={replyCount}
+            size="sm"
+            className="text-xs"
+          />
         </div>
 
         {/* Natural reply input */}
