@@ -180,8 +180,97 @@ async function tokenizeCard(
   return tokenResponse.id;
 }
 
+async function updatePagarmeCustomer(
+  customerId: string,
+  customerData: PaymentRequest['metadata'],
+  billingAddress: PaymentRequest['billingAddress'],
+  pagarmeSecretKey: string
+): Promise<PagarmeCustomer> {
+  if (!customerData) {
+    throw new Error('Customer data is required');
+  }
+
+  const authToken = btoa(`${pagarmeSecretKey}:`);
+  
+  // Clean and validate document
+  const cleanDocument = customerData.customerDocument.replace(/\D/g, '');
+  const documentLength = cleanDocument.length;
+  
+  // Determine document type and customer type
+  let documentType: string;
+  let customerType: string;
+  
+  if (documentLength === 11) {
+    documentType = 'CPF';
+    customerType = 'individual';
+  } else if (documentLength === 14) {
+    documentType = 'CNPJ';
+    customerType = 'company';
+  } else {
+    // Fallback for international documents
+    documentType = 'PASSPORT';
+    customerType = 'individual';
+  }
+
+  // Build customer update payload
+  const customerPayload = {
+    name: customerData.customerName,
+    email: customerData.customerEmail,
+    document: cleanDocument,
+    document_type: documentType,
+    type: customerType,
+    // Required phones object for PSP integration
+    phones: {
+      mobile_phone: customerData.customerPhone ? {
+        country_code: '55',
+        area_code: customerData.customerPhone.replace(/\D/g, '').substring(2, 4) || '11',
+        number: customerData.customerPhone.replace(/\D/g, '').substring(4) || '999999999'
+      } : {
+        country_code: '55',
+        area_code: '11',
+        number: '999999999'
+      }
+    },
+    // Use actual user billing address if provided
+    address: billingAddress ? {
+      country: billingAddress.country || 'BR',
+      state: billingAddress.state,
+      city: billingAddress.city,
+      line_1: billingAddress.line_1,
+      line_2: '',
+      zip_code: billingAddress.zip_code.replace(/\D/g, '')
+    } : {
+      country: 'BR',
+      state: 'SP',
+      city: 'São Paulo',
+      line_1: 'Endereço não informado',
+      line_2: '',
+      zip_code: '01310100'
+    }
+  };
+
+  const response = await fetch(`https://api.pagar.me/core/v5/customers/${customerId}`, {
+    method: 'PUT',
+    headers: {
+      'Authorization': `Basic ${authToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(customerPayload)
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    console.error('Pagar.me customer update failed:', error);
+    throw new Error(`Failed to update customer: ${error.message || 'Unknown error'}`);
+  }
+
+  console.log('Customer updated successfully:', customerId);
+  return await response.json();
+}
+
 async function createPagarmeCustomer(
   customerData: PaymentRequest['metadata'],
+  billingAddress: PaymentRequest['billingAddress'],
   pagarmeSecretKey: string
 ): Promise<PagarmeCustomer> {
   if (!customerData) {
@@ -219,20 +308,33 @@ async function createPagarmeCustomer(
     type: customerType,
     // Required phones object for PSP integration
     phones: {
-      mobile_phone: {
+      mobile_phone: customerData.customerPhone ? {
         country_code: '55',
-        area_code: customerData.customerPhone?.substring(0, 2) || '11', // Extract area code or default
-        number: customerData.customerPhone?.substring(2) || '999999999' // Extract number or default
+        area_code: customerData.customerPhone.replace(/\D/g, '').substring(2, 4) || '11', // Extract area code from formatted phone
+        number: customerData.customerPhone.replace(/\D/g, '').substring(4) || '999999999' // Extract number from formatted phone
+      } : {
+        // Minimal fallback only when no phone provided
+        country_code: '55',
+        area_code: '11',
+        number: '999999999'
       }
     },
-    // Proper address structure following Pagar.me API
-    address: {
+    // Use actual user billing address if provided, otherwise use minimal fallback
+    address: billingAddress ? {
+      country: billingAddress.country || 'BR',
+      state: billingAddress.state,
+      city: billingAddress.city,
+      line_1: billingAddress.line_1,
+      line_2: '', // Optional field
+      zip_code: billingAddress.zip_code.replace(/\D/g, '') // Clean formatting
+    } : {
+      // Minimal fallback only if no billing address provided
       country: 'BR',
-      state: 'SP',
-      city: 'São Paulo',
-      line_1: 'Rua Exemplo, 123',
-      line_2: 'Apto 1',
-      zip_code: '01310100'
+      state: 'SP', // Default state as fallback only
+      city: 'São Paulo', // Default city as fallback only
+      line_1: 'Endereço não informado',
+      line_2: '',
+      zip_code: '01310100' // Default ZIP as fallback only
     }
   };
 
@@ -416,7 +518,7 @@ serve(async (req: Request) => {
     // Create customer if doesn't exist
     if (!pagarmeCustomerId) {
       console.log('Creating new Pagar.me customer for user:', user.id);
-      const customer = await createPagarmeCustomer(paymentRequest.metadata, pagarmeSecretKey);
+      const customer = await createPagarmeCustomer(paymentRequest.metadata, paymentRequest.billingAddress, pagarmeSecretKey);
       pagarmeCustomerId = customer.id;
       console.log('Created customer with ID:', pagarmeCustomerId);
 
@@ -432,6 +534,17 @@ serve(async (req: Request) => {
       }
     } else {
       console.log('Using existing customer ID:', pagarmeCustomerId);
+      
+      // Update existing customer with current data to ensure consistency
+      console.log('Updating existing customer with current payment data...');
+      try {
+        await updatePagarmeCustomer(pagarmeCustomerId, paymentRequest.metadata, paymentRequest.billingAddress, pagarmeSecretKey);
+        console.log('Customer data updated successfully');
+      } catch (updateError) {
+        console.error('Failed to update customer data:', updateError);
+        // Continue with payment - update failure shouldn't block payment unless critical
+        console.log('Continuing with payment using existing customer data');
+      }
     }
 
     // Handle server-side card tokenization if needed
@@ -461,7 +574,7 @@ serve(async (req: Request) => {
         console.log(`Customer ${oldCustomerId} not found (likely test/prod mismatch). Creating new customer...`);
         
         // Create new customer in current environment
-        const newCustomer = await createPagarmeCustomer(paymentRequest.metadata, pagarmeSecretKey);
+        const newCustomer = await createPagarmeCustomer(paymentRequest.metadata, paymentRequest.billingAddress, pagarmeSecretKey);
         pagarmeCustomerId = newCustomer.id;
         console.log(`Created new customer: ${pagarmeCustomerId}`);
         
@@ -484,10 +597,41 @@ serve(async (req: Request) => {
     
     // Check if order or payment failed
     if (order.status === 'failed' || order.charges?.[0]?.status === 'failed') {
-      const errorMessage = order.charges?.[0]?.last_transaction?.gateway_response?.errors?.[0]?.message || 
-                          'PIX payment failed';
-      console.error('PIX payment failed:', errorMessage);
-      return sendError(`Payment failed: ${errorMessage}`, 400);
+      const transaction = order.charges?.[0]?.last_transaction;
+      const acquirerMessage = transaction?.acquirer_message;
+      const gatewayError = transaction?.gateway_response?.errors?.[0]?.message;
+      
+      // Create user-friendly error message based on payment method and error details
+      let userMessage = '';
+      let errorType = 'payment_failed';
+      
+      if (paymentRequest.paymentMethod === 'credit_card') {
+        // Credit card specific error handling
+        if (acquirerMessage?.includes('não autorizada')) {
+          userMessage = 'Cartão recusado pelo banco. Entre em contato com seu banco ou tente outro cartão.';
+          errorType = 'card_declined';
+        } else if (acquirerMessage?.includes('saldo insuficiente') || acquirerMessage?.includes('limite')) {
+          userMessage = 'Saldo insuficiente. Verifique seu limite ou tente outro cartão.';
+          errorType = 'insufficient_funds';
+        } else if (acquirerMessage?.includes('dados inválidos') || acquirerMessage?.includes('invalid')) {
+          userMessage = 'Dados do cartão inválidos. Verifique as informações e tente novamente.';
+          errorType = 'invalid_card_data';
+        } else if (acquirerMessage?.includes('vencido') || acquirerMessage?.includes('expired')) {
+          userMessage = 'Cartão vencido. Use um cartão válido.';
+          errorType = 'expired_card';
+        } else {
+          userMessage = gatewayError || acquirerMessage || 'Falha no pagamento com cartão. Tente novamente ou use outro método.';
+          errorType = 'card_processing_error';
+        }
+        console.error('Credit card payment failed:', { acquirerMessage, gatewayError, errorType });
+      } else {
+        // PIX specific error handling
+        userMessage = gatewayError || acquirerMessage || 'Falha ao gerar código PIX. Tente novamente.';
+        errorType = 'pix_generation_failed';
+        console.error('PIX payment failed:', { acquirerMessage, gatewayError, errorType });
+      }
+      
+      return sendError(`Payment failed: ${userMessage}`, 400);
     }
 
     // Get plan information for database record

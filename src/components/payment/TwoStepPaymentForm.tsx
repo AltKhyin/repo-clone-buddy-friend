@@ -131,6 +131,10 @@ const TwoStepPaymentForm: React.FC<TwoStepPaymentFormProps> = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const [showPixCode, setShowPixCode] = useState(false);
   const [pixData, setPixData] = useState<any>(null);
+  const [paymentError, setPaymentError] = useState<{
+    message: string;
+    canRetry: boolean;
+  } | null>(null);
 
   // Payment mutation hooks
   const pixPaymentMutation = useCreatePixPayment();
@@ -185,7 +189,22 @@ const TwoStepPaymentForm: React.FC<TwoStepPaymentFormProps> = ({
 
   const handleBackToStep1 = () => {
     setCurrentStep(1);
+    setPaymentError(null); // Clear errors when going back
   };
+
+  const parsePaymentError = (errorMessage: string) => {
+    setPaymentError({
+      message: errorMessage,
+      canRetry: true
+    });
+  };
+
+  const handleRetryPayment = () => {
+    setPaymentError(null);
+    setIsProcessing(false);
+    // Stay on current step and method for retry
+  };
+
 
   const onSubmit = async (values: PaymentFormInput) => {
     if (currentStep === 1) {
@@ -219,8 +238,8 @@ const TwoStepPaymentForm: React.FC<TwoStepPaymentFormProps> = ({
           setIsProcessing(false);
         },
         onError: (error) => {
-          toast.error('Falha ao gerar PIX. Tente novamente.');
           console.error(error);
+          parsePaymentError(error.message);
           setIsProcessing(false);
         }
       });
@@ -278,14 +297,14 @@ const TwoStepPaymentForm: React.FC<TwoStepPaymentFormProps> = ({
             setIsProcessing(false);
           },
           onError: (error) => {
-            toast.error('Falha ao processar pagamento. Tente novamente.');
             console.error(error);
+            parsePaymentError(error.message);
             setIsProcessing(false);
           }
         });
       } catch (error) {
-        toast.error('Erro no processamento do pagamento');
         console.error(error);
+        parsePaymentError(error.message || 'Erro no processamento do pagamento');
         setIsProcessing(false);
       }
     } else if (selectedMethod === 'boleto') {
@@ -373,6 +392,32 @@ const TwoStepPaymentForm: React.FC<TwoStepPaymentFormProps> = ({
           >
             Voltar
           </Button>
+
+          {/* PIX Error Handling */}
+          {paymentError && (
+            <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <div className="text-center">
+                <h3 className="text-sm font-medium text-red-800 mb-2">
+                  Problema com PIX
+                </h3>
+                <p className="text-sm text-red-700 mb-4">
+                  {paymentError.message}
+                </p>
+                
+                <Button
+                  type="button"
+                  onClick={handleRetryPayment}
+                  className="w-full bg-red-600 hover:bg-red-700 text-white mb-3"
+                >
+                  Tentar novamente
+                </Button>
+                
+                <p className="text-xs text-gray-600">
+                  Precisa de ajuda? <a href="mailto:suporte@evidens.com.br" className="text-blue-600 hover:underline">Fale com a gente clicando aqui</a>.
+                </p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -528,7 +573,10 @@ const TwoStepPaymentForm: React.FC<TwoStepPaymentFormProps> = ({
               {/* Payment Method Selection - Dropdown with sophisticated gray colors */}
               <div className="mb-4">
                 <h4 className="text-sm font-medium text-black mb-3">Método de pagamento</h4>
-                <Select onValueChange={(value: PaymentMethod) => setSelectedMethod(value)} defaultValue={selectedMethod}>
+                <Select onValueChange={(value: PaymentMethod) => {
+                  setSelectedMethod(value);
+                  setPaymentError(null); // Clear errors when switching methods
+                }} defaultValue={selectedMethod}>
                   <SelectTrigger className="bg-white border-gray-300 focus:border-gray-600 focus:ring-0 text-black h-16 sm:h-18 p-3 touch-manipulation">
                     <SelectValue>
                       {(() => {
@@ -816,10 +864,48 @@ const TwoStepPaymentForm: React.FC<TwoStepPaymentFormProps> = ({
                 className="w-full !mt-8 !bg-black hover:!bg-gray-800 !text-white text-base font-medium"
                 disabled={isProcessing}
               >
-                {isProcessing 
-                  ? 'Processando...' 
-                  : 'Pagar agora'}
+                {isProcessing ? (
+                  <div className="flex items-center justify-center">
+                    <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2"></div>
+                    {selectedMethod === 'pix' ? 'Gerando código PIX...' : 'Processando pagamento...'}
+                  </div>
+                ) : (
+                  'Pagar agora'
+                )}
               </Button>
+
+
+              {/* Payment Error & Recovery Actions */}
+              {paymentError && (
+                <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                  <div className="flex items-start">
+                    <div className="flex-shrink-0">
+                      <div className="h-5 w-5 text-red-400">⚠️</div>
+                    </div>
+                    <div className="ml-3 flex-1">
+                      <h3 className="text-sm font-medium text-red-800 mb-2">
+                        Problema no pagamento
+                      </h3>
+                      <p className="text-sm text-red-700 mb-4">
+                        {paymentError.message}
+                      </p>
+                      
+                      {/* Recovery Action Buttons */}
+                      <Button
+                        type="button"
+                        onClick={handleRetryPayment}
+                        className="w-full bg-red-600 hover:bg-red-700 text-white mb-3"
+                      >
+                        Tentar novamente
+                      </Button>
+                      
+                      <p className="text-xs text-gray-600">
+                        Precisa de ajuda? <a href="mailto:suporte@evidens.com.br" className="text-blue-600 hover:underline">Fale com a gente clicando aqui</a>.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
 
             </>
             </div>
