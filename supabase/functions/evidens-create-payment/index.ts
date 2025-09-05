@@ -19,7 +19,24 @@ interface PaymentRequest {
     customerName: string;
     customerEmail: string;
     customerDocument: string;
+    customerPhone: string;
     planName: string;
+  };
+  // Billing address for credit card payments
+  billingAddress?: {
+    line_1: string;
+    zip_code: string;
+    city: string;
+    state: string;
+    country: string;
+  };
+  // Optional card data for server-side tokenization
+  cardData?: {
+    number: string;
+    holderName: string;
+    expirationMonth: string;
+    expirationYear: string;
+    cvv: string;
   };
 }
 
@@ -93,6 +110,76 @@ function sendSuccess(data: any) {
   );
 }
 
+async function tokenizeCard(
+  cardData: PaymentRequest['cardData'],
+  pagarmeSecretKey: string
+): Promise<string> {
+  if (!cardData) {
+    throw new Error('Card data is required for tokenization');
+  }
+
+  // Get the public key from environment (tokenization requires public key, not secret)
+  const pagarmePublicKey = Deno.env.get('PAGARME_PUBLIC_KEY');
+  if (!pagarmePublicKey) {
+    throw new Error('Pagar.me public key not configured for tokenization');
+  }
+  
+  // Clean and validate card number - remove spaces and non-digits
+  const cardNumber = cardData.number.replace(/\D/g, '');
+  
+  // Basic card number validation
+  if (cardNumber.length < 13 || cardNumber.length > 19) {
+    throw new Error('Invalid card number length');
+  }
+  
+  const tokenPayload = {
+    type: 'card',
+    card: {
+      number: cardNumber,
+      holder_name: cardData.holderName,
+      exp_month: parseInt(cardData.expirationMonth),
+      exp_year: parseInt(`20${cardData.expirationYear}`), // Convert YY to YYYY
+      cvv: cardData.cvv
+    }
+  };
+
+  // Log only last 4 digits for security
+  console.log('Tokenizing card...', { 
+    last4: cardNumber.slice(-4),
+    holderName: cardData.holderName.replace(/./g, '*'), // Mask holder name in logs
+    expiry: `${cardData.expirationMonth}/${cardData.expirationYear}`
+  });
+
+  // Tokenization uses public key as query parameter, NO Authorization header
+  const response = await fetch(`https://api.pagar.me/core/v5/tokens?appId=${pagarmePublicKey}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      // NO Authorization header allowed for tokenization
+    },
+    body: JSON.stringify(tokenPayload)
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    console.error('Card tokenization failed:', { 
+      status: response.status, 
+      error: error.message || 'Unknown error',
+      // Never log actual card data
+      cardLast4: cardNumber.slice(-4)
+    });
+    throw new Error(`Failed to tokenize card: ${error.message || 'Unknown error'}`);
+  }
+
+  const tokenResponse = await response.json();
+  console.log('Card tokenized successfully:', { 
+    tokenId: tokenResponse.id,
+    cardLast4: cardNumber.slice(-4)
+  });
+  
+  return tokenResponse.id;
+}
+
 async function createPagarmeCustomer(
   customerData: PaymentRequest['metadata'],
   pagarmeSecretKey: string
@@ -134,8 +221,8 @@ async function createPagarmeCustomer(
     phones: {
       mobile_phone: {
         country_code: '55',
-        area_code: '11', // Default São Paulo area code
-        number: '999999999' // Default - can be enhanced to collect real phone
+        area_code: customerData.customerPhone?.substring(0, 2) || '11', // Extract area code or default
+        number: customerData.customerPhone?.substring(2) || '999999999' // Extract number or default
       }
     },
     // Proper address structure following Pagar.me API
@@ -181,6 +268,7 @@ async function createPagarmeOrder(
     customer_id: pagarmeCustomerId,
     items: [{
       id: '1',
+      code: `item-${Date.now()}`, // Required: Item code
       description: request.description,
       amount: request.amount,
       quantity: 1
@@ -206,14 +294,30 @@ async function createPagarmeOrder(
       throw new Error('Card token is required for credit card payments');
     }
     
-    orderData.payments.push({
+    // Build credit card payment with proper structure including billing address
+    const creditCardPayment: any = {
       payment_method: 'credit_card',
       credit_card: {
         installments: request.installments || 1,
         statement_descriptor: 'EVIDENS',
         card_token: request.cardToken
       }
-    });
+    };
+
+    // Add billing address if provided (required by Pagar.me for some configurations)
+    if (request.billingAddress) {
+      creditCardPayment.credit_card.card = {
+        billing_address: {
+          line_1: request.billingAddress.line_1,
+          zip_code: request.billingAddress.zip_code.replace(/\D/g, ''), // Remove formatting
+          city: request.billingAddress.city,
+          state: request.billingAddress.state,
+          country: request.billingAddress.country
+        }
+      };
+    }
+    
+    orderData.payments.push(creditCardPayment);
   }
 
   const response = await fetch('https://api.pagar.me/core/v5/orders', {
@@ -265,8 +369,8 @@ serve(async (req: Request) => {
       return sendError('Missing required fields: customerId, amount, paymentMethod');
     }
 
-    if (paymentRequest.amount < 100) {
-      return sendError('Minimum amount is R$ 1.00 (100 cents)');
+    if (paymentRequest.amount < 1) {
+      return sendError('Minimum amount is R$ 0.01 (1 cent)');
     }
 
     // Get JWT token and validate user
@@ -328,6 +432,22 @@ serve(async (req: Request) => {
       }
     } else {
       console.log('Using existing customer ID:', pagarmeCustomerId);
+    }
+
+    // Handle server-side card tokenization if needed
+    if (paymentRequest.paymentMethod === 'credit_card' && paymentRequest.cardToken === 'tokenize_on_server') {
+      if (!paymentRequest.cardData) {
+        return sendError('Card data is required for server-side tokenization', 400);
+      }
+      
+      console.log('Performing server-side card tokenization...');
+      try {
+        paymentRequest.cardToken = await tokenizeCard(paymentRequest.cardData, pagarmeSecretKey);
+        console.log('Server-side tokenization successful');
+      } catch (tokenError) {
+        console.error('Server-side tokenization failed:', tokenError);
+        return sendError(`Card tokenization failed: ${tokenError.message}`, 400);
+      }
     }
 
     // Create Pagar.me order

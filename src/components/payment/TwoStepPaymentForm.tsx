@@ -8,8 +8,10 @@ import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
 import { toast } from 'sonner';
 import { CreditCard, Smartphone, FileText, QrCode, ArrowLeft, ArrowRight } from 'lucide-react';
+import { useEffect } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PhoneInput } from '@/components/ui/PhoneInput';
+import { useCreatePixPayment, useCreateCreditCardPayment, usePaymentStatus, pixPaymentSchema, creditCardPaymentSchema, type PixPaymentInput, type CreditCardPaymentInput } from '../../hooks/mutations/usePaymentMutations';
 
 // =================================================================
 // Types & Interfaces
@@ -69,6 +71,11 @@ const step2Schema = z.object({
   cardExpirationDate: z.string().optional(),
   cardCvv: z.string().optional(),
   installments: z.string().optional(),
+  // Billing address fields (required for credit card payments)
+  billingStreet: z.string().optional(),
+  billingZipCode: z.string().optional(),
+  billingCity: z.string().optional(),
+  billingState: z.string().optional(),
 });
 
 // Combined schema for full form
@@ -123,6 +130,17 @@ const TwoStepPaymentForm: React.FC<TwoStepPaymentFormProps> = ({
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>('credit_card'); // Default to credit card
   const [isProcessing, setIsProcessing] = useState(false);
   const [showPixCode, setShowPixCode] = useState(false);
+  const [pixData, setPixData] = useState<any>(null);
+
+  // Payment mutation hooks
+  const pixPaymentMutation = useCreatePixPayment();
+  const creditCardPaymentMutation = useCreateCreditCardPayment();
+
+  // Poll payment status when PIX QR code is displayed
+  const { data: paymentStatus } = usePaymentStatus(
+    pixData?.id, 
+    showPixCode // Only poll when QR code is shown
+  );
 
   const form = useForm<PaymentFormInput>({
     resolver: zodResolver(paymentFormSchema),
@@ -137,6 +155,10 @@ const TwoStepPaymentForm: React.FC<TwoStepPaymentFormProps> = ({
       cardExpirationDate: '',
       cardCvv: '',
       installments: '1',
+      billingStreet: '',
+      billingZipCode: '',
+      billingCity: '',
+      billingState: '',
     }
   });
 
@@ -174,23 +196,103 @@ const TwoStepPaymentForm: React.FC<TwoStepPaymentFormProps> = ({
     // Step 2: Process payment
     setIsProcessing(true);
     
-    // Simulate processing delay
-    setTimeout(() => {
-      if (selectedMethod === 'pix') {
-        // Show PIX code for demonstration
-        setShowPixCode(true);
-        toast.success('Código PIX gerado com sucesso!');
-      } else if (selectedMethod === 'credit_card') {
-        // Simulate credit card processing
-        toast.success('Pagamento com cartão processado com sucesso!');
-        onSuccess?.({ id: 'demo_card_success', method: 'credit_card', customerData: values });
-      } else if (selectedMethod === 'boleto') {
-        // Simulate boleto generation
-        toast.success('Boleto gerado com sucesso!');
-        onSuccess?.({ id: 'demo_boleto_success', method: 'boleto', customerData: values });
+    if (selectedMethod === 'pix') {
+      // PIX Payment Logic
+      const pixPaymentData: PixPaymentInput = {
+        customerId: values.customerEmail,
+        amount: planPrice, // Use planPrice directly (critical fix)
+        description: `EVIDENS - ${planName}`,
+        metadata: {
+          customerName: values.customerName,
+          customerEmail: values.customerEmail,
+          customerDocument: values.customerDocument,
+          customerPhone: values.customerPhone,
+          planName: planName
+        }
+      };
+
+      pixPaymentMutation.mutate(pixPaymentData, {
+        onSuccess: (data) => {
+          setPixData(data);
+          setShowPixCode(true);
+          toast.success('Código PIX gerado com sucesso!');
+          setIsProcessing(false);
+        },
+        onError: (error) => {
+          toast.error('Falha ao gerar PIX. Tente novamente.');
+          console.error(error);
+          setIsProcessing(false);
+        }
+      });
+    } else if (selectedMethod === 'credit_card') {
+      // Credit Card Payment Logic
+      try {
+        // Validate credit card fields
+        if (!values.cardNumber || !values.cardHolderName || !values.cardExpirationDate || !values.cardCvv) {
+          toast.error('Todos os campos do cartão são obrigatórios');
+          setIsProcessing(false);
+          return;
+        }
+
+        // Split expiration date
+        const [month, year] = values.cardExpirationDate.split('/');
+        if (!month || !year) {
+          toast.error('Data de expiração inválida. Use o formato MM/AA');
+          setIsProcessing(false);
+          return;
+        }
+
+        const creditCardPaymentData: CreditCardPaymentInput = {
+          customerId: values.customerEmail,
+          amount: planPrice, // Use planPrice directly (critical fix)
+          description: `EVIDENS - ${planName}`,
+          cardToken: 'tokenize_on_server',
+          installments: values.installments,
+          metadata: {
+            customerName: values.customerName,
+            customerEmail: values.customerEmail,
+            customerDocument: values.customerDocument,
+            customerPhone: values.customerPhone,
+            planName: planName
+          },
+          billingAddress: {
+            line_1: values.billingStreet,
+            zip_code: values.billingZipCode.replace(/\D/g, ''),
+            city: values.billingCity,
+            state: values.billingState,
+            country: 'BR'
+          },
+          cardData: {
+            number: values.cardNumber.replace(/\s/g, ''),
+            holderName: values.cardHolderName,
+            expirationMonth: month.padStart(2, '0'),
+            expirationYear: year,
+            cvv: values.cardCvv
+          }
+        };
+
+        creditCardPaymentMutation.mutate(creditCardPaymentData, {
+          onSuccess: (data) => {
+            toast.success('Pagamento processado com sucesso!');
+            onSuccess?.(data.id);
+            setIsProcessing(false);
+          },
+          onError: (error) => {
+            toast.error('Falha ao processar pagamento. Tente novamente.');
+            console.error(error);
+            setIsProcessing(false);
+          }
+        });
+      } catch (error) {
+        toast.error('Erro no processamento do pagamento');
+        console.error(error);
+        setIsProcessing(false);
       }
+    } else if (selectedMethod === 'boleto') {
+      // Boleto coming soon
+      toast.info('Boleto bancário em breve!');
       setIsProcessing(false);
-    }, 2000);
+    }
   };
 
   // PIX Code Display (for demo purposes)
@@ -213,39 +315,56 @@ const TwoStepPaymentForm: React.FC<TwoStepPaymentFormProps> = ({
           </p>
 
           {/* Mock QR Code */}
-          <div className="bg-gray-100 h-48 w-48 mx-auto mb-4 flex items-center justify-center rounded-lg border">
-            <div className="text-center">
-              <QrCode className="h-16 w-16 text-gray-400 mx-auto mb-2" />
-              <p className="text-xs text-gray-500">QR Code de demonstração</p>
-            </div>
+          <div className="bg-white h-48 w-48 mx-auto mb-4 flex items-center justify-center rounded-lg border">
+            {pixData?.qr_code_url ? (
+              <img 
+                src={pixData.qr_code_url} 
+                alt="PIX QR Code"
+                className="h-44 w-44 object-contain"
+              />
+            ) : (
+              <div className="text-center">
+                <QrCode className="h-16 w-16 text-gray-400 mx-auto mb-2" />
+                <p className="text-xs text-gray-500">QR Code PIX</p>
+              </div>
+            )}
           </div>
 
           {/* Copy PIX Code Button */}
           <Button 
-            onClick={() => {
-              const demoPixCode = '00020126580014BR.GOV.BCB.PIX013636297087-532a-4f3d-b2a5-19d03d2d2458520400005303986540519.905802BR5925PAGAR ME PAGAMENTOS S A6009SAO PAULO61080540901062070503***630466D4';
-              navigator.clipboard.writeText(demoPixCode);
-              toast.success('Código PIX copiado! (demonstração)');
+            onClick={async () => {
+              const pixCode = pixData?.qr_code_text || pixData?.qr_code || pixData?.pix_code;
+              if (pixCode) {
+                try {
+                  await navigator.clipboard.writeText(pixCode);
+                  toast.success('Código PIX copiado!');
+                } catch (error) {
+                  console.error('Clipboard error:', error);
+                  toast.error('Erro ao copiar código PIX');
+                }
+              } else {
+                toast.error('Código PIX não disponível');
+              }
             }}
             variant="outline" 
             className="w-full h-11 sm:h-12 bg-white hover:bg-gray-50 border-gray-300 text-gray-700 mb-3 touch-manipulation"
           >
-            Copiar código PIX (demo)
+            Copiar código PIX
           </Button>
 
           <div className="text-xs sm:text-sm text-gray-500 mb-4">
             Válido por 1 hora • R$ {(planPrice / 100).toFixed(2).replace('.', ',')}
           </div>
           
-          <Button 
-            onClick={() => {
-              setShowPixCode(false);
-              onSuccess?.({ id: 'demo_pix_success', method: 'pix' });
-            }}
-            className="w-full h-12 sm:h-14 !bg-black hover:!bg-gray-800 !text-white text-base sm:text-lg font-medium touch-manipulation"
-          >
-            Simular pagamento realizado
-          </Button>
+          {/* Payment status monitoring */}
+          {paymentStatus?.status === 'paid' && (
+            <Button 
+              onClick={() => onSuccess?.(pixData.id)}
+              className="w-full h-12 sm:h-14 !bg-green-600 hover:!bg-green-700 !text-white text-base sm:text-lg font-medium touch-manipulation"
+            >
+              Pagamento confirmado! ✓
+            </Button>
+          )}
 
           <Button 
             onClick={() => setShowPixCode(false)}
@@ -346,8 +465,25 @@ const TwoStepPaymentForm: React.FC<TwoStepPaymentFormProps> = ({
                   <FormItem className="space-y-0">
                     <FormControl>
                       <Input
-                        placeholder="CPF ou CNPJ"
+                        placeholder="000.000.000-00"
                         {...field}
+                        onChange={(e) => {
+                          let value = e.target.value.replace(/\D/g, '');
+                          if (value.length <= 11) {
+                            // CPF format: XXX.XXX.XXX-XX
+                            value = value.replace(/(\d{3})(\d)/, '$1.$2');
+                            value = value.replace(/(\d{3})(\d)/, '$1.$2');
+                            value = value.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+                          } else {
+                            // CNPJ format: XX.XXX.XXX/XXXX-XX
+                            value = value.replace(/(\d{2})(\d)/, '$1.$2');
+                            value = value.replace(/(\d{3})(\d)/, '$1.$2');
+                            value = value.replace(/(\d{3})(\d)/, '$1/$2');
+                            value = value.replace(/(\d{4})(\d{1,2})$/, '$1-$2');
+                          }
+                          field.onChange(value);
+                        }}
+                        maxLength={18} // CNPJ max length with formatting
                         className="bg-white border-gray-300 focus:border-black focus:ring-0 text-black placeholder:text-gray-500"
                       />
                     </FormControl>
@@ -414,12 +550,16 @@ const TwoStepPaymentForm: React.FC<TwoStepPaymentFormProps> = ({
                       })()}
                     </SelectValue>
                   </SelectTrigger>
-                  <SelectContent className="bg-white">
+                  <SelectContent className="bg-white border border-gray-200">
                     {paymentMethods.map((method) => {
                       const Icon = method.icon;
                       const isSpecialMethod = method.id === 'pix' || method.id === 'credit_card';
                       return (
-                        <SelectItem key={method.id} value={method.id} className="p-3 h-16 sm:h-18 touch-manipulation hover:bg-gray-100 focus:bg-gray-100 data-[highlighted]:bg-gray-100">
+                        <SelectItem 
+                          key={method.id} 
+                          value={method.id} 
+                          className="p-3 h-16 sm:h-18 touch-manipulation text-black hover:bg-gray-50 focus:bg-gray-50 data-[highlighted]:bg-gray-50 data-[state=checked]:bg-gray-100 data-[state=checked]:text-black focus:text-black"
+                        >
                           <div className="flex items-center space-x-3 w-full">
                             <Icon className="h-5 w-5 text-gray-600" />
                             <div className="flex-1 text-left">
@@ -448,8 +588,15 @@ const TwoStepPaymentForm: React.FC<TwoStepPaymentFormProps> = ({
                       <FormItem className="space-y-1">
                         <FormControl>
                           <Input
-                            placeholder="Número do cartão"
+                            placeholder="1234 5678 9012 3456"
                             {...field}
+                            onChange={(e) => {
+                              let value = e.target.value.replace(/\D/g, '');
+                              // Format as XXXX XXXX XXXX XXXX
+                              value = value.replace(/(\d{4})(?=\d)/g, '$1 ');
+                              field.onChange(value);
+                            }}
+                            maxLength={19} // 16 digits + 3 spaces
                             className="bg-white border-gray-300 focus:border-black focus:ring-0 text-black placeholder:text-gray-500 h-11 sm:h-12 touch-manipulation"
                           />
                         </FormControl>
@@ -485,6 +632,14 @@ const TwoStepPaymentForm: React.FC<TwoStepPaymentFormProps> = ({
                             <Input
                               placeholder="MM/AA"
                               {...field}
+                              onChange={(e) => {
+                                let value = e.target.value.replace(/\D/g, '');
+                                if (value.length >= 2) {
+                                  value = value.substring(0, 2) + '/' + value.substring(2, 4);
+                                }
+                                field.onChange(value);
+                              }}
+                              maxLength={5}
                               className="bg-white border-gray-300 focus:border-black focus:ring-0 text-black placeholder:text-gray-500 h-11 sm:h-12 touch-manipulation"
                             />
                           </FormControl>
@@ -502,6 +657,11 @@ const TwoStepPaymentForm: React.FC<TwoStepPaymentFormProps> = ({
                             <Input
                               placeholder="CVV"
                               {...field}
+                              onChange={(e) => {
+                                const value = e.target.value.replace(/\D/g, '');
+                                field.onChange(value);
+                              }}
+                              maxLength={4}
                               className="bg-white border-gray-300 focus:border-black focus:ring-0 text-black placeholder:text-gray-500 h-11 sm:h-12 touch-manipulation"
                             />
                           </FormControl>
@@ -522,18 +682,131 @@ const TwoStepPaymentForm: React.FC<TwoStepPaymentFormProps> = ({
                               <SelectValue placeholder="Parcelas" />
                             </SelectTrigger>
                           </FormControl>
-                          <SelectContent className="bg-white">
-                            <SelectItem value="1">1x de R$ {(planPrice / 100).toFixed(2)} (à vista)</SelectItem>
-                            <SelectItem value="2">2x de R$ {(planPrice / 200).toFixed(2)}</SelectItem>
-                            <SelectItem value="3">3x de R$ {(planPrice / 300).toFixed(2)}</SelectItem>
-                            <SelectItem value="6">6x de R$ {(planPrice / 600).toFixed(2)}</SelectItem>
-                            <SelectItem value="12">12x de R$ {(planPrice / 1200).toFixed(2)}</SelectItem>
+                          <SelectContent className="bg-white border border-gray-200">
+                            <SelectItem value="1" className="text-black hover:bg-gray-50 focus:bg-gray-50 data-[highlighted]:bg-gray-50 data-[state=checked]:text-black focus:text-black">1x de R$ {(planPrice / 100).toFixed(2)} (à vista)</SelectItem>
+                            <SelectItem value="2" className="text-black hover:bg-gray-50 focus:bg-gray-50 data-[highlighted]:bg-gray-50 data-[state=checked]:text-black focus:text-black">2x de R$ {(planPrice / 200).toFixed(2)}</SelectItem>
+                            <SelectItem value="3" className="text-black hover:bg-gray-50 focus:bg-gray-50 data-[highlighted]:bg-gray-50 data-[state=checked]:text-black focus:text-black">3x de R$ {(planPrice / 300).toFixed(2)}</SelectItem>
+                            <SelectItem value="6" className="text-black hover:bg-gray-50 focus:bg-gray-50 data-[highlighted]:bg-gray-50 data-[state=checked]:text-black focus:text-black">6x de R$ {(planPrice / 600).toFixed(2)}</SelectItem>
+                            <SelectItem value="12" className="text-black hover:bg-gray-50 focus:bg-gray-50 data-[highlighted]:bg-gray-50 data-[state=checked]:text-black focus:text-black">12x de R$ {(planPrice / 1200).toFixed(2)}</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
+
+                  {/* Billing Address Fields */}
+                  <div className="mt-4 pt-4 border-t border-gray-200">
+                    <h6 className="text-sm font-medium text-black mb-3">Endereço de cobrança</h6>
+                    
+                    <FormField
+                      control={form.control}
+                      name="billingStreet"
+                      render={({ field }) => (
+                        <FormItem className="space-y-1 mb-3">
+                          <FormControl>
+                            <Input
+                              placeholder="Endereço (rua, número)"
+                              {...field}
+                              className="bg-white border-gray-300 focus:border-black focus:ring-0 text-black placeholder:text-gray-500 h-11 sm:h-12 touch-manipulation"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <div className="grid grid-cols-2 gap-3 mb-3">
+                      <FormField
+                        control={form.control}
+                        name="billingZipCode"
+                        render={({ field }) => (
+                          <FormItem className="space-y-1">
+                            <FormControl>
+                              <Input
+                                placeholder="00000-000"
+                                {...field}
+                                onChange={(e) => {
+                                  let value = e.target.value.replace(/\D/g, '');
+                                  // CEP format: XXXXX-XXX
+                                  if (value.length > 5) {
+                                    value = value.replace(/(\d{5})(\d{1,3})/, '$1-$2');
+                                  }
+                                  field.onChange(value);
+                                }}
+                                maxLength={9} // 8 digits + 1 hyphen
+                                className="bg-white border-gray-300 focus:border-black focus:ring-0 text-black placeholder:text-gray-500 h-11 sm:h-12 touch-manipulation"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={form.control}
+                        name="billingCity"
+                        render={({ field }) => (
+                          <FormItem className="space-y-1">
+                            <FormControl>
+                              <Input
+                                placeholder="Cidade"
+                                {...field}
+                                className="bg-white border-gray-300 focus:border-black focus:ring-0 text-black placeholder:text-gray-500 h-11 sm:h-12 touch-manipulation"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <FormField
+                      control={form.control}
+                      name="billingState"
+                      render={({ field }) => (
+                        <FormItem className="space-y-1">
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger className="bg-white border-gray-300 focus:border-black focus:ring-0 text-black h-11">
+                                <SelectValue placeholder="Estado" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent className="bg-white border border-gray-200">
+                              <SelectItem value="AC" className="text-black hover:bg-gray-50 focus:bg-gray-50 data-[highlighted]:bg-gray-50 data-[state=checked]:text-black focus:text-black">Acre</SelectItem>
+                              <SelectItem value="AL" className="text-black hover:bg-gray-50 focus:bg-gray-50 data-[highlighted]:bg-gray-50 data-[state=checked]:text-black focus:text-black">Alagoas</SelectItem>
+                              <SelectItem value="AP" className="text-black hover:bg-gray-50 focus:bg-gray-50 data-[highlighted]:bg-gray-50 data-[state=checked]:text-black focus:text-black">Amapá</SelectItem>
+                              <SelectItem value="AM" className="text-black hover:bg-gray-50 focus:bg-gray-50 data-[highlighted]:bg-gray-50 data-[state=checked]:text-black focus:text-black">Amazonas</SelectItem>
+                              <SelectItem value="BA" className="text-black hover:bg-gray-50 focus:bg-gray-50 data-[highlighted]:bg-gray-50 data-[state=checked]:text-black focus:text-black">Bahia</SelectItem>
+                              <SelectItem value="CE" className="text-black hover:bg-gray-50 focus:bg-gray-50 data-[highlighted]:bg-gray-50 data-[state=checked]:text-black focus:text-black">Ceará</SelectItem>
+                              <SelectItem value="DF" className="text-black hover:bg-gray-50 focus:bg-gray-50 data-[highlighted]:bg-gray-50 data-[state=checked]:text-black focus:text-black">Distrito Federal</SelectItem>
+                              <SelectItem value="ES" className="text-black hover:bg-gray-50 focus:bg-gray-50 data-[highlighted]:bg-gray-50 data-[state=checked]:text-black focus:text-black">Espírito Santo</SelectItem>
+                              <SelectItem value="GO" className="text-black hover:bg-gray-50 focus:bg-gray-50 data-[highlighted]:bg-gray-50 data-[state=checked]:text-black focus:text-black">Goiás</SelectItem>
+                              <SelectItem value="MA" className="text-black hover:bg-gray-50 focus:bg-gray-50 data-[highlighted]:bg-gray-50 data-[state=checked]:text-black focus:text-black">Maranhão</SelectItem>
+                              <SelectItem value="MT" className="text-black hover:bg-gray-50 focus:bg-gray-50 data-[highlighted]:bg-gray-50 data-[state=checked]:text-black focus:text-black">Mato Grosso</SelectItem>
+                              <SelectItem value="MS" className="text-black hover:bg-gray-50 focus:bg-gray-50 data-[highlighted]:bg-gray-50 data-[state=checked]:text-black focus:text-black">Mato Grosso do Sul</SelectItem>
+                              <SelectItem value="MG" className="text-black hover:bg-gray-50 focus:bg-gray-50 data-[highlighted]:bg-gray-50 data-[state=checked]:text-black focus:text-black">Minas Gerais</SelectItem>
+                              <SelectItem value="PA" className="text-black hover:bg-gray-50 focus:bg-gray-50 data-[highlighted]:bg-gray-50 data-[state=checked]:text-black focus:text-black">Pará</SelectItem>
+                              <SelectItem value="PB" className="text-black hover:bg-gray-50 focus:bg-gray-50 data-[highlighted]:bg-gray-50 data-[state=checked]:text-black focus:text-black">Paraíba</SelectItem>
+                              <SelectItem value="PR" className="text-black hover:bg-gray-50 focus:bg-gray-50 data-[highlighted]:bg-gray-50 data-[state=checked]:text-black focus:text-black">Paraná</SelectItem>
+                              <SelectItem value="PE" className="text-black hover:bg-gray-50 focus:bg-gray-50 data-[highlighted]:bg-gray-50 data-[state=checked]:text-black focus:text-black">Pernambuco</SelectItem>
+                              <SelectItem value="PI" className="text-black hover:bg-gray-50 focus:bg-gray-50 data-[highlighted]:bg-gray-50 data-[state=checked]:text-black focus:text-black">Piauí</SelectItem>
+                              <SelectItem value="RJ" className="text-black hover:bg-gray-50 focus:bg-gray-50 data-[highlighted]:bg-gray-50 data-[state=checked]:text-black focus:text-black">Rio de Janeiro</SelectItem>
+                              <SelectItem value="RN" className="text-black hover:bg-gray-50 focus:bg-gray-50 data-[highlighted]:bg-gray-50 data-[state=checked]:text-black focus:text-black">Rio Grande do Norte</SelectItem>
+                              <SelectItem value="RS" className="text-black hover:bg-gray-50 focus:bg-gray-50 data-[highlighted]:bg-gray-50 data-[state=checked]:text-black focus:text-black">Rio Grande do Sul</SelectItem>
+                              <SelectItem value="RO" className="text-black hover:bg-gray-50 focus:bg-gray-50 data-[highlighted]:bg-gray-50 data-[state=checked]:text-black focus:text-black">Rondônia</SelectItem>
+                              <SelectItem value="RR" className="text-black hover:bg-gray-50 focus:bg-gray-50 data-[highlighted]:bg-gray-50 data-[state=checked]:text-black focus:text-black">Roraima</SelectItem>
+                              <SelectItem value="SC" className="text-black hover:bg-gray-50 focus:bg-gray-50 data-[highlighted]:bg-gray-50 data-[state=checked]:text-black focus:text-black">Santa Catarina</SelectItem>
+                              <SelectItem value="SP" className="text-black hover:bg-gray-50 focus:bg-gray-50 data-[highlighted]:bg-gray-50 data-[state=checked]:text-black focus:text-black">São Paulo</SelectItem>
+                              <SelectItem value="SE" className="text-black hover:bg-gray-50 focus:bg-gray-50 data-[highlighted]:bg-gray-50 data-[state=checked]:text-black focus:text-black">Sergipe</SelectItem>
+                              <SelectItem value="TO" className="text-black hover:bg-gray-50 focus:bg-gray-50 data-[highlighted]:bg-gray-50 data-[state=checked]:text-black focus:text-black">Tocantins</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
                 </div>
               )}
 

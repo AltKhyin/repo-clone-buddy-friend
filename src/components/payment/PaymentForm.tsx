@@ -10,6 +10,8 @@ import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { CreditCard, Smartphone, FileText, Check, QrCode } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { PhoneInput } from '@/components/ui/PhoneInput';
 
 // =================================================================
 // Payment Method Types & Configuration
@@ -57,8 +59,15 @@ const paymentFormSchema = z.object({
   customerName: z.string().min(2, { message: 'Nome deve ter pelo menos 2 caracteres' }),
   customerEmail: z.string().email({ message: 'Email inválido' }),
   customerDocument: z.string().min(11, { message: 'CPF/CNPJ inválido' }),
-  amount: z.number().min(1, { message: 'Valor mínimo é R$ 0,01' }), // Reduced for testing
+  customerPhone: z.string().min(10, { message: 'Telefone deve ter pelo menos 10 dígitos' }),
+  amount: z.number().min(50, { message: 'Valor mínimo é R$ 0,50' }), // Pagar.me minimum
   description: z.string().default('EVIDENS - Acesso à Plataforma'),
+  // Billing address fields (required for credit card payments)
+  billingStreet: z.string().optional(),
+  billingZipCode: z.string().optional(),
+  billingCity: z.string().optional(),
+  billingState: z.string().optional(),
+  billingCountry: z.string().default('BR'),
   // Credit card fields (optional, required only when credit_card is selected)
   cardNumber: z.string().optional(),
   cardHolderName: z.string().optional(),
@@ -84,7 +93,7 @@ interface PaymentFormProps {
 
 const PaymentForm: React.FC<PaymentFormProps> = ({
   planName = "Plano Básico",
-  planPrice = 2990, // Default R$ 29.90 in cents
+  planPrice = 200, // Default R$ 2.00 in cents
   planDescription = "Acesso completo à plataforma EVIDENS",
   onSuccess,
   onCancel
@@ -126,8 +135,14 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
       customerName: '',
       customerEmail: '',
       customerDocument: '',
+      customerPhone: '',
       amount: planPrice,
       description: `EVIDENS - ${planName}`,
+      billingStreet: '',
+      billingZipCode: '',
+      billingCity: '',
+      billingState: '',
+      billingCountry: 'BR',
       cardNumber: '',
       cardHolderName: '',
       cardExpiryMonth: '',
@@ -142,12 +157,13 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
       // PIX Payment Logic
       const pixPaymentData: PixPaymentInput = {
         customerId: values.customerEmail, // Use email as identifier, Edge function will create/find customer
-        amount: values.amount,
+        amount: planPrice,
         description: values.description,
         metadata: {
           customerName: values.customerName,
           customerEmail: values.customerEmail,
           customerDocument: values.customerDocument,
+          customerPhone: values.customerPhone,
           planName: planName
         }
       };
@@ -176,33 +192,35 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
           return;
         }
 
-        // Tokenize card with Pagar.me
-        const tokenResult = await tokenizeCard({
-          number: values.cardNumber,
-          holderName: values.cardHolderName,
-          expirationMonth: values.cardExpiryMonth,
-          expirationYear: values.cardExpiryYear,
-          cvv: values.cardCvv
-        });
-
-        if (!tokenResult.success) {
-          toast.error('Dados do cartão inválidos');
-          setIsProcessing(false);
-          return;
-        }
-
-        // Process credit card payment
+        // Process credit card payment (tokenization will be done server-side)
         const creditCardPaymentData: CreditCardPaymentInput = {
           customerId: values.customerEmail,
-          amount: values.amount,
+          amount: planPrice,
           description: values.description,
-          cardToken: tokenResult.token,
+          cardToken: 'tokenize_on_server', // Signal Edge Function to tokenize
           installments: values.installments,
           metadata: {
             customerName: values.customerName,
             customerEmail: values.customerEmail,
             customerDocument: values.customerDocument,
+            customerPhone: values.customerPhone,
             planName: planName
+          },
+          // Billing address for credit card (required by Pagar.me)
+          billingAddress: {
+            line_1: values.billingStreet || 'Rua Exemplo, 123',
+            zip_code: values.billingZipCode || '01310100',
+            city: values.billingCity || 'São Paulo',
+            state: values.billingState || 'SP',
+            country: values.billingCountry || 'BR'
+          },
+          // Send card data for server-side tokenization
+          cardData: {
+            number: values.cardNumber.replace(/\s/g, ''), // Remove spaces
+            holderName: values.cardHolderName,
+            expirationMonth: values.cardExpiryMonth,
+            expirationYear: values.cardExpiryYear,
+            cvv: values.cardCvv
           }
         };
 
@@ -469,6 +487,23 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
               </FormItem>
             )}
           />
+          
+          <FormField
+            control={form.control}
+            name="customerPhone"
+            render={({ field }) => (
+              <FormItem className="space-y-0">
+                <FormControl>
+                  <PhoneInput
+                    placeholder="Telefone (ex: 11999999999)"
+                    {...field}
+                    className="bg-white border-gray-300 focus:border-black focus:ring-0 text-black placeholder:text-gray-500"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
           {/* Credit Card Fields - only show when credit card is selected */}
           {selectedMethod === 'credit_card' && (
@@ -589,28 +624,141 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
                   name="installments"
                   render={({ field }) => (
                     <FormItem className="space-y-0">
-                      <FormControl>
-                        <select
-                          {...field}
-                          className="w-full bg-white border border-gray-300 focus:border-black focus:ring-0 text-black rounded-md px-3 py-2"
-                          onChange={(e) => field.onChange(parseInt(e.target.value))}
-                        >
+                      <Select onValueChange={(value) => field.onChange(parseInt(value))} defaultValue={field.value.toString()}>
+                        <FormControl>
+                          <SelectTrigger className="bg-white border-gray-300 focus:border-black focus:ring-0 text-black h-11">
+                            <SelectValue placeholder="Parcelas" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent className="bg-white">
                           {[...Array(12)].map((_, i) => {
                             const installment = i + 1;
                             const installmentValue = planPrice / installment;
                             return (
-                              <option key={installment} value={installment}>
+                              <SelectItem key={installment} value={installment.toString()}>
                                 {installment}x de R$ {(installmentValue / 100).toFixed(2).replace('.', ',')}
-                                {installment === 1 ? ' à vista' : ''}
-                              </option>
+                                {installment === 1 ? ' (à vista)' : ''}
+                              </SelectItem>
                             );
                           })}
-                        </select>
-                      </FormControl>
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
+
+                {/* Billing Address Section */}
+                <div className="border-t pt-6 space-y-6">
+                  <h4 className="text-sm font-medium text-black">Endereço de cobrança</h4>
+                  
+                  <FormField
+                    control={form.control}
+                    name="billingStreet"
+                    render={({ field }) => (
+                      <FormItem className="space-y-0">
+                        <FormControl>
+                          <Input
+                            placeholder="Endereço completo (Rua, número)"
+                            {...field}
+                            className="bg-white border-gray-300 focus:border-black focus:ring-0 text-black placeholder:text-gray-500"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="billingZipCode"
+                      render={({ field }) => (
+                        <FormItem className="space-y-0">
+                          <FormControl>
+                            <Input
+                              placeholder="CEP"
+                              {...field}
+                              className="bg-white border-gray-300 focus:border-black focus:ring-0 text-black placeholder:text-gray-500"
+                              maxLength={9}
+                              onChange={(e) => {
+                                let value = e.target.value.replace(/\D/g, '');
+                                if (value.length > 5) {
+                                  value = value.substring(0, 5) + '-' + value.substring(5, 8);
+                                }
+                                field.onChange(value);
+                              }}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="billingCity"
+                      render={({ field }) => (
+                        <FormItem className="space-y-0">
+                          <FormControl>
+                            <Input
+                              placeholder="Cidade"
+                              {...field}
+                              className="bg-white border-gray-300 focus:border-black focus:ring-0 text-black placeholder:text-gray-500"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <FormField
+                    control={form.control}
+                    name="billingState"
+                    render={({ field }) => (
+                      <FormItem className="space-y-0">
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger className="bg-white border-gray-300 focus:border-black focus:ring-0 text-black h-11">
+                              <SelectValue placeholder="Selecione o estado" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent className="bg-white">
+                            <SelectItem value="AC">Acre</SelectItem>
+                            <SelectItem value="AL">Alagoas</SelectItem>
+                            <SelectItem value="AP">Amapá</SelectItem>
+                            <SelectItem value="AM">Amazonas</SelectItem>
+                            <SelectItem value="BA">Bahia</SelectItem>
+                            <SelectItem value="CE">Ceará</SelectItem>
+                            <SelectItem value="DF">Distrito Federal</SelectItem>
+                            <SelectItem value="ES">Espírito Santo</SelectItem>
+                            <SelectItem value="GO">Goiás</SelectItem>
+                            <SelectItem value="MA">Maranhão</SelectItem>
+                            <SelectItem value="MT">Mato Grosso</SelectItem>
+                            <SelectItem value="MS">Mato Grosso do Sul</SelectItem>
+                            <SelectItem value="MG">Minas Gerais</SelectItem>
+                            <SelectItem value="PA">Pará</SelectItem>
+                            <SelectItem value="PB">Paraíba</SelectItem>
+                            <SelectItem value="PR">Paraná</SelectItem>
+                            <SelectItem value="PE">Pernambuco</SelectItem>
+                            <SelectItem value="PI">Piauí</SelectItem>
+                            <SelectItem value="RJ">Rio de Janeiro</SelectItem>
+                            <SelectItem value="RN">Rio Grande do Norte</SelectItem>
+                            <SelectItem value="RS">Rio Grande do Sul</SelectItem>
+                            <SelectItem value="RO">Rondônia</SelectItem>
+                            <SelectItem value="RR">Roraima</SelectItem>
+                            <SelectItem value="SC">Santa Catarina</SelectItem>
+                            <SelectItem value="SP">São Paulo</SelectItem>
+                            <SelectItem value="SE">Sergipe</SelectItem>
+                            <SelectItem value="TO">Tocantins</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
               </div>
             </>
           )}

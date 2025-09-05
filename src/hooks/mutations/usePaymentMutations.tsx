@@ -13,11 +13,17 @@ import { pagarmeClientConfig, type PagarmeOrder, type PixPaymentConfig, type Cre
  */
 export const pixPaymentSchema = z.object({
   customerId: z.string().min(1, { message: 'Customer ID é obrigatório' }),
-  amount: z.number().min(100, { message: 'Valor mínimo é R$ 1,00' }), // Amount in cents
+  amount: z.number().min(50, { message: 'Valor mínimo é R$ 0,50' }), // Pagar.me minimum // Amount in cents
   description: z.string().min(1, { message: 'Descrição é obrigatória' }),
   productId: z.string().optional(),
   creatorId: z.string().optional(),
-  metadata: z.record(z.string()).optional()
+  metadata: z.object({
+    customerName: z.string(),
+    customerEmail: z.string(),
+    customerDocument: z.string(),
+    customerPhone: z.string(),
+    planName: z.string()
+  }).optional()
 });
 
 /**
@@ -25,13 +31,35 @@ export const pixPaymentSchema = z.object({
  */
 export const creditCardPaymentSchema = z.object({
   customerId: z.string().min(1, { message: 'Customer ID é obrigatório' }),
-  amount: z.number().min(100, { message: 'Valor mínimo é R$ 1,00' }),
+  amount: z.number().min(50, { message: 'Valor mínimo é R$ 0,50' }), // Pagar.me minimum
   description: z.string().min(1, { message: 'Descrição é obrigatória' }),
   cardToken: z.string().min(1, { message: 'Token do cartão é obrigatório' }),
   installments: z.number().min(1).max(12, { message: 'Parcelamento deve ser entre 1 e 12x' }),
   productId: z.string().optional(),
   creatorId: z.string().optional(),
-  metadata: z.record(z.string()).optional()
+  metadata: z.object({
+    customerName: z.string(),
+    customerEmail: z.string(),
+    customerDocument: z.string(),
+    customerPhone: z.string(),
+    planName: z.string()
+  }).optional(),
+  // Billing address for credit card payments (required by Pagar.me)
+  billingAddress: z.object({
+    line_1: z.string().min(1, { message: 'Endereço é obrigatório' }),
+    zip_code: z.string().min(8, { message: 'CEP é obrigatório' }),
+    city: z.string().min(1, { message: 'Cidade é obrigatória' }),
+    state: z.string().min(2, { message: 'Estado é obrigatório' }),
+    country: z.string().default('BR')
+  }).optional(),
+  // Optional card data for server-side tokenization
+  cardData: z.object({
+    number: z.string().min(13, { message: 'Número do cartão inválido' }),
+    holderName: z.string().min(2, { message: 'Nome do portador é obrigatório' }),
+    expirationMonth: z.string().length(2, { message: 'Mês inválido' }),
+    expirationYear: z.string().length(2, { message: 'Ano inválido' }),
+    cvv: z.string().min(3).max(4, { message: 'CVV inválido' })
+  }).optional()
 });
 
 /**
@@ -87,8 +115,15 @@ const createPixPayment = async (input: PixPaymentInput): Promise<PagarmeOrder> =
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || 'Falha ao criar pagamento PIX');
+    let errorMessage = 'Falha ao criar pagamento PIX';
+    try {
+      const error = await response.json();
+      errorMessage = error.error || error.message || errorMessage;
+    } catch {
+      const textError = await response.text();
+      errorMessage = textError || `HTTP ${response.status}: ${response.statusText}`;
+    }
+    throw new Error(errorMessage);
   }
 
   return response.json();
@@ -118,8 +153,15 @@ const createCreditCardPayment = async (input: CreditCardPaymentInput): Promise<P
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || 'Falha ao processar pagamento com cartão');
+    let errorMessage = 'Falha ao processar pagamento com cartão';
+    try {
+      const error = await response.json();
+      errorMessage = error.error || error.message || errorMessage;
+    } catch {
+      const textError = await response.text();
+      errorMessage = textError || `HTTP ${response.status}: ${response.statusText}`;
+    }
+    throw new Error(errorMessage);
   }
 
   return response.json();

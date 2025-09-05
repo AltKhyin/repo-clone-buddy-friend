@@ -24,7 +24,7 @@ async function authenticateUser(supabase: any, authHeader: string | null) {
 }
 
 // Inline success response
-function createSuccessResponse(data: any, additionalHeaders: Record<string, string> = {}) {
+function createSuccessResponse(data: any, additionalHeaders: Record<string, string> = {}, origin?: string) {
   return new Response(
     JSON.stringify({
       success: true,
@@ -34,7 +34,7 @@ function createSuccessResponse(data: any, additionalHeaders: Record<string, stri
       status: 200,
       headers: {
         'Content-Type': 'application/json',
-        ...corsHeaders,
+        ...getCorsHeaders(origin),
         ...additionalHeaders,
       },
     }
@@ -42,7 +42,7 @@ function createSuccessResponse(data: any, additionalHeaders: Record<string, stri
 }
 
 // Inline error response
-function createErrorResponse(error: any, additionalHeaders: Record<string, string> = {}) {
+function createErrorResponse(error: any, additionalHeaders: Record<string, string> = {}, origin?: string) {
   let status = 500;
   let code = 'INTERNAL_ERROR';
   let message = 'An unexpected error occurred';
@@ -77,7 +77,7 @@ function createErrorResponse(error: any, additionalHeaders: Record<string, strin
       status,
       headers: {
         'Content-Type': 'application/json',
-        ...corsHeaders,
+        ...getCorsHeaders(origin),
         ...additionalHeaders,
       },
     }
@@ -107,6 +107,8 @@ serve(async req => {
   if (req.method === 'OPTIONS') {
     return handleCorsPreflightRequest(req);
   }
+
+  const origin = req.headers.get('Origin');
 
   try {
     // STEP 2: Create Supabase client
@@ -445,10 +447,10 @@ serve(async req => {
     console.log(`✅ EDGE FUNCTION: Successfully returning review "${review.title}" with ${tags.length} tags (V3 bridge: ${contentBridgeUsed})`);
 
     // STEP 10: Standardized Success Response
-    return createSuccessResponse(response);
+    return createSuccessResponse(response, {}, origin);
   } catch (error) {
     // STEP 11: Centralized Error Handling
     console.error('💥 EDGE FUNCTION: Review detail fetch error:', error);
-    return createErrorResponse(error);
+    return createErrorResponse(error, {}, origin);
   }
 });
