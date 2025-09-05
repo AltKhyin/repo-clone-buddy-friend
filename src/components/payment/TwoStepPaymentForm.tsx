@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
 import { toast } from 'sonner';
-import { CreditCard, Smartphone, FileText, QrCode, ArrowLeft, ArrowRight } from 'lucide-react';
+import { CreditCard, Smartphone, QrCode, ArrowLeft, ArrowRight } from 'lucide-react';
 import { useEffect } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PhoneInput } from '@/components/ui/PhoneInput';
@@ -17,7 +17,7 @@ import { useCreatePixPayment, useCreateCreditCardPayment, usePaymentStatus, pixP
 // Types & Interfaces
 // =================================================================
 
-type PaymentMethod = 'pix' | 'credit_card' | 'boleto';
+type PaymentMethod = 'pix' | 'credit_card';
 
 interface PaymentMethodOption {
   id: PaymentMethod;
@@ -28,22 +28,16 @@ interface PaymentMethodOption {
 
 const paymentMethods: PaymentMethodOption[] = [
   {
-    id: 'pix',
-    name: 'PIX',
-    description: 'Instantâneo • Sem taxas',
-    icon: Smartphone,
-  },
-  {
     id: 'credit_card',
     name: 'Cartão de Crédito',
     description: 'Parcele em até 12x',
     icon: CreditCard,
   },
   {
-    id: 'boleto',
-    name: 'Boleto Bancário',
-    description: '2-3 dias úteis',
-    icon: FileText,
+    id: 'pix',
+    name: 'PIX',
+    description: 'Instantâneo • Sem taxas',
+    icon: Smartphone,
   }
 ];
 
@@ -307,10 +301,6 @@ const TwoStepPaymentForm: React.FC<TwoStepPaymentFormProps> = ({
         parsePaymentError(error.message || 'Erro no processamento do pagamento');
         setIsProcessing(false);
       }
-    } else if (selectedMethod === 'boleto') {
-      // Boleto coming soon
-      toast.info('Boleto bancário em breve!');
-      setIsProcessing(false);
     }
   };
 
