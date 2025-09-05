@@ -36,7 +36,7 @@ async function fetchOnlineUsersData(supabase: any) {
 serve(async req => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return handleCorsPreflightRequest();
+    return handleCorsPreflightRequest(req);
   }
 
   try {

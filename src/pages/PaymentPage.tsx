@@ -10,9 +10,9 @@ const PaymentPage = () => {
   const [searchParams] = useSearchParams();
   
   // Extract plan information from URL parameters with sensible defaults
-  const planName = searchParams.get('plan') || 'Plano Básico';
-  const planPrice = parseInt(searchParams.get('price') || '2990'); // Default R$ 29.90
-  const planDescription = searchParams.get('description') || 'Acesso completo à plataforma EVIDENS';
+  const planName = searchParams.get('plan') || 'Teste - R$ 0,01';
+  const planPrice = parseInt(searchParams.get('price') || '1'); // Default R$ 0,01 for testing
+  const planDescription = searchParams.get('description') || 'Teste do sistema de pagamento';
 
   const handlePaymentSuccess = (orderId: string) => {
     // Navigate to success page or dashboard

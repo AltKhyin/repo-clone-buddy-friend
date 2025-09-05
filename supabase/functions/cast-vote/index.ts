@@ -16,8 +16,10 @@ interface VoteRequest {
 serve(async (req: Request) => {
   // STEP 1: Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return handleCorsPreflightRequest();
+    return handleCorsPreflightRequest(req);
   }
+
+  const origin = req.headers.get('Origin');
 
   try {
     // STEP 2: Create Supabase client and authenticate
@@ -72,12 +74,12 @@ serve(async (req: Request) => {
     }
 
     // STEP 6: Return standardized success response
-    return createSuccessResponse(result, rateLimitHeaders(rateLimitResult));
+    return createSuccessResponse(result, rateLimitHeaders(rateLimitResult), origin);
 
   } catch (error) {
     // STEP 7: Centralized error handling
     console.error('Critical error in cast-vote:', error);
-    return createErrorResponse(error);
+    return createErrorResponse(error, {}, origin);
   }
 });
 

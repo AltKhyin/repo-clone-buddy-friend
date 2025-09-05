@@ -30,12 +30,14 @@ interface AdminCommunityResponse {
 serve(async req => {
   // STEP 1: CORS Preflight Handling (MANDATORY FIRST)
   if (req.method === 'OPTIONS') {
-    return handleCorsPreflightRequest();
+    return handleCorsPreflightRequest(req);
   }
+
+  const origin = req.headers.get('Origin');
 
   // Only allow POST requests for this endpoint
   if (req.method !== 'POST') {
-    return createErrorResponse(new Error('Method not allowed'));
+    return createErrorResponse(new Error('Method not allowed'), {}, origin);
   }
 
   try {
@@ -49,7 +51,7 @@ serve(async req => {
 
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      return createErrorResponse(new Error('UNAUTHORIZED: Authorization header is required'));
+      return createErrorResponse(new Error('UNAUTHORIZED: Authorization header is required'), {}, origin);
     }
 
     const {
@@ -58,7 +60,7 @@ serve(async req => {
     } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
 
     if (authError || !user) {
-      return createErrorResponse(new Error('UNAUTHORIZED: Invalid token'));
+      return createErrorResponse(new Error('UNAUTHORIZED: Invalid token'), {}, origin);
     }
 
     console.log(`Authenticated user: ${user.id}`);
@@ -71,7 +73,7 @@ serve(async req => {
       .single();
 
     if (!userClaims || userClaims.role !== 'admin') {
-      return createErrorResponse(new Error('FORBIDDEN: Admin access required'));
+      return createErrorResponse(new Error('FORBIDDEN: Admin access required'), {}, origin);
     }
 
     // STEP 4: Input Parsing & Validation
@@ -79,7 +81,9 @@ serve(async req => {
 
     if (!requestBody.operation || !requestBody.resource) {
       return createErrorResponse(
-        new Error('VALIDATION_FAILED: Missing required fields: operation and resource')
+        new Error('VALIDATION_FAILED: Missing required fields: operation and resource'),
+        {},
+        origin
       );
     }
 
@@ -109,7 +113,9 @@ serve(async req => {
         break;
       default:
         return createErrorResponse(
-          new Error(`VALIDATION_FAILED: Unsupported resource: ${requestBody.resource}`)
+          new Error(`VALIDATION_FAILED: Unsupported resource: ${requestBody.resource}`),
+          {},
+          origin
         );
     }
 
@@ -120,11 +126,11 @@ serve(async req => {
       success: true,
       data: result.data,
       message: result.message,
-    });
+    }, {}, origin);
   } catch (error) {
     // STEP 7: Centralized Error Handling
     console.error('Admin community management error:', error);
-    return createErrorResponse(error);
+    return createErrorResponse(error, {}, origin);
   }
 });
 

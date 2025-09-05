@@ -26,7 +26,7 @@ interface PublishReviewResponse {
 serve(async req => {
   // STEP 1: CORS Preflight Handling
   if (req.method === 'OPTIONS') {
-    return handleCorsPreflightRequest();
+    return handleCorsPreflightRequest(req);
   }
 
   try {

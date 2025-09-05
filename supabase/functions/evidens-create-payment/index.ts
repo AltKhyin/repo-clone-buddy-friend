@@ -103,30 +103,64 @@ async function createPagarmeCustomer(
 
   const authToken = btoa(`${pagarmeSecretKey}:`);
   
+  // Clean and validate document
+  const cleanDocument = customerData.customerDocument.replace(/\D/g, '');
+  const documentLength = cleanDocument.length;
+  
+  // Determine document type and customer type
+  let documentType: string;
+  let customerType: string;
+  
+  if (documentLength === 11) {
+    documentType = 'CPF';
+    customerType = 'individual';
+  } else if (documentLength === 14) {
+    documentType = 'CNPJ';
+    customerType = 'company';
+  } else {
+    // Fallback for international documents
+    documentType = 'PASSPORT';
+    customerType = 'individual';
+  }
+
+  // Build customer payload with all required fields
+  const customerPayload = {
+    name: customerData.customerName,
+    email: customerData.customerEmail,
+    document: cleanDocument,
+    document_type: documentType,
+    type: customerType,
+    // Required phones object for PSP integration
+    phones: {
+      mobile_phone: {
+        country_code: '55',
+        area_code: '11', // Default São Paulo area code
+        number: '999999999' // Default - can be enhanced to collect real phone
+      }
+    },
+    // Proper address structure following Pagar.me API
+    address: {
+      country: 'BR',
+      state: 'SP',
+      city: 'São Paulo',
+      line_1: 'Rua Exemplo, 123',
+      line_2: 'Apto 1',
+      zip_code: '01310100'
+    }
+  };
+
   const response = await fetch('https://api.pagar.me/core/v5/customers', {
     method: 'POST',
     headers: {
       'Authorization': `Basic ${authToken}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      name: customerData.customerName,
-      email: customerData.customerEmail,
-      document: customerData.customerDocument.replace(/\D/g, ''),
-      type: customerData.customerDocument.replace(/\D/g, '').length === 11 ? 'individual' : 'company',
-      address: {
-        country: 'BR',
-        state: 'SP', // Default - can be enhanced later
-        city: 'São Paulo', // Default - can be enhanced later  
-        street: 'Rua Exemplo',
-        street_number: '123',
-        zipcode: '01310100'
-      }
-    })
+    body: JSON.stringify(customerPayload)
   });
 
   if (!response.ok) {
     const error = await response.json();
+    console.error('Pagar.me customer creation failed:', error);
     throw new Error(`Failed to create customer: ${error.message || 'Unknown error'}`);
   }
 
@@ -193,10 +227,24 @@ async function createPagarmeOrder(
 
   if (!response.ok) {
     const error = await response.json();
+    
+    // Check if customer not found (likely test/prod key mismatch)
+    if (error.message && error.message.includes('Customer not found')) {
+      throw new Error(`CUSTOMER_NOT_FOUND:${pagarmeCustomerId}`);
+    }
+    
     throw new Error(`Failed to create order: ${error.message || 'Unknown error'}`);
   }
 
-  return await response.json();
+  const order = await response.json();
+  
+  // Debug logging for PIX response structure
+  console.log('Pagar.me Order Response:', JSON.stringify(order, null, 2));
+  if (order.charges?.[0]?.last_transaction) {
+    console.log('PIX Transaction Data:', JSON.stringify(order.charges[0].last_transaction, null, 2));
+  }
+  
+  return order;
 }
 
 serve(async (req: Request) => {
@@ -247,28 +295,80 @@ serve(async (req: Request) => {
     }
 
     // Check if user already has a Pagar.me customer ID
-    const { data: practitioner } = await supabase
+    const { data: practitioner, error: practitionerError } = await supabase
       .from('Practitioners')
-      .select('evidens_pagarme_customer_id')
+      .select('evidens_pagarme_customer_id, pagarme_customer_id')
       .eq('id', user.id)
       .single();
 
-    let pagarmeCustomerId = practitioner?.evidens_pagarme_customer_id;
+    if (practitionerError) {
+      console.error('Failed to fetch practitioner:', practitionerError);
+      return sendError('User not found in system', 404);
+    }
+
+    let pagarmeCustomerId = practitioner?.evidens_pagarme_customer_id || practitioner?.pagarme_customer_id;
+    console.log('Existing customer ID:', pagarmeCustomerId);
 
     // Create customer if doesn't exist
     if (!pagarmeCustomerId) {
+      console.log('Creating new Pagar.me customer for user:', user.id);
       const customer = await createPagarmeCustomer(paymentRequest.metadata, pagarmeSecretKey);
       pagarmeCustomerId = customer.id;
+      console.log('Created customer with ID:', pagarmeCustomerId);
 
       // Update user with customer ID
-      await supabase
+      const { error: updateError } = await supabase
         .from('Practitioners')
         .update({ evidens_pagarme_customer_id: pagarmeCustomerId })
         .eq('id', user.id);
+
+      if (updateError) {
+        console.error('Failed to update practitioner with customer ID:', updateError);
+        return sendError('Failed to save customer information', 500);
+      }
+    } else {
+      console.log('Using existing customer ID:', pagarmeCustomerId);
     }
 
     // Create Pagar.me order
-    const order = await createPagarmeOrder(paymentRequest, pagarmeCustomerId, pagarmeSecretKey);
+    let order;
+    try {
+      order = await createPagarmeOrder(paymentRequest, pagarmeCustomerId, pagarmeSecretKey);
+    } catch (error) {
+      // Handle test/prod customer ID mismatch
+      if (error.message.startsWith('CUSTOMER_NOT_FOUND:')) {
+        const oldCustomerId = error.message.split(':')[1];
+        console.log(`Customer ${oldCustomerId} not found (likely test/prod mismatch). Creating new customer...`);
+        
+        // Create new customer in current environment
+        const newCustomer = await createPagarmeCustomer(paymentRequest.metadata, pagarmeSecretKey);
+        pagarmeCustomerId = newCustomer.id;
+        console.log(`Created new customer: ${pagarmeCustomerId}`);
+        
+        // Update database with new customer ID
+        const { error: updateError } = await supabase
+          .from('Practitioners')
+          .update({ evidens_pagarme_customer_id: pagarmeCustomerId })
+          .eq('id', user.id);
+          
+        if (updateError) {
+          console.error('Failed to update with new customer ID:', updateError);
+        }
+        
+        // Retry order creation with new customer
+        order = await createPagarmeOrder(paymentRequest, pagarmeCustomerId, pagarmeSecretKey);
+      } else {
+        throw error;
+      }
+    }
+    
+    // Check if order or payment failed
+    if (order.status === 'failed' || order.charges?.[0]?.status === 'failed') {
+      const errorMessage = order.charges?.[0]?.last_transaction?.gateway_response?.errors?.[0]?.message || 
+                          'PIX payment failed';
+      console.error('PIX payment failed:', errorMessage);
+      return sendError(`Payment failed: ${errorMessage}`, 400);
+    }
 
     // Get plan information for database record
     const planType = paymentRequest.metadata?.planName === 'Plano Premium' ? 'premium' : 

@@ -91,7 +91,7 @@ function extractMetadata(html: string, url: string): LinkPreviewData {
 serve(async req => {
   // STEP 1: CORS Preflight Handling
   if (req.method === 'OPTIONS') {
-    return handleCorsPreflightRequest();
+    return handleCorsPreflightRequest(req);
   }
 
   try {

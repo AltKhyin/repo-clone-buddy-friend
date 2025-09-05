@@ -5,10 +5,10 @@ import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
-import { useCreatePixPayment, pixPaymentSchema, type PixPaymentInput } from '../../hooks/mutations/usePaymentMutations';
+import { useCreatePixPayment, useCreateCreditCardPayment, usePaymentStatus, pixPaymentSchema, creditCardPaymentSchema, tokenizeCard, type PixPaymentInput, type CreditCardPaymentInput } from '../../hooks/mutations/usePaymentMutations';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { CreditCard, Smartphone, FileText, Check, QrCode } from 'lucide-react';
 
 // =================================================================
@@ -38,8 +38,7 @@ const paymentMethods: PaymentMethodOption[] = [
     id: 'credit_card',
     name: 'Cartão de Crédito',
     description: 'Parcele em até 12x',
-    icon: CreditCard,
-    comingSoon: true // Will be available in Phase B
+    icon: CreditCard
   },
   {
     id: 'boleto',
@@ -54,15 +53,22 @@ const paymentMethods: PaymentMethodOption[] = [
 // Form Schema (Starting with PIX only for MVP)
 // =================================================================
 
-const pixPaymentFormSchema = z.object({
+const paymentFormSchema = z.object({
   customerName: z.string().min(2, { message: 'Nome deve ter pelo menos 2 caracteres' }),
   customerEmail: z.string().email({ message: 'Email inválido' }),
   customerDocument: z.string().min(11, { message: 'CPF/CNPJ inválido' }),
-  amount: z.number().min(100, { message: 'Valor mínimo é R$ 1,00' }),
-  description: z.string().default('EVIDENS - Acesso à Plataforma')
+  amount: z.number().min(1, { message: 'Valor mínimo é R$ 0,01' }), // Reduced for testing
+  description: z.string().default('EVIDENS - Acesso à Plataforma'),
+  // Credit card fields (optional, required only when credit_card is selected)
+  cardNumber: z.string().optional(),
+  cardHolderName: z.string().optional(),
+  cardExpiryMonth: z.string().optional(),
+  cardExpiryYear: z.string().optional(),
+  cardCvv: z.string().optional(),
+  installments: z.number().min(1).max(12).default(1)
 });
 
-type PixPaymentFormInput = z.infer<typeof pixPaymentFormSchema>;
+type PaymentFormInput = z.infer<typeof paymentFormSchema>;
 
 interface PaymentFormProps {
   planName?: string;
@@ -85,24 +91,55 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
 }) => {
   const navigate = useNavigate();
   const pixPaymentMutation = useCreatePixPayment();
+  const creditCardPaymentMutation = useCreateCreditCardPayment();
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>('pix');
   const [showPixCode, setShowPixCode] = useState(false);
   const [pixData, setPixData] = useState<any>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
   
-  const form = useForm<PixPaymentFormInput>({
-    resolver: zodResolver(pixPaymentFormSchema),
+  // Poll payment status when PIX QR code is displayed
+  const { data: paymentStatus } = usePaymentStatus(
+    pixData?.id, 
+    showPixCode // Only poll when QR code is shown
+  );
+  
+  // Check for payment completion
+  useEffect(() => {
+    if (paymentStatus && pixData) {
+      // Check if payment is completed (different PSPs may use different status values)
+      const isCompleted = paymentStatus.status === 'paid' || 
+                         paymentStatus.status === 'confirmed' ||
+                         paymentStatus.charges?.[0]?.status === 'paid';
+      
+      if (isCompleted) {
+        toast.success('Pagamento confirmado! Redirecionando...');
+        setTimeout(() => {
+          onSuccess?.(pixData.id);
+        }, 2000);
+      }
+    }
+  }, [paymentStatus, pixData, onSuccess]);
+  
+  const form = useForm<PaymentFormInput>({
+    resolver: zodResolver(paymentFormSchema),
     defaultValues: {
       customerName: '',
       customerEmail: '',
       customerDocument: '',
       amount: planPrice,
-      description: `EVIDENS - ${planName}`
+      description: `EVIDENS - ${planName}`,
+      cardNumber: '',
+      cardHolderName: '',
+      cardExpiryMonth: '',
+      cardExpiryYear: '',
+      cardCvv: '',
+      installments: 1
     }
   });
 
-  const onSubmit = (values: PixPaymentFormInput) => {
+  const onSubmit = async (values: PaymentFormInput) => {
     if (selectedMethod === 'pix') {
-      // Customer creation handled by Edge Function using customer data
+      // PIX Payment Logic
       const pixPaymentData: PixPaymentInput = {
         customerId: values.customerEmail, // Use email as identifier, Edge function will create/find customer
         amount: values.amount,
@@ -120,13 +157,74 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
           setPixData(data);
           setShowPixCode(true);
           toast.success('Código PIX gerado com sucesso!');
-          onSuccess?.(data.id);
+          // Don't call onSuccess immediately - wait for payment confirmation
         },
         onError: (error) => {
           toast.error('Falha ao gerar PIX. Tente novamente.');
           console.error(error);
         }
       });
+    } else if (selectedMethod === 'credit_card') {
+      // Credit Card Payment Logic
+      setIsProcessing(true);
+      
+      try {
+        // Validate credit card fields
+        if (!values.cardNumber || !values.cardHolderName || !values.cardExpiryMonth || !values.cardExpiryYear || !values.cardCvv) {
+          toast.error('Todos os campos do cartão são obrigatórios');
+          setIsProcessing(false);
+          return;
+        }
+
+        // Tokenize card with Pagar.me
+        const tokenResult = await tokenizeCard({
+          number: values.cardNumber,
+          holderName: values.cardHolderName,
+          expirationMonth: values.cardExpiryMonth,
+          expirationYear: values.cardExpiryYear,
+          cvv: values.cardCvv
+        });
+
+        if (!tokenResult.success) {
+          toast.error('Dados do cartão inválidos');
+          setIsProcessing(false);
+          return;
+        }
+
+        // Process credit card payment
+        const creditCardPaymentData: CreditCardPaymentInput = {
+          customerId: values.customerEmail,
+          amount: values.amount,
+          description: values.description,
+          cardToken: tokenResult.token,
+          installments: values.installments,
+          metadata: {
+            customerName: values.customerName,
+            customerEmail: values.customerEmail,
+            customerDocument: values.customerDocument,
+            planName: planName
+          }
+        };
+
+        creditCardPaymentMutation.mutate(creditCardPaymentData, {
+          onSuccess: (data) => {
+            toast.success('Pagamento processado com sucesso!');
+            onSuccess?.(data.id);
+          },
+          onError: (error) => {
+            toast.error('Falha ao processar pagamento. Tente novamente.');
+            console.error(error);
+          },
+          onSettled: () => {
+            setIsProcessing(false);
+          }
+        });
+
+      } catch (error) {
+        console.error('Credit card processing error:', error);
+        toast.error('Erro ao processar cartão');
+        setIsProcessing(false);
+      }
     }
   };
 
@@ -145,9 +243,22 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
             Pague com PIX
           </h2>
           
-          <p className="text-sm text-gray-600 mb-6">
+          <p className="text-sm text-gray-600 mb-4">
             Use o QR Code ou copie o código PIX abaixo. O pagamento é confirmado instantaneamente.
           </p>
+          
+          {/* Payment Status Indicator */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-6">
+            <div className="flex items-center justify-center space-x-2">
+              <div className="animate-spin h-4 w-4 border-2 border-blue-600 border-t-transparent rounded-full"></div>
+              <span className="text-sm text-blue-700 font-medium">
+                Aguardando pagamento...
+              </span>
+            </div>
+            <p className="text-xs text-blue-600 text-center mt-1">
+              Você será redirecionado automaticamente após a confirmação
+            </p>
+          </div>
 
           {/* QR Code Display */}
           {pixData?.qr_code_url ? (
@@ -181,11 +292,31 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
 
           {/* Copy PIX Code Button */}
           <Button 
-            onClick={() => {
+            onClick={async () => {
               const pixCode = pixData?.qr_code_text || pixData?.qr_code || pixData?.pix_code;
               if (pixCode) {
-                navigator.clipboard.writeText(pixCode);
-                toast.success('Código PIX copiado!');
+                try {
+                  // Modern clipboard API with fallback
+                  if (navigator.clipboard && window.isSecureContext) {
+                    await navigator.clipboard.writeText(pixCode);
+                  } else {
+                    // Fallback for older browsers or non-HTTPS
+                    const textArea = document.createElement('textarea');
+                    textArea.value = pixCode;
+                    textArea.style.position = 'fixed';
+                    textArea.style.left = '-999999px';
+                    textArea.style.top = '-999999px';
+                    document.body.appendChild(textArea);
+                    textArea.focus();
+                    textArea.select();
+                    document.execCommand('copy');
+                    textArea.remove();
+                  }
+                  toast.success('Código PIX copiado!');
+                } catch (error) {
+                  console.error('Clipboard error:', error);
+                  toast.error('Erro ao copiar código PIX');
+                }
               } else {
                 toast.error('Código PIX não disponível');
               }
@@ -338,16 +469,163 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
               </FormItem>
             )}
           />
+
+          {/* Credit Card Fields - only show when credit card is selected */}
+          {selectedMethod === 'credit_card' && (
+            <>
+              <div className="border-t pt-6 space-y-6">
+                <h4 className="text-sm font-medium text-black">Dados do cartão</h4>
+                
+                <FormField
+                  control={form.control}
+                  name="cardNumber"
+                  render={({ field }) => (
+                    <FormItem className="space-y-0">
+                      <FormControl>
+                        <Input
+                          placeholder="0000 0000 0000 0000"
+                          {...field}
+                          className="bg-white border-gray-300 focus:border-black focus:ring-0 text-black placeholder:text-gray-500"
+                          onChange={(e) => {
+                            // Format card number with spaces
+                            const formatted = e.target.value.replace(/\D/g, '').replace(/(\d{4})(?=\d)/g, '$1 ');
+                            field.onChange(formatted);
+                          }}
+                          maxLength={19}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="cardHolderName"
+                  render={({ field }) => (
+                    <FormItem className="space-y-0">
+                      <FormControl>
+                        <Input
+                          placeholder="Nome no cartão"
+                          {...field}
+                          className="bg-white border-gray-300 focus:border-black focus:ring-0 text-black placeholder:text-gray-500"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div className="grid grid-cols-3 gap-3">
+                  <FormField
+                    control={form.control}
+                    name="cardExpiryMonth"
+                    render={({ field }) => (
+                      <FormItem className="space-y-0">
+                        <FormControl>
+                          <Input
+                            placeholder="MM"
+                            {...field}
+                            className="bg-white border-gray-300 focus:border-black focus:ring-0 text-black placeholder:text-gray-500"
+                            maxLength={2}
+                            onChange={(e) => {
+                              const value = e.target.value.replace(/\D/g, '');
+                              field.onChange(value);
+                            }}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="cardExpiryYear"
+                    render={({ field }) => (
+                      <FormItem className="space-y-0">
+                        <FormControl>
+                          <Input
+                            placeholder="YYYY"
+                            {...field}
+                            className="bg-white border-gray-300 focus:border-black focus:ring-0 text-black placeholder:text-gray-500"
+                            maxLength={4}
+                            onChange={(e) => {
+                              const value = e.target.value.replace(/\D/g, '');
+                              field.onChange(value);
+                            }}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="cardCvv"
+                    render={({ field }) => (
+                      <FormItem className="space-y-0">
+                        <FormControl>
+                          <Input
+                            placeholder="CVV"
+                            {...field}
+                            className="bg-white border-gray-300 focus:border-black focus:ring-0 text-black placeholder:text-gray-500"
+                            maxLength={4}
+                            onChange={(e) => {
+                              const value = e.target.value.replace(/\D/g, '');
+                              field.onChange(value);
+                            }}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <FormField
+                  control={form.control}
+                  name="installments"
+                  render={({ field }) => (
+                    <FormItem className="space-y-0">
+                      <FormControl>
+                        <select
+                          {...field}
+                          className="w-full bg-white border border-gray-300 focus:border-black focus:ring-0 text-black rounded-md px-3 py-2"
+                          onChange={(e) => field.onChange(parseInt(e.target.value))}
+                        >
+                          {[...Array(12)].map((_, i) => {
+                            const installment = i + 1;
+                            const installmentValue = planPrice / installment;
+                            return (
+                              <option key={installment} value={installment}>
+                                {installment}x de R$ {(installmentValue / 100).toFixed(2).replace('.', ',')}
+                                {installment === 1 ? ' à vista' : ''}
+                              </option>
+                            );
+                          })}
+                        </select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </>
+          )}
           
           {/* Submit Button - matching login form style */}
           <Button 
             type="submit" 
             className="w-full !mt-8 !bg-black hover:!bg-gray-800 !text-white" 
-            disabled={pixPaymentMutation.isPending || paymentMethods.find(m => m.id === selectedMethod)?.comingSoon}
+            disabled={pixPaymentMutation.isPending || creditCardPaymentMutation.isPending || isProcessing || paymentMethods.find(m => m.id === selectedMethod)?.comingSoon}
           >
-            {pixPaymentMutation.isPending 
+            {(pixPaymentMutation.isPending || creditCardPaymentMutation.isPending || isProcessing)
               ? 'Processando...' 
-              : `Pagar R$ ${(planPrice / 100).toFixed(2).replace('.', ',')}`}
+              : selectedMethod === 'pix'
+                ? `Gerar PIX R$ ${(planPrice / 100).toFixed(2).replace('.', ',')}`
+                : `Pagar R$ ${(planPrice / 100).toFixed(2).replace('.', ',')}`}
           </Button>
         </form>
       </Form>

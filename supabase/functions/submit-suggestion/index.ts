@@ -10,8 +10,10 @@ import { checkRateLimit, rateLimitHeaders, RateLimitError } from '../_shared/rat
 serve(async (req: Request) => {
   // STEP 1: CORS Preflight Handling
   if (req.method === 'OPTIONS') {
-    return handleCorsPreflightRequest();
+    return handleCorsPreflightRequest(req);
   }
+
+  const origin = req.headers.get('Origin');
 
   try {
     // STEP 2: Create Supabase client
@@ -74,11 +76,11 @@ serve(async (req: Request) => {
     };
 
     // STEP 7: Standardized Success Response
-    return createSuccessResponse(response, rateLimitHeaders(rateLimitResult));
+    return createSuccessResponse(response, rateLimitHeaders(rateLimitResult), origin);
 
   } catch (error) {
     // STEP 8: Centralized Error Handling
     console.error('Error in submit-suggestion:', error);
-    return createErrorResponse(error);
+    return createErrorResponse(error, {}, origin);
   }
 });
