@@ -60,6 +60,13 @@ interface UserWithRoles {
   contribution_score: number;
   created_at: string;
   
+  // Subscription timing fields
+  subscription_start_date?: string | null;
+  subscription_end_date?: string | null;
+  subscription_created_by?: string | null;
+  admin_subscription_notes?: string | null;
+  subscription_days_granted?: number | null;
+  
   // Social media links
   socialMediaLinks: {
     facebook_url?: string;

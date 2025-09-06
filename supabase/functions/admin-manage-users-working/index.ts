@@ -43,7 +43,7 @@ Deno.serve(async (req: Request) => {
 
     // Parse request body
     const payload = await req.json();
-    const { action, filters } = payload;
+    const { action, filters, userId, adjustmentDays } = payload;
 
     // Handle list action (main functionality)
     if (action === 'list') {
@@ -59,6 +59,11 @@ Deno.serve(async (req: Request) => {
           profession,
           display_hover_card,
           contribution_score,
+          subscription_start_date,
+          subscription_end_date,
+          subscription_created_by,
+          admin_subscription_notes,
+          subscription_days_granted,
           facebook_url,
           instagram_url,
           linkedin_url,
@@ -127,6 +132,13 @@ Deno.serve(async (req: Request) => {
           display_hover_card: user.display_hover_card || false,
           contribution_score: user.contribution_score || 0,
           
+          // Subscription timing fields
+          subscription_start_date: user.subscription_start_date,
+          subscription_end_date: user.subscription_end_date,
+          subscription_created_by: user.subscription_created_by,
+          admin_subscription_notes: user.admin_subscription_notes,
+          subscription_days_granted: user.subscription_days_granted,
+          
           // Social media links
           socialMediaLinks: {
             facebook_url: user.facebook_url,
@@ -173,10 +185,83 @@ Deno.serve(async (req: Request) => {
       });
     }
 
+    // Handle subscription time adjustment
+    if (action === 'adjust_subscription_time') {
+      if (!userId || !adjustmentDays) {
+        return new Response(JSON.stringify({ error: 'userId and adjustmentDays are required' }), {
+          status: 400,
+          headers: { ...getCorsHeaders(origin), 'Content-Type': 'application/json' },
+        });
+      }
+
+      // Get current user subscription data
+      const { data: currentUser, error: getUserError } = await supabaseAdmin
+        .from('Practitioners')
+        .select('subscription_end_date, subscription_tier')
+        .eq('id', userId)
+        .single();
+
+      if (getUserError || !currentUser) {
+        return new Response(JSON.stringify({ error: 'User not found' }), {
+          status: 404,
+          headers: { ...getCorsHeaders(origin), 'Content-Type': 'application/json' },
+        });
+      }
+
+      // Calculate new end date
+      let newEndDate: string;
+      const days = parseInt(adjustmentDays);
+      
+      if (currentUser.subscription_end_date) {
+        // Adjust existing date
+        const currentEndDate = new Date(currentUser.subscription_end_date);
+        currentEndDate.setDate(currentEndDate.getDate() + days);
+        newEndDate = currentEndDate.toISOString();
+      } else {
+        // Create new end date from today + days
+        const today = new Date();
+        today.setDate(today.getDate() + days);
+        newEndDate = today.toISOString();
+      }
+
+      // Update subscription timing
+      const updateData: any = {
+        subscription_end_date: newEndDate,
+        subscription_created_by: 'admin',
+        admin_subscription_notes: `Adjusted by admin: ${days > 0 ? '+' : ''}${days} days on ${new Date().toLocaleDateString('pt-BR')}`,
+      };
+
+      // If user is free tier and we're adding time, upgrade to premium
+      if (currentUser.subscription_tier === 'free' && days > 0) {
+        updateData.subscription_tier = 'premium';
+        updateData.subscription_start_date = new Date().toISOString();
+      }
+
+      const { error: updateError } = await supabaseAdmin
+        .from('Practitioners')
+        .update(updateData)
+        .eq('id', userId);
+
+      if (updateError) {
+        return new Response(JSON.stringify({ error: `Failed to adjust subscription time: ${updateError.message}` }), {
+          status: 500,
+          headers: { ...getCorsHeaders(origin), 'Content-Type': 'application/json' },
+        });
+      }
+
+      return new Response(JSON.stringify({ 
+        success: true, 
+        message: `Subscription time adjusted by ${days} days`,
+        newEndDate 
+      }), {
+        headers: { ...getCorsHeaders(origin), 'Content-Type': 'application/json' },
+      });
+    }
+
     // Default response for other actions (can be extended)
     return new Response(JSON.stringify({ error: `Action ${action} not implemented yet` }), {
       status: 400,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...getCorsHeaders(origin), 'Content-Type': 'application/json' },
     });
 
   } catch (error) {

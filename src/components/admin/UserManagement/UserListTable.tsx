@@ -1,6 +1,8 @@
 // ABOUTME: Unified admin user management interface with precise role/tier tracking and inline editing capabilities
 
 import React, { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { 
   useUnifiedUserListQuery,
   useBulkAdminOperationMutation,
@@ -39,6 +41,7 @@ import {
 } from 'lucide-react';
 import { EditableRoleCell } from './EditableRoleCell';
 import { EditableSubscriptionCell } from './EditableSubscriptionCell';
+import { EditableSubscriptionTimeCell } from './EditableSubscriptionTimeCell';
 import { AdditionalRolesList } from './AdditionalRolesList';
 import { JWTClaimsDisplay } from './JWTClaimsDisplay';
 
@@ -57,6 +60,9 @@ export const UserListTable = () => {
   });
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
   const [inlineEditMode, setInlineEditMode] = useState(false);
+
+  // TanStack Query client for cache invalidation
+  const queryClient = useQueryClient();
 
   // Fetch unified user data with role tracking
   const { data: userListData, isLoading, error } = useUnifiedUserListQuery(filters);
@@ -309,6 +315,13 @@ export const UserListTable = () => {
                       <span className="text-xs text-muted-foreground">(DB)</span>
                     </div>
                   </TableHead>
+                  <TableHead className="min-w-32">
+                    <div className="flex items-center gap-1">
+                      <Calendar className="h-4 w-4" />
+                      Tempo Restante
+                      <span className="text-xs text-muted-foreground">(Editar)</span>
+                    </div>
+                  </TableHead>
                   <TableHead className="min-w-40">
                     <div className="flex items-center gap-1">
                       <Plus className="h-4 w-4" />
@@ -334,7 +347,7 @@ export const UserListTable = () => {
                   // Loading rows
                   Array.from({ length: 3 }).map((_, i) => (
                     <TableRow key={i}>
-                      <TableCell colSpan={10} className="text-center py-8">
+                      <TableCell colSpan={11} className="text-center py-8">
                         <div className="flex items-center justify-center">
                           <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
                           <span className="ml-2 text-foreground">Carregando usuários...</span>
@@ -344,7 +357,7 @@ export const UserListTable = () => {
                   ))
                 ) : userListData?.users?.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
                       Nenhum usuário encontrado
                     </TableCell>
                   </TableRow>
@@ -431,9 +444,42 @@ export const UserListTable = () => {
                               userId: user.id,
                               dataSource: 'subscription_tier',
                               newValue: value,
-                              currentRole: user.roleTracking.primaryRole.value, // Include current role for subscription updates
+                              currentRole: user.roleTracking.primaryRole.value,
                             })
                           }
+                        />
+                      </TableCell>
+
+                      {/* Subscription Time Cell (Editable) */}
+                      <TableCell>
+                        <EditableSubscriptionTimeCell
+                          user={{
+                            id: user.id,
+                            full_name: user.full_name,
+                            subscription_tier: user.roleTracking.subscriptionTier.value,
+                            subscription_start_date: user.subscription_start_date,
+                            subscription_end_date: user.subscription_end_date,
+                          }}
+                          isEditing={inlineEditMode}
+                          isPending={cellUpdateMutation.isPending}
+                          onAdjustTime={async (userId, days) => {
+                            try {
+                              const { data, error } = await supabase.functions.invoke('admin-manage-users-working', {
+                                body: {
+                                  action: 'adjust_subscription_time',
+                                  userId,
+                                  adjustmentDays: days
+                                }
+                              });
+
+                              if (error) throw error;
+                              
+                              // Refresh the user list to show updated data
+                              queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+                            } catch (error) {
+                              console.error('Time adjustment failed:', error);
+                            }
+                          }}
                         />
                       </TableCell>
 

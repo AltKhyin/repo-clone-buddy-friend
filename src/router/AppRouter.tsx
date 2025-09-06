@@ -26,7 +26,7 @@ import AdminLayoutManagement from '@/pages/AdminLayoutManagement';
 import AdminAnalytics from '@/pages/AdminAnalytics';
 import AdminAccessControl from '@/pages/AdminAccessControl';
 import AdminCommunityManagement from '@/pages/AdminCommunityManagement';
-import AdminPayment from '@/pages/AdminPayment';
+import AdminPaymentManagement from '@/pages/AdminPaymentManagement';
 import EditorPage from '@/pages/EditorPage';
 import ReviewManagementPage from '@/pages/ReviewManagementPage';
 import { AdminProtectedRoute } from '@/components/routes/AdminProtectedRoute';
@@ -219,7 +219,7 @@ const router = createBrowserRouter([
         path: '/admin/payment',
         element: (
           <AdminProtectedRoute>
-            <AdminPayment />
+            <AdminPaymentManagement />
           </AdminProtectedRoute>
         ),
       },
