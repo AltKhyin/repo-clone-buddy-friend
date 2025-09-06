@@ -5,7 +5,7 @@ import { Link } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Calendar, Eye, Clock } from 'lucide-react';
+import { Calendar, Clock } from 'lucide-react';
 import type { AcervoReview } from '@packages/hooks/useAcervoDataQuery';
 
 interface AcervoReviewCardProps {
@@ -33,13 +33,6 @@ const AcervoReviewCard: React.FC<AcervoReviewCardProps> = ({ review }) => {
     return '5min'; // Default fallback
   };
 
-  // Format view count (identical to homepage)
-  const formatViewCount = (count: number) => {
-    if (count >= 1000) {
-      return `${(count / 1000).toFixed(1)}k`;
-    }
-    return count.toString();
-  };
 
   // Format date with Portuguese month abbreviations (identical to homepage)
   const formatDate = (dateString: string) => {
@@ -185,11 +178,6 @@ const AcervoReviewCard: React.FC<AcervoReviewCardProps> = ({ review }) => {
                   <span>{getReadingTime()}</span>
                 </div>
 
-                {/* View Count */}
-                <div className="flex items-center gap-1">
-                  <Eye className="h-4 w-4" />
-                  <span>{formatViewCount(review.view_count)}</span>
-                </div>
               </div>
             </div>
 

@@ -5,7 +5,7 @@ import { Link } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Calendar, Eye, Clock, ChevronDown } from 'lucide-react';
+import { Calendar, Clock, ChevronDown } from 'lucide-react';
 import { HomepageReview } from '@packages/hooks/useHomepageFeedQuery';
 
 interface ReviewCardProps {
@@ -35,13 +35,6 @@ const ReviewCard: React.FC<ReviewCardProps> = ({ review, isExpanded = false, onT
     return '5min'; // Default fallback
   };
 
-  // Format view count
-  const formatViewCount = (count: number) => {
-    if (count >= 1000) {
-      return `${(count / 1000).toFixed(1)}k`;
-    }
-    return count.toString();
-  };
 
   // Format date with Portuguese month abbreviations
   const formatDate = (dateString: string) => {
@@ -161,12 +154,6 @@ const ReviewCard: React.FC<ReviewCardProps> = ({ review, isExpanded = false, onT
                 <div className="flex items-center gap-1">
                   <Clock className="h-4 w-4" />
                   <span>{getReadingTime()}</span>
-                </div>
-
-                {/* View Count */}
-                <div className="flex items-center gap-1">
-                  <Eye className="h-4 w-4" />
-                  <span>{formatViewCount(review.view_count)}</span>
                 </div>
               </div>
             </div>

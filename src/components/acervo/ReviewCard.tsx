@@ -5,7 +5,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, Eye } from 'lucide-react';
+import { Calendar } from 'lucide-react';
 import type { AcervoReview } from '@packages/hooks/useAcervoDataQuery';
 
 interface ReviewCardProps {
@@ -93,12 +93,6 @@ const ReviewCard: React.FC<ReviewCardProps> = ({ review }) => {
                 </span>
               </div>
               
-              {review.view_count && review.view_count > 0 && (
-                <div className="flex items-center gap-1">
-                  <Eye className="h-3 w-3" />
-                  <span>{review.view_count}</span>
-                </div>
-              )}
             </div>
           </div>
         </CardContent>
