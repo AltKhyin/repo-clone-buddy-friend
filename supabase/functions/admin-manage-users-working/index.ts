@@ -258,6 +258,84 @@ Deno.serve(async (req: Request) => {
       });
     }
 
+    // Handle role promotion/demotion
+    if (action === 'promote' || action === 'demote') {
+      const { targetUserId, newRole, subscriptionTier } = payload;
+
+      if (!targetUserId || !newRole) {
+        return new Response(JSON.stringify({ error: 'targetUserId and newRole are required' }), {
+          status: 400,
+          headers: { ...getCorsHeaders(origin), 'Content-Type': 'application/json' },
+        });
+      }
+
+      // Get current user data
+      const { data: currentUser, error: getUserError } = await supabaseAdmin
+        .from('Practitioners')
+        .select('role, subscription_tier')
+        .eq('id', targetUserId)
+        .single();
+
+      if (getUserError || !currentUser) {
+        return new Response(JSON.stringify({ error: 'User not found' }), {
+          status: 404,
+          headers: { ...getCorsHeaders(origin), 'Content-Type': 'application/json' },
+        });
+      }
+
+      // Prepare update data
+      const updateData: any = {
+        role: newRole,
+      };
+
+      // Update subscription tier if provided
+      if (subscriptionTier) {
+        updateData.subscription_tier = subscriptionTier;
+      }
+
+      // Update user role and subscription tier in Practitioners table
+      const { error: updateError } = await supabaseAdmin
+        .from('Practitioners')
+        .update(updateData)
+        .eq('id', targetUserId);
+
+      if (updateError) {
+        return new Response(JSON.stringify({ error: `Failed to update user: ${updateError.message}` }), {
+          status: 500,
+          headers: { ...getCorsHeaders(origin), 'Content-Type': 'application/json' },
+        });
+      }
+
+      // Update JWT claims in auth.users metadata
+      try {
+        const { error: authUpdateError } = await supabaseAdmin.auth.admin.updateUserById(targetUserId, {
+          user_metadata: {
+            role: newRole,
+            subscription_tier: subscriptionTier || currentUser.subscription_tier,
+          }
+        });
+
+        if (authUpdateError) {
+          console.warn('Failed to update auth metadata:', authUpdateError.message);
+          // Don't fail the request, just log the warning
+        }
+      } catch (authError) {
+        console.warn('Auth metadata update failed:', authError);
+      }
+
+      return new Response(JSON.stringify({ 
+        success: true, 
+        message: `User ${action}d successfully`,
+        updatedUser: {
+          id: targetUserId,
+          role: newRole,
+          subscription_tier: subscriptionTier || currentUser.subscription_tier
+        }
+      }), {
+        headers: { ...getCorsHeaders(origin), 'Content-Type': 'application/json' },
+      });
+    }
+
     // Default response for other actions (can be extended)
     return new Response(JSON.stringify({ error: `Action ${action} not implemented yet` }), {
       status: 400,

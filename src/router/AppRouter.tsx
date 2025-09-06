@@ -17,7 +17,7 @@ import LoginPage from '@/pages/LoginPage';
 import RegistrationPage from '@/pages/RegistrationPage';
 import PaymentPage from '@/pages/PaymentPage';
 import EmbeddedPaymentPage from '@/pages/EmbeddedPaymentPage';
-import { UniversalRouteProtection } from '@/components/routes/UniversalRouteProtection';
+import { OptimizedRouteProtection } from '@/components/routes/OptimizedRouteProtection';
 import { AdminDashboard } from '@/pages/AdminDashboard';
 import ContentManagement from '@/pages/ContentManagement';
 import AdminUserManagement from '@/pages/AdminUserManagement';
@@ -29,7 +29,6 @@ import AdminCommunityManagement from '@/pages/AdminCommunityManagement';
 import AdminPaymentManagement from '@/pages/AdminPaymentManagement';
 import EditorPage from '@/pages/EditorPage';
 import ReviewManagementPage from '@/pages/ReviewManagementPage';
-import { AdminProtectedRoute } from '@/components/routes/AdminProtectedRoute';
 import DebugSidebar from '@/pages/DebugSidebar';
 
 const router = createBrowserRouter([
@@ -150,86 +149,46 @@ const router = createBrowserRouter([
         element: <UnauthorizedPage />,
       },
 
-      // Admin Routes - Flattened structure, each page standalone
+      // Admin Routes - Protected by OptimizedRouteProtection in ProtectedAppShell
       {
         path: '/admin',
-        element: (
-          <AdminProtectedRoute>
-            <AdminDashboard />
-          </AdminProtectedRoute>
-        ),
+        element: <AdminDashboard />,
       },
       {
         path: '/admin/content',
-        element: (
-          <AdminProtectedRoute>
-            <ContentManagement />
-          </AdminProtectedRoute>
-        ),
+        element: <ContentManagement />,
       },
       {
         path: '/admin/community',
-        element: (
-          <AdminProtectedRoute>
-            <AdminCommunityManagement />
-          </AdminProtectedRoute>
-        ),
+        element: <AdminCommunityManagement />,
       },
       {
         path: '/admin/users',
-        element: (
-          <AdminProtectedRoute>
-            <AdminUserManagement />
-          </AdminProtectedRoute>
-        ),
+        element: <AdminUserManagement />,
       },
       {
         path: '/admin/tags',
-        element: (
-          <AdminProtectedRoute>
-            <AdminTagManagement />
-          </AdminProtectedRoute>
-        ),
+        element: <AdminTagManagement />,
       },
       {
         path: '/admin/layout',
-        element: (
-          <AdminProtectedRoute>
-            <AdminLayoutManagement />
-          </AdminProtectedRoute>
-        ),
+        element: <AdminLayoutManagement />,
       },
       {
         path: '/admin/analytics',
-        element: (
-          <AdminProtectedRoute>
-            <AdminAnalytics />
-          </AdminProtectedRoute>
-        ),
+        element: <AdminAnalytics />,
       },
       {
         path: '/admin/access-control',
-        element: (
-          <AdminProtectedRoute>
-            <AdminAccessControl />
-          </AdminProtectedRoute>
-        ),
+        element: <AdminAccessControl />,
       },
       {
         path: '/admin/payment',
-        element: (
-          <AdminProtectedRoute>
-            <AdminPaymentManagement />
-          </AdminProtectedRoute>
-        ),
+        element: <AdminPaymentManagement />,
       },
       {
         path: '/admin/review/:reviewId',
-        element: (
-          <AdminProtectedRoute>
-            <ReviewManagementPage />
-          </AdminProtectedRoute>
-        ),
+        element: <ReviewManagementPage />,
       },
     ],
   },
@@ -241,9 +200,9 @@ const router = createBrowserRouter([
   {
     path: '/editor/:reviewId',
     element: (
-      <UniversalRouteProtection showDebugInfo={false}>
+      <OptimizedRouteProtection showDebugInfo={false}>
         <EditorPage />
-      </UniversalRouteProtection>
+      </OptimizedRouteProtection>
     ),
   },
 ]);

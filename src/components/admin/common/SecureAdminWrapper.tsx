@@ -23,15 +23,30 @@ export const SecureAdminWrapper = ({
   requiredPermissions = [],
   showSecurityStatus = false,
 }: SecureAdminWrapperProps) => {
-  const { isAuthenticated, isAdmin, user } = useAdminAuth();
   const navigate = useNavigate();
   const [securityCheck, setSecurityCheck] = useState<'checking' | 'passed' | 'failed'>('checking');
+  const [securityCheckComplete, setSecurityCheckComplete] = useState(false);
+  
+  // Safe auth hook usage with error handling
+  let authState;
+  try {
+    authState = useAdminAuth();
+  } catch (error) {
+    // Handle auth hook errors gracefully
+    authState = { isAuthenticated: false, isAdmin: false, user: null };
+  }
+  
+  const { isAuthenticated, isAdmin, user } = authState;
 
   useEffect(() => {
+    // OPTIMIZATION: Only run security check once per mount or auth state change
+    // This prevents excessive logging on every render
+    if (securityCheckComplete && securityCheck === 'passed') return;
+
     // Perform security validation
     const performSecurityCheck = async () => {
       try {
-        // Log access attempt
+        // Log access attempt (ONLY ONCE per mount)
         logSecurityEvent('Admin access attempt', {
           component: title,
           requiredPermissions,
@@ -48,6 +63,7 @@ export const SecureAdminWrapper = ({
             redirectTo: '/login',
           });
           setSecurityCheck('failed');
+          setSecurityCheckComplete(true);
           return;
         }
 
@@ -59,6 +75,7 @@ export const SecureAdminWrapper = ({
             requiredRole: 'admin',
           });
           setSecurityCheck('failed');
+          setSecurityCheckComplete(true);
           return;
         }
 
@@ -76,6 +93,7 @@ export const SecureAdminWrapper = ({
               userPermissions,
             });
             setSecurityCheck('failed');
+            setSecurityCheckComplete(true);
             return;
           }
         }
@@ -87,17 +105,19 @@ export const SecureAdminWrapper = ({
           userEmail: user?.email,
         });
         setSecurityCheck('passed');
+        setSecurityCheckComplete(true);
       } catch (error) {
         logSecurityEvent('Security check error', {
           component: title,
           error: error instanceof Error ? error.message : 'Unknown error',
         });
         setSecurityCheck('failed');
+        setSecurityCheckComplete(true);
       }
     };
 
     performSecurityCheck();
-  }, [isAuthenticated, isAdmin, user, title, requiredPermissions]);
+  }, [isAuthenticated, isAdmin, user?.id, title]); // OPTIMIZATION: Only essential dependencies
 
   // Security check loading state
   if (securityCheck === 'checking') {

@@ -9,7 +9,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { SecureAdminWrapper } from '@/components/admin/common/SecureAdminWrapper';
 import { CreditCard, Link, Copy, Check, ToggleLeft, ToggleRight, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -165,14 +164,38 @@ export default function AdminPaymentManagement() {
       console.log('Supabase update successful');
       return planId;
     },
-    onSuccess: (planId) => {
+    onMutate: async (planId) => {
+      // Cancel outgoing refetches to prevent race conditions
+      await queryClient.cancelQueries({ queryKey: ['default-payment-plan'] });
+      
+      // Snapshot the previous value
+      const previousDefaultPlan = queryClient.getQueryData(['default-payment-plan']);
+      
+      // Optimistically update to the new value
+      queryClient.setQueryData(['default-payment-plan'], planId);
+      
+      console.log('Optimistic update: setting default plan to', planId);
+      
+      // Return a context with the previous and new value
+      return { previousDefaultPlan, planId };
+    },
+    onSuccess: (planId, variables, context) => {
       console.log('Mutation onSuccess with planId:', planId);
-      queryClient.invalidateQueries({ queryKey: ['default-payment-plan'] });
+      // Update the cache with the successful result (don't invalidate yet - let onSettled handle it)
+      queryClient.setQueryData(['default-payment-plan'], planId);
       toast.success('Plano padrão atualizado com sucesso!');
     },
-    onError: (error) => {
+    onError: (error, variables, context) => {
       console.error('Mutation onError:', error);
+      // If the mutation fails, use the context to roll back
+      if (context?.previousDefaultPlan !== undefined) {
+        queryClient.setQueryData(['default-payment-plan'], context.previousDefaultPlan);
+      }
       toast.error('Erro ao configurar plano padrão');
+    },
+    onSettled: () => {
+      // Always refetch after error or success to ensure we're in sync
+      queryClient.invalidateQueries({ queryKey: ['default-payment-plan'] });
     }
   });
 
@@ -291,8 +314,7 @@ export default function AdminPaymentManagement() {
   };
 
   return (
-    <SecureAdminWrapper requiredClaim="admin">
-      <div className="container mx-auto p-6 space-y-6">
+    <div className="container mx-auto p-6 space-y-6">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Gestão de Pagamentos</h1>
@@ -469,7 +491,9 @@ export default function AdminPaymentManagement() {
               <Select 
                 value={defaultPlanSetting || ""} 
                 onValueChange={(planId) => {
-                  console.log('Trying to set default plan to:', planId);
+                  console.log('Select onValueChange triggered with planId:', planId);
+                  console.log('Current defaultPlanSetting:', defaultPlanSetting);
+                  console.log('Available plans:', plans.map(p => ({ id: p.id, name: p.name })));
                   setDefaultPlanMutation.mutate(planId);
                 }}
               >
@@ -484,6 +508,12 @@ export default function AdminPaymentManagement() {
                   ))}
                 </SelectContent>
               </Select>
+              {/* Debug information - remove after testing */}
+              <div className="text-xs text-gray-500 bg-gray-50 p-2 rounded">
+                <div>Current defaultPlanSetting: {JSON.stringify(defaultPlanSetting)}</div>
+                <div>Mutation pending: {setDefaultPlanMutation.isPending ? 'Yes' : 'No'}</div>
+                <div>Available plans: {plans.length}</div>
+              </div>
               <p className="text-xs text-muted-foreground">
                 Este plano será usado quando alguém acessar /pagamento sem especificar um plano
               </p>
@@ -610,6 +640,5 @@ export default function AdminPaymentManagement() {
           </CardContent>
         </Card>
       </div>
-    </SecureAdminWrapper>
   );
 }
