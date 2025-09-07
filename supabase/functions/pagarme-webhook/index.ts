@@ -128,15 +128,26 @@ const processPaymentEvent = async (webhookEvent: WebhookEvent): Promise<void> =>
     const chargeId = eventData?.charges?.[0]?.id
     const subscriptionId = eventData?.subscription?.id
 
-    // Find the user associated with this payment
+    // Find the user associated with this payment (check both customer ID fields)
     let userId: string | null = null
     
     if (customerId) {
-      const { data: user } = await supabase
+      // Try evidens_pagarme_customer_id first (newer field)
+      let { data: user } = await supabase
         .from('Practitioners')
         .select('id')
-        .eq('pagarme_customer_id', customerId)
+        .eq('evidens_pagarme_customer_id', customerId)
         .single()
+      
+      // If not found, try legacy pagarme_customer_id field
+      if (!user) {
+        const result = await supabase
+          .from('Practitioners')
+          .select('id')
+          .eq('pagarme_customer_id', customerId)
+          .single()
+        user = result.data
+      }
       
       userId = user?.id
     }
@@ -156,8 +167,9 @@ const processPaymentEvent = async (webhookEvent: WebhookEvent): Promise<void> =>
       return
     }
 
-    // Process different event types
+    // Process different event types with comprehensive subscription support
     switch (webhookEvent.type) {
+      // One-time payment events
       case 'order.paid':
       case 'charge.paid':
         await handlePaymentConfirmed(userId, eventData)
@@ -168,16 +180,42 @@ const processPaymentEvent = async (webhookEvent: WebhookEvent): Promise<void> =>
         await handlePaymentFailed(userId, eventData)
         break
         
+      // Subscription lifecycle events
       case 'subscription.created':
         await handleSubscriptionCreated(userId, eventData)
         break
         
       case 'subscription.canceled':
+      case 'subscription.cancelled':
         await handleSubscriptionCanceled(userId, eventData)
         break
         
+      // Recurring charge events
+      case 'subscription.charge_created':
+        await handleSubscriptionChargeCreated(userId, eventData)
+        break
+        
       case 'subscription.charge.paid':
+      case 'subscription.charged':
         await handleSubscriptionRenewal(userId, eventData)
+        break
+        
+      case 'subscription.charge_failed':
+      case 'subscription.payment_failed':
+        await handleSubscriptionChargeFailed(userId, eventData)
+        break
+        
+      // Subscription status changes
+      case 'subscription.trial_ended':
+        await handleSubscriptionTrialEnded(userId, eventData)
+        break
+        
+      case 'subscription.reactivated':
+        await handleSubscriptionReactivated(userId, eventData)
+        break
+        
+      case 'subscription.suspended':
+        await handleSubscriptionSuspended(userId, eventData)
         break
         
       default:
@@ -303,20 +341,203 @@ const handleSubscriptionCanceled = async (userId: string, eventData: any): Promi
 const handleSubscriptionRenewal = async (userId: string, eventData: any): Promise<void> => {
   console.log(`Subscription renewed for user: ${userId}`)
   
-  const { error } = await supabase
+  // Update both local Practitioners table and evidens_subscriptions table
+  const { error: practitionerError } = await supabase
     .from('Practitioners')
     .update({
       subscription_status: 'active',
       subscription_expires_at: calculateExpirationDate(eventData),
       payment_metadata: {
         last_payment_date: new Date().toISOString(),
-        last_payment_amount: eventData.amount
+        last_payment_amount: eventData.amount,
+        last_charge_id: eventData.id
+      },
+      last_payment_date: new Date().toISOString(),
+      next_billing_date: eventData.subscription?.next_billing_at ? new Date(eventData.subscription.next_billing_at).toISOString() : null
+    })
+    .eq('id', userId)
+
+  if (practitionerError) {
+    throw new Error(`Failed to update practitioner subscription: ${practitionerError.message}`)
+  }
+  
+  // Update subscription record if it exists
+  if (eventData.subscription?.id) {
+    const { error: subscriptionError } = await supabase
+      .from('evidens_subscriptions')
+      .update({
+        status: 'active',
+        current_period_start: eventData.subscription.current_cycle?.start_at ? new Date(eventData.subscription.current_cycle.start_at).toISOString() : null,
+        current_period_end: eventData.subscription.current_cycle?.end_at ? new Date(eventData.subscription.current_cycle.end_at).toISOString() : null,
+        next_billing_at: eventData.subscription.next_billing_at ? new Date(eventData.subscription.next_billing_at).toISOString() : null,
+        updated_at: new Date().toISOString()
+      })
+      .eq('pagarme_subscription_id', eventData.subscription.id)
+
+    if (subscriptionError) {
+      console.error('Failed to update subscription record:', subscriptionError)
+    }
+  }
+}
+
+const handleSubscriptionChargeCreated = async (userId: string, eventData: any): Promise<void> => {
+  console.log(`Subscription charge created for user: ${userId}`)
+  
+  // Mark user as processing payment (optional status for UI feedback)
+  const { error } = await supabase
+    .from('Practitioners')
+    .update({
+      payment_metadata: {
+        ...JSON.parse(eventData.metadata || '{}'),
+        pending_charge_id: eventData.id,
+        pending_charge_amount: eventData.amount,
+        pending_charge_created_at: new Date().toISOString()
       }
     })
     .eq('id', userId)
 
   if (error) {
-    throw new Error(`Failed to update user subscription: ${error.message}`)
+    console.error('Failed to update pending charge info:', error)
+  }
+}
+
+const handleSubscriptionChargeFailed = async (userId: string, eventData: any): Promise<void> => {
+  console.log(`Subscription charge failed for user: ${userId}`)
+  
+  // Get current subscription status to determine next state
+  const { data: user } = await supabase
+    .from('Practitioners')
+    .select('subscription_status, payment_metadata')
+    .eq('id', userId)
+    .single()
+
+  // Determine new status based on current state and failure count
+  let newStatus = 'past_due'
+  const failureCount = (user?.payment_metadata as any)?.failure_count || 0
+  
+  if (failureCount >= 2) {
+    newStatus = 'suspended'
+  }
+  
+  const { error } = await supabase
+    .from('Practitioners')
+    .update({
+      subscription_status: newStatus,
+      payment_metadata: {
+        ...user?.payment_metadata,
+        last_failed_payment: new Date().toISOString(),
+        failure_reason: eventData.status_reason || 'unknown',
+        failure_count: failureCount + 1,
+        failed_charge_id: eventData.id
+      }
+    })
+    .eq('id', userId)
+
+  if (error) {
+    throw new Error(`Failed to update user after charge failure: ${error.message}`)
+  }
+  
+  // Update subscription record status
+  if (eventData.subscription?.id) {
+    const { error: subscriptionError } = await supabase
+      .from('evidens_subscriptions')
+      .update({
+        status: newStatus === 'suspended' ? 'unpaid' : 'past_due',
+        updated_at: new Date().toISOString()
+      })
+      .eq('pagarme_subscription_id', eventData.subscription.id)
+
+    if (subscriptionError) {
+      console.error('Failed to update subscription status after failure:', subscriptionError)
+    }
+  }
+}
+
+const handleSubscriptionTrialEnded = async (userId: string, eventData: any): Promise<void> => {
+  console.log(`Subscription trial ended for user: ${userId}`)
+  
+  const { error } = await supabase
+    .from('Practitioners')
+    .update({
+      subscription_status: 'active', // Assumes first billing cycle starts
+      payment_metadata: {
+        trial_ended_at: new Date().toISOString(),
+        subscription_id: eventData.id
+      }
+    })
+    .eq('id', userId)
+
+  if (error) {
+    throw new Error(`Failed to update user after trial end: ${error.message}`)
+  }
+}
+
+const handleSubscriptionReactivated = async (userId: string, eventData: any): Promise<void> => {
+  console.log(`Subscription reactivated for user: ${userId}`)
+  
+  const { error } = await supabase
+    .from('Practitioners')
+    .update({
+      subscription_status: 'active',
+      subscription_expires_at: calculateExpirationDate(eventData),
+      payment_metadata: {
+        reactivated_at: new Date().toISOString(),
+        previous_failure_count: 0 // Reset failure count
+      }
+    })
+    .eq('id', userId)
+
+  if (error) {
+    throw new Error(`Failed to reactivate user subscription: ${error.message}`)
+  }
+  
+  // Update subscription record
+  if (eventData.id) {
+    const { error: subscriptionError } = await supabase
+      .from('evidens_subscriptions')
+      .update({
+        status: 'active',
+        updated_at: new Date().toISOString()
+      })
+      .eq('pagarme_subscription_id', eventData.id)
+
+    if (subscriptionError) {
+      console.error('Failed to update subscription record:', subscriptionError)
+    }
+  }
+}
+
+const handleSubscriptionSuspended = async (userId: string, eventData: any): Promise<void> => {
+  console.log(`Subscription suspended for user: ${userId}`)
+  
+  const { error } = await supabase
+    .from('Practitioners')
+    .update({
+      subscription_status: 'suspended',
+      payment_metadata: {
+        suspended_at: new Date().toISOString(),
+        suspension_reason: eventData.status_reason || 'payment_failure'
+      }
+    })
+    .eq('id', userId)
+
+  if (error) {
+    throw new Error(`Failed to suspend user subscription: ${error.message}`)
+  }
+  
+  // Update subscription record
+  if (eventData.id) {
+    const { error: subscriptionError } = await supabase
+      .from('evidens_subscriptions')
+      .update({
+        status: 'unpaid',
+        updated_at: new Date().toISOString()
+      })
+      .eq('pagarme_subscription_id', eventData.id)
+
+    if (subscriptionError) {
+      console.error('Failed to update suspended subscription record:', subscriptionError)
+    }
   }
 }
 

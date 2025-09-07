@@ -11,7 +11,7 @@ import { CreditCard, Smartphone, QrCode, ArrowLeft, ArrowRight } from 'lucide-re
 import { useEffect } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PhoneInput } from '@/components/ui/PhoneInput';
-import { useCreatePixPayment, useCreateCreditCardPayment, usePaymentStatus, pixPaymentSchema, creditCardPaymentSchema, type PixPaymentInput, type CreditCardPaymentInput } from '../../hooks/mutations/usePaymentMutations';
+import { useCreatePlanBasedPixPayment, useCreatePlanBasedCreditCardPayment, usePaymentStatus, planBasedPixPaymentSchema, planBasedCreditCardPaymentSchema, type PlanBasedPixPaymentInput, type PlanBasedCreditCardPaymentInput } from '../../hooks/mutations/usePaymentMutations';
 import { EnhancedPlanDisplay } from './EnhancedPlanDisplay';
 import type { Tables } from '@/integrations/supabase/types';
 
@@ -82,10 +82,8 @@ type Step2FormInput = z.infer<typeof step2Schema>;
 type PaymentFormInput = z.infer<typeof paymentFormSchema>;
 
 interface TwoStepPaymentFormProps {
-  planName?: string;
-  planPrice?: number; // Price in cents
-  planDescription?: string;
-  plan?: Tables<'PaymentPlans'>;
+  plan: Tables<'PaymentPlans'>; // Required - plan object with promotional config
+  customerId?: string; // Optional customer ID
   onSuccess?: (data: any) => void;
   onCancel?: () => void;
 }
@@ -117,10 +115,8 @@ const ProgressSteps: React.FC<ProgressStepsProps> = ({ currentStep }) => {
 // =================================================================
 
 const TwoStepPaymentForm: React.FC<TwoStepPaymentFormProps> = ({
-  planName = "Plano Mensal",
-  planPrice = 1990, // R$ 19.90
-  planDescription = "Acesso completo à plataforma EVIDENS",
   plan,
+  customerId,
   onSuccess,
   onCancel
 }) => {
@@ -130,36 +126,31 @@ const TwoStepPaymentForm: React.FC<TwoStepPaymentFormProps> = ({
   const [showPixCode, setShowPixCode] = useState(false);
   const [pixData, setPixData] = useState<any>(null);
 
-  // Create plan object from individual props if plan object not provided
-  const displayPlan: Tables<'PaymentPlans'> = plan || {
-    id: 'default-plan',
-    name: planName,
-    amount: planPrice,
-    description: planDescription,
-    days: 30,
-    type: 'monthly',
-    is_active: true,
-    created_at: null,
-    created_by: null,
-    last_used_at: null,
-    usage_count: null,
-    updated_at: null,
-    billing_interval: null,
-    billing_interval_count: null,
-    billing_type: null,
-    metadata: null,
-    slug: null,
-    promotional_config: null,
-    display_config: null,
+  // Use plan directly (now required prop)
+  const displayPlan = plan;
+  
+  // Calculate display price (with promotional pricing if active)
+  const getDisplayPrice = () => {
+    const promoConfig = plan.promotional_config as any;
+    if (promoConfig?.isActive && promoConfig?.finalPrice > 0) {
+      const expiresAt = promoConfig.expiresAt;
+      const isExpired = expiresAt && new Date(expiresAt) < new Date();
+      if (!isExpired) {
+        return promoConfig.finalPrice;
+      }
+    }
+    return plan.amount;
   };
+  
+  const displayPrice = getDisplayPrice();
   const [paymentError, setPaymentError] = useState<{
     message: string;
     canRetry: boolean;
   } | null>(null);
 
-  // Payment mutation hooks
-  const pixPaymentMutation = useCreatePixPayment();
-  const creditCardPaymentMutation = useCreateCreditCardPayment();
+  // Plan-based payment mutation hooks
+  const pixPaymentMutation = useCreatePlanBasedPixPayment();
+  const creditCardPaymentMutation = useCreatePlanBasedCreditCardPayment();
 
   // Poll payment status when PIX QR code is displayed
   const { data: paymentStatus } = usePaymentStatus(
@@ -233,21 +224,19 @@ const TwoStepPaymentForm: React.FC<TwoStepPaymentFormProps> = ({
       return;
     }
 
-    // Step 2: Process payment
+    // Step 2: Process payment with plan-based pricing
     setIsProcessing(true);
     
     if (selectedMethod === 'pix') {
-      // PIX Payment Logic
-      const pixPaymentData: PixPaymentInput = {
-        customerId: values.customerEmail,
-        amount: planPrice, // Use planPrice directly (critical fix)
-        description: `EVIDENS - ${planName}`,
+      // Plan-based PIX Payment Logic
+      const pixPaymentData: PlanBasedPixPaymentInput = {
+        planId: plan.id,
+        customerId: customerId || values.customerEmail,
         metadata: {
           customerName: values.customerName,
           customerEmail: values.customerEmail,
           customerDocument: values.customerDocument,
-          customerPhone: values.customerPhone,
-          planName: planName
+          customerPhone: values.customerPhone
         }
       };
 
@@ -273,6 +262,13 @@ const TwoStepPaymentForm: React.FC<TwoStepPaymentFormProps> = ({
           setIsProcessing(false);
           return;
         }
+        
+        // Validate billing address fields
+        if (!values.billingStreet || !values.billingZipCode || !values.billingCity || !values.billingState) {
+          toast.error('Todos os campos de endereço são obrigatórios para pagamento com cartão');
+          setIsProcessing(false);
+          return;
+        }
 
         // Split expiration date
         const [month, year] = values.cardExpirationDate.split('/');
@@ -282,32 +278,29 @@ const TwoStepPaymentForm: React.FC<TwoStepPaymentFormProps> = ({
           return;
         }
 
-        const creditCardPaymentData: CreditCardPaymentInput = {
-          customerId: values.customerEmail,
-          amount: planPrice, // Use planPrice directly (critical fix)
-          description: `EVIDENS - ${planName}`,
-          cardToken: 'tokenize_on_server',
-          installments: values.installments,
+        const creditCardPaymentData: PlanBasedCreditCardPaymentInput = {
+          planId: plan.id,
+          customerId: customerId || values.customerEmail,
+          installments: parseInt(values.installments || '1'),
           metadata: {
             customerName: values.customerName,
             customerEmail: values.customerEmail,
             customerDocument: values.customerDocument,
-            customerPhone: values.customerPhone,
-            planName: planName
+            customerPhone: values.customerPhone
           },
           billingAddress: {
-            line_1: values.billingStreet,
-            zip_code: values.billingZipCode.replace(/\D/g, ''),
-            city: values.billingCity,
-            state: values.billingState,
+            line_1: values.billingStreet || '',
+            zip_code: values.billingZipCode?.replace(/\D/g, '') || '',
+            city: values.billingCity || '',
+            state: values.billingState || '',
             country: 'BR'
           },
           cardData: {
-            number: values.cardNumber.replace(/\s/g, ''),
-            holderName: values.cardHolderName,
+            number: values.cardNumber?.replace(/\s/g, '') || '',
+            holderName: values.cardHolderName || '',
             expirationMonth: month.padStart(2, '0'),
             expirationYear: year,
-            cvv: values.cardCvv
+            cvv: values.cardCvv || ''
           }
         };
 
@@ -389,7 +382,7 @@ const TwoStepPaymentForm: React.FC<TwoStepPaymentFormProps> = ({
           </Button>
 
           <div className="text-xs sm:text-sm text-gray-500 mb-4">
-            Válido por 1 hora • R$ {(planPrice / 100).toFixed(2).replace('.', ',')}
+            Válido por 1 hora • R$ {(displayPrice / 100).toFixed(2).replace('.', ',')}
           </div>
           
           {/* Payment status monitoring */}
@@ -744,11 +737,11 @@ const TwoStepPaymentForm: React.FC<TwoStepPaymentFormProps> = ({
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent className="bg-white border border-gray-200">
-                            <SelectItem value="1" className="text-black hover:bg-gray-50 focus:bg-gray-50 data-[highlighted]:bg-gray-50 data-[state=checked]:text-black focus:text-black">1x de R$ {(planPrice / 100).toFixed(2)} (à vista)</SelectItem>
-                            <SelectItem value="2" className="text-black hover:bg-gray-50 focus:bg-gray-50 data-[highlighted]:bg-gray-50 data-[state=checked]:text-black focus:text-black">2x de R$ {(planPrice / 200).toFixed(2)}</SelectItem>
-                            <SelectItem value="3" className="text-black hover:bg-gray-50 focus:bg-gray-50 data-[highlighted]:bg-gray-50 data-[state=checked]:text-black focus:text-black">3x de R$ {(planPrice / 300).toFixed(2)}</SelectItem>
-                            <SelectItem value="6" className="text-black hover:bg-gray-50 focus:bg-gray-50 data-[highlighted]:bg-gray-50 data-[state=checked]:text-black focus:text-black">6x de R$ {(planPrice / 600).toFixed(2)}</SelectItem>
-                            <SelectItem value="12" className="text-black hover:bg-gray-50 focus:bg-gray-50 data-[highlighted]:bg-gray-50 data-[state=checked]:text-black focus:text-black">12x de R$ {(planPrice / 1200).toFixed(2)}</SelectItem>
+                            <SelectItem value="1" className="text-black hover:bg-gray-50 focus:bg-gray-50 data-[highlighted]:bg-gray-50 data-[state=checked]:text-black focus:text-black">1x de R$ {(displayPrice / 100).toFixed(2).replace('.', ',')} (à vista)</SelectItem>
+                            <SelectItem value="2" className="text-black hover:bg-gray-50 focus:bg-gray-50 data-[highlighted]:bg-gray-50 data-[state=checked]:text-black focus:text-black">2x de R$ {(displayPrice / 200).toFixed(2).replace('.', ',')}</SelectItem>
+                            <SelectItem value="3" className="text-black hover:bg-gray-50 focus:bg-gray-50 data-[highlighted]:bg-gray-50 data-[state=checked]:text-black focus:text-black">3x de R$ {(displayPrice / 300).toFixed(2).replace('.', ',')}</SelectItem>
+                            <SelectItem value="6" className="text-black hover:bg-gray-50 focus:bg-gray-50 data-[highlighted]:bg-gray-50 data-[state=checked]:text-black focus:text-black">6x de R$ {(displayPrice / 600).toFixed(2).replace('.', ',')}</SelectItem>
+                            <SelectItem value="12" className="text-black hover:bg-gray-50 focus:bg-gray-50 data-[highlighted]:bg-gray-50 data-[state=checked]:text-black focus:text-black">12x de R$ {(displayPrice / 1200).toFixed(2).replace('.', ',')}</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />

@@ -27,6 +27,21 @@ export const pixPaymentSchema = z.object({
 });
 
 /**
+ * Plan-Based PIX Payment Creation Schema
+ * Uses PaymentPlans table for dynamic pricing
+ */
+export const planBasedPixPaymentSchema = z.object({
+  planId: z.string().min(1, { message: 'Plan ID é obrigatório' }),
+  customerId: z.string().min(1, { message: 'Customer ID é obrigatório' }),
+  metadata: z.object({
+    customerName: z.string(),
+    customerEmail: z.string(),
+    customerDocument: z.string(),
+    customerPhone: z.string()
+  })
+});
+
+/**
  * Credit Card Payment Creation Schema
  */
 export const creditCardPaymentSchema = z.object({
@@ -63,6 +78,38 @@ export const creditCardPaymentSchema = z.object({
 });
 
 /**
+ * Plan-Based Credit Card Payment Creation Schema
+ * Uses PaymentPlans table for dynamic pricing
+ */
+export const planBasedCreditCardPaymentSchema = z.object({
+  planId: z.string().min(1, { message: 'Plan ID é obrigatório' }),
+  customerId: z.string().min(1, { message: 'Customer ID é obrigatório' }),
+  installments: z.number().min(1).max(12, { message: 'Parcelamento deve ser entre 1 e 12x' }),
+  metadata: z.object({
+    customerName: z.string(),
+    customerEmail: z.string(),
+    customerDocument: z.string(),
+    customerPhone: z.string()
+  }),
+  // Billing address for credit card payments (required by Pagar.me)
+  billingAddress: z.object({
+    line_1: z.string().min(1, { message: 'Endereço é obrigatório' }),
+    zip_code: z.string().min(8, { message: 'CEP é obrigatório' }),
+    city: z.string().min(1, { message: 'Cidade é obrigatória' }),
+    state: z.string().min(2, { message: 'Estado é obrigatório' }),
+    country: z.string().default('BR')
+  }),
+  // Card data for server-side tokenization
+  cardData: z.object({
+    number: z.string().min(13, { message: 'Número do cartão inválido' }),
+    holderName: z.string().min(2, { message: 'Nome do portador é obrigatório' }),
+    expirationMonth: z.string().length(2, { message: 'Mês inválido' }),
+    expirationYear: z.string().length(2, { message: 'Ano inválido' }),
+    cvv: z.string().min(3).max(4, { message: 'CVV inválido' })
+  })
+});
+
+/**
  * Customer Creation Schema
  */
 export const customerCreationSchema = z.object({
@@ -83,7 +130,86 @@ export const customerCreationSchema = z.object({
 
 export type PixPaymentInput = z.infer<typeof pixPaymentSchema>;
 export type CreditCardPaymentInput = z.infer<typeof creditCardPaymentSchema>;
+export type PlanBasedPixPaymentInput = z.infer<typeof planBasedPixPaymentSchema>;
+export type PlanBasedCreditCardPaymentInput = z.infer<typeof planBasedCreditCardPaymentSchema>;
 export type CustomerCreationInput = z.infer<typeof customerCreationSchema>;
+
+// =================================================================
+// Plan Pricing Resolution Functions
+// =================================================================
+
+/**
+ * Resolves the actual price for a plan considering promotional configurations
+ */
+const resolvePlanPricing = async (planId: string) => {
+  const { data: plan, error } = await supabase
+    .from('PaymentPlans')
+    .select('*')
+    .eq('id', planId)
+    .single();
+
+  if (error || !plan) {
+    throw new Error('Plan not found or invalid plan ID');
+  }
+
+  // Parse promotional configuration
+  let finalPrice = plan.amount; // Default to base amount
+  let displayName = plan.name;
+  let promotionalActive = false;
+
+  if (plan.promotional_config) {
+    try {
+      const promoConfig = typeof plan.promotional_config === 'string' 
+        ? JSON.parse(plan.promotional_config) 
+        : plan.promotional_config;
+
+      // Check if promotion is active and not expired
+      const isExpired = promoConfig.expiresAt 
+        ? new Date(promoConfig.expiresAt) < new Date() 
+        : false;
+
+      if (promoConfig.isActive && !isExpired && promoConfig.finalPrice > 0) {
+        finalPrice = promoConfig.finalPrice;
+        promotionalActive = true;
+      }
+
+      // Use custom name if available and enabled
+      if (plan.display_config) {
+        const displayConfig = typeof plan.display_config === 'string'
+          ? JSON.parse(plan.display_config)
+          : plan.display_config;
+        
+        if (displayConfig.showCustomName && promoConfig.customName) {
+          displayName = promoConfig.customName;
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to parse promotional_config, using base price:', error);
+    }
+  }
+
+  // Validate minimum amount (Pagar.me requirement)
+  if (finalPrice < 50) {
+    throw new Error('Amount is below Pagar.me minimum of R$ 0,50');
+  }
+
+  return {
+    planId: plan.id,
+    amount: finalPrice,
+    originalAmount: plan.amount,
+    description: displayName,
+    promotional: promotionalActive,
+    planType: plan.type,
+    billingInterval: plan.billing_interval,
+    metadata: {
+      planId: plan.id,
+      planName: plan.name,
+      promotional: promotionalActive,
+      originalAmount: plan.amount,
+      finalAmount: finalPrice
+    }
+  };
+};
 
 // =================================================================
 // API Functions (for Edge Function calls)
@@ -220,6 +346,58 @@ const checkPaymentStatus = async (orderId: string): Promise<PagarmeOrder> => {
   return response.json();
 };
 
+/**
+ * Creates a PIX payment using PaymentPlans configuration
+ * Resolves pricing from promotional_config and display_config
+ */
+const createPlanBasedPixPayment = async (input: PlanBasedPixPaymentInput): Promise<PagarmeOrder> => {
+  // Resolve plan pricing first
+  const planPricing = await resolvePlanPricing(input.planId);
+
+  // Convert to standard PIX payment with resolved pricing
+  const pixPaymentData: PixPaymentInput = {
+    customerId: input.customerId,
+    amount: planPricing.amount,
+    description: planPricing.description,
+    metadata: {
+      ...input.metadata,
+      planName: planPricing.description,
+      ...planPricing.metadata
+    }
+  };
+
+  // Use existing PIX payment creation
+  return createPixPayment(pixPaymentData);
+};
+
+/**
+ * Creates a Credit Card payment using PaymentPlans configuration
+ * Resolves pricing from promotional_config and display_config
+ */
+const createPlanBasedCreditCardPayment = async (input: PlanBasedCreditCardPaymentInput): Promise<PagarmeOrder> => {
+  // Resolve plan pricing first
+  const planPricing = await resolvePlanPricing(input.planId);
+
+  // Convert to standard credit card payment with resolved pricing
+  const creditCardPaymentData: CreditCardPaymentInput = {
+    customerId: input.customerId,
+    amount: planPricing.amount,
+    description: planPricing.description,
+    cardToken: '', // Will be generated server-side
+    installments: input.installments,
+    billingAddress: input.billingAddress,
+    cardData: input.cardData,
+    metadata: {
+      ...input.metadata,
+      planName: planPricing.description,
+      ...planPricing.metadata
+    }
+  };
+
+  // Use existing credit card payment creation
+  return createCreditCardPayment(creditCardPaymentData);
+};
+
 // =================================================================
 // Mutation Hooks
 // =================================================================
@@ -280,6 +458,58 @@ export const useCreatePagarmeCustomer = () => {
     },
     onError: (error) => {
       console.error('Customer creation failed:', error);
+    }
+  });
+};
+
+/**
+ * Hook for creating PIX payments with plan-based pricing
+ * Automatically resolves promotional pricing and custom plan names
+ */
+export const useCreatePlanBasedPixPayment = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: createPlanBasedPixPayment,
+    onSuccess: (data, variables) => {
+      console.log('Plan-based PIX payment created:', data.id);
+      
+      // Invalidate payment-related queries
+      queryClient.invalidateQueries({ queryKey: ['payment-history'] });
+      queryClient.invalidateQueries({ queryKey: ['user-subscription'] });
+      
+      // Invalidate plan usage statistics
+      queryClient.invalidateQueries({ queryKey: ['payment-plans'] });
+    },
+    onError: (error, variables) => {
+      console.error('Plan-based PIX payment failed:', error);
+      console.error('Plan ID:', variables.planId);
+    }
+  });
+};
+
+/**
+ * Hook for creating Credit Card payments with plan-based pricing
+ * Automatically resolves promotional pricing and custom plan names
+ */
+export const useCreatePlanBasedCreditCardPayment = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: createPlanBasedCreditCardPayment,
+    onSuccess: (data, variables) => {
+      console.log('Plan-based credit card payment created:', data.id);
+      
+      // Invalidate payment-related queries
+      queryClient.invalidateQueries({ queryKey: ['payment-history'] });
+      queryClient.invalidateQueries({ queryKey: ['user-subscription'] });
+      
+      // Invalidate plan usage statistics
+      queryClient.invalidateQueries({ queryKey: ['payment-plans'] });
+    },
+    onError: (error, variables) => {
+      console.error('Plan-based credit card payment failed:', error);
+      console.error('Plan ID:', variables.planId);
     }
   });
 };

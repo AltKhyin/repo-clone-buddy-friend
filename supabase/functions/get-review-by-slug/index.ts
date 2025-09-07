@@ -141,12 +141,23 @@ serve(async req => {
     const authHeader = req.headers.get('Authorization');
     let userId = null;
     let userSubscriptionTier = 'free';
+    let userRole = null;
 
     if (authHeader) {
       try {
         const user = await authenticateUser(supabase, authHeader);
         userId = user.id;
         userSubscriptionTier = user.user_metadata?.subscription_tier || 'free';
+        
+        // Extract role from JWT claims for admin bypass
+        try {
+          const token = authHeader.replace('Bearer ', '');
+          const payload = JSON.parse(atob(token.split('.')[1]));
+          userRole = payload.app_metadata?.role || null;
+          console.log(`🔑 ACCESS CONTROL: User ${userId} - Role: ${userRole}, Tier: ${userSubscriptionTier}`);
+        } catch (jwtError) {
+          console.warn('Failed to decode JWT for role extraction:', jwtError);
+        }
       } catch (authError) {
         // Continue as anonymous user for public reviews
         console.log('Authentication failed, continuing as anonymous:', authError.message);
@@ -312,22 +323,55 @@ serve(async req => {
 
     console.log(`✅ EDGE FUNCTION: Found review ${review.id}: "${review.title}"`);
 
-    // STEP 6: Access Control Validation
-    const isPublic = review.access_level === 'public';
-    const isFreeUser = userId && review.access_level === 'free';
-    const isPaying =
-      userId && userSubscriptionTier === 'paying' && review.access_level === 'premium';
-    const hasAccess = isPublic || isFreeUser || isPaying;
-
-    if (!hasAccess) {
-      if (review.access_level === 'free') {
-        throw new Error(`ACCESS_DENIED: This content requires a free account to access`);
-      } else if (review.access_level === 'premium') {
-        throw new Error(`ACCESS_DENIED: This content requires a premium subscription to access`);
-      } else {
-        throw new Error(`ACCESS_DENIED: This content requires ${review.access_level} access level`);
+    // STEP 6: Hierarchical Access Control Validation
+    console.log(`🔒 ACCESS CONTROL: Checking access for review "${review.title}" (level: ${review.access_level})`);
+    
+    // Admin bypass - admins can access ALL content regardless of access_level
+    const isAdmin = userRole === 'admin' || userRole === 'editor';
+    
+    // Author bypass - authors can always see their own content
+    const isAuthor = userId && userId === review.author_id;
+    
+    // Hierarchical tier access checking
+    let hasAccess = false;
+    
+    if (isAdmin) {
+      hasAccess = true;
+      console.log(`✅ ACCESS CONTROL: Admin access granted (role: ${userRole})`);
+    } else if (isAuthor) {
+      hasAccess = true;
+      console.log(`✅ ACCESS CONTROL: Author access granted`);
+    } else {
+      // Hierarchical tier system: premium ⊃ free ⊃ public
+      switch (review.access_level) {
+        case 'public':
+          hasAccess = true; // Public content accessible to everyone
+          console.log(`✅ ACCESS CONTROL: Public content access granted`);
+          break;
+          
+        case 'free':
+          hasAccess = userId !== null; // Any authenticated user can access free content
+          console.log(`${hasAccess ? '✅' : '❌'} ACCESS CONTROL: Free content - authenticated user: ${!!userId}`);
+          break;
+          
+        case 'premium':
+          hasAccess = userId && userSubscriptionTier === 'premium';
+          console.log(`${hasAccess ? '✅' : '❌'} ACCESS CONTROL: Premium content - user tier: ${userSubscriptionTier}`);
+          break;
+          
+        default:
+          hasAccess = false;
+          console.log(`❌ ACCESS CONTROL: Unknown access level: ${review.access_level}`);
       }
     }
+
+    if (!hasAccess) {
+      const errorMessage = `ACCESS_DENIED: This content requires ${review.access_level === 'free' ? 'a free account' : review.access_level === 'premium' ? 'a premium subscription' : review.access_level + ' access'} to access`;
+      console.log(`🚫 ACCESS CONTROL: ${errorMessage}`);
+      throw new Error(errorMessage);
+    }
+    
+    console.log(`🎯 ACCESS CONTROL: Access granted for review "${review.title}"`);
 
     // STEP 7: Fetch Tags (Non-blocking)
     let tags: string[] = [];

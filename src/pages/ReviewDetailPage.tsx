@@ -96,21 +96,47 @@ const ReviewDetailPageContent = () => {
       );
     }
 
-    if (error?.message?.includes('Access denied')) {
+    if (error?.message?.includes('Access denied') || error?.message?.includes('ACCESS_DENIED')) {
+      // Extract required tier from error message or default to premium
+      let requiredTier = 'premium';
+      let tierMessage = 'uma assinatura premium';
+      let actionText = 'Ver planos';
+      let actionHandler = () => window.location.href = '/perfil';
+      
+      if (error?.message?.includes('free account')) {
+        requiredTier = 'free';
+        tierMessage = 'uma conta gratuita';
+        actionText = 'Criar conta gratuita';
+        actionHandler = () => window.location.href = '/registrar';
+      } else if (error?.message?.includes('premium subscription')) {
+        requiredTier = 'premium';
+        tierMessage = 'uma assinatura premium';
+        actionText = 'Ver planos premium';
+        actionHandler = () => window.location.href = '/perfil';
+      }
+      
       return (
         <div className="min-h-screen bg-background flex items-center justify-center">
           <div className="text-center space-y-4 max-w-md mx-auto p-6">
             <Lock className="h-16 w-16 text-muted-foreground mx-auto" />
             <h1 className="text-2xl font-bold text-foreground font-serif">Acesso restrito</h1>
             <p className="text-muted-foreground">
-              Este conteúdo requer uma assinatura premium para ser acessado.
+              Este conteúdo requer {tierMessage} para ser acessado.
             </p>
-            <button
-              onClick={() => window.location.href = '/perfil'}
-              className="bg-primary text-primary-foreground px-6 py-2 rounded-md font-semibold hover:bg-primary/90 transition-colors"
-            >
-              Ver planos
-            </button>
+            <div className="space-y-2">
+              <button
+                onClick={actionHandler}
+                className="w-full bg-primary text-primary-foreground px-6 py-2 rounded-md font-semibold hover:bg-primary/90 transition-colors"
+              >
+                {actionText}
+              </button>
+              <button
+                onClick={() => window.history.back()}
+                className="w-full bg-secondary text-secondary-foreground px-6 py-2 rounded-md font-semibold hover:bg-secondary/90 transition-colors"
+              >
+                Voltar
+              </button>
+            </div>
           </div>
         </div>
       );
