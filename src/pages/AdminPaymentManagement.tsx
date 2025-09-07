@@ -9,12 +9,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { CreditCard, Link, Copy, Check, ToggleLeft, ToggleRight, Trash2, RefreshCw, Settings, ChevronDown, ChevronUp, Palette, Tag, Clock, Eye, Save } from 'lucide-react';
+import { CreditCard, Link, Copy, Check, ToggleLeft, ToggleRight, Trash2, RefreshCw, Settings, ChevronDown, ChevronUp, Clock, Eye, Save } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { Database } from '@/integrations/supabase/types';
 import { EnhancedPlanDisplay } from '@/components/payment/EnhancedPlanDisplay';
+import { PromotionalConfigurationSection } from '@/components/payment/PromotionalConfigurationSection';
 
 type PaymentPlan = Database['public']['Tables']['PaymentPlans']['Row'];
 type PaymentPlanInsert = Database['public']['Tables']['PaymentPlans']['Insert'];
@@ -510,14 +511,26 @@ export default function AdminPaymentManagement() {
     if (!promotionalConfigs[plan.id]) {
       const config = {
         isActive: false,
-        discountPercentage: 0,
-        originalPrice: plan.amount,
-        urgencyMessage: '',
-        promotionalBadge: '',
+        promotionValue: 0,
+        displayAsPercentage: false,
+        promotionalName: '',
         customMessage: '',
-        showSavingsAmount: true,
+        showDiscountAmount: false,
+        showSavingsAmount: false,
+        showCountdownTimer: false,
         expiresAt: '',
-        features: []
+        // Display customization (always available)
+        customName: '',
+        customDescription: '',
+        titleColor: '#111827',
+        descriptionColor: '#6B7280',
+        borderColor: '#E5E7EB',
+        backgroundColor: '',
+        // Promotional features (discount-specific)
+        timerColor: '#374151',
+        discountTagBackgroundColor: '#111827',
+        discountTagTextColor: '#FFFFFF',
+        savingsColor: '#059669'
       };
       setPromotionalConfigs(prev => ({ ...prev, [plan.id]: config }));
       
@@ -536,14 +549,11 @@ export default function AdminPaymentManagement() {
 
     if (!displayConfigs[plan.id]) {
       const config = {
-        layout: 'default',
-        theme: 'default',
-        showBadge: true,
-        borderStyle: 'default',
-        backgroundColor: '',
-        textColor: '',
-        accentColor: '',
-        icon: ''
+        showCustomName: false,
+        showCustomDescription: false,
+        showDiscountAmount: false,
+        showSavingsAmount: false,
+        showCountdownTimer: false
       };
       setDisplayConfigs(prev => ({ ...prev, [plan.id]: config }));
       
@@ -589,16 +599,16 @@ export default function AdminPaymentManagement() {
 
   return (
     <div className="container mx-auto p-6 max-w-7xl">
-        {/* Header Section */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight">Gestão de Pagamentos</h1>
-              <p className="text-muted-foreground mt-1">
-                Crie, gerencie e monitore planos de pagamento personalizados
-              </p>
-            </div>
-            <div className="text-sm text-muted-foreground">
+      {/* Header Section */}
+      <div className="mb-8">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Gestão de Pagamentos</h1>
+            <p className="text-muted-foreground mt-1">
+              Crie, gerencie e monitore planos de pagamento personalizados
+            </p>
+          </div>
+          <div className="text-sm text-muted-foreground">
               {plans.length > 0 && (
                 <div className="text-right">
                   <div>{plans.filter(p => p.is_active).length} planos ativos</div>
@@ -1218,288 +1228,20 @@ export default function AdminPaymentManagement() {
                         </div>
                         
                         {/* Promotional Configuration Section */}
-                        {(() => {
-                          initPromotionalConfig(plan);
-                          const isExpanded = expandedPromotionalPlan === plan.id;
-                          const promoConfig = promotionalConfigs[plan.id] || {};
-                          const displayConfig = displayConfigs[plan.id] || {};
-                          
-                          return (
-                            <div className="border border-gray-200 rounded-lg">
-                              {/* Header */}
-                              <button
-                                onClick={() => setExpandedPromotionalPlan(isExpanded ? null : plan.id)}
-                                className="w-full flex items-center justify-between p-3 hover:bg-gray-50 transition-colors"
-                              >
-                                <div className="flex items-center gap-2">
-                                  <Settings className="h-4 w-4 text-gray-500" />
-                                  <span className="text-sm font-medium text-gray-700">
-                                    Configuração Promocional
-                                  </span>
-                                  {promoConfig.isActive && (
-                                    <Badge variant="secondary" className="text-xs bg-blue-50 text-blue-600">
-                                      Ativa
-                                    </Badge>
-                                  )}
-                                </div>
-                                {isExpanded ? (
-                                  <ChevronUp className="h-4 w-4 text-gray-400" />
-                                ) : (
-                                  <ChevronDown className="h-4 w-4 text-gray-400" />
-                                )}
-                              </button>
-
-                              {/* Expanded Content */}
-                              {isExpanded && (
-                                <div className="border-t border-gray-200 p-4 space-y-4 bg-gray-50">
-                                  {/* Main Toggle */}
-                                  <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-2">
-                                      <Label className="text-sm font-medium">Ativar Promoção</Label>
-                                      <Switch
-                                        checked={promoConfig.isActive || false}
-                                        onCheckedChange={(checked) => 
-                                          updatePromotionalConfig(plan.id, 'isActive', checked)
-                                        }
-                                      />
-                                    </div>
-                                  </div>
-
-                                  {promoConfig.isActive && (
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                      {/* Left Column - Promotional Settings */}
-                                      <div className="space-y-3">
-                                        <div className="flex items-center gap-2 text-blue-600 mb-2">
-                                          <Tag className="h-4 w-4" />
-                                          <span className="text-sm font-medium">Configurações de Desconto</span>
-                                        </div>
-
-                                        {/* Discount Percentage */}
-                                        <div className="space-y-1">
-                                          <Label className="text-xs text-gray-600">Desconto (%)</Label>
-                                          <Input
-                                            type="number"
-                                            placeholder="0"
-                                            min="0"
-                                            max="100"
-                                            value={promoConfig.discountPercentage || ''}
-                                            onChange={(e) => 
-                                              updatePromotionalConfig(plan.id, 'discountPercentage', Number(e.target.value))
-                                            }
-                                            className="text-sm"
-                                          />
-                                        </div>
-
-                                        {/* Promotional Badge */}
-                                        <div className="space-y-1">
-                                          <Label className="text-xs text-gray-600">Badge Promocional</Label>
-                                          <Input
-                                            placeholder="ex: OFERTA ESPECIAL"
-                                            value={promoConfig.promotionalBadge || ''}
-                                            onChange={(e) => 
-                                              updatePromotionalConfig(plan.id, 'promotionalBadge', e.target.value)
-                                            }
-                                            className="text-sm"
-                                          />
-                                        </div>
-
-                                        {/* Custom Message */}
-                                        <div className="space-y-1">
-                                          <Label className="text-xs text-gray-600">Mensagem Personalizada</Label>
-                                          <Textarea
-                                            placeholder="ex: Por tempo limitado!"
-                                            value={promoConfig.customMessage || ''}
-                                            onChange={(e) => 
-                                              updatePromotionalConfig(plan.id, 'customMessage', e.target.value)
-                                            }
-                                            className="text-sm min-h-[60px] resize-none"
-                                          />
-                                        </div>
-
-                                        {/* Urgency Message */}
-                                        <div className="space-y-1">
-                                          <Label className="text-xs text-gray-600">Mensagem de Urgência</Label>
-                                          <Input
-                                            placeholder="ex: Oferta válida até..."
-                                            value={promoConfig.urgencyMessage || ''}
-                                            onChange={(e) => 
-                                              updatePromotionalConfig(plan.id, 'urgencyMessage', e.target.value)
-                                            }
-                                            className="text-sm"
-                                          />
-                                        </div>
-
-                                        {/* Expiration Date */}
-                                        <div className="space-y-1">
-                                          <Label className="text-xs text-gray-600 flex items-center gap-1">
-                                            <Clock className="h-3 w-3" />
-                                            Data de Expiração
-                                          </Label>
-                                          <Input
-                                            type="datetime-local"
-                                            value={promoConfig.expiresAt || ''}
-                                            onChange={(e) => 
-                                              updatePromotionalConfig(plan.id, 'expiresAt', e.target.value)
-                                            }
-                                            className="text-sm"
-                                          />
-                                        </div>
-
-                                        {/* Show Savings Toggle */}
-                                        <div className="flex items-center gap-2">
-                                          <Switch
-                                            checked={promoConfig.showSavingsAmount !== false}
-                                            onCheckedChange={(checked) => 
-                                              updatePromotionalConfig(plan.id, 'showSavingsAmount', checked)
-                                            }
-                                          />
-                                          <Label className="text-xs text-gray-600">Mostrar valor economizado</Label>
-                                        </div>
-                                      </div>
-
-                                      {/* Right Column - Display Settings */}
-                                      <div className="space-y-3">
-                                        <div className="flex items-center gap-2 text-purple-600 mb-2">
-                                          <Palette className="h-4 w-4" />
-                                          <span className="text-sm font-medium">Configurações Visuais</span>
-                                        </div>
-
-                                        {/* Layout */}
-                                        <div className="space-y-1">
-                                          <Label className="text-xs text-gray-600">Layout</Label>
-                                          <Select
-                                            value={displayConfig.layout || 'default'}
-                                            onValueChange={(value) => 
-                                              updateDisplayConfig(plan.id, 'layout', value)
-                                            }
-                                          >
-                                            <SelectTrigger className="text-sm">
-                                              <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                              <SelectItem value="default">Padrão</SelectItem>
-                                              <SelectItem value="compact">Compacto</SelectItem>
-                                              <SelectItem value="featured">Destacado</SelectItem>
-                                            </SelectContent>
-                                          </Select>
-                                        </div>
-
-                                        {/* Theme */}
-                                        <div className="space-y-1">
-                                          <Label className="text-xs text-gray-600">Tema</Label>
-                                          <Select
-                                            value={displayConfig.theme || 'default'}
-                                            onValueChange={(value) => 
-                                              updateDisplayConfig(plan.id, 'theme', value)
-                                            }
-                                          >
-                                            <SelectTrigger className="text-sm">
-                                              <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                              <SelectItem value="default">Padrão</SelectItem>
-                                              <SelectItem value="promotional">Promocional</SelectItem>
-                                              <SelectItem value="premium">Premium</SelectItem>
-                                            </SelectContent>
-                                          </Select>
-                                        </div>
-
-                                        {/* Border Style */}
-                                        <div className="space-y-1">
-                                          <Label className="text-xs text-gray-600">Estilo da Borda</Label>
-                                          <Select
-                                            value={displayConfig.borderStyle || 'default'}
-                                            onValueChange={(value) => 
-                                              updateDisplayConfig(plan.id, 'borderStyle', value)
-                                            }
-                                          >
-                                            <SelectTrigger className="text-sm">
-                                              <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                              <SelectItem value="default">Padrão</SelectItem>
-                                              <SelectItem value="dashed">Tracejado</SelectItem>
-                                              <SelectItem value="double">Duplo</SelectItem>
-                                              <SelectItem value="gradient">Gradiente</SelectItem>
-                                            </SelectContent>
-                                          </Select>
-                                        </div>
-
-                                        {/* Icon */}
-                                        <div className="space-y-1">
-                                          <Label className="text-xs text-gray-600">Ícone</Label>
-                                          <Select
-                                            value={displayConfig.icon || ''}
-                                            onValueChange={(value) => 
-                                              updateDisplayConfig(plan.id, 'icon', value)
-                                            }
-                                          >
-                                            <SelectTrigger className="text-sm">
-                                              <SelectValue placeholder="Selecionar ícone" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                              <SelectItem value="">Nenhum</SelectItem>
-                                              <SelectItem value="star">⭐ Estrela</SelectItem>
-                                              <SelectItem value="zap">⚡ Raio</SelectItem>
-                                              <SelectItem value="gift">🎁 Presente</SelectItem>
-                                              <SelectItem value="trending">📈 Tendência</SelectItem>
-                                              <SelectItem value="clock">🕒 Relógio</SelectItem>
-                                            </SelectContent>
-                                          </Select>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  )}
-
-                                  {/* Action Buttons */}
-                                  <div className="flex items-center justify-between pt-3 border-t border-gray-200">
-                                    <div className="flex items-center gap-2">
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => togglePreview(plan.id)}
-                                        className="text-xs"
-                                      >
-                                        <Eye className="h-3 w-3 mr-1" />
-                                        {showPreview[plan.id] ? 'Ocultar Preview' : 'Ver Preview'}
-                                      </Button>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                      <Button
-                                        variant="default"
-                                        size="sm"
-                                        onClick={() => savePromotionalConfig(plan.id)}
-                                        disabled={updatePromotionalConfigMutation.isPending}
-                                        className="text-xs"
-                                      >
-                                        <Save className="h-3 w-3 mr-1" />
-                                        {updatePromotionalConfigMutation.isPending ? 'Salvando...' : 'Salvar'}
-                                      </Button>
-                                    </div>
-                                  </div>
-
-                                  {/* Preview Section */}
-                                  {showPreview[plan.id] && (
-                                    <div className="mt-4 p-3 bg-white border border-gray-200 rounded-lg">
-                                      <div className="text-xs text-gray-600 mb-2 flex items-center gap-1">
-                                        <Eye className="h-3 w-3" />
-                                        Preview do Plano:
-                                      </div>
-                                      <EnhancedPlanDisplay 
-                                        plan={{
-                                          ...plan,
-                                          promotional_config: promotionalConfigs[plan.id],
-                                          display_config: displayConfigs[plan.id]
-                                        }}
-                                        className="max-w-md"
-                                      />
-                                    </div>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })()}
+                        <PromotionalConfigurationSection 
+                          plan={plan}
+                          expandedPromotionalPlan={expandedPromotionalPlan}
+                          setExpandedPromotionalPlan={setExpandedPromotionalPlan}
+                          promotionalConfigs={promotionalConfigs}
+                          displayConfigs={displayConfigs}
+                          showPreview={showPreview}
+                          initPromotionalConfig={initPromotionalConfig}
+                          updatePromotionalConfig={updatePromotionalConfig}
+                          updateDisplayConfig={updateDisplayConfig}
+                          savePromotionalConfig={savePromotionalConfig}
+                          togglePreview={togglePreview}
+                          updatePromotionalConfigMutation={updatePromotionalConfigMutation}
+                        />
                         
                         {/* Additional Info */}
                         <div className="flex items-center justify-between text-xs text-muted-foreground">

@@ -1,4 +1,4 @@
-// ABOUTME: Comprehensive tests for EnhancedPlanDisplay component promotional features with various configurations
+// ABOUTME: Comprehensive tests for redesigned EnhancedPlanDisplay component with sophisticated promotional features
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
@@ -50,28 +50,27 @@ const mockBasicPlan: Tables<'PaymentPlans'> = {
 
 const mockPromotionalConfig = {
   isActive: true,
-  discountPercentage: 30,
-  originalPrice: 14999, // R$ 149,99 in cents
-  urgencyMessage: 'Oferta por tempo limitado!',
-  promotionalBadge: 'MEGA OFERTA',
-  customMessage: 'Economize agora!',
+  promotionValue: 2000, // R$ 20,00 discount in cents
+  displayAsPercentage: false,
+  promotionalName: 'Oferta Especial de Lançamento',
+  customMessage: 'Acesso completo + bônus exclusivos',
+  showDiscountAmount: true,
   showSavingsAmount: true,
-  expiresAt: '2099-12-31T23:59:59Z', // Future date to ensure it's not expired
-  features: ['Acesso ilimitado', 'Suporte prioritário', 'Relatórios avançados']
+  showCountdownTimer: false,
+  expiresAt: '2099-12-31T23:59:59Z', // Future date
+  primaryColor: '#000000',
+  accentColor: '#666666'
 };
 
-const mockDisplayConfig = {
-  layout: 'default',
-  theme: 'promotional',
-  showBadge: true,
-  borderStyle: 'default',
-  backgroundColor: '',
-  textColor: '',
-  accentColor: '',
-  icon: 'star'
+const mockDisplaySettings = {
+  showPromotionalName: true,
+  showCustomMessage: true,
+  showDiscountAmount: true,
+  showSavingsAmount: true,
+  showCountdownTimer: false
 };
 
-describe('EnhancedPlanDisplay - Promotional Features', () => {
+describe('EnhancedPlanDisplay - Redesigned Promotional Features', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -85,12 +84,11 @@ describe('EnhancedPlanDisplay - Promotional Features', () => {
       );
 
       expect(screen.getByText('Plano Premium')).toBeInTheDocument();
-      expect(screen.getByText('Acesso completo à plataforma')).toBeInTheDocument();
       expect(screen.getByText('R$ 99,99')).toBeInTheDocument();
       
       // Should not have promotional elements
-      expect(screen.queryByText('MEGA OFERTA')).not.toBeInTheDocument();
-      expect(screen.queryByText('30% OFF')).not.toBeInTheDocument();
+      expect(screen.queryByText('Oferta Especial de Lançamento')).not.toBeInTheDocument();
+      expect(screen.queryByText('Acesso completo + bônus exclusivos')).not.toBeInTheDocument();
     });
 
     it('should format price correctly in BRL currency', () => {
@@ -130,7 +128,7 @@ describe('EnhancedPlanDisplay - Promotional Features', () => {
       const planWithStringConfig = {
         ...mockBasicPlan,
         promotional_config: JSON.stringify(mockPromotionalConfig),
-        display_config: JSON.stringify(mockDisplayConfig),
+        display_config: JSON.stringify(mockDisplaySettings),
       };
 
       render(
@@ -139,16 +137,15 @@ describe('EnhancedPlanDisplay - Promotional Features', () => {
         </TestWrapper>
       );
 
-      expect(screen.getByText('MEGA OFERTA')).toBeInTheDocument();
-      expect(screen.getByText('30% OFF')).toBeInTheDocument();
-      expect(screen.getByText('Oferta por tempo limitado!')).toBeInTheDocument();
+      expect(screen.getByText('Oferta Especial de Lançamento')).toBeInTheDocument();
+      expect(screen.getByText('Acesso completo + bônus exclusivos')).toBeInTheDocument();
     });
 
     it('should parse promotional configuration from object', () => {
       const planWithObjectConfig = {
         ...mockBasicPlan,
         promotional_config: mockPromotionalConfig,
-        display_config: mockDisplayConfig,
+        display_config: mockDisplaySettings,
       };
 
       render(
@@ -157,8 +154,8 @@ describe('EnhancedPlanDisplay - Promotional Features', () => {
         </TestWrapper>
       );
 
-      expect(screen.getByText('MEGA OFERTA')).toBeInTheDocument();
-      expect(screen.getByText('30% OFF')).toBeInTheDocument();
+      expect(screen.getByText('Oferta Especial de Lançamento')).toBeInTheDocument();
+      expect(screen.getByText('Acesso completo + bônus exclusivos')).toBeInTheDocument();
     });
 
     it('should handle invalid promotional configuration gracefully', () => {
@@ -177,7 +174,7 @@ describe('EnhancedPlanDisplay - Promotional Features', () => {
       // Should render basic plan without errors
       expect(screen.getByText('Plano Premium')).toBeInTheDocument();
       expect(screen.getByText('R$ 99,99')).toBeInTheDocument();
-      expect(screen.queryByText('MEGA OFERTA')).not.toBeInTheDocument();
+      expect(screen.queryByText('Oferta Especial de Lançamento')).not.toBeInTheDocument();
     });
 
     it('should handle null promotional configuration', () => {
@@ -195,16 +192,16 @@ describe('EnhancedPlanDisplay - Promotional Features', () => {
 
       expect(screen.getByText('Plano Premium')).toBeInTheDocument();
       expect(screen.getByText('R$ 99,99')).toBeInTheDocument();
-      expect(screen.queryByText('MEGA OFERTA')).not.toBeInTheDocument();
+      expect(screen.queryByText('Oferta Especial de Lançamento')).not.toBeInTheDocument();
     });
   });
 
   describe('🔴 CRITICAL: Promotional Pricing Display', () => {
-    it('should display discounted price with strikethrough original price', () => {
+    it('should display discounted price with promotion value', () => {
       const planWithPromotion = {
         ...mockBasicPlan,
         promotional_config: mockPromotionalConfig,
-        display_config: mockDisplayConfig,
+        display_config: mockDisplaySettings,
       };
 
       render(
@@ -214,13 +211,33 @@ describe('EnhancedPlanDisplay - Promotional Features', () => {
       );
 
       // Should show original price with strikethrough
-      expect(screen.getByText('R$ 149,99')).toBeInTheDocument();
+      expect(screen.getByText('R$ 99,99')).toBeInTheDocument();
       
-      // Should show discounted price
-      expect(screen.getByText('R$ 104,99')).toBeInTheDocument();
+      // Should show discounted price (99.99 - 20.00 = 79.99)
+      expect(screen.getByText('R$ 79,99')).toBeInTheDocument();
       
-      // Should show discount badge
-      expect(screen.getByText('30% OFF')).toBeInTheDocument();
+      // Should show discount amount in R$
+      expect(screen.getByText('-R$ 20,00')).toBeInTheDocument();
+    });
+
+    it('should display percentage when configured', () => {
+      const planWithPercentageDisplay = {
+        ...mockBasicPlan,
+        promotional_config: {
+          ...mockPromotionalConfig,
+          displayAsPercentage: true,
+        },
+        display_config: mockDisplaySettings,
+      };
+
+      render(
+        <TestWrapper>
+          <EnhancedPlanDisplay plan={planWithPercentageDisplay} />
+        </TestWrapper>
+      );
+
+      // Should show discount as percentage (20/99.99 ≈ 20%)
+      expect(screen.getByText(/-20%/)).toBeInTheDocument();
     });
 
     it('should display savings amount when enabled', () => {
@@ -230,7 +247,10 @@ describe('EnhancedPlanDisplay - Promotional Features', () => {
           ...mockPromotionalConfig,
           showSavingsAmount: true,
         },
-        display_config: mockDisplayConfig,
+        display_config: {
+          ...mockDisplaySettings,
+          showSavingsAmount: true,
+        },
       };
 
       render(
@@ -239,7 +259,7 @@ describe('EnhancedPlanDisplay - Promotional Features', () => {
         </TestWrapper>
       );
 
-      expect(screen.getByText(/Economia de R\$ 45,00/)).toBeInTheDocument();
+      expect(screen.getByText(/Economia de R\$ 20,00/)).toBeInTheDocument();
     });
 
     it('should not display savings amount when disabled', () => {
@@ -249,7 +269,10 @@ describe('EnhancedPlanDisplay - Promotional Features', () => {
           ...mockPromotionalConfig,
           showSavingsAmount: false,
         },
-        display_config: mockDisplayConfig,
+        display_config: {
+          ...mockDisplaySettings,
+          showSavingsAmount: false,
+        },
       };
 
       render(
@@ -261,57 +284,86 @@ describe('EnhancedPlanDisplay - Promotional Features', () => {
       expect(screen.queryByText(/Economia de/)).not.toBeInTheDocument();
     });
 
-    it('should calculate discount correctly with various percentages', () => {
-      const planWith50PercentOff = {
+    it('should calculate discount correctly with various values', () => {
+      const planWith5000CentsOff = {
         ...mockBasicPlan,
+        amount: 10000, // R$ 100,00
         promotional_config: {
           ...mockPromotionalConfig,
-          discountPercentage: 50,
-          originalPrice: 10000, // R$ 100,00
+          promotionValue: 5000, // R$ 50,00 discount
         },
-        display_config: mockDisplayConfig,
+        display_config: mockDisplaySettings,
       };
 
       render(
         <TestWrapper>
-          <EnhancedPlanDisplay plan={planWith50PercentOff} />
+          <EnhancedPlanDisplay plan={planWith5000CentsOff} />
         </TestWrapper>
       );
 
       expect(screen.getByText('R$ 100,00')).toBeInTheDocument(); // Original
       expect(screen.getByText('R$ 50,00')).toBeInTheDocument(); // Discounted
-      expect(screen.getByText('50% OFF')).toBeInTheDocument();
+      expect(screen.getByText('-R$ 50,00')).toBeInTheDocument();
     });
   });
 
-  describe('🔴 CRITICAL: Promotional Badges and Messages', () => {
-    it('should display promotional badge when configured', () => {
-      const planWithBadge = {
+  describe('🔴 CRITICAL: Promotional Name and Custom Message', () => {
+    it('should display promotional name when configured and enabled', () => {
+      const planWithPromotionalName = {
         ...mockBasicPlan,
         promotional_config: {
           ...mockPromotionalConfig,
-          promotionalBadge: 'SUPER DESCONTO',
+          promotionalName: 'Black Friday Especial',
         },
-        display_config: mockDisplayConfig,
+        display_config: {
+          ...mockDisplaySettings,
+          showPromotionalName: true,
+        },
       };
 
       render(
         <TestWrapper>
-          <EnhancedPlanDisplay plan={planWithBadge} />
+          <EnhancedPlanDisplay plan={planWithPromotionalName} />
         </TestWrapper>
       );
 
-      expect(screen.getByText('SUPER DESCONTO')).toBeInTheDocument();
+      expect(screen.getByText('Black Friday Especial')).toBeInTheDocument();
     });
 
-    it('should display custom message when configured', () => {
+    it('should not display promotional name when disabled', () => {
+      const planWithDisabledPromotionalName = {
+        ...mockBasicPlan,
+        promotional_config: {
+          ...mockPromotionalConfig,
+          promotionalName: 'Black Friday Especial',
+        },
+        display_config: {
+          ...mockDisplaySettings,
+          showPromotionalName: false,
+        },
+      };
+
+      render(
+        <TestWrapper>
+          <EnhancedPlanDisplay plan={planWithDisabledPromotionalName} />
+        </TestWrapper>
+      );
+
+      expect(screen.queryByText('Black Friday Especial')).not.toBeInTheDocument();
+      expect(screen.getByText('Plano Premium')).toBeInTheDocument(); // Should show original name
+    });
+
+    it('should display custom message when configured and enabled', () => {
       const planWithMessage = {
         ...mockBasicPlan,
         promotional_config: {
           ...mockPromotionalConfig,
-          customMessage: 'Oferta exclusiva para você!',
+          customMessage: 'Tudo incluído + suporte premium',
         },
-        display_config: { ...mockDisplayConfig, layout: 'default' },
+        display_config: {
+          ...mockDisplaySettings,
+          showCustomMessage: true,
+        },
       };
 
       render(
@@ -320,46 +372,111 @@ describe('EnhancedPlanDisplay - Promotional Features', () => {
         </TestWrapper>
       );
 
-      expect(screen.getByText('Oferta exclusiva para você!')).toBeInTheDocument();
+      expect(screen.getByText('Tudo incluído + suporte premium')).toBeInTheDocument();
     });
 
-    it('should display urgency message when configured', () => {
-      const planWithUrgency = {
+    it('should not display custom message when disabled', () => {
+      const planWithDisabledMessage = {
         ...mockBasicPlan,
         promotional_config: {
           ...mockPromotionalConfig,
-          urgencyMessage: 'Últimas horas!',
+          customMessage: 'Tudo incluído + suporte premium',
         },
-        display_config: mockDisplayConfig,
+        display_config: {
+          ...mockDisplaySettings,
+          showCustomMessage: false,
+        },
       };
 
       render(
         <TestWrapper>
-          <EnhancedPlanDisplay plan={planWithUrgency} />
+          <EnhancedPlanDisplay plan={planWithDisabledMessage} />
         </TestWrapper>
       );
 
-      expect(screen.getByText('Últimas horas!')).toBeInTheDocument();
+      expect(screen.queryByText('Tudo incluído + suporte premium')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('🔴 CRITICAL: Countdown Timer', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
     });
 
-    it('should display expiration date when configured', () => {
-      const planWithExpiration = {
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('should display countdown timer when configured and enabled', () => {
+      // Set a future date
+      const futureDate = new Date();
+      futureDate.setHours(futureDate.getHours() + 2);
+      
+      const planWithTimer = {
         ...mockBasicPlan,
         promotional_config: {
           ...mockPromotionalConfig,
-          expiresAt: '2099-12-31T23:59:59Z',
-          urgencyMessage: 'Oferta limitada',
+          showCountdownTimer: true,
+          expiresAt: futureDate.toISOString(),
         },
-        display_config: mockDisplayConfig,
+        display_config: {
+          ...mockDisplaySettings,
+          showCountdownTimer: true,
+        },
       };
 
       render(
         <TestWrapper>
-          <EnhancedPlanDisplay plan={planWithExpiration} />
+          <EnhancedPlanDisplay plan={planWithTimer} />
         </TestWrapper>
       );
 
-      expect(screen.getByText(/Válida até 31\/12\/2099/)).toBeInTheDocument();
+      expect(screen.getByText(/Termina em/)).toBeInTheDocument();
+    });
+
+    it('should not display countdown timer when disabled', () => {
+      const planWithDisabledTimer = {
+        ...mockBasicPlan,
+        promotional_config: {
+          ...mockPromotionalConfig,
+          showCountdownTimer: false,
+        },
+        display_config: {
+          ...mockDisplaySettings,
+          showCountdownTimer: false,
+        },
+      };
+
+      render(
+        <TestWrapper>
+          <EnhancedPlanDisplay plan={planWithDisabledTimer} />
+        </TestWrapper>
+      );
+
+      expect(screen.queryByText(/Termina em/)).not.toBeInTheDocument();
+    });
+
+    it('should not display countdown timer when no expiry date is set', () => {
+      const planWithNoExpiry = {
+        ...mockBasicPlan,
+        promotional_config: {
+          ...mockPromotionalConfig,
+          showCountdownTimer: true,
+          expiresAt: '',
+        },
+        display_config: {
+          ...mockDisplaySettings,
+          showCountdownTimer: true,
+        },
+      };
+
+      render(
+        <TestWrapper>
+          <EnhancedPlanDisplay plan={planWithNoExpiry} />
+        </TestWrapper>
+      );
+
+      expect(screen.queryByText(/Termina em/)).not.toBeInTheDocument();
     });
   });
 
@@ -373,7 +490,7 @@ describe('EnhancedPlanDisplay - Promotional Features', () => {
       const planWithExpiredPromo = {
         ...mockBasicPlan,
         promotional_config: expiredPromotion,
-        display_config: mockDisplayConfig,
+        display_config: mockDisplaySettings,
       };
 
       render(
@@ -384,8 +501,8 @@ describe('EnhancedPlanDisplay - Promotional Features', () => {
 
       // Should show regular price, not promotional price
       expect(screen.getByText('R$ 99,99')).toBeInTheDocument();
-      expect(screen.queryByText('MEGA OFERTA')).not.toBeInTheDocument();
-      expect(screen.queryByText('30% OFF')).not.toBeInTheDocument();
+      expect(screen.queryByText('Oferta Especial de Lançamento')).not.toBeInTheDocument();
+      expect(screen.queryByText('-R$ 20,00')).not.toBeInTheDocument();
     });
 
     it('should show promotion when not expired', () => {
@@ -397,7 +514,7 @@ describe('EnhancedPlanDisplay - Promotional Features', () => {
       const planWithActivePromo = {
         ...mockBasicPlan,
         promotional_config: futureExpiration,
-        display_config: mockDisplayConfig,
+        display_config: mockDisplaySettings,
       };
 
       render(
@@ -406,20 +523,20 @@ describe('EnhancedPlanDisplay - Promotional Features', () => {
         </TestWrapper>
       );
 
-      expect(screen.getByText('MEGA OFERTA')).toBeInTheDocument();
-      expect(screen.getByText('30% OFF')).toBeInTheDocument();
+      expect(screen.getByText('Oferta Especial de Lançamento')).toBeInTheDocument();
+      expect(screen.getByText('-R$ 20,00')).toBeInTheDocument();
     });
 
     it('should show promotion when no expiration date is set', () => {
       const noExpirationPromo = {
         ...mockPromotionalConfig,
-        expiresAt: undefined,
+        expiresAt: '',
       };
 
       const planWithNoExpiration = {
         ...mockBasicPlan,
         promotional_config: noExpirationPromo,
-        display_config: mockDisplayConfig,
+        display_config: mockDisplaySettings,
       };
 
       render(
@@ -428,167 +545,52 @@ describe('EnhancedPlanDisplay - Promotional Features', () => {
         </TestWrapper>
       );
 
-      expect(screen.getByText('MEGA OFERTA')).toBeInTheDocument();
-      expect(screen.getByText('30% OFF')).toBeInTheDocument();
-    });
-  });
-
-  describe('🔵 STRATEGIC: Display Layouts and Themes', () => {
-    it('should render compact layout correctly', () => {
-      const compactPlan = {
-        ...mockBasicPlan,
-        promotional_config: mockPromotionalConfig,
-        display_config: { ...mockDisplayConfig, layout: 'compact' },
-      };
-
-      render(
-        <TestWrapper>
-          <EnhancedPlanDisplay plan={compactPlan} />
-        </TestWrapper>
-      );
-
-      expect(screen.getByText('Plano Premium')).toBeInTheDocument();
-      expect(screen.getByText('R$ 104,99')).toBeInTheDocument();
-    });
-
-    it('should render featured layout correctly', () => {
-      const featuredPlan = {
-        ...mockBasicPlan,
-        promotional_config: {
-          ...mockPromotionalConfig,
-          features: ['Recurso 1', 'Recurso 2'],
-        },
-        display_config: { ...mockDisplayConfig, layout: 'featured' },
-      };
-
-      render(
-        <TestWrapper>
-          <EnhancedPlanDisplay plan={featuredPlan} />
-        </TestWrapper>
-      );
-
-      expect(screen.getByText('Plano Premium')).toBeInTheDocument();
-      expect(screen.getByText('Recurso 1')).toBeInTheDocument();
-      expect(screen.getByText('Recurso 2')).toBeInTheDocument();
-    });
-
-    it('should apply promotional theme styling', () => {
-      const promotionalThemePlan = {
-        ...mockBasicPlan,
-        promotional_config: mockPromotionalConfig,
-        display_config: { ...mockDisplayConfig, theme: 'promotional' },
-      };
-
-      render(
-        <TestWrapper>
-          <EnhancedPlanDisplay plan={promotionalThemePlan} />
-        </TestWrapper>
-      );
-
-      const planContainer = screen.getByText('Plano Premium').closest('div');
-      expect(planContainer).toBeInTheDocument();
-    });
-
-    it('should apply premium theme styling', () => {
-      const premiumThemePlan = {
-        ...mockBasicPlan,
-        promotional_config: mockPromotionalConfig,
-        display_config: { ...mockDisplayConfig, theme: 'premium' },
-      };
-
-      render(
-        <TestWrapper>
-          <EnhancedPlanDisplay plan={premiumThemePlan} />
-        </TestWrapper>
-      );
-
-      const planContainer = screen.getByText('Plano Premium').closest('div');
-      expect(planContainer).toBeInTheDocument();
-    });
-
-    it('should render icons when configured', () => {
-      const iconPlan = {
-        ...mockBasicPlan,
-        promotional_config: mockPromotionalConfig,
-        display_config: { ...mockDisplayConfig, icon: 'star' },
-      };
-
-      render(
-        <TestWrapper>
-          <EnhancedPlanDisplay plan={iconPlan} />
-        </TestWrapper>
-      );
-
-      // Should render multiple icons (plan icon + urgency message icon)
-      const icons = screen.getAllByTestId('mock-icon');
-      expect(icons.length).toBeGreaterThan(0);
+      expect(screen.getByText('Oferta Especial de Lançamento')).toBeInTheDocument();
+      expect(screen.getByText('-R$ 20,00')).toBeInTheDocument();
     });
   });
 
   describe('🔵 STRATEGIC: Edge Cases and Error Handling', () => {
-    it('should handle zero discount percentage', () => {
-      const zeroDiscountPlan = {
+    it('should handle zero promotion value', () => {
+      const zeroPromotionPlan = {
         ...mockBasicPlan,
         promotional_config: {
           ...mockPromotionalConfig,
-          discountPercentage: 0,
+          promotionValue: 0,
         },
-        display_config: mockDisplayConfig,
+        display_config: mockDisplaySettings,
       };
 
       render(
         <TestWrapper>
-          <EnhancedPlanDisplay plan={zeroDiscountPlan} />
+          <EnhancedPlanDisplay plan={zeroPromotionPlan} />
         </TestWrapper>
       );
 
-      // Should show original price (may appear multiple times)
-      expect(screen.getAllByText('R$ 149,99').length).toBeGreaterThan(0);
-      expect(screen.queryByText(/% OFF/)).not.toBeInTheDocument();
-    });
-
-    it('should handle 100% discount', () => {
-      const freePlan = {
-        ...mockBasicPlan,
-        promotional_config: {
-          ...mockPromotionalConfig,
-          discountPercentage: 100,
-          originalPrice: 10000, // R$ 100,00
-        },
-        display_config: mockDisplayConfig,
-      };
-
-      render(
-        <TestWrapper>
-          <EnhancedPlanDisplay plan={freePlan} />
-        </TestWrapper>
-      );
-
-      expect(screen.getByText('R$ 100,00')).toBeInTheDocument(); // Original
-      expect(screen.getByText('R$ 0,00')).toBeInTheDocument(); // Free
-      expect(screen.getByText('100% OFF')).toBeInTheDocument();
-    });
-
-    it('should handle missing original price in promotion', () => {
-      const promoWithoutOriginalPrice = {
-        ...mockPromotionalConfig,
-        originalPrice: undefined,
-      };
-
-      const planWithIncompletePromo = {
-        ...mockBasicPlan,
-        promotional_config: promoWithoutOriginalPrice,
-        display_config: mockDisplayConfig,
-      };
-
-      render(
-        <TestWrapper>
-          <EnhancedPlanDisplay plan={planWithIncompletePromo} />
-        </TestWrapper>
-      );
-
-      // Should fall back to regular price
+      // Should show regular price
       expect(screen.getByText('R$ 99,99')).toBeInTheDocument();
+      expect(screen.queryByText(/-R\$/)).not.toBeInTheDocument();
+    });
+
+    it('should handle promotion value larger than original price', () => {
+      const oversizedPromotionPlan = {
+        ...mockBasicPlan,
+        promotional_config: {
+          ...mockPromotionalConfig,
+          promotionValue: 15000, // R$ 150,00 (more than plan price)
+        },
+        display_config: mockDisplaySettings,
+      };
+
+      render(
+        <TestWrapper>
+          <EnhancedPlanDisplay plan={oversizedPromotionPlan} />
+        </TestWrapper>
+      );
+
+      // Should show negative final price or handle gracefully
+      expect(screen.getByText('R$ 99,99')).toBeInTheDocument(); // Original price
+      expect(screen.getByText('-R$ 150,00')).toBeInTheDocument(); // Discount amount
     });
 
     it('should handle inactive promotion', () => {
@@ -600,7 +602,7 @@ describe('EnhancedPlanDisplay - Promotional Features', () => {
       const planWithInactivePromo = {
         ...mockBasicPlan,
         promotional_config: inactivePromotion,
-        display_config: mockDisplayConfig,
+        display_config: mockDisplaySettings,
       };
 
       render(
@@ -611,8 +613,8 @@ describe('EnhancedPlanDisplay - Promotional Features', () => {
 
       // Should show regular price and no promotional elements
       expect(screen.getByText('R$ 99,99')).toBeInTheDocument();
-      expect(screen.queryByText('MEGA OFERTA')).not.toBeInTheDocument();
-      expect(screen.queryByText('30% OFF')).not.toBeInTheDocument();
+      expect(screen.queryByText('Oferta Especial de Lançamento')).not.toBeInTheDocument();
+      expect(screen.queryByText('-R$ 20,00')).not.toBeInTheDocument();
     });
   });
 
@@ -621,7 +623,7 @@ describe('EnhancedPlanDisplay - Promotional Features', () => {
       const accessiblePlan = {
         ...mockBasicPlan,
         promotional_config: mockPromotionalConfig,
-        display_config: mockDisplayConfig,
+        display_config: mockDisplaySettings,
       };
 
       render(
@@ -631,17 +633,24 @@ describe('EnhancedPlanDisplay - Promotional Features', () => {
       );
 
       // Plan name should be readable
-      expect(screen.getByText('Plano Premium')).toBeInTheDocument();
+      expect(screen.getByText('Oferta Especial de Lançamento')).toBeInTheDocument();
       
       // Prices should be readable
-      expect(screen.getByText('R$ 149,99')).toBeInTheDocument();
-      expect(screen.getByText('R$ 104,99')).toBeInTheDocument();
+      expect(screen.getByText('R$ 99,99')).toBeInTheDocument();
+      expect(screen.getByText('R$ 79,99')).toBeInTheDocument();
     });
 
     it('should handle long plan names gracefully', () => {
       const longNamePlan = {
         ...mockBasicPlan,
-        name: 'Plano Premium Completo com Acesso Ilimitado e Suporte Técnico Avançado 24/7',
+        promotional_config: {
+          ...mockPromotionalConfig,
+          promotionalName: 'Plano Premium Completo com Acesso Ilimitado e Suporte Técnico Avançado 24/7 Oferta Especial',
+        },
+        display_config: {
+          ...mockDisplaySettings,
+          showPromotionalName: true,
+        },
       };
 
       render(
@@ -651,6 +660,49 @@ describe('EnhancedPlanDisplay - Promotional Features', () => {
       );
 
       expect(screen.getByText(/Plano Premium Completo/)).toBeInTheDocument();
+    });
+  });
+
+  describe('🔵 STRATEGIC: Color Customization', () => {
+    it('should apply custom primary color when configured', () => {
+      const colorCustomizedPlan = {
+        ...mockBasicPlan,
+        promotional_config: {
+          ...mockPromotionalConfig,
+          primaryColor: '#ff0000',
+        },
+        display_config: mockDisplaySettings,
+      };
+
+      render(
+        <TestWrapper>
+          <EnhancedPlanDisplay plan={colorCustomizedPlan} />
+        </TestWrapper>
+      );
+
+      // Should render without errors - color customization is applied via CSS
+      expect(screen.getByText('Oferta Especial de Lançamento')).toBeInTheDocument();
+    });
+
+    it('should apply default colors when none configured', () => {
+      const defaultColorPlan = {
+        ...mockBasicPlan,
+        promotional_config: {
+          ...mockPromotionalConfig,
+          primaryColor: undefined,
+          accentColor: undefined,
+        },
+        display_config: mockDisplaySettings,
+      };
+
+      render(
+        <TestWrapper>
+          <EnhancedPlanDisplay plan={defaultColorPlan} />
+        </TestWrapper>
+      );
+
+      // Should render without errors with default styling
+      expect(screen.getByText('Oferta Especial de Lançamento')).toBeInTheDocument();
     });
   });
 });

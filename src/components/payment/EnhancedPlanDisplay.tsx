@@ -1,33 +1,41 @@
-// ABOUTME: Enhanced plan display component with promotional features and customizable visual elements
-import React from 'react';
-import { Badge } from '@/components/ui/badge';
+// ABOUTME: Enhanced plan display component with sophisticated promotional features and Apple-inspired design
+import React, { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
-import { Clock, Star, Zap, Gift, TrendingUp } from 'lucide-react';
+import { Clock } from 'lucide-react';
 import type { Tables } from '@/integrations/supabase/types';
 
 type PaymentPlan = Tables<'PaymentPlans'>;
 
-interface PromotionalConfig {
-  isActive: boolean;
-  discountPercentage?: number;
-  originalPrice?: number;
-  urgencyMessage?: string;
-  promotionalBadge?: string;
-  customMessage?: string;
-  showSavingsAmount?: boolean;
-  expiresAt?: string;
-  features?: string[];
+interface DisplayCustomization {
+  customName?: string;
+  customDescription?: string;
+  titleColor?: string;
+  descriptionColor?: string;
+  borderColor?: string;
+  backgroundColor?: string;
 }
 
-interface DisplayConfig {
-  layout?: 'default' | 'compact' | 'featured';
-  theme?: 'default' | 'promotional' | 'premium';
-  showBadge?: boolean;
-  borderStyle?: 'default' | 'dashed' | 'double' | 'gradient';
-  backgroundColor?: string;
-  textColor?: string;
-  accentColor?: string;
-  icon?: 'star' | 'zap' | 'gift' | 'trending' | 'clock';
+interface PromotionalConfig {
+  isActive: boolean;
+  promotionValue?: number;
+  displayAsPercentage?: boolean;
+  showDiscountAmount?: boolean;
+  showSavingsAmount?: boolean;
+  showCountdownTimer?: boolean;
+  expiresAt?: string;
+  // Promotional-specific colors
+  timerColor?: string;
+  discountTagBackgroundColor?: string;
+  discountTagTextColor?: string;
+  savingsColor?: string;
+}
+
+interface DisplaySettings {
+  showCustomName?: boolean;
+  showCustomDescription?: boolean;
+  showDiscountAmount?: boolean;
+  showSavingsAmount?: boolean;
+  showCountdownTimer?: boolean;
 }
 
 interface EnhancedPlanDisplayProps {
@@ -35,19 +43,34 @@ interface EnhancedPlanDisplayProps {
   className?: string;
 }
 
-const iconMap = {
-  star: Star,
-  zap: Zap,
-  gift: Gift,
-  trending: TrendingUp,
-  clock: Clock,
-};
-
 export const EnhancedPlanDisplay: React.FC<EnhancedPlanDisplayProps> = ({
   plan,
   className,
 }) => {
-  // Parse promotional configuration
+  // Parse display customization (always available)
+  const displayCustomization = React.useMemo((): DisplayCustomization => {
+    if (!plan.promotional_config) {
+      return {};
+    }
+    
+    try {
+      const config = typeof plan.promotional_config === 'string' 
+        ? JSON.parse(plan.promotional_config) 
+        : plan.promotional_config;
+      return {
+        customName: config.customName || config.promotionalName,
+        customDescription: config.customDescription || config.customMessage,
+        titleColor: config.titleColor,
+        descriptionColor: config.descriptionColor,
+        borderColor: config.borderColor,
+        backgroundColor: config.backgroundColor
+      };
+    } catch {
+      return {};
+    }
+  }, [plan.promotional_config]);
+
+  // Parse promotional configuration (discount-specific features)
   const promotionalConfig = React.useMemo((): PromotionalConfig => {
     if (!plan.promotional_config) {
       return { isActive: false };
@@ -57,36 +80,51 @@ export const EnhancedPlanDisplay: React.FC<EnhancedPlanDisplayProps> = ({
       const config = typeof plan.promotional_config === 'string' 
         ? JSON.parse(plan.promotional_config) 
         : plan.promotional_config;
-      return { isActive: false, ...config };
+      return { 
+        isActive: false, 
+        ...config,
+        // Extract only promotional-specific properties
+        promotionValue: config.promotionValue,
+        displayAsPercentage: config.displayAsPercentage,
+        showDiscountAmount: config.showDiscountAmount,
+        showSavingsAmount: config.showSavingsAmount,
+        showCountdownTimer: config.showCountdownTimer,
+        expiresAt: config.expiresAt,
+        timerColor: config.timerColor,
+        discountTagBackgroundColor: config.discountTagBackgroundColor,
+        discountTagTextColor: config.discountTagTextColor,
+        savingsColor: config.savingsColor
+      };
     } catch {
       return { isActive: false };
     }
   }, [plan.promotional_config]);
 
-  // Parse display configuration
-  const displayConfig = React.useMemo((): DisplayConfig => {
+  // Parse display settings
+  const displaySettings = React.useMemo((): DisplaySettings => {
     if (!plan.display_config) {
-      return { layout: 'default', theme: 'default' };
+      return {};
     }
     
     try {
       const config = typeof plan.display_config === 'string' 
         ? JSON.parse(plan.display_config) 
         : plan.display_config;
-      return { layout: 'default', theme: 'default', ...config };
+      return config || {};
     } catch {
-      return { layout: 'default', theme: 'default' };
+      return {};
     }
   }, [plan.display_config]);
 
-  // Calculate display price and savings
-  const displayPrice = promotionalConfig.isActive && promotionalConfig.originalPrice
-    ? promotionalConfig.originalPrice - (promotionalConfig.originalPrice * (promotionalConfig.discountPercentage || 0) / 100)
-    : plan.amount;
+  // Calculate promotional pricing
+  const originalPrice = plan.amount;
+  const promotionValue = promotionalConfig.promotionValue || 0;
+  
+  const displayPrice = promotionalConfig.isActive && promotionValue > 0
+    ? originalPrice - promotionValue
+    : originalPrice;
 
-  const savingsAmount = promotionalConfig.isActive && promotionalConfig.originalPrice
-    ? promotionalConfig.originalPrice - displayPrice
-    : 0;
+  const savingsAmount = promotionalConfig.isActive ? promotionValue : 0;
 
   const formatPrice = (price: number) => {
     return `R$ ${(price / 100).toFixed(2).replace('.', ',')}`;
@@ -99,110 +137,135 @@ export const EnhancedPlanDisplay: React.FC<EnhancedPlanDisplayProps> = ({
 
   const isPromotionActive = promotionalConfig.isActive && !isPromotionExpired;
 
-  // Get theme styles
-  const getThemeStyles = () => {
-    const baseStyles = "p-3 sm:p-4 rounded-lg mb-4 transition-all duration-200";
-    
-    if (isPromotionActive && displayConfig.theme === 'promotional') {
-      return cn(
-        baseStyles,
-        "bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-200",
-        "shadow-md hover:shadow-lg",
-        displayConfig.backgroundColor && `bg-[${displayConfig.backgroundColor}]`
-      );
+  // Countdown timer state
+  const [timeLeft, setTimeLeft] = useState<string>('');
+
+  useEffect(() => {
+    if (!promotionalConfig.expiresAt || !promotionalConfig.showCountdownTimer || !isPromotionActive) {
+      return;
     }
+
+    const updateCountdown = () => {
+      const now = new Date().getTime();
+      const expiry = new Date(promotionalConfig.expiresAt!).getTime();
+      const distance = expiry - now;
+
+      if (distance < 0) {
+        setTimeLeft('');
+        return;
+      }
+
+      const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+      if (days > 0) {
+        setTimeLeft(`${days}d ${hours}h ${minutes}m`);
+      } else if (hours > 0) {
+        setTimeLeft(`${hours}h ${minutes}m ${seconds}s`);
+      } else {
+        setTimeLeft(`${minutes}m ${seconds}s`);
+      }
+    };
+
+    updateCountdown();
+    const timer = setInterval(updateCountdown, 1000);
+
+    return () => clearInterval(timer);
+  }, [promotionalConfig.expiresAt, promotionalConfig.showCountdownTimer, isPromotionActive]);
+
+  // Check if plan has any display customization
+  const hasDisplayCustomization = displayCustomization.customName || 
+    displayCustomization.customDescription || 
+    displayCustomization.titleColor || 
+    displayCustomization.descriptionColor || 
+    displayCustomization.borderColor || 
+    displayCustomization.backgroundColor;
+
+  // Get sophisticated styling (always available for customization)
+  const getContainerStyles = () => {
+    const baseStyles = "p-4 rounded-xl border transition-all duration-300";
     
-    if (displayConfig.theme === 'premium') {
+    // Enhanced styling if there's any customization OR it's a promotion
+    if (hasDisplayCustomization || isPromotionActive) {
       return cn(
         baseStyles,
-        "bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200"
+        "bg-white border-2 shadow-sm hover:shadow-md"
       );
     }
     
     return cn(
       baseStyles,
-      "bg-gray-50",
-      displayConfig.backgroundColor && `bg-[${displayConfig.backgroundColor}]`,
-      displayConfig.borderStyle === 'dashed' && "border-2 border-dashed border-gray-300",
-      displayConfig.borderStyle === 'double' && "border-4 border-double border-gray-300",
-      displayConfig.borderStyle === 'gradient' && "border-2 border-transparent bg-gradient-to-r from-blue-200 to-purple-200"
+      "bg-gray-50 border-gray-200 hover:bg-gray-100"
     );
   };
 
-  // Get layout component based on configuration
-  const renderLayout = () => {
-    const IconComponent = displayConfig.icon ? iconMap[displayConfig.icon] : null;
-
-    if (displayConfig.layout === 'compact') {
-      return (
-        <div className="flex items-center justify-between">
-          <div className="flex-1">
-            <div className="flex items-center gap-2">
-              {IconComponent && (
-                <IconComponent className="w-4 h-4 text-blue-600" />
-              )}
-              <h3 className="font-medium text-black text-sm">{plan.name}</h3>
-            </div>
-            {plan.description && (
-              <p className="text-xs text-gray-600 mt-1">{plan.description}</p>
-            )}
-          </div>
-          <div className="text-right">
-            {renderPricing()}
-          </div>
-        </div>
-      );
+  // Get dynamic styles (always available for customization)
+  const getContainerDynamicStyles = (): React.CSSProperties => {
+    const styles: React.CSSProperties = {};
+    
+    // Apply custom border color if available
+    if (displayCustomization.borderColor) {
+      styles.borderColor = displayCustomization.borderColor;
+      styles.borderWidth = '2px';
     }
-
-    if (displayConfig.layout === 'featured') {
-      return (
-        <div className="text-center space-y-3">
-          {IconComponent && (
-            <div className="flex justify-center">
-              <div className="p-2 bg-blue-100 rounded-full">
-                <IconComponent className="w-6 h-6 text-blue-600" />
-              </div>
-            </div>
-          )}
-          <div>
-            <h3 className="font-bold text-black text-lg mb-1">{plan.name}</h3>
-            {plan.description && (
-              <p className="text-sm text-gray-600 mb-3">{plan.description}</p>
-            )}
-          </div>
-          {renderPricing()}
-          {promotionalConfig.features && promotionalConfig.features.length > 0 && (
-            <div className="mt-3 space-y-1">
-              {promotionalConfig.features.map((feature, index) => (
-                <div key={index} className="flex items-center justify-center gap-2 text-xs text-gray-700">
-                  <div className="w-1 h-1 bg-blue-500 rounded-full"></div>
-                  {feature}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      );
+    
+    // Apply custom background color if available
+    if (displayCustomization.backgroundColor) {
+      styles.backgroundColor = displayCustomization.backgroundColor;
     }
+    
+    return styles;
+  };
 
-    // Default layout
+  // Render plan name (custom or regular - always customizable)
+  const renderPlanName = () => {
+    const displayName = (displayCustomization.customName && displaySettings.showCustomName) 
+      ? displayCustomization.customName 
+      : plan.name;
+    
     return (
-      <div>
-        <div className="flex items-center gap-2 mb-1">
-          {IconComponent && (
-            <IconComponent className="w-4 h-4 text-blue-600" />
-          )}
-          <h3 className="font-medium text-black text-sm sm:text-base">{plan.name}</h3>
-        </div>
-        {plan.description && (
-          <p className="text-xs sm:text-sm text-gray-600 mb-2">{plan.description}</p>
-        )}
-        {renderPricing()}
-        {promotionalConfig.customMessage && isPromotionActive && (
-          <p className="text-xs text-blue-700 mt-2 font-medium">
-            {promotionalConfig.customMessage}
-          </p>
-        )}
+      <h3 
+        className="font-semibold text-base leading-tight"
+        style={{ 
+          color: displayCustomization.titleColor || '#111827'
+        }}
+      >
+        {displayName}
+      </h3>
+    );
+  };
+
+  // Render custom description (always available)
+  const renderCustomDescription = () => {
+    if (!displayCustomization.customDescription || !displaySettings.showCustomDescription) {
+      return null;
+    }
+
+    return (
+      <p 
+        className="text-sm mt-1 leading-relaxed"
+        style={{ color: displayCustomization.descriptionColor || '#6B7280' }}
+      >
+        {displayCustomization.customDescription}
+      </p>
+    );
+  };
+
+  // Render countdown timer
+  const renderCountdownTimer = () => {
+    if (!isPromotionActive || !promotionalConfig.showCountdownTimer || !displaySettings.showCountdownTimer || !timeLeft) {
+      return null;
+    }
+
+    return (
+      <div 
+        className="flex items-center gap-1.5 mt-2 text-xs"
+        style={{ color: promotionalConfig.timerColor || '#374151' }}
+      >
+        <Clock className="w-3 h-3" />
+        <span>Termina em {timeLeft}</span>
       </div>
     );
   };
@@ -210,75 +273,43 @@ export const EnhancedPlanDisplay: React.FC<EnhancedPlanDisplayProps> = ({
   const renderPricing = () => {
     if (!isPromotionActive) {
       return (
-        <p className="text-base sm:text-lg font-semibold text-black">
-          {formatPrice(plan.amount)}
-        </p>
+        <div className="text-right">
+          <p className="text-lg font-semibold text-gray-900">
+            {formatPrice(originalPrice)}
+          </p>
+        </div>
       );
     }
 
     return (
-      <div className="space-y-1">
-        {promotionalConfig.originalPrice && (
-          <div className="flex items-center gap-2 flex-wrap">
+      <div className="text-right space-y-1">
+        {displaySettings.showDiscountAmount && (
+          <div className="flex items-center justify-end gap-2">
             <p className="text-sm text-gray-500 line-through">
-              {formatPrice(promotionalConfig.originalPrice)}
+              {formatPrice(originalPrice)}
             </p>
-            {promotionalConfig.discountPercentage && (
-              <Badge variant="destructive" className="text-xs px-1.5 py-0.5">
-                -{promotionalConfig.discountPercentage}%
-              </Badge>
-            )}
+            <span 
+              className="text-xs px-2 py-1 rounded font-medium"
+              style={{
+                backgroundColor: promotionalConfig.discountTagBackgroundColor || '#111827',
+                color: promotionalConfig.discountTagTextColor || '#FFFFFF'
+              }}
+            >
+              -{promotionalConfig.displayAsPercentage 
+                ? `${Math.round((promotionValue / originalPrice) * 100)}%` 
+                : formatPrice(promotionValue)}
+            </span>
           </div>
         )}
-        <p className="text-base sm:text-lg font-bold text-green-600">
+        <p className="text-lg font-semibold text-gray-900">
           {formatPrice(displayPrice)}
         </p>
-        {promotionalConfig.showSavingsAmount && savingsAmount > 0 && (
-          <p className="text-xs text-green-600 font-medium">
+        {displaySettings.showSavingsAmount && savingsAmount > 0 && (
+          <p 
+            className="text-xs font-medium"
+            style={{ color: promotionalConfig.savingsColor || '#059669' }}
+          >
             Economia de {formatPrice(savingsAmount)}
-          </p>
-        )}
-      </div>
-    );
-  };
-
-  const renderPromotionalBadges = () => {
-    if (!isPromotionActive) return null;
-
-    return (
-      <div className="absolute -top-2 -right-2 flex gap-2">
-        {promotionalConfig.promotionalBadge && (
-          <Badge 
-            variant="secondary" 
-            className="bg-red-500 text-white text-xs px-2 py-1 shadow-md"
-          >
-            {promotionalConfig.promotionalBadge}
-          </Badge>
-        )}
-        {promotionalConfig.discountPercentage && (
-          <Badge 
-            variant="secondary"
-            className="bg-orange-500 text-white text-xs px-2 py-1 shadow-md animate-pulse"
-          >
-            {promotionalConfig.discountPercentage}% OFF
-          </Badge>
-        )}
-      </div>
-    );
-  };
-
-  const renderUrgencyMessage = () => {
-    if (!isPromotionActive || !promotionalConfig.urgencyMessage) return null;
-
-    return (
-      <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-center">
-        <div className="flex items-center justify-center gap-1 text-yellow-700">
-          <Clock className="w-3 h-3" />
-          <p className="text-xs font-medium">{promotionalConfig.urgencyMessage}</p>
-        </div>
-        {promotionalConfig.expiresAt && (
-          <p className="text-xs text-yellow-600 mt-1">
-            Válida até {new Date(promotionalConfig.expiresAt).toLocaleDateString('pt-BR')}
           </p>
         )}
       </div>
@@ -287,10 +318,18 @@ export const EnhancedPlanDisplay: React.FC<EnhancedPlanDisplayProps> = ({
 
   return (
     <div className={cn("relative", className)}>
-      <div className={getThemeStyles()}>
-        {renderPromotionalBadges()}
-        {renderLayout()}
-        {renderUrgencyMessage()}
+      <div 
+        className={getContainerStyles()}
+        style={getContainerDynamicStyles()}
+      >
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex-1 min-w-0">
+            {renderPlanName()}
+            {renderCustomDescription()}
+            {renderCountdownTimer()}
+          </div>
+          {renderPricing()}
+        </div>
       </div>
     </div>
   );

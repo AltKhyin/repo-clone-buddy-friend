@@ -19,6 +19,7 @@ import {
 import {
   useTagManagementQuery,
   useTagOperationMutation,
+  parseTagOperationError,
   type TagWithStats,
 } from '../../../../packages/hooks/useTagManagementQuery';
 import { TagCreateModal } from './TagCreateModal';
@@ -100,17 +101,53 @@ export const TagHierarchy = () => {
   };
 
   const handleDeleteTag = async (tagId: number, tagName: string) => {
-    if (!confirm(`Tem certeza que deseja deletar a tag "${tagName}"?`)) {
-      return;
-    }
-
+    // First attempt regular delete to see if tag is in use
     try {
+      // Simple confirmation for regular delete attempt
+      if (!confirm(`Tem certeza que deseja deletar a tag "${tagName}"?`)) {
+        return;
+      }
+
       await tagOperationMutation.mutateAsync({
         action: 'delete',
         tagId,
       });
     } catch (error) {
       console.error('Tag deletion failed:', error);
+      
+      // Parse error for user-friendly feedback
+      const parsedError = parseTagOperationError(error);
+      
+      // If tag is in use, offer force delete option
+      if (parsedError.type === 'used_in_reviews') {
+        const forceDelete = confirm(
+          `${parsedError.message}\n\n` +
+          `⚠️ ATENÇÃO: Como administrador, você pode forçar a exclusão desta tag.\n` +
+          `Isso removerá a tag de TODOS os reviews que a utilizam.\n\n` +
+          `Deseja prosseguir com a exclusão forçada da tag "${tagName}"?`
+        );
+        
+        if (forceDelete) {
+          try {
+            await tagOperationMutation.mutateAsync({
+              action: 'delete',
+              tagId,
+              forceDelete: true,
+            });
+          } catch (forceError) {
+            console.error('Force deletion failed:', forceError);
+            const forceParsedError = parseTagOperationError(forceError);
+            alert(`Erro na exclusão forçada: ${forceParsedError.message}`);
+          }
+        }
+      } else {
+        // Handle other types of errors normally
+        let errorMessage = parsedError.message;
+        if (parsedError.action) {
+          errorMessage += `\n\n${parsedError.action}`;
+        }
+        alert(errorMessage);
+      }
     }
   };
 

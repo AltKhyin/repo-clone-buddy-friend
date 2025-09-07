@@ -8,7 +8,8 @@ import { checkRateLimit, rateLimitHeaders, RateLimitError } from '../_shared/rat
 import { getUserFromRequest, requireRole } from '../_shared/auth.ts';
 
 interface TagOperationPayload {
-  operation: 'create' | 'update' | 'delete' | 'merge' | 'move' | 'cleanup';
+  action?: 'create' | 'update' | 'delete' | 'merge';
+  operation?: 'create' | 'update' | 'delete' | 'merge';
   tag_data?: {
     tag_name?: string;
     color?: string;
@@ -21,6 +22,7 @@ interface TagOperationPayload {
   description?: string;
   mergeTargetId?: number;
   bulkTagIds?: number[];
+  forceDelete?: boolean; // New: Allow force deletion
 }
 
 serve(async (req: Request) => {
@@ -64,17 +66,24 @@ serve(async (req: Request) => {
       throw new Error('UNAUTHORIZED: Invalid authentication token');
     }
 
-    // STEP 5: Authorization - Check admin role in UserRoles table
-    const { data: adminCheck } = await supabase
-      .from('UserRoles')
-      .select('role_name, is_active')
-      .eq('practitioner_id', user.id)
-      .eq('role_name', 'admin')
-      .eq('is_active', true)
-      .single();
-
-    if (!adminCheck) {
+    // STEP 5: Authorization - Check admin role in JWT app_metadata (matches RLS policies)
+    const authHeader = req.headers.get('Authorization');
+    const token = authHeader?.replace('Bearer ', '');
+    
+    if (!token) {
       throw new Error('FORBIDDEN: Admin privileges required');
+    }
+
+    // Decode JWT to check app_metadata role (same as RLS policies)
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      const userRole = payload.app_metadata?.role;
+      
+      if (!userRole || !['admin', 'editor'].includes(userRole)) {
+        throw new Error('FORBIDDEN: Admin privileges required');
+      }
+    } catch (jwtError) {
+      throw new Error('FORBIDDEN: Invalid JWT token');
     }
 
     // STEP 6: Core Business Logic
@@ -110,10 +119,7 @@ serve(async (req: Request) => {
           created_at: tag.created_at,
           color: tag.color,
           description: tag.description,
-          usage_count: usageCount || 0,
-          direct_children: 0, // Will be calculated client-side
-          total_descendants: 0, // Will be calculated client-side
-          recent_usage: 0 // Will be calculated client-side
+          usage_count: usageCount || 0
         };
       }));
 
@@ -138,7 +144,7 @@ serve(async (req: Request) => {
       
       // Support both old and new payload formats
       const action = payload.operation || payload.action;
-      const { tagId, parentId, mergeTargetId, bulkTagIds } = payload;
+      const { tagId, parentId, mergeTargetId, bulkTagIds, forceDelete } = payload;
       
       // Extract tag data from tag_data object or direct properties
       const name = payload.tag_data?.tag_name || payload.name;
@@ -215,26 +221,41 @@ serve(async (req: Request) => {
             throw new Error('VALIDATION_FAILED: Tag ID is required');
           }
 
-          // Check if tag has children
-          const { data: children } = await supabase
-            .from('Tags')
-            .select('id')
-            .eq('parent_id', tagId);
+          // Check for force delete option
+          const shouldForceDelete = forceDelete || false;
 
-          if (children && children.length > 0) {
-            throw new Error('VALIDATION_FAILED: Cannot delete tag with child tags');
+          if (!shouldForceDelete) {
+            // Standard validation for regular deletes
+            const { data: children } = await supabase
+              .from('Tags')
+              .select('id')
+              .eq('parent_id', tagId);
+
+            if (children && children.length > 0) {
+              throw new Error('VALIDATION_FAILED: Cannot delete tag with child tags');
+            }
+
+            const { data: reviews } = await supabase
+              .from('ReviewTags')
+              .select('id')
+              .eq('tag_id', tagId);
+
+            if (reviews && reviews.length > 0) {
+              throw new Error('VALIDATION_FAILED: Cannot delete tag that is used in reviews');
+            }
+          } else {
+            // Force delete logic - remove from reviews first
+            const { error: removeFromReviewsError } = await supabase
+              .from('ReviewTags')
+              .delete()
+              .eq('tag_id', tagId);
+
+            if (removeFromReviewsError) {
+              console.warn('Warning: Could not remove tag from some reviews:', removeFromReviewsError);
+            }
           }
 
-          // Check if tag is used in reviews
-          const { data: reviews } = await supabase
-            .from('ReviewTags')
-            .select('id')
-            .eq('tag_id', tagId);
-
-          if (reviews && reviews.length > 0) {
-            throw new Error('VALIDATION_FAILED: Cannot delete tag that is used in reviews');
-          }
-
+          // Delete the tag itself
           const { error: deleteError } = await supabase
             .from('Tags')
             .delete()
@@ -245,8 +266,9 @@ serve(async (req: Request) => {
           }
 
           result = {
-            message: 'Tag deleted successfully',
-            tagId
+            message: shouldForceDelete ? 'Tag force deleted and removed from all reviews' : 'Tag deleted successfully',
+            tagId,
+            removedFromReviews: shouldForceDelete
           };
           break;
         }
@@ -284,56 +306,7 @@ serve(async (req: Request) => {
           break;
         }
 
-        case 'cleanup': {
-          // Remove unused tags (tags with no ReviewTags associations)
-          // First get all used tag IDs
-          const { data: usedTagIds, error: usedError } = await supabase
-            .from('ReviewTags')
-            .select('tag_id');
-
-          if (usedError) {
-            throw new Error(`Failed to get used tags: ${usedError.message}`);
-          }
-
-          // Extract the IDs into an array
-          const usedIds = usedTagIds?.map(row => row.tag_id) || [];
-
-          // Now get unused tags
-          const { data: unusedTags, error: unusedError } = usedIds.length > 0 
-            ? await supabase
-                .from('Tags')
-                .select('id')
-                .not('id', 'in', `(${usedIds.join(',')})`)
-            : await supabase
-                .from('Tags')
-                .select('id');
-
-          if (unusedError) {
-            throw new Error(`Failed to identify unused tags: ${unusedError.message}`);
-          }
-
-          if (!unusedTags || unusedTags.length === 0) {
-            result = {
-              message: 'No unused tags found',
-              removedCount: 0
-            };
-          } else {
-            const { error: cleanupError } = await supabase
-              .from('Tags')
-              .delete()
-              .in('id', unusedTags.map(tag => tag.id));
-
-            if (cleanupError) {
-              throw new Error(`Failed to cleanup unused tags: ${cleanupError.message}`);
-            }
-
-            result = {
-              message: `Cleaned up ${unusedTags.length} unused tags`,
-              removedCount: unusedTags.length
-            };
-          }
-          break;
-        }
+        // Cleanup case removed - not needed for core operations
 
         default:
           throw new Error(`VALIDATION_FAILED: Invalid action: ${action}`);

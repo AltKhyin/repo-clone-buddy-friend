@@ -452,7 +452,9 @@ const TwoStepPaymentForm: React.FC<TwoStepPaymentFormProps> = ({
       <ProgressSteps currentStep={currentStep} />
 
       {/* Enhanced Plan Information */}
-      <EnhancedPlanDisplay plan={displayPlan} />
+      <div className="mb-6">
+        <EnhancedPlanDisplay plan={displayPlan} />
+      </div>
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
