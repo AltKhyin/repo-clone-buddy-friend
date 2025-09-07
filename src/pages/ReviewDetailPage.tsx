@@ -6,6 +6,7 @@ import { useParams, Link } from 'react-router-dom';
 import { useReviewDetailQuery } from '../../packages/hooks/useReviewDetailQuery';
 import { useEditorLoadQuery } from '../../packages/hooks/useEditorPersistence';
 import { ReadOnlyCanvas } from '@/components/review-detail/ReadOnlyCanvas';
+import { ReviewHero } from '@/components/review-detail';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertTriangle, Lock } from 'lucide-react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -22,15 +23,38 @@ const ReviewDetailPageContent = () => {
   if (isLoading || isEditorLoading) {
     return (
       <div className="min-h-screen bg-background">
-        <div className="max-w-4xl mx-auto p-6 space-y-8">
-          {/* Header skeleton */}
-          <div className="space-y-4">
-            <Skeleton className="h-12 w-3/4" />
-            <div className="flex items-center gap-4">
-              <Skeleton className="h-10 w-10 rounded-full" />
-              <div className="space-y-2">
-                <Skeleton className="h-4 w-32" />
-                <Skeleton className="h-3 w-24" />
+        <div className="max-w-[1200px] mx-auto px-4 lg:px-8 py-6 space-y-8">
+          {/* Editorial article skeleton - appropriately sized */}
+          <div className="space-y-6">
+            {/* Hero Cover - Editorial appropriate */}
+            <Skeleton className="w-full h-60 rounded-lg" />
+            
+            {/* Metadata and Author Section */}
+            <div className="space-y-5">
+              {/* Metadata row */}
+              <div className="flex gap-4">
+                <Skeleton className="h-4 w-28" /> {/* Date */}
+                <Skeleton className="h-4 w-20" /> {/* Reading time */}
+                <Skeleton className="h-4 w-24" /> {/* Views */}
+              </div>
+              
+              {/* Author and Description row */}
+              <div className="flex gap-6 items-start">
+                {/* Author section */}
+                <div className="flex items-center gap-3 flex-shrink-0">
+                  <Skeleton className="h-12 w-12 rounded-full" />
+                  <div className="space-y-2">
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-3 w-20" />
+                  </div>
+                </div>
+                
+                {/* Description */}
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-5/6" />
+                  <Skeleton className="h-4 w-4/6" />
+                </div>
               </div>
             </div>
           </div>
@@ -129,61 +153,29 @@ const ReviewDetailPageContent = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="max-w-4xl mx-auto p-6">
-        {/* Review Header */}
-        <header className="mb-8 space-y-6">
-          <div className="flex items-start justify-between">
-            <h1 className="text-4xl font-bold text-foreground font-serif leading-tight flex-1">
-              {review.title}
-            </h1>
-          </div>
+      {/* Skip to content accessibility link */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-primary text-primary-foreground px-4 py-2 rounded-md font-semibold z-50"
+      >
+        Pular para o conteúdo
+      </a>
+      
+      <div className="max-w-[1200px] mx-auto px-4 lg:px-8 py-6">
+        {/* Review Hero */}
+        <header className="mb-12" role="banner">
+          <ReviewHero review={review} />
           
-          {review.description && (
-            <p className="text-xl text-muted-foreground leading-relaxed">
-              {review.description}
-            </p>
-          )}
-          
-          {/* Author and Meta Information */}
-          <div className="flex items-center gap-4 pt-4 border-t border-border">
-            {review.author && (
-              <>
-                {review.author.avatar_url ? (
-                  <img 
-                    src={review.author.avatar_url}
-                    alt={review.author.full_name || 'Autor'}
-                    className="h-12 w-12 rounded-full object-cover"
-                  />
-                ) : (
-                  <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
-                    <span className="text-lg font-semibold text-muted-foreground">
-                      {(review.author.full_name || 'A').charAt(0)}
-                    </span>
-                  </div>
-                )}
-                <div>
-                  <p className="font-semibold text-foreground">
-                    {review.author.full_name || 'Autor anônimo'}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    Publicado em {new Date(review.published_at).toLocaleDateString('pt-BR', {
-                      day: '2-digit',
-                      month: 'long',
-                      year: 'numeric'
-                    })}
-                  </p>
-                </div>
-              </>
-            )}
-          </div>
+          {/* Header-Content Separator - Only after image */}
+          <div className="w-full border-t border-border/40 mt-8 mb-8"></div>
         </header>
 
         {/* Main Content - Unified Canvas Architecture */}
-        <main className="mb-12">
+        <main id="main-content" className="mb-16" role="main">
           {editorContent?.structured_content ? (
             <div className="review-content">
-              {/* Break out of ALL container padding for true edge-to-edge mobile canvas */}
-              <div className="v3-content -mx-6 sm:mx-0">
+              {/* Break out of container padding for edge-to-edge mobile canvas */}
+              <div className="v3-content -mx-4 lg:mx-0">
                 {/* 🎯 UNIFIED DATA SOURCE: Same data as editor = perfect parity */}
                 <ReadOnlyCanvas 
                   content={editorContent.structured_content}
@@ -202,8 +194,8 @@ const ReviewDetailPageContent = () => {
 
         {/* Community Thread Section - Lazy loaded per Blueprint 05 */}
         {review.community_post_id && (
-          <section className="border-t border-border pt-8">
-            <h2 className="text-2xl font-bold text-foreground font-serif mb-6">
+          <section className="border-t border-border pt-8" aria-labelledby="community-heading">
+            <h2 id="community-heading" className="text-2xl font-bold text-foreground font-serif mb-6">
               Discussão da comunidade
             </h2>
             <div className="bg-muted/30 rounded-lg p-8 text-center">
@@ -215,8 +207,8 @@ const ReviewDetailPageContent = () => {
         )}
 
         {/* Recommended Section */}
-        <section className="border-t border-border pt-8 mt-12">
-          <h2 className="text-2xl font-bold text-foreground font-serif mb-6">
+        <section className="border-t border-border pt-8 mt-16" aria-labelledby="recommendations-heading">
+          <h2 id="recommendations-heading" className="text-2xl font-bold text-foreground font-serif mb-6">
             Leituras recomendadas
           </h2>
           <div className="bg-muted/30 rounded-lg p-8 text-center">

@@ -12,6 +12,8 @@ import { useEffect } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PhoneInput } from '@/components/ui/PhoneInput';
 import { useCreatePixPayment, useCreateCreditCardPayment, usePaymentStatus, pixPaymentSchema, creditCardPaymentSchema, type PixPaymentInput, type CreditCardPaymentInput } from '../../hooks/mutations/usePaymentMutations';
+import { EnhancedPlanDisplay } from './EnhancedPlanDisplay';
+import type { Tables } from '@/integrations/supabase/types';
 
 // =================================================================
 // Types & Interfaces
@@ -83,6 +85,7 @@ interface TwoStepPaymentFormProps {
   planName?: string;
   planPrice?: number; // Price in cents
   planDescription?: string;
+  plan?: Tables<'PaymentPlans'>;
   onSuccess?: (data: any) => void;
   onCancel?: () => void;
 }
@@ -117,6 +120,7 @@ const TwoStepPaymentForm: React.FC<TwoStepPaymentFormProps> = ({
   planName = "Plano Mensal",
   planPrice = 1990, // R$ 19.90
   planDescription = "Acesso completo à plataforma EVIDENS",
+  plan,
   onSuccess,
   onCancel
 }) => {
@@ -125,6 +129,29 @@ const TwoStepPaymentForm: React.FC<TwoStepPaymentFormProps> = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const [showPixCode, setShowPixCode] = useState(false);
   const [pixData, setPixData] = useState<any>(null);
+
+  // Create plan object from individual props if plan object not provided
+  const displayPlan: Tables<'PaymentPlans'> = plan || {
+    id: 'default-plan',
+    name: planName,
+    amount: planPrice,
+    description: planDescription,
+    days: 30,
+    type: 'monthly',
+    is_active: true,
+    created_at: null,
+    created_by: null,
+    last_used_at: null,
+    usage_count: null,
+    updated_at: null,
+    billing_interval: null,
+    billing_interval_count: null,
+    billing_type: null,
+    metadata: null,
+    slug: null,
+    promotional_config: null,
+    display_config: null,
+  };
   const [paymentError, setPaymentError] = useState<{
     message: string;
     canRetry: boolean;
@@ -424,14 +451,8 @@ const TwoStepPaymentForm: React.FC<TwoStepPaymentFormProps> = ({
       {/* Progress Indicator */}
       <ProgressSteps currentStep={currentStep} />
 
-      {/* Plan Information */}
-      <div className="bg-gray-50 p-3 sm:p-4 rounded-lg mb-4">
-        <h3 className="font-medium text-black mb-1 text-sm sm:text-base">{planName}</h3>
-        <p className="text-xs sm:text-sm text-gray-600 mb-2">{planDescription}</p>
-        <p className="text-base sm:text-lg font-semibold text-black">
-          R$ {(planPrice / 100).toFixed(2).replace('.', ',')}
-        </p>
-      </div>
+      {/* Enhanced Plan Information */}
+      <EnhancedPlanDisplay plan={displayPlan} />
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">

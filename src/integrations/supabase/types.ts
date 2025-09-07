@@ -730,6 +730,87 @@ export type Database = {
         }
         Relationships: []
       }
+      evidens_subscriptions: {
+        Row: {
+          amount: number
+          billing_type: string
+          canceled_at: string | null
+          created_at: string | null
+          current_period_end: string | null
+          current_period_start: string | null
+          evidens_metadata: Json | null
+          evidens_plan_id: string | null
+          evidens_plan_type: string
+          id: string
+          interval: string
+          interval_count: number
+          next_billing_at: string | null
+          pagarme_subscription_id: string
+          payment_method: string | null
+          status: string
+          trial_end: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          amount: number
+          billing_type?: string
+          canceled_at?: string | null
+          created_at?: string | null
+          current_period_end?: string | null
+          current_period_start?: string | null
+          evidens_metadata?: Json | null
+          evidens_plan_id?: string | null
+          evidens_plan_type: string
+          id?: string
+          interval: string
+          interval_count?: number
+          next_billing_at?: string | null
+          pagarme_subscription_id: string
+          payment_method?: string | null
+          status: string
+          trial_end?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          amount?: number
+          billing_type?: string
+          canceled_at?: string | null
+          created_at?: string | null
+          current_period_end?: string | null
+          current_period_start?: string | null
+          evidens_metadata?: Json | null
+          evidens_plan_id?: string | null
+          evidens_plan_type?: string
+          id?: string
+          interval?: string
+          interval_count?: number
+          next_billing_at?: string | null
+          pagarme_subscription_id?: string
+          payment_method?: string | null
+          status?: string
+          trial_end?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "evidens_subscriptions_evidens_plan_id_fkey"
+            columns: ["evidens_plan_id"]
+            isOneToOne: false
+            referencedRelation: "PaymentPlans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evidens_subscriptions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "Practitioners"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       Notifications: {
         Row: {
           content: string
@@ -983,6 +1064,80 @@ export type Database = {
           {
             foreignKeyName: "payment_events_user_id_fkey"
             columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "Practitioners"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      PaymentPlans: {
+        Row: {
+          amount: number
+          billing_interval: string | null
+          billing_interval_count: number | null
+          billing_type: string | null
+          created_at: string | null
+          created_by: string | null
+          days: number
+          description: string | null
+          display_config: Json | null
+          id: string
+          is_active: boolean | null
+          last_used_at: string | null
+          metadata: Json | null
+          name: string
+          promotional_config: Json | null
+          slug: string | null
+          type: string
+          updated_at: string | null
+          usage_count: number | null
+        }
+        Insert: {
+          amount: number
+          billing_interval?: string | null
+          billing_interval_count?: number | null
+          billing_type?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          days: number
+          description?: string | null
+          display_config?: Json | null
+          id?: string
+          is_active?: boolean | null
+          last_used_at?: string | null
+          metadata?: Json | null
+          name: string
+          promotional_config?: Json | null
+          slug?: string | null
+          type: string
+          updated_at?: string | null
+          usage_count?: number | null
+        }
+        Update: {
+          amount?: number
+          billing_interval?: string | null
+          billing_interval_count?: number | null
+          billing_type?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          days?: number
+          description?: string | null
+          display_config?: Json | null
+          id?: string
+          is_active?: boolean | null
+          last_used_at?: string | null
+          metadata?: Json | null
+          name?: string
+          promotional_config?: Json | null
+          slug?: string | null
+          type?: string
+          updated_at?: string | null
+          usage_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "PaymentPlans_created_by_fkey"
+            columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "Practitioners"
             referencedColumns: ["id"]
@@ -1860,6 +2015,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: Json
       }
+      generate_plan_slug: {
+        Args: { plan_name: string }
+        Returns: string
+      }
       get_comments_for_post: {
         Args: { p_post_id: number; p_user_id: string }
         Returns: {
@@ -1949,6 +2108,15 @@ export type Database = {
       get_online_users_count: {
         Args: Record<PropertyKey, never>
         Returns: number
+      }
+      get_public_page_access_rules: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          is_active: boolean
+          page_path: string
+          redirect_url: string
+          required_access_level: string
+        }[]
       }
       get_recent_online_users: {
         Args: { p_limit?: number }

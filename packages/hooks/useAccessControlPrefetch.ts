@@ -1,6 +1,6 @@
 // ABOUTME: Hook for preloading access control data for main routes to eliminate verification delays
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../../src/store/auth';
 import { invokeFunctionGet } from '../../src/lib/supabase-functions';
@@ -24,10 +24,21 @@ const MAIN_ROUTES = [
 export const useAccessControlPrefetch = () => {
   const queryClient = useQueryClient();
   const { user, session, isLoading } = useAuthStore();
+  const prefetchedSessionRef = useRef<string | null>(null);
 
   useEffect(() => {
     // Only prefetch once user is authenticated and data is ready
     if (isLoading || !user || !session) return;
+
+    // Prevent multiple prefetches for the same session
+    const currentSessionId = session.access_token;
+    if (prefetchedSessionRef.current === currentSessionId) {
+      console.log('🔄 Access control already prefetched for this session');
+      return;
+    }
+
+    console.log('🚀 Starting access control prefetch for new session');
+    prefetchedSessionRef.current = currentSessionId;
 
     // Prefetch access control data for all main routes
     MAIN_ROUTES.forEach(async (pagePath) => {
@@ -48,8 +59,8 @@ export const useAccessControlPrefetch = () => {
               throw error;
             }
           },
-          staleTime: 5 * 60 * 1000, // 5 minutes
-          gcTime: 10 * 60 * 1000, // 10 minutes
+          staleTime: 10 * 60 * 1000, // 10 minutes (increased)
+          gcTime: 15 * 60 * 1000, // 15 minutes (increased)
         });
 
         console.log(`✅ Prefetched access control for: ${pagePath}`);

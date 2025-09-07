@@ -18,6 +18,10 @@ dist-ssr
 .idea
 .DS_Store
 *.suo
+
+# Auto-generated version files (regenerated on each build)
+src/version.ts
+public/version.json
 *.ntvs*
 *.njsproj
 *.sln

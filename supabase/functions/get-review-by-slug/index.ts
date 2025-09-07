@@ -99,6 +99,7 @@ interface ReviewDetailResponse {
   access_level: string;
   community_post_id: number | null;
   view_count: number | null;
+  edicao: string | null;
   tags: string[];
 }
 
@@ -177,6 +178,7 @@ serve(async req => {
           access_level,
           community_post_id,
           view_count,
+          edicao,
           author_id,
           status,
           author:Practitioners!Reviews_author_id_fkey(
@@ -219,6 +221,7 @@ serve(async req => {
           access_level,
           community_post_id,
           view_count,
+          edicao,
           author_id,
           status,
           author:Practitioners!Reviews_author_id_fkey(
@@ -266,6 +269,7 @@ serve(async req => {
           access_level,
           community_post_id,
           view_count,
+          edicao,
           author_id,
           status,
           author:Practitioners!Reviews_author_id_fkey(
@@ -441,6 +445,7 @@ serve(async req => {
       access_level: review.access_level,
       community_post_id: review.community_post_id,
       view_count: review.view_count,
+      edicao: review.edicao,
       tags,
     };
 

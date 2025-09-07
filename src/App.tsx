@@ -6,6 +6,7 @@ import { AppRouter } from './router/AppRouter';
 import { AppProviders } from './components/providers/AppProviders';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { TopProgressBar } from './components/ui/TopProgressBar';
+import { AppVersionManager } from './components/AppVersionManager';
 import { useProgress } from './contexts/ProgressContext';
 import { usePageLoadingProgress } from './hooks/usePageLoadingProgress';
 import { useAppVersion } from './hooks/useAppVersion';
@@ -47,7 +48,13 @@ const AppContent = () => {
 function App() {
   return (
     <AppProviders>
-      <AppContent />
+      <AppVersionManager
+        checkInterval={5 * 60 * 1000} // Check every 5 minutes
+        notificationPosition="bottom-right"
+        showVersionInfo={false} // Set to true for debugging
+      >
+        <AppContent />
+      </AppVersionManager>
     </AppProviders>
   );
 }

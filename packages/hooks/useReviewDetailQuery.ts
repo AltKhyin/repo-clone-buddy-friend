@@ -21,6 +21,7 @@ export interface ReviewDetail {
   access_level: string;
   community_post_id: number | null;
   view_count: number | null;
+  edicao: string | null;
   tags: string[];
   // V3 Content Bridge metadata
   contentFormat: 'v3' | 'v2' | 'legacy' | 'unknown';
