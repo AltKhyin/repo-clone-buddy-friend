@@ -64,14 +64,16 @@ serve(async (req: Request) => {
       throw new Error('UNAUTHORIZED: Invalid authentication token');
     }
 
-    // STEP 5: Authorization - Check admin role
+    // STEP 5: Authorization - Check admin role in UserRoles table
     const { data: adminCheck } = await supabase
-      .from('Practitioners')
-      .select('role')
-      .eq('id', user.id)
+      .from('UserRoles')
+      .select('role_name, is_active')
+      .eq('practitioner_id', user.id)
+      .eq('role_name', 'admin')
+      .eq('is_active', true)
       .single();
 
-    if (adminCheck?.role !== 'admin') {
+    if (!adminCheck) {
       throw new Error('FORBIDDEN: Admin privileges required');
     }
 

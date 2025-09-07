@@ -181,9 +181,18 @@ export default function AdminPaymentManagement() {
     },
     onSuccess: (planId, variables, context) => {
       console.log('Mutation onSuccess with planId:', planId);
-      // Update the cache with the successful result (don't invalidate yet - let onSettled handle it)
+      // Ensure the cache is set to the successful result
       queryClient.setQueryData(['default-payment-plan'], planId);
+      
       toast.success('Plano padrão atualizado com sucesso!');
+      
+      // Mark query as fresh to prevent immediate refetch
+      queryClient.setQueryDefaults(['default-payment-plan'], {
+        staleTime: 30 * 1000 // 30 seconds
+      });
+      
+      console.log('Cache updated with planId:', planId);
+      console.log('Current cache value:', queryClient.getQueryData(['default-payment-plan']));
     },
     onError: (error, variables, context) => {
       console.error('Mutation onError:', error);
@@ -192,9 +201,8 @@ export default function AdminPaymentManagement() {
         queryClient.setQueryData(['default-payment-plan'], context.previousDefaultPlan);
       }
       toast.error('Erro ao configurar plano padrão');
-    },
-    onSettled: () => {
-      // Always refetch after error or success to ensure we're in sync
+      
+      // Only invalidate on error to refetch correct server state
       queryClient.invalidateQueries({ queryKey: ['default-payment-plan'] });
     }
   });
