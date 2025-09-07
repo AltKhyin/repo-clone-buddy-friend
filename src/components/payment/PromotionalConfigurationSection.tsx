@@ -221,22 +221,22 @@ export function PromotionalConfigurationSection({
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {/* Promotion Value */}
+                    {/* Final Price */}
                     <div className="space-y-2">
-                      <Label className="text-sm font-medium text-gray-700">Valor da Promoção (R$)</Label>
+                      <Label className="text-sm font-medium text-gray-700">Preço Final (R$)</Label>
                       <Input
                         type="text"
                         placeholder="0,00"
-                        value={promoConfig.promotionValue ? `${(promoConfig.promotionValue / 100).toFixed(2).replace('.', ',')}` : ''}
+                        value={promoConfig.finalPrice ? `${(promoConfig.finalPrice / 100).toFixed(2).replace('.', ',')}` : ''}
                         onChange={(e) => {
-                          const value = e.target.value;
-                          // Remove all non-numeric characters except comma
-                          const numericValue = value.replace(/[^\d,]/g, '');
-                          // Replace comma with dot for parsing
-                          const parsedValue = parseFloat(numericValue.replace(',', '.') || '0');
-                          if (!isNaN(parsedValue)) {
-                            updatePromotionalConfig(plan.id, 'promotionValue', Math.round(parsedValue * 100));
-                          }
+                          let rawValue = e.target.value;
+                          
+                          // Remove all non-numeric characters to get clean number
+                          let cleanValue = rawValue.replace(/\D/g, '');
+                          
+                          // Parse as integer (cents) and save directly
+                          const valueInCents = parseInt(cleanValue || '0', 10);
+                          updatePromotionalConfig(plan.id, 'finalPrice', valueInCents);
                         }}
                         className="text-sm"
                       />

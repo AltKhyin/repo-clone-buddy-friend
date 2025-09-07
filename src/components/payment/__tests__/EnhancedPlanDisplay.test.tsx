@@ -50,7 +50,7 @@ const mockBasicPlan: Tables<'PaymentPlans'> = {
 
 const mockPromotionalConfig = {
   isActive: true,
-  promotionValue: 2000, // R$ 20,00 discount in cents
+  finalPrice: 7999, // R$ 79,99 final price in cents (was R$ 99,99 - R$ 20,00)
   displayAsPercentage: false,
   promotionalName: 'Oferta Especial de Lançamento',
   customMessage: 'Acesso completo + bônus exclusivos',
@@ -290,7 +290,7 @@ describe('EnhancedPlanDisplay - Redesigned Promotional Features', () => {
         amount: 10000, // R$ 100,00
         promotional_config: {
           ...mockPromotionalConfig,
-          promotionValue: 5000, // R$ 50,00 discount
+          finalPrice: 4999, // R$ 49,99 final price
         },
         display_config: mockDisplaySettings,
       };
@@ -556,7 +556,7 @@ describe('EnhancedPlanDisplay - Redesigned Promotional Features', () => {
         ...mockBasicPlan,
         promotional_config: {
           ...mockPromotionalConfig,
-          promotionValue: 0,
+          finalPrice: 0,
         },
         display_config: mockDisplaySettings,
       };
@@ -577,7 +577,7 @@ describe('EnhancedPlanDisplay - Redesigned Promotional Features', () => {
         ...mockBasicPlan,
         promotional_config: {
           ...mockPromotionalConfig,
-          promotionValue: 15000, // R$ 150,00 (more than plan price)
+          finalPrice: 1000, // R$ 10,00 final price (very low)
         },
         display_config: mockDisplaySettings,
       };

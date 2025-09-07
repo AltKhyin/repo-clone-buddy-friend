@@ -118,13 +118,15 @@ export const EnhancedPlanDisplay: React.FC<EnhancedPlanDisplayProps> = ({
 
   // Calculate promotional pricing
   const originalPrice = plan.amount;
-  const promotionValue = promotionalConfig.promotionValue || 0;
+  const finalPrice = promotionalConfig.finalPrice || 0;
   
-  const displayPrice = promotionalConfig.isActive && promotionValue > 0
-    ? originalPrice - promotionValue
+  const displayPrice = promotionalConfig.isActive && finalPrice > 0
+    ? finalPrice
     : originalPrice;
 
-  const savingsAmount = promotionalConfig.isActive ? promotionValue : 0;
+  const savingsAmount = promotionalConfig.isActive && finalPrice > 0 
+    ? originalPrice - finalPrice 
+    : 0;
 
   const formatPrice = (price: number) => {
     return `R$ ${(price / 100).toFixed(2).replace('.', ',')}`;
@@ -296,8 +298,8 @@ export const EnhancedPlanDisplay: React.FC<EnhancedPlanDisplayProps> = ({
               }}
             >
               -{promotionalConfig.displayAsPercentage 
-                ? `${Math.round((promotionValue / originalPrice) * 100)}%` 
-                : formatPrice(promotionValue)}
+                ? `${Math.round((savingsAmount / originalPrice) * 100)}%` 
+                : formatPrice(savingsAmount)}
             </span>
           </div>
         )}

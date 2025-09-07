@@ -34,7 +34,7 @@ export const TagCreateModal = ({ isOpen, onClose, parentId }: TagCreateModalProp
       setIsSubmitting(true);
       await tagOperationMutation.mutateAsync({
         action: 'create',
-        tagName: tagName.trim(),
+        name: tagName.trim(),
         parentId: selectedParentId
       });
       
