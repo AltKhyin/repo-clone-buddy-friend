@@ -5,8 +5,16 @@ import React from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useReviewDetailQuery } from '../../packages/hooks/useReviewDetailQuery';
 import { useEditorLoadQuery } from '../../packages/hooks/useEditorPersistence';
+import { useReviewRecommendations } from '../../packages/hooks/useReviewRecommendations';
+import { useReviewCommentsQuery } from '../../packages/hooks/useReviewCommentsQuery';
 import { ReadOnlyCanvas } from '@/components/review-detail/ReadOnlyCanvas';
 import { ReviewHero } from '@/components/review-detail';
+import { CommentThread } from '@/components/community/CommentThread';
+import { ReviewCommentInput } from '@/components/review-detail/ReviewCommentInput';
+import { useAuthStore } from '../store/auth';
+import { Separator } from '@/components/ui/separator';
+import { Footer } from '@/components/layout/Footer';
+import ReviewCarousel from '@/components/homepage/ReviewCarousel';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertTriangle, Lock } from 'lucide-react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -14,9 +22,16 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 const ReviewDetailPageContent = () => {
   const { slug } = useParams<{ slug: string }>();
   const { data: review, isLoading, isError, error } = useReviewDetailQuery(slug);
+  const { user } = useAuthStore();
   
   // 🎯 UNIFIED DATA SOURCE: Use same data as editor for perfect parity
   const { data: editorContent, isLoading: isEditorLoading } = useEditorLoadQuery(slug || null);
+
+  // 📚 RECOMMENDATIONS: Fetch similar reviews based on tags
+  const { data: recommendations, isLoading: isRecommendationsLoading } = useReviewRecommendations(review?.id);
+
+  // 💬 COMMENTS: Fetch unified comment system data (virtual or community post-based)  
+  const { data: commentsData, isLoading: isCommentsLoading } = useReviewCommentsQuery(review?.id);
 
 
   // Loading state with skeleton loaders  
@@ -65,6 +80,27 @@ const ReviewDetailPageContent = () => {
             <Skeleton className="h-6 w-full" />
             <Skeleton className="h-6 w-5/6" />
             <Skeleton className="h-6 w-4/6" />
+          </div>
+
+          {/* Comments skeleton */}
+          <div className="border-t border-border pt-8 mt-16 space-y-6">
+            <Skeleton className="h-8 w-48" /> {/* Comments section title */}
+            <div className="space-y-4">
+              <Skeleton className="h-20 w-full rounded-lg" /> {/* Comment input */}
+              <Skeleton className="h-32 w-full rounded-lg" /> {/* Comment 1 */}
+              <Skeleton className="h-24 w-11/12 rounded-lg ml-6" /> {/* Reply 1 */}
+              <Skeleton className="h-28 w-full rounded-lg" /> {/* Comment 2 */}
+            </div>
+          </div>
+
+          {/* Recommendations skeleton */}
+          <div className="border-t border-border pt-8 mt-16 space-y-6">
+            <Skeleton className="h-8 w-64" /> {/* Title */}
+            <div className="flex gap-4 overflow-hidden">
+              {[1, 2, 3, 4].map((j) => (
+                <Skeleton key={j} className="w-72 h-48 rounded-md flex-shrink-0" />
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -218,32 +254,69 @@ const ReviewDetailPageContent = () => {
           )}
         </main>
 
-        {/* Community Thread Section - Lazy loaded per Blueprint 05 */}
-        {review.community_post_id && (
-          <section className="border-t border-border pt-8" aria-labelledby="community-heading">
-            <h2 id="community-heading" className="text-2xl font-bold text-foreground font-serif mb-6">
-              Discussão da comunidade
-            </h2>
-            <div className="bg-muted/30 rounded-lg p-8 text-center">
-              <p className="text-muted-foreground">
-                Seção de comentários será implementada em breve.
-              </p>
-            </div>
+        {/* Recommended Section */}
+        {recommendations && recommendations.length > 0 && (
+          <section className="border-t border-border pt-8 mt-16" aria-labelledby="recommendations-heading">
+            <ReviewCarousel 
+              title="Leituras recomendadas" 
+              reviews={recommendations}
+            />
           </section>
         )}
 
-        {/* Recommended Section */}
-        <section className="border-t border-border pt-8 mt-16" aria-labelledby="recommendations-heading">
-          <h2 id="recommendations-heading" className="text-2xl font-bold text-foreground font-serif mb-6">
-            Leituras recomendadas
+        {/* Unified Comment Section - Works with both virtual and community posts */}
+        <section className="border-t border-border pt-8 mt-16" aria-labelledby="comments-heading">
+          <h2 id="comments-heading" className="text-2xl font-bold text-foreground font-serif mb-6">
+            Comentários
           </h2>
-          <div className="bg-muted/30 rounded-lg p-8 text-center">
-            <p className="text-muted-foreground">
-              Recomendações personalizadas serão implementadas em breve.
-            </p>
-          </div>
+          
+          {isCommentsLoading ? (
+            <div className="space-y-4">
+              <Skeleton className="h-20 w-full rounded-lg" /> {/* Comment input */}
+              <Skeleton className="h-32 w-full rounded-lg" /> {/* Comment 1 */}
+              <Skeleton className="h-24 w-11/12 rounded-lg ml-6" /> {/* Reply 1 */}
+              <Skeleton className="h-28 w-full rounded-lg" /> {/* Comment 2 */}
+            </div>
+          ) : commentsData ? (
+            <div className="space-y-4">
+              {/* Review Comment Input - Only for authenticated users */}
+              {user && review && (
+                <>
+                  <ReviewCommentInput
+                    reviewId={review.id}
+                    onCommentPosted={() => {
+                      // TanStack Query will handle cache invalidation automatically
+                      console.log('Review comment posted successfully - cache will be updated automatically');
+                    }}
+                    placeholder="Participar da conversa"
+                  />
+                  
+                  {/* Separator between input and comments */}
+                  <Separator className="border-border/50" />
+                </>
+              )}
+              
+              {/* Comments Thread - Only comments, no post display */}
+              <CommentThread 
+                comments={commentsData.comments} 
+                rootPostId={commentsData.post.id}
+                onCommentPosted={() => {
+                  console.log('Comment posted successfully - cache will be updated automatically');
+                }}
+              />
+            </div>
+          ) : (
+            <div className="bg-muted/30 rounded-lg p-8 text-center">
+              <p className="text-muted-foreground">
+                Não foi possível carregar os comentários.
+              </p>
+            </div>
+          )}
         </section>
       </div>
+
+      {/* Footer */}
+      <Footer />
     </div>
   );
 };

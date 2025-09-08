@@ -78,7 +78,7 @@ serve(async (req) => {
       'bem-estar-medico',
       // Legacy categories for backward compatibility
       'geral', 'discussao-review', 'pergunta', 'anuncio', 'comment',
-      'general', 'review_discussion', 'question', 'announcement'
+      'general', 'review_discussion', 'review-discussion', 'question', 'announcement'
     ];
     if (!validCategories.includes(body.category)) {
       throw new Error('VALIDATION_FAILED: Categoria inválida fornecida. Categorias válidas: discussao-geral, duvida-clinica, caso-clinico, evidencia-cientifica, tecnologia-saude, carreira-medicina, bem-estar-medico');

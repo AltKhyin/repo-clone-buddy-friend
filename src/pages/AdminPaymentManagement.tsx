@@ -615,9 +615,9 @@ export default function AdminPaymentManagement() {
                   <div>{plans.length} total</div>
                 </div>
               )}
-            </div>
           </div>
         </div>
+      </div>
 
         {/* Error States */}
         {(plansError || defaultPlanError) && (
@@ -672,10 +672,11 @@ export default function AdminPaymentManagement() {
           </div>
         )}
 
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-          {/* Left Column - Plan Creation & Default Settings */}
-          <div className="xl:col-span-2 space-y-6">
+        {/* Main Content */}
+        <div className="w-full">
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+              {/* Left Column - Plan Creation & Default Settings */}
+              <div className="xl:col-span-2 space-y-6">
             
             {/* Create New Plan - Simplified & Focused */}
             <Card>
@@ -1265,6 +1266,7 @@ export default function AdminPaymentManagement() {
             )}
           </CardContent>
         </Card>
+        </div>
     </div>
   );
 }

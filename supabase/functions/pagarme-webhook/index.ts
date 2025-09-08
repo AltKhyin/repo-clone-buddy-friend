@@ -261,7 +261,8 @@ const handlePaymentConfirmed = async (userId: string, eventData: any): Promise<v
     .from('Practitioners')
     .update({
       subscription_status: 'active',
-      subscription_expires_at: calculateExpirationDate(eventData),
+      subscription_end_date: await calculateAccessTimeFromWebhook(userId, eventData),
+      subscription_tier: 'premium',
       payment_metadata: {
         last_payment_date: new Date().toISOString(),
         last_payment_amount: eventData.amount,
@@ -346,7 +347,8 @@ const handleSubscriptionRenewal = async (userId: string, eventData: any): Promis
     .from('Practitioners')
     .update({
       subscription_status: 'active',
-      subscription_expires_at: calculateExpirationDate(eventData),
+      subscription_end_date: await calculateAccessTimeFromWebhook(userId, eventData),
+      subscription_tier: 'premium',
       payment_metadata: {
         last_payment_date: new Date().toISOString(),
         last_payment_amount: eventData.amount,
@@ -479,7 +481,8 @@ const handleSubscriptionReactivated = async (userId: string, eventData: any): Pr
     .from('Practitioners')
     .update({
       subscription_status: 'active',
-      subscription_expires_at: calculateExpirationDate(eventData),
+      subscription_end_date: await calculateAccessTimeFromWebhook(userId, eventData),
+      subscription_tier: 'premium',
       payment_metadata: {
         reactivated_at: new Date().toISOString(),
         previous_failure_count: 0 // Reset failure count
@@ -545,21 +548,70 @@ const handleSubscriptionSuspended = async (userId: string, eventData: any): Prom
 // Helper Functions
 // =================================================================
 
-const calculateExpirationDate = (eventData: any): string => {
-  // Default to 30 days from now for monthly subscriptions
-  const expirationDate = new Date()
+const calculateAccessTimeFromWebhook = async (userId: string, eventData: any): Promise<string> => {
+  console.log('🕐 Calculating access time for webhook event');
   
-  // Extract billing cycle information if available
-  if (eventData.plan?.interval === 'month') {
-    expirationDate.setMonth(expirationDate.getMonth() + (eventData.plan.interval_count || 1))
-  } else if (eventData.plan?.interval === 'year') {
-    expirationDate.setFullYear(expirationDate.getFullYear() + (eventData.plan.interval_count || 1))
-  } else {
-    // Default to monthly
-    expirationDate.setMonth(expirationDate.getMonth() + 1)
+  // Get current user access data
+  const { data: currentUser, error: getUserError } = await supabase
+    .from('Practitioners')
+    .select('subscription_end_date')
+    .eq('id', userId)
+    .single();
+
+  if (getUserError) {
+    console.error('Failed to get user for access calculation:', getUserError);
+    // Fallback to 30 days from now
+    const fallbackDate = new Date();
+    fallbackDate.setDate(fallbackDate.getDate() + 30);
+    return fallbackDate.toISOString();
   }
+
+  // Try to get plan days from EVIDENS database using plan name
+  let planDays = 30; // Default fallback
   
-  return expirationDate.toISOString()
+  if (eventData.plan?.name) {
+    const { data: evidensPlan } = await supabase
+      .from('PaymentPlans')
+      .select('days')
+      .ilike('name', `%${eventData.plan.name}%`)
+      .single();
+    
+    if (evidensPlan && evidensPlan.days) {
+      planDays = evidensPlan.days;
+      console.log('📋 Found EVIDENS plan with days:', planDays);
+    }
+  }
+
+  // Calculate new access time (same logic as Edge Function)
+  let newEndDate: string;
+  const paymentDate = new Date();
+  
+  if (!currentUser.subscription_end_date) {
+    // No existing access - start from payment date
+    console.log('📅 No existing access, creating new access period');
+    const endDate = new Date(paymentDate);
+    endDate.setDate(endDate.getDate() + planDays);
+    newEndDate = endDate.toISOString();
+  } else {
+    const existingEndDate = new Date(currentUser.subscription_end_date);
+    
+    if (existingEndDate <= paymentDate) {
+      // User is overdue - add FULL time from payment date
+      console.log('📅 User is overdue, adding FULL purchased time from payment date');
+      const endDate = new Date(paymentDate);
+      endDate.setDate(endDate.getDate() + planDays);
+      newEndDate = endDate.toISOString();
+    } else {
+      // User still has active access - extend existing time
+      console.log('📅 User has active access, extending existing time');
+      const endDate = new Date(existingEndDate);
+      endDate.setDate(endDate.getDate() + planDays);
+      newEndDate = endDate.toISOString();
+    }
+  }
+
+  console.log('✅ Webhook calculated new access end date:', newEndDate);
+  return newEndDate;
 }
 
 const logPaymentEvent = async (eventData: PaymentEventData): Promise<void> => {

@@ -33,23 +33,10 @@ export const AboutSection = ({ section, sidebarData, isLast }: AboutSectionProps
         {/* Community Description */}
         <p className="text-sm text-reddit-text-secondary leading-relaxed">{description}</p>
 
-        {/* Member Statistics - Reddit style: simple format */}
-        <div className="text-sm text-reddit-text-secondary">
-          <span>{totalMembers.toLocaleString()} membros</span>
-          {onlineCount > 0 && (
-            <>
-              <span className="mx-1">•</span>
-              <span>{onlineCount} online</span>
-            </>
-          )}
-        </div>
 
         {/* Recent Members Display */}
         {recentMembers.length > 0 && (
-          <>
-            <RedditSidebarDivider />
-            <SidebarRecentMembers members={recentMembers} />
-          </>
+          <SidebarRecentMembers members={recentMembers} />
         )}
       </div>
     </RedditSidebarCard>

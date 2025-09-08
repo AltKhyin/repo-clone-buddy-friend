@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
 import { supabase } from '@/integrations/supabase/client';
 import { pagarmeClientConfig, type PagarmeOrder, type PixPaymentConfig, type CreditCardPaymentConfig } from '@/lib/pagarme';
+import { resolvePlanPricingAndFlow, type ResolvedPlanPricing, type PaymentFlowType } from '@/lib/paymentRouter';
 
 // =================================================================
 // Type Definitions & Validation Schemas
@@ -139,9 +140,10 @@ export type CustomerCreationInput = z.infer<typeof customerCreationSchema>;
 // =================================================================
 
 /**
- * Resolves the actual price for a plan considering promotional configurations
+ * Resolves plan pricing and routing information using enhanced payment router
+ * Determines whether to create subscription or one-time payment
  */
-const resolvePlanPricing = async (planId: string) => {
+const resolvePlanPricing = async (planId: string): Promise<ResolvedPlanPricing> => {
   const { data: plan, error } = await supabase
     .from('PaymentPlans')
     .select('*')
@@ -152,63 +154,23 @@ const resolvePlanPricing = async (planId: string) => {
     throw new Error('Plan not found or invalid plan ID');
   }
 
-  // Parse promotional configuration
-  let finalPrice = plan.amount; // Default to base amount
-  let displayName = plan.name;
-  let promotionalActive = false;
-
-  if (plan.promotional_config) {
-    try {
-      const promoConfig = typeof plan.promotional_config === 'string' 
-        ? JSON.parse(plan.promotional_config) 
-        : plan.promotional_config;
-
-      // Check if promotion is active and not expired
-      const isExpired = promoConfig.expiresAt 
-        ? new Date(promoConfig.expiresAt) < new Date() 
-        : false;
-
-      if (promoConfig.isActive && !isExpired && promoConfig.finalPrice > 0) {
-        finalPrice = promoConfig.finalPrice;
-        promotionalActive = true;
-      }
-
-      // Use custom name if available and enabled
-      if (plan.display_config) {
-        const displayConfig = typeof plan.display_config === 'string'
-          ? JSON.parse(plan.display_config)
-          : plan.display_config;
-        
-        if (displayConfig.showCustomName && promoConfig.customName) {
-          displayName = promoConfig.customName;
-        }
-      }
-    } catch (error) {
-      console.warn('Failed to parse promotional_config, using base price:', error);
-    }
-  }
+  // Use enhanced payment router for comprehensive analysis
+  const resolvedPricing = resolvePlanPricingAndFlow(plan);
 
   // Validate minimum amount (Pagar.me requirement)
-  if (finalPrice < 50) {
-    throw new Error('Amount is below Pagar.me minimum of R$ 0,50');
+  if (resolvedPricing.finalAmount < 50) {
+    throw new Error(`Amount (R$ ${(resolvedPricing.finalAmount / 100).toFixed(2)}) is below Pagar.me minimum of R$ 0,50`);
   }
 
-  return {
-    planId: plan.id,
-    amount: finalPrice,
-    originalAmount: plan.amount,
-    description: displayName,
-    promotional: promotionalActive,
-    planType: plan.type,
-    billingInterval: plan.billing_interval,
-    metadata: {
-      planId: plan.id,
-      planName: plan.name,
-      promotional: promotionalActive,
-      originalAmount: plan.amount,
-      finalAmount: finalPrice
-    }
-  };
+  // Log routing decision for debugging
+  console.log(`Payment routing for plan ${planId}:`, {
+    flowType: resolvedPricing.flowType,
+    amount: resolvedPricing.finalAmount,
+    hasPromotion: resolvedPricing.hasPromotion,
+    interval: resolvedPricing.interval
+  });
+
+  return resolvedPricing;
 };
 
 // =================================================================
@@ -354,19 +316,35 @@ const createPlanBasedPixPayment = async (input: PlanBasedPixPaymentInput): Promi
   // Resolve plan pricing first
   const planPricing = await resolvePlanPricing(input.planId);
 
-  // Convert to standard PIX payment with resolved pricing
+  // Route based on payment flow type
+  if (planPricing.flowType === 'subscription') {
+    console.log(`Creating PIX subscription for plan ${input.planId}`);
+    
+    // Create subscription using the new Edge Function
+    return createPlanBasedSubscription({
+      planId: input.planId,
+      customerId: input.customerId,
+      paymentMethod: 'boleto', // PIX through boleto for subscriptions
+      metadata: input.metadata
+    });
+  }
+
+  // One-time payment flow
+  console.log(`Creating one-time PIX payment for plan ${input.planId}`);
+  
   const pixPaymentData: PixPaymentInput = {
     customerId: input.customerId,
-    amount: planPricing.amount,
+    amount: planPricing.finalAmount, // Use finalAmount (includes promotions)
     description: planPricing.description,
     metadata: {
       ...input.metadata,
-      planName: planPricing.description,
+      planName: planPricing.name,
+      flowType: planPricing.flowType,
       ...planPricing.metadata
     }
   };
 
-  // Use existing PIX payment creation
+  // Use existing PIX payment creation (one-time order)
   return createPixPayment(pixPaymentData);
 };
 
@@ -378,24 +356,114 @@ const createPlanBasedCreditCardPayment = async (input: PlanBasedCreditCardPaymen
   // Resolve plan pricing first
   const planPricing = await resolvePlanPricing(input.planId);
 
-  // Convert to standard credit card payment with resolved pricing
+  // Route based on payment flow type
+  if (planPricing.flowType === 'subscription') {
+    console.log(`Creating credit card subscription for plan ${input.planId}`);
+    
+    // Create subscription using the new Edge Function
+    return createPlanBasedSubscription({
+      planId: input.planId,
+      customerId: input.customerId,
+      paymentMethod: 'credit_card',
+      cardData: input.cardData,
+      billingAddress: input.billingAddress,
+      installments: input.installments,
+      metadata: input.metadata
+    });
+  }
+
+  // One-time payment flow
+  console.log(`Creating one-time credit card payment for plan ${input.planId}`);
+  
   const creditCardPaymentData: CreditCardPaymentInput = {
     customerId: input.customerId,
-    amount: planPricing.amount,
+    amount: planPricing.finalAmount, // Use finalAmount (includes promotions)
     description: planPricing.description,
-    cardToken: '', // Will be generated server-side
+    cardToken: 'tokenize_on_server', // Trigger server-side tokenization
     installments: input.installments,
     billingAddress: input.billingAddress,
     cardData: input.cardData,
     metadata: {
       ...input.metadata,
-      planName: planPricing.description,
+      planName: planPricing.name,
+      flowType: planPricing.flowType,
       ...planPricing.metadata
     }
   };
 
-  // Use existing credit card payment creation
+  // Use existing credit card payment creation (one-time order)
   return createCreditCardPayment(creditCardPaymentData);
+};
+
+/**
+ * Creates a subscription using the new dual flow system
+ */
+const createPlanBasedSubscription = async (input: {
+  planId: string;
+  customerId: string;
+  paymentMethod: 'credit_card' | 'debit_card' | 'boleto';
+  cardData?: {
+    number: string;
+    holderName: string;
+    expirationMonth: string;
+    expirationYear: string;
+    cvv: string;
+  };
+  billingAddress?: {
+    line_1: string;
+    zip_code: string;
+    city: string;
+    state: string;
+    country: string;
+  };
+  installments?: number;
+  metadata: {
+    customerName: string;
+    customerEmail: string;
+    customerDocument: string;
+    customerPhone: string;
+  };
+}): Promise<any> => {
+  
+  // Get the current user session for JWT token
+  const { data: { session } } = await supabase.auth.getSession();
+  
+  if (!session?.access_token) {
+    throw new Error('Usuário não autenticado. Faça login para continuar.');
+  }
+
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const response = await fetch(`${supabaseUrl}/functions/v1/evidens-create-subscription`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${session.access_token}`
+    },
+    body: JSON.stringify(input)
+  });
+
+  if (!response.ok) {
+    let errorMessage = 'Falha ao criar assinatura';
+    try {
+      const error = await response.json();
+      errorMessage = error.error || error.message || errorMessage;
+    } catch {
+      const textError = await response.text();
+      errorMessage = textError || `HTTP ${response.status}: ${response.statusText}`;
+    }
+    throw new Error(errorMessage);
+  }
+
+  const result = await response.json();
+  
+  // Log successful subscription creation
+  console.log('Subscription created successfully:', {
+    subscription_id: result.subscription_id,
+    status: result.status,
+    plan_name: result.plan_name
+  });
+
+  return result;
 };
 
 // =================================================================

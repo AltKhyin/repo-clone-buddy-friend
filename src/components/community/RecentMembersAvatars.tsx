@@ -79,11 +79,10 @@ export function RecentMembersAvatars({
 export function SidebarRecentMembers({ members }: { members: RecentMember[] }) {
   return (
     <div className="space-y-2">
-      <div className="text-sm font-medium text-foreground">Membros Recentes</div>
       <RecentMembersAvatars members={members} maxDisplayed={7} className="justify-start" />
       {members.length > 0 && (
         <div className="text-xs text-muted-foreground">
-          {members.length} {members.length === 1 ? 'membro ativo' : 'membros ativos'}
+          Recentemente online
         </div>
       )}
     </div>
