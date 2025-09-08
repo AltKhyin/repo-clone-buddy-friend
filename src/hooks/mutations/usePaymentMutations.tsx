@@ -87,6 +87,8 @@ export const planBasedCreditCardPaymentSchema = z.object({
   planId: z.string().min(1, { message: 'Plan ID é obrigatório' }),
   customerId: z.string().min(1, { message: 'Customer ID é obrigatório' }),
   installments: z.number().min(1).max(12, { message: 'Parcelamento deve ser entre 1 e 12x' }),
+  // Optional amount override for installment fees (in cents)
+  amountOverride: z.number().min(50).optional(),
   metadata: z.object({
     customerName: z.string(),
     customerEmail: z.string(),
@@ -477,7 +479,7 @@ const createPlanBasedCreditCardPayment = async (input: PlanBasedCreditCardPaymen
   
   const creditCardPaymentData: CreditCardPaymentInput = {
     customerId: input.customerId,
-    amount: planPricing.finalAmount, // Use finalAmount (includes promotions)
+    amount: input.amountOverride || planPricing.finalAmount, // Use amountOverride (installment fees) or finalAmount (promotions)
     description: planPricing.description,
     cardToken: 'tokenize_on_server', // Trigger server-side tokenization
     installments: input.installments,

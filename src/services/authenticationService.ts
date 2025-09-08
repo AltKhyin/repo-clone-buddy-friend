@@ -70,28 +70,51 @@ export const checkEmailAccountExists = async (email: string): Promise<AccountExi
 
     console.log('Checking account existence for email:', email);
     
-    // Query the users table to check if account exists
-    const { data, error } = await supabase
-      .from('users')
-      .select('id, email')
-      .eq('email', email.toLowerCase())
-      .maybeSingle(); // Use maybeSingle to handle no results gracefully
+    // TRY LOGIN APPROACH: Attempt login with a known invalid password
+    // If we get "Invalid login credentials" vs "Email not confirmed" we can differentiate
+    try {
+      const { error: loginError } = await supabase.auth.signInWithPassword({
+        email: email.toLowerCase(),
+        password: 'definitely_wrong_password_12345!@#'
+      });
 
-    if (error) {
-      console.error('Error checking account existence:', error);
-      const result = { exists: false, error: error.message };
+      if (loginError) {
+        // Analyze the error message to determine if account exists
+        const errorMsg = loginError.message.toLowerCase();
+        
+        if (errorMsg.includes('invalid login credentials') || errorMsg.includes('invalid email or password')) {
+          // This typically means email doesn't exist OR wrong password
+          // We can't distinguish, so we'll assume email doesn't exist
+          console.log('Login attempt suggests no account exists for:', email);
+          const result = { exists: false };
+          setCachedResult(email, result);
+          return result;
+        } else if (errorMsg.includes('email not confirmed') || errorMsg.includes('signup required')) {
+          // Account exists but email not confirmed
+          console.log('Account exists but not confirmed for:', email);
+          const result = { exists: true };
+          setCachedResult(email, result);
+          return result;
+        } else {
+          // Other errors might indicate account exists
+          console.log('Account likely exists based on error type for:', email);
+          const result = { exists: true };
+          setCachedResult(email, result);
+          return result;
+        }
+      }
+      
+      // No error (shouldn't happen with wrong password)
+      const result = { exists: false };
+      setCachedResult(email, result);
+      return result;
+      
+    } catch (authError) {
+      console.log('Auth check failed, defaulting to no account:', authError);
+      const result = { exists: false };
       setCachedResult(email, result);
       return result;
     }
-
-    const result = {
-      exists: !!data,
-      userId: data?.id,
-    };
-
-    console.log('Account existence check result:', { email, exists: result.exists });
-    setCachedResult(email, result);
-    return result;
 
   } catch (error) {
     console.error('Unexpected error checking account existence:', error);

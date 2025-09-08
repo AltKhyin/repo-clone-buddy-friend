@@ -181,6 +181,51 @@ const ProgressSteps: React.FC<ProgressStepsProps> = ({ currentStepIndex, totalSt
 
 
 // =================================================================
+// Installment Fee Calculation (Brazilian Standard)
+// =================================================================
+
+/**
+ * Calculates total amount with Brazilian credit card fees
+ * Standard rates: 1x = 1.6%, 2x-12x = 3% per month after first month
+ */
+const calculateInstallmentTotal = (baseAmount: number, installments: number): {
+  totalAmount: number;
+  installmentAmount: number;
+  feeAmount: number;
+  feePercentage: number;
+} => {
+  if (installments <= 1) {
+    // À vista - 1.6% fee (but we keep the same total for user experience)
+    return {
+      totalAmount: baseAmount,
+      installmentAmount: baseAmount,
+      feeAmount: 0,
+      feePercentage: 1.6
+    };
+  }
+  
+  // 3% fee per month after first month (2x-12x)
+  const feePercentage = (installments - 1) * 3;
+  const feeAmount = Math.round(baseAmount * (feePercentage / 100));
+  const totalAmount = baseAmount + feeAmount;
+  const installmentAmount = Math.round(totalAmount / installments);
+  
+  return {
+    totalAmount,
+    installmentAmount,
+    feeAmount,
+    feePercentage
+  };
+};
+
+/**
+ * Formats currency for display in Brazilian Real
+ */
+const formatCurrency = (amountInCents: number): string => {
+  return (amountInCents / 100).toFixed(2).replace('.', ',');
+};
+
+// =================================================================
 // Component
 // =================================================================
 
@@ -594,8 +639,19 @@ const TwoStepPaymentForm: React.FC<TwoStepPaymentFormProps> = ({
       return;
     }
 
-    if (authData.password.length < 8) {
-      toast.error('Senha deve ter pelo menos 8 caracteres');
+    if (authData.password.length < 12) {
+      toast.error('Senha deve ter pelo menos 12 caracteres para maior segurança');
+      return;
+    }
+
+    // Basic password strength validation
+    const hasNumber = /\d/.test(authData.password);
+    const hasUpper = /[A-Z]/.test(authData.password);
+    const hasLower = /[a-z]/.test(authData.password);
+    const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(authData.password);
+
+    if (!hasNumber || !hasUpper || !hasLower || !hasSpecial) {
+      toast.error('Senha deve conter pelo menos: 1 número, 1 letra maiúscula, 1 minúscula e 1 caractere especial');
       return;
     }
 
@@ -609,7 +665,19 @@ const TwoStepPaymentForm: React.FC<TwoStepPaymentFormProps> = ({
       if (result.success && result.user) {
         handleAuthenticationSuccess(result.user);
       } else {
-        toast.error(result.error || 'Erro ao criar conta');
+        const errorMessage = result.error || 'Erro ao criar conta';
+        
+        // Check if error indicates user already exists
+        if (errorMessage.includes('User already registered') || errorMessage.includes('already been registered')) {
+          // Switch to login mode for existing user
+          setStepFlow(prev => ({
+            ...prev,
+            authStep: 'login'
+          }));
+          toast.error('Esta conta já existe. Digite sua senha para fazer login.');
+        } else {
+          toast.error(errorMessage);
+        }
       }
     } catch (error) {
       console.error('Signup error:', error);
@@ -748,15 +816,27 @@ const TwoStepPaymentForm: React.FC<TwoStepPaymentFormProps> = ({
           return;
         }
 
+        // Calculate total amount with installment fees
+        const installmentCount = parseInt(values.installments || '1');
+        const feeCalculation = calculateInstallmentTotal(displayPrice, installmentCount);
+        
         const creditCardPaymentData: PlanBasedCreditCardPaymentInput = {
           planId: plan.id,
           customerId: customerId || values.customerEmail,
-          installments: parseInt(values.installments || '1'),
+          installments: installmentCount,
+          // Pass the total amount with installment fees
+          amountOverride: feeCalculation.totalAmount,
           metadata: {
             customerName: values.customerName,
             customerEmail: values.customerEmail,
             customerDocument: values.customerDocument,
-            customerPhone: values.customerPhone
+            customerPhone: values.customerPhone,
+            // Add fee information to metadata
+            baseAmount: displayPrice,
+            totalAmount: feeCalculation.totalAmount,
+            feeAmount: feeCalculation.feeAmount,
+            feePercentage: feeCalculation.feePercentage,
+            installmentAmount: feeCalculation.installmentAmount
           },
           billingAddress: {
             line_1: values.billingStreet || '',
@@ -792,7 +872,7 @@ const TwoStepPaymentForm: React.FC<TwoStepPaymentFormProps> = ({
             if (data.status === 'failed') {
               const context = {
                 orderId: paymentId,
-                amount: displayPrice,
+                amount: feeCalculation.totalAmount, // Use total amount with fees for error display
                 paymentMethod: 'credit_card' as const,
                 installments: parseInt(values.installments || '1')
               };
@@ -811,7 +891,7 @@ const TwoStepPaymentForm: React.FC<TwoStepPaymentFormProps> = ({
               
               const webhookPaymentData = {
                 id: paymentId || 'unknown',
-                amount: displayPrice,
+                amount: feeCalculation.totalAmount, // Use total amount with fees for webhook
                 method: 'credit_card',
                 status: 'paid',
                 metadata: {
@@ -842,7 +922,7 @@ const TwoStepPaymentForm: React.FC<TwoStepPaymentFormProps> = ({
             // Success case - determine if it's subscription or one-time
             const context = {
               orderId: paymentId,
-              amount: displayPrice,
+              amount: feeCalculation.totalAmount, // Use total amount with fees for success display
               paymentMethod: 'credit_card' as const,
               planName: plan.name,
               installments: parseInt(values.installments || '1')
@@ -863,7 +943,7 @@ const TwoStepPaymentForm: React.FC<TwoStepPaymentFormProps> = ({
             
             const context = {
               orderId: undefined,
-              amount: displayPrice,
+              amount: feeCalculation.totalAmount, // Use total amount with fees for error display
               paymentMethod: 'credit_card' as const,
               installments: parseInt(values.installments || '1')
             };
@@ -893,7 +973,7 @@ const TwoStepPaymentForm: React.FC<TwoStepPaymentFormProps> = ({
         
         const context = {
           orderId: undefined,
-          amount: displayPrice,
+          amount: selectedMethod === 'credit_card' ? feeCalculation.totalAmount : displayPrice, // Use total amount with fees for credit card
           paymentMethod: selectedMethod
         };
         
@@ -1206,13 +1286,10 @@ const TwoStepPaymentForm: React.FC<TwoStepPaymentFormProps> = ({
             <div className="transition-all duration-300 ease-in-out animate-in fade-in slide-in-from-left-4 space-y-4">
               <div className="text-center mb-4">
                 <h3 className="text-lg font-medium text-black mb-2">
-                  {stepFlow.authStep === 'login' ? 'Fazer Login' : 'Criar Conta'}
+                  Acesso à Conta
                 </h3>
                 <p className="text-sm text-gray-600">
-                  {stepFlow.authStep === 'login' 
-                    ? 'Digite sua senha para continuar com o pagamento'
-                    : 'Crie uma senha para prosseguir com o pagamento'
-                  }
+                  Digite sua senha para continuar. Se não tem conta, uma será criada automaticamente.
                 </p>
               </div>
 
@@ -1230,25 +1307,46 @@ const TwoStepPaymentForm: React.FC<TwoStepPaymentFormProps> = ({
                 />
                 
                 {stepFlow.authStep === 'signup' && (
-                  <Input
-                    type="password"
-                    placeholder="Confirme sua senha"
-                    value={authData.confirmPassword}
-                    onChange={(e) => setAuthData(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                    className="bg-white border-gray-300 focus:border-black focus:ring-0"
-                  />
+                  <>
+                    <Input
+                      type="password"
+                      placeholder="Confirme sua senha"
+                      value={authData.confirmPassword}
+                      onChange={(e) => setAuthData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                      className="bg-white border-gray-300 focus:border-black focus:ring-0"
+                    />
+                    <div className="text-xs text-gray-500 bg-blue-50 p-2 rounded">
+                      <strong>Nova conta:</strong> A senha deve ter pelo menos 12 caracteres, incluindo maiúsculas, minúsculas, números e símbolos.
+                    </div>
+                  </>
                 )}
               </div>
 
-              <Button
-                type="submit"
-                disabled={isAuthenticating || !authData.password || (stepFlow.authStep === 'signup' && !authData.confirmPassword)}
-                className="w-full bg-black hover:bg-gray-800 text-white h-12 rounded-md font-medium"
-              >
-                {isAuthenticating ? 'Processando...' : 
-                 stepFlow.authStep === 'login' ? 'Fazer Login e Continuar' : 'Criar Conta e Continuar'}
-                <ArrowRight className="h-4 w-4 ml-2" />
-              </Button>
+              <div className="space-y-2">
+                <Button
+                  type="button"
+                  onClick={handleLogin}
+                  disabled={isAuthenticating || !authData.password}
+                  className="w-full bg-black hover:bg-gray-800 text-white h-12 rounded-md font-medium"
+                >
+                  {isAuthenticating ? 'Processando...' : 'Fazer Login e Continuar'}
+                  <ArrowRight className="h-4 w-4 ml-2" />
+                </Button>
+                
+                <div className="text-center text-sm text-gray-500">ou</div>
+                
+                <Button
+                  type="button"
+                  onClick={() => {
+                    setStepFlow(prev => ({ ...prev, authStep: 'signup' }));
+                  }}
+                  variant="outline"
+                  disabled={isAuthenticating}
+                  className="w-full h-12 rounded-md font-medium"
+                >
+                  Criar Nova Conta
+                </Button>
+              </div>
             </div>
           )}
 
@@ -1417,17 +1515,45 @@ const TwoStepPaymentForm: React.FC<TwoStepPaymentFormProps> = ({
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent className="bg-white border border-gray-200">
-                            <SelectItem value="1" className="text-black hover:bg-gray-50 focus:bg-gray-50 data-[highlighted]:bg-gray-50 data-[state=checked]:text-black focus:text-black">1x de R$ {(displayPrice / 100).toFixed(2).replace('.', ',')} (à vista)</SelectItem>
-                            <SelectItem value="2" className="text-black hover:bg-gray-50 focus:bg-gray-50 data-[highlighted]:bg-gray-50 data-[state=checked]:text-black focus:text-black">2x de R$ {(displayPrice / 200).toFixed(2).replace('.', ',')}</SelectItem>
-                            <SelectItem value="3" className="text-black hover:bg-gray-50 focus:bg-gray-50 data-[highlighted]:bg-gray-50 data-[state=checked]:text-black focus:text-black">3x de R$ {(displayPrice / 300).toFixed(2).replace('.', ',')}</SelectItem>
-                            <SelectItem value="6" className="text-black hover:bg-gray-50 focus:bg-gray-50 data-[highlighted]:bg-gray-50 data-[state=checked]:text-black focus:text-black">6x de R$ {(displayPrice / 600).toFixed(2).replace('.', ',')}</SelectItem>
-                            <SelectItem value="12" className="text-black hover:bg-gray-50 focus:bg-gray-50 data-[highlighted]:bg-gray-50 data-[state=checked]:text-black focus:text-black">12x de R$ {(displayPrice / 1200).toFixed(2).replace('.', ',')}</SelectItem>
+                            {(() => {
+                              // Generate installment options with proper fee calculations
+                              const installmentOptions = [1, 2, 3, 6, 12];
+                              return installmentOptions.map(installmentCount => {
+                                const calculation = calculateInstallmentTotal(displayPrice, installmentCount);
+                                const isVista = installmentCount === 1;
+                                
+                                return (
+                                  <SelectItem 
+                                    key={installmentCount}
+                                    value={installmentCount.toString()} 
+                                    className="text-black hover:bg-gray-50 focus:bg-gray-50 data-[highlighted]:bg-gray-50 data-[state=checked]:text-black focus:text-black"
+                                  >
+                                    <div className="flex flex-col">
+                                      <span>
+                                        {installmentCount}x de R$ {formatCurrency(calculation.installmentAmount)}
+                                        {isVista && " (à vista)"}
+                                      </span>
+                                      {!isVista && calculation.feeAmount > 0 && (
+                                        <span className="text-xs text-gray-500">
+                                          Total: R$ {formatCurrency(calculation.totalAmount)} (com taxas)
+                                        </span>
+                                      )}
+                                    </div>
+                                  </SelectItem>
+                                );
+                              });
+                            })()}
                           </SelectContent>
                         </Select>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
+
+                  {/* Fee disclosure */}
+                  <div className="mt-2 text-xs text-gray-500">
+                    Parcelamento inclui taxas padrão do cartão (3% por mês após 1x)
+                  </div>
 
                   {/* Billing Address Fields */}
                   <div className="mt-4 pt-4 border-t border-gray-200">
