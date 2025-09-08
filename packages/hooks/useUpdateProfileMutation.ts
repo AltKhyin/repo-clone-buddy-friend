@@ -26,6 +26,30 @@ const updateProfile = async (
   if (data.avatar_url !== undefined) {
     updateData.avatar_url = data.avatar_url;
   }
+  
+  // Handle new contact fields
+  if (data.phone !== undefined) {
+    updateData.phone = data.phone;
+  }
+  if (data.location !== undefined) {
+    updateData.location = data.location;
+  }
+  
+  // Handle social media fields - map form fields to database columns
+  if (data.linkedin !== undefined) {
+    updateData.linkedin_url = data.linkedin;
+  }
+  if (data.instagram !== undefined) {
+    updateData.instagram_url = data.instagram;
+  }
+  if (data.twitter !== undefined) {
+    updateData.twitter_url = data.twitter;
+  }
+  if (data.website !== undefined) {
+    updateData.website_url = data.website;
+  }
+  
+  // Legacy fields (maintain backward compatibility)
   if (data.linkedin_url !== undefined) {
     updateData.linkedin_url = data.linkedin_url;
   }

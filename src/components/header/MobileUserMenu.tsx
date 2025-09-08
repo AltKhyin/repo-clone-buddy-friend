@@ -1,14 +1,15 @@
 // ABOUTME: Mobile avatar menu component combining theme selector and logout functionality.
 
 import React from 'react';
-import { LogOut, Moon, Sun, Circle } from 'lucide-react';
+import { LogOut } from 'lucide-react';
+// import { Moon, Sun, Circle } from 'lucide-react'; // Temporarily removed for theme stability
 import { useNavigate } from 'react-router-dom';
-import { useTheme } from '@/components/theme/CustomThemeProvider';
+// import { useTheme } from '@/components/theme/CustomThemeProvider'; // Temporarily removed for theme stability
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
+  // DropdownMenuSeparator, // Temporarily removed - not needed without theme items
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
@@ -25,10 +26,12 @@ interface MobileUserMenuProps {
 export const MobileUserMenu = ({ className }: MobileUserMenuProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { setTheme, theme } = useTheme();
+  // const { setTheme, theme } = useTheme(); // Temporarily removed for theme stability
   const { user } = useAuthStore();
   const { data: userProfile } = useUserProfileQuery();
 
+  // Theme change functionality temporarily removed for theme stability
+  /*
   const handleThemeChange = (newTheme: string) => {
     setTheme(newTheme as 'light' | 'dark' | 'black');
 
@@ -50,6 +53,7 @@ export const MobileUserMenu = ({ className }: MobileUserMenuProps) => {
       description: `Tema alterado para ${getThemeDisplayName(newTheme)}.`,
     });
   };
+  */
 
   const handleLogout = async () => {
     try {
@@ -102,25 +106,8 @@ export const MobileUserMenu = ({ className }: MobileUserMenuProps) => {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-48 z-[70]">
-        {/* Theme Selection */}
-        <DropdownMenuItem onClick={() => handleThemeChange('light')}>
-          <Sun className="mr-2 h-4 w-4" />
-          <span>Tema Claro</span>
-          {theme === 'light' && <span className="ml-auto">✓</span>}
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => handleThemeChange('dark')}>
-          <Moon className="mr-2 h-4 w-4" />
-          <span>Tema Escuro</span>
-          {theme === 'dark' && <span className="ml-auto">✓</span>}
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => handleThemeChange('black')}>
-          <Circle className="mr-2 h-4 w-4 fill-current" />
-          <span>Tema Black</span>
-          {theme === 'black' && <span className="ml-auto">✓</span>}
-        </DropdownMenuItem>
-
-        <DropdownMenuSeparator />
-
+        {/* Theme Selection - Temporarily removed for theme stability */}
+        
         {/* Logout */}
         <DropdownMenuItem onClick={handleLogout} className="text-red-600 focus:text-red-600">
           <LogOut className="mr-2 h-4 w-4" />

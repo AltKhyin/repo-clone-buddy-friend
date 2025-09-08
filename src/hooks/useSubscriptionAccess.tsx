@@ -59,7 +59,7 @@ export const useSubscriptionAccess = () => {
     if (!subscriptionStatus.isSubscribed) return 'free'
     
     if (subscriptionStatus.subscriptionTier === 'enterprise') return 'enterprise'
-    if (subscriptionStatus.subscriptionTier === 'premium' || subscriptionStatus.isPremium) return 'premium'
+    if (subscriptionStatus.subscriptionTier === 'premium' || subscriptionStatus.subscriptionTier === 'basic' || subscriptionStatus.isPremium) return 'premium'
     
     return 'free'
   }

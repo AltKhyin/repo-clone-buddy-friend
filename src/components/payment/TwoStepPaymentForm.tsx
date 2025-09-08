@@ -13,6 +13,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { PhoneInput } from '@/components/ui/PhoneInput';
 import { useCreatePlanBasedPixPayment, useCreatePlanBasedCreditCardPayment, usePaymentStatus, planBasedPixPaymentSchema, planBasedCreditCardPaymentSchema, type PlanBasedPixPaymentInput, type PlanBasedCreditCardPaymentInput } from '../../hooks/mutations/usePaymentMutations';
 import { EnhancedPlanDisplay } from './EnhancedPlanDisplay';
+import { useContactInfo } from '@/hooks/useContactInfo';
+import { triggerPaymentSuccessWebhook } from '@/services/makeWebhookService';
+import { supabase } from '@/integrations/supabase/client';
 import type { Tables } from '@/integrations/supabase/types';
 
 // =================================================================
@@ -125,6 +128,7 @@ const TwoStepPaymentForm: React.FC<TwoStepPaymentFormProps> = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const [showPixCode, setShowPixCode] = useState(false);
   const [pixData, setPixData] = useState<any>(null);
+  const { displayText: contactEmail, href: contactLink } = useContactInfo();
 
   // Use plan directly (now required prop)
   const displayPlan = plan;
@@ -241,10 +245,39 @@ const TwoStepPaymentForm: React.FC<TwoStepPaymentFormProps> = ({
       };
 
       pixPaymentMutation.mutate(pixPaymentData, {
-        onSuccess: (data) => {
+        onSuccess: async (data) => {
           setPixData(data);
           setShowPixCode(true);
           toast.success('Código PIX gerado com sucesso!');
+          
+          // Trigger webhook for PIX payment creation (PIX is immediately paid)
+          try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user?.id) {
+              const paymentData = {
+                id: data.id,
+                amount: displayPlan.amount,
+                method: 'pix',
+                status: 'paid',
+                metadata: {
+                  customerName: values.customerName,
+                  customerEmail: values.customerEmail,
+                  customerDocument: values.customerDocument,
+                  customerPhone: values.customerPhone,
+                  planName: displayPlan.name,
+                  planId: displayPlan.id
+                }
+              };
+
+              // Non-blocking webhook trigger
+              triggerPaymentSuccessWebhook(user.id, paymentData).catch(error => {
+                console.error('PIX webhook trigger failed (non-blocking):', error);
+              });
+            }
+          } catch (error) {
+            console.error('Error preparing PIX webhook data (non-blocking):', error);
+          }
+          
           setIsProcessing(false);
         },
         onError: (error) => {
@@ -305,8 +338,40 @@ const TwoStepPaymentForm: React.FC<TwoStepPaymentFormProps> = ({
         };
 
         creditCardPaymentMutation.mutate(creditCardPaymentData, {
-          onSuccess: (data) => {
+          onSuccess: async (data) => {
             toast.success('Pagamento processado com sucesso!');
+            
+            // Trigger webhook for credit card payment success
+            try {
+              const { data: { user } } = await supabase.auth.getUser();
+              if (user?.id) {
+                const paymentData = {
+                  id: data.id,
+                  amount: displayPlan.amount,
+                  method: 'credit_card',
+                  status: 'paid',
+                  pagarme_transaction_id: data.pagarme_transaction_id,
+                  metadata: {
+                    customerName: values.customerName,
+                    customerEmail: values.customerEmail,
+                    customerDocument: values.customerDocument,
+                    customerPhone: values.customerPhone,
+                    planName: displayPlan.name,
+                    planId: displayPlan.id,
+                    cardHolderName: values.cardHolderName,
+                    installments: 1 // Default for this form
+                  }
+                };
+
+                // Non-blocking webhook trigger
+                triggerPaymentSuccessWebhook(user.id, paymentData).catch(error => {
+                  console.error('Credit card webhook trigger failed (non-blocking):', error);
+                });
+              }
+            } catch (error) {
+              console.error('Error preparing credit card webhook data (non-blocking):', error);
+            }
+            
             onSuccess?.(data.id);
             setIsProcessing(false);
           },
@@ -950,9 +1015,14 @@ const TwoStepPaymentForm: React.FC<TwoStepPaymentFormProps> = ({
         
         <p className="text-sm text-gray-700">
           Problemas com o pagamento?{' '}
-          <button type="button" className="text-black font-medium hover:underline touch-manipulation">
+          <a 
+            href={contactLink} 
+            className="text-black font-medium hover:underline touch-manipulation"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
             Entre em contato
-          </button>
+          </a>
         </p>
       </div>
     </div>

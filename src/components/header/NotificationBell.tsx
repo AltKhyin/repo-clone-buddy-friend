@@ -1,47 +1,68 @@
-// ABOUTME: Notification bell icon component for future notification system with badge support.
+// ABOUTME: Notification bell component with live notification count and dropdown for authenticated users only.
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useAuthStore } from '@/store/auth';
+import { useNotificationCount } from '../../../packages/hooks/useNotifications';
+import { NotificationDropdown } from './NotificationDropdown';
 
 interface NotificationBellProps {
-  hasNotifications?: boolean;
-  notificationCount?: number;
   className?: string;
 }
 
-export const NotificationBell = ({
-  hasNotifications = false,
-  notificationCount = 0,
-  className,
-}: NotificationBellProps) => {
+export const NotificationBell = ({ className }: NotificationBellProps) => {
+  const { user } = useAuthStore();
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  // Only fetch notifications if user is authenticated
+  const { data: countData, isLoading } = useNotificationCount();
+  const unreadCount = countData?.unread_count || 0;
+
+  // Don't render notification bell for unauthenticated users
+  if (!user) {
+    return null;
+  }
+
   const handleClick = () => {
-    // TODO: Implement notification system
-    console.log('Notifications clicked - future implementation');
+    setIsDropdownOpen(!isDropdownOpen);
+  };
+
+  const handleClose = () => {
+    setIsDropdownOpen(false);
   };
 
   return (
-    <Button
-      variant="ghost"
-      size="icon"
-      onClick={handleClick}
-      className={`h-8 w-8 text-muted-foreground hover:text-foreground transition-colors relative ${className}`}
-    >
-      <Bell className="h-4 w-4" />
+    <div className="relative">
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={handleClick}
+        className={`h-8 w-8 text-muted-foreground hover:text-foreground transition-colors relative ${className}`}
+        aria-label={`Notifications ${unreadCount > 0 ? `(${unreadCount} unread)` : ''}`}
+      >
+        <Bell className="h-4 w-4" />
 
-      {/* Notification badge - for future implementation */}
-      {hasNotifications && (
-        <span className="absolute -top-1 -right-1 h-3 w-3 bg-destructive rounded-full flex items-center justify-center">
-          {notificationCount > 0 && notificationCount < 10 && (
-            <span className="text-[10px] text-destructive-foreground font-medium">
-              {notificationCount}
-            </span>
-          )}
-          {notificationCount >= 10 && (
-            <span className="text-[8px] text-destructive-foreground font-medium">9+</span>
-          )}
-        </span>
+        {/* Notification badge */}
+        {unreadCount > 0 && (
+          <span className="absolute -top-1 -right-1 h-4 w-4 bg-orange-500 text-white rounded-full flex items-center justify-center text-xs font-medium min-w-[16px]">
+            {unreadCount > 99 ? '99+' : unreadCount}
+          </span>
+        )}
+
+        {/* Loading indicator */}
+        {isLoading && (
+          <span className="absolute -top-1 -right-1 h-2 w-2 bg-orange-300 rounded-full animate-pulse" />
+        )}
+      </Button>
+
+      {/* Notification Dropdown */}
+      {isDropdownOpen && (
+        <NotificationDropdown 
+          isOpen={isDropdownOpen} 
+          onClose={handleClose}
+        />
       )}
-    </Button>
+    </div>
   );
 };

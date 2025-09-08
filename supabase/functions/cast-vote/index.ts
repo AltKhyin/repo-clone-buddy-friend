@@ -127,10 +127,16 @@ async function handleSuggestionVote(supabase: any, suggestionId: number, voteTyp
 }
 
 async function handleCommunityPostVote(supabase: any, postId: number, voteType: string, userId: string) {
-  // Validate the post exists
+  // Validate the post exists and get author info for notifications
   const { data: post, error: postError } = await supabase
     .from('CommunityPosts')
-    .select('id')
+    .select(`
+      id,
+      title,
+      author_id,
+      parent_post_id,
+      author:Practitioners!CommunityPosts_author_id_fkey(id, full_name)
+    `)
     .eq('id', postId)
     .single();
 
@@ -172,6 +178,22 @@ async function handleCommunityPostVote(supabase: any, postId: number, voteType: 
     .select('upvotes, downvotes')
     .eq('id', postId)
     .single();
+
+  // Create notification for upvotes (but not for self-votes or downvotes)
+  if (voteType === 'up' && post.author_id && post.author_id !== userId) {
+    try {
+      await createLikeNotification(supabase, {
+        recipient_id: post.author_id,
+        post_id: postId,
+        post_title: post.title || 'Sem título',
+        is_comment: Boolean(post.parent_post_id),
+        voter_name: await getUserName(supabase, userId)
+      });
+    } catch (notificationError) {
+      // Log but don't fail the vote if notification fails
+      console.error('Failed to create like notification:', notificationError);
+    }
+  }
 
   return {
     message: 'Vote processed successfully',
@@ -235,4 +257,49 @@ async function handlePollVote(supabase: any, optionId: number, voteType: string,
     entity_type: 'poll',
     poll_id: option.poll_id
   };
+}
+
+// Helper functions for notifications
+async function createLikeNotification(supabase: any, payload: {
+  recipient_id: string;
+  post_id: number;
+  post_title: string;
+  is_comment: boolean;
+  voter_name: string;
+}) {
+  const notificationType = payload.is_comment ? 'comment_like' : 'post_like';
+  const contentType = payload.is_comment ? 'comentário' : 'post';
+  
+  const notification = {
+    operation: 'create',
+    recipient_id: payload.recipient_id,
+    type: notificationType,
+    title: `Seu ${contentType} recebeu um like!`,
+    message: `Seu ${contentType} "${payload.post_title}" recebeu um like de ${payload.voter_name}.`,
+    metadata: {
+      post_id: payload.post_id,
+      post_title: payload.post_title,
+      voter_name: payload.voter_name,
+      is_comment: payload.is_comment
+    }
+  };
+
+  // Call manage-notifications Edge Function
+  const { error } = await supabase.functions.invoke('manage-notifications', {
+    body: notification
+  });
+
+  if (error) {
+    throw new Error(`Failed to create notification: ${error.message}`);
+  }
+}
+
+async function getUserName(supabase: any, userId: string): Promise<string> {
+  const { data: user } = await supabase
+    .from('Practitioners')
+    .select('full_name')
+    .eq('id', userId)
+    .single();
+
+  return user?.full_name || 'Alguém';
 }

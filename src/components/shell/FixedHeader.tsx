@@ -3,10 +3,10 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
 import { NotificationBell } from '@/components/header/NotificationBell';
-import { ThemeSelector } from '@/components/header/ThemeSelector';
+// import { ThemeSelector } from '@/components/header/ThemeSelector'; // Temporarily removed
 import { UserMenu } from '@/components/header/UserMenu';
 import { MobileUserMenu } from '@/components/header/MobileUserMenu';
-import { SearchBar } from '@/components/header/SearchBar';
+// import { SearchBar } from '@/components/header/SearchBar'; // Temporarily removed
 import { useAuthStore } from '@/store/auth';
 import { Button } from '@/components/ui/button';
 import { LogIn } from 'lucide-react';
@@ -86,22 +86,14 @@ const FixedHeader = ({ className, children, isCollapsed, isMobile }: FixedHeader
       <div className="h-full w-full">
         {/* Desktop Header Layout */}
         <div className="hidden md:flex h-full w-full relative">
-          {/* Search Bar - Positioned in main content area */}
-          <div
-            className="absolute top-1/2 transform -translate-y-1/2 transition-all duration-300 z-20"
-            style={{
-              left: `${isCollapsed ? 80 + 16 : 240 + 16}px`, // sidebar width + padding
-            }}
-          >
-            <SearchBar />
-          </div>
+          {/* Search Bar - Temporarily removed for theme stability */}
 
           {/* Icons - All the way to right edge of screen */}
           <div className="absolute top-1/2 right-4 transform -translate-y-1/2 z-20">
             {isLoggedIn ? (
               <div className="flex items-center space-x-4">
                 <NotificationBell />
-                <ThemeSelector />
+                {/* <ThemeSelector /> Temporarily removed for theme stability */}
                 <UserMenu />
               </div>
             ) : (

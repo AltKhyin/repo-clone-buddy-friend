@@ -12,6 +12,7 @@ import { useState, useEffect } from 'react';
 import { CreditCard, Smartphone, FileText, Check, QrCode } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PhoneInput } from '@/components/ui/PhoneInput';
+import { useContactInfo } from '@/hooks/useContactInfo';
 
 // =================================================================
 // Payment Method Types & Configuration
@@ -105,6 +106,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
   const [showPixCode, setShowPixCode] = useState(false);
   const [pixData, setPixData] = useState<any>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const { displayText: contactEmail, href: contactLink } = useContactInfo();
   
   // Poll payment status when PIX QR code is displayed
   const { data: paymentStatus } = usePaymentStatus(
@@ -793,9 +795,14 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
         
         <p className="text-sm text-gray-700">
           Problemas com o pagamento?{' '}
-          <button type="button" className="text-black font-medium hover:underline">
+          <a 
+            href={contactLink} 
+            className="text-black font-medium hover:underline"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
             Entre em contato
-          </button>
+          </a>
         </p>
       </div>
     </div>

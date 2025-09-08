@@ -4,11 +4,12 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Megaphone, Layout, Folder } from 'lucide-react';
+import { Megaphone, Layout, Folder, Bell } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
 import { CategoryManagement } from '@/components/admin/CommunityManagement/CategoryManagement';
 import { SidebarSectionManagement } from '@/components/admin/CommunityManagement/SidebarSectionManagement';
 import { AnnouncementManagement } from '@/components/admin/CommunityManagement/AnnouncementManagement';
+import { NotificationManagement } from '@/components/admin/CommunityManagement/NotificationManagement';
 import { StandardLayout } from '@/components/layout/StandardLayout';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
@@ -52,6 +53,15 @@ const AdminCommunityManagementContent = () => {
             <h3 className="text-lg font-semibold">Gestão de Anúncios</h3>
           </div>
           <AnnouncementManagement />
+        </section>
+
+        {/* Notification Management */}
+        <section>
+          <div className="flex items-center gap-2 mb-4">
+            <Bell className="h-5 w-5" />
+            <h3 className="text-lg font-semibold">Notificações Inbox</h3>
+          </div>
+          <NotificationManagement />
         </section>
       </div>
     </StandardLayout>

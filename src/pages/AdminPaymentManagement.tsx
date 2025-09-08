@@ -16,6 +16,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { Database } from '@/integrations/supabase/types';
 import { EnhancedPlanDisplay } from '@/components/payment/EnhancedPlanDisplay';
 import { PromotionalConfigurationSection } from '@/components/payment/PromotionalConfigurationSection';
+import { CustomerSupportSettingsCard } from '@/components/admin/CustomerSupportSettings';
+import { sendTestWebhook } from '@/services/makeWebhookService';
 
 type PaymentPlan = Database['public']['Tables']['PaymentPlans']['Row'];
 type PaymentPlanInsert = Database['public']['Tables']['PaymentPlans']['Insert'];
@@ -673,10 +675,7 @@ export default function AdminPaymentManagement() {
         )}
 
         {/* Main Content */}
-        <div className="w-full">
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-              {/* Left Column - Plan Creation & Default Settings */}
-              <div className="xl:col-span-2 space-y-6">
+        <div className="w-full space-y-6">
             
             {/* Create New Plan - Simplified & Focused */}
             <Card>
@@ -968,96 +967,88 @@ export default function AdminPaymentManagement() {
                 </div>
               </CardContent>
             </Card>
-          </div>
 
-          {/* Right Sidebar - Preview & Status */}
-          <div className="xl:col-span-1 space-y-6">
-            
-            {/* Current Plan Status */}
-            {defaultPlanSetting ? (() => {
-              const currentPlan = plans.find(p => p.id === defaultPlanSetting);
-              return (
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                      Plano Padrão Ativo
+            {/* Customer Support Settings - Step 3 */}
+            <CustomerSupportSettingsCard />
+
+            {/* Webhook Testing - Step 4 */}
+            <Card>
+              <CardHeader className="pb-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                      <Settings className="h-5 w-5" />
+                      Webhook Testing
                     </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    {currentPlan ? (
-                      <>
-                        <div className="bg-blue-50 border border-blue-200 p-3 rounded-lg">
-                          <div className="font-medium text-blue-900">{currentPlan.name}</div>
-                          <div className="text-sm text-blue-700 mt-1">
-                            R$ {(currentPlan.amount / 100).toFixed(2)} • {currentPlan.days} dias
-                          </div>
-                          <div className="text-xs text-blue-600 mt-2">
-                            <code className="bg-blue-100 px-1 rounded">/pagamento</code>
-                          </div>
-                        </div>
-                        
-                        {/* Customer Preview */}
-                        <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
-                          <div className="flex items-center gap-2 mb-3">
-                            <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-                            </svg>
-                            <h4 className="text-sm font-medium text-gray-900">Como os clientes veem</h4>
-                          </div>
-                          
-                          <div className="bg-white border border-gray-200 rounded-md p-3 space-y-2">
-                            <div className="text-center">
-                              <h3 className="font-semibold text-gray-900">{currentPlan.name}</h3>
-                              <p className="text-xl font-bold text-blue-600">
-                                R$ {(currentPlan.amount / 100).toFixed(2)}
-                              </p>
-                              <p className="text-xs text-gray-600">
-                                {currentPlan.description || `${currentPlan.days} dias de acesso`}
-                              </p>
-                            </div>
-                            
-                            <div className="flex items-center justify-between text-xs bg-gray-50 p-2 rounded">
-                              <span>Tipo:</span>
-                              <Badge variant={currentPlan.type === 'subscription' ? 'default' : 'secondary'} className="text-xs">
-                                {currentPlan.type === 'subscription' ? 'Recorrente' : 'Único'}
-                              </Badge>
-                            </div>
-                            
-                            {currentPlan.usage_count > 0 && (
-                              <div className="text-xs text-center text-green-600 bg-green-50 p-1 rounded">
-                                ✓ {currentPlan.usage_count} cliente{currentPlan.usage_count > 1 ? 's' : ''}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </>
-                    ) : (
-                      <div className="text-sm text-red-600 bg-red-50 p-2 rounded border-red-200">
-                        ⚠️ Plano não encontrado - selecione um novo plano padrão
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              );
-            })() : (
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
-                    Nenhum Plano Padrão
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-sm text-amber-600 bg-amber-50 p-3 rounded-lg border-amber-200">
-                    ⚠️ Configure um plano padrão para que clientes possam acessar /pagamento sem parâmetros.
+                    <CardDescription className="mt-1">
+                      Teste a integração com aplicativos externos usando dados reais
+                    </CardDescription>
                   </div>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        </div>
+                  <Badge variant="outline" className="text-xs">
+                    Passo 4
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                  <div className="flex items-start gap-3">
+                    <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center mt-1">
+                      <svg className="w-3 h-3 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                      </svg>
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-medium text-blue-900">Teste de Integração</h4>
+                      <p className="text-sm text-blue-700 mt-1">
+                        Este botão simula um pagamento bem-sucedido e envia todos os dados para Make.com, 
+                        permitindo que você configure suas integrações externas com dados reais.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="flex justify-center">
+                  <Button
+                    onClick={async () => {
+                      try {
+                        toast.loading('Enviando webhook de teste...', { id: 'webhook-test' });
+                        const result = await sendTestWebhook();
+                        
+                        if (result.success) {
+                          toast.success('Webhook de teste enviado com sucesso!', { id: 'webhook-test' });
+                          console.log('Test webhook result:', result);
+                        } else {
+                          toast.error(`Erro ao enviar webhook: ${result.error}`, { id: 'webhook-test' });
+                          console.error('Test webhook failed:', result.error);
+                        }
+                      } catch (error) {
+                        toast.error('Erro inesperado ao enviar webhook', { id: 'webhook-test' });
+                        console.error('Unexpected webhook error:', error);
+                      }
+                    }}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2"
+                    size="default"
+                  >
+                    <Settings className="h-4 w-4 mr-2" />
+                    Enviar Webhook de Teste
+                  </Button>
+                </div>
+                
+                <div className="text-xs text-gray-600 bg-gray-50 p-3 rounded-lg">
+                  <p className="font-medium mb-1">O que este teste envia:</p>
+                  <ul className="list-disc list-inside space-y-1 ml-2">
+                    <li>Dados completos de usuário autenticado</li>
+                    <li>Informações de assinatura e preferências</li>
+                    <li>Dados simulados de transação (PIX)</li>
+                    <li>Métricas de engajamento e perfil</li>
+                    <li>Timestamp e identificadores únicos</li>
+                  </ul>
+                  <p className="mt-2 text-gray-500">
+                    URL de destino: <code className="bg-white px-1 rounded">https://hook.us2.make.com/qjdetduht1g375p7l556yrrutbi3j6cv</code>
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
 
         {/* Full Width Plans List Section */}
         <Card className="mt-8">

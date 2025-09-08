@@ -6,6 +6,8 @@ import { AuthFormContainer } from '@/components/auth/AuthFormContainer';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useContactInfo } from '@/hooks/useContactInfo';
+import { triggerPaymentSuccessWebhook } from '@/services/makeWebhookService';
 import type { Database } from '@/integrations/supabase/types';
 
 type PaymentPlan = Database['public']['Tables']['PaymentPlans']['Row'];
@@ -13,6 +15,7 @@ type PaymentPlan = Database['public']['Tables']['PaymentPlans']['Row'];
 const PaymentPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { displayText: contactEmail, href: contactLink } = useContactInfo();
   
   // Extract plan slug from URL parameters (prettier URLs)
   const planSlug = searchParams.get('plan');
@@ -162,6 +165,32 @@ const PaymentPage = () => {
         });
       }
     }
+
+    // Trigger external webhook to Make.com (non-blocking)
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user?.id && plan) {
+        // Extract payment data for webhook
+        const paymentData = {
+          id: orderId,
+          amount: plan.amount,
+          method: 'unknown', // Will be populated by specific payment forms
+          status: 'paid',
+          metadata: {
+            planName: plan.name,
+            planId: plan.id,
+            customerEmail: user.email
+          }
+        };
+
+        // Trigger webhook without blocking payment success
+        triggerPaymentSuccessWebhook(user.id, paymentData).catch(error => {
+          console.error('Webhook trigger failed (non-blocking):', error);
+        });
+      }
+    } catch (error) {
+      console.error('Error preparing webhook data (non-blocking):', error);
+    }
     
     // Always navigate to success page regardless of usage update results
     try {
@@ -291,7 +320,9 @@ const PaymentPage = () => {
             {(errorDetails.type === 'configuration' || errorDetails.type === 'database') && (
               <div className="text-sm text-gray-500 bg-gray-50 p-3 rounded-lg">
                 <p>Problema persistente? Entre em contato conosco:</p>
-                <p className="font-medium">suporte@evidens.com.br</p>
+                <a href={contactLink} className="font-medium text-blue-600 hover:underline">
+                  {contactEmail}
+                </a>
               </div>
             )}
           </div>

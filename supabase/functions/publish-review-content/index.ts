@@ -121,6 +121,18 @@ serve(async req => {
       }
 
       console.log(`Successfully published V3 content to main Reviews table for review ${reviewId}`);
+
+      // Create notification for new published review
+      try {
+        await createNewReviewNotification(supabase, {
+          review_id: reviewId,
+          review_title: review.title || 'Nova revisão disponível',
+          author_id: userId
+        });
+      } catch (notificationError) {
+        // Log but don't fail the publish operation if notification fails
+        console.error('Failed to create new review notification:', notificationError);
+      }
     }
 
     // STEP 10: Build Response
@@ -144,3 +156,63 @@ serve(async req => {
     return createErrorResponse(error);
   }
 });
+
+// Helper function for creating new review notifications
+async function createNewReviewNotification(supabase: any, payload: {
+  review_id: number;
+  review_title: string;
+  author_id: string;
+}) {
+  // Get author name for notification
+  const { data: authorData } = await supabase
+    .from('Practitioners')
+    .select('full_name')
+    .eq('id', payload.author_id)
+    .single();
+
+  const authorName = authorData?.full_name || 'Alguém';
+
+  // Get all active practitioners for notification broadcast
+  const { data: practitioners, error: practitionersError } = await supabase
+    .from('Practitioners')
+    .select('id')
+    .eq('active', true);
+
+  if (practitionersError || !practitioners) {
+    throw new Error('Failed to get practitioners for notification broadcast');
+  }
+
+  // Send notification to all active practitioners
+  for (const practitioner of practitioners) {
+    // Skip sending notification to the author themselves
+    if (practitioner.id === payload.author_id) {
+      continue;
+    }
+
+    const notification = {
+      operation: 'create',
+      recipient_id: practitioner.id,
+      type: 'new_review',
+      title: 'Nova revisão publicada!',
+      message: `${authorName} publicou uma nova revisão: "${payload.review_title}".`,
+      metadata: {
+        review_id: payload.review_id,
+        review_title: payload.review_title,
+        author_id: payload.author_id,
+        author_name: authorName
+      }
+    };
+
+    // Call manage-notifications Edge Function
+    try {
+      await supabase.functions.invoke('manage-notifications', {
+        body: notification
+      });
+    } catch (error) {
+      console.error(`Failed to create notification for practitioner ${practitioner.id}:`, error);
+      // Continue with other notifications even if one fails
+    }
+  }
+
+  console.log(`Successfully created new review notifications for ${practitioners.length - 1} users`);
+}

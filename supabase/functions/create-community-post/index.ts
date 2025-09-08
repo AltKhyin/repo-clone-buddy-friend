@@ -130,32 +130,17 @@ serve(async (req) => {
       }
     }
 
-    // Notification logic for comments
+    // Create notification for comment replies
     if (body.parent_post_id) {
-      // Get the parent post/comment to find its author
-      const { data: parentContent } = await supabase
-        .from('CommunityPosts')
-        .select('author_id')
-        .eq('id', body.parent_post_id)
-        .single();
-
-      // Ensure we don't notify a user for replying to themselves
-      if (parentContent && parentContent.author_id !== user.id) {
-        // Get user's full name for the notification
-        const { data: userData } = await supabase
-          .from('Practitioners')
-          .select('full_name')
-          .eq('id', user.id)
-          .single();
-
-        const userName = userData?.full_name || 'Um usuário';
-
-        // Insert the notification
-        await supabase.from('Notifications').insert({
-          practitioner_id: parentContent.author_id,
-          content: `${userName} respondeu ao seu comentário.`,
-          link: `/comunidade/${body.parent_post_id}#comment-${newPostId}`,
+      try {
+        await createCommentReplyNotification(supabase, {
+          parent_post_id: body.parent_post_id,
+          new_comment_id: newPostId,
+          commenter_id: user.id
         });
+      } catch (notificationError) {
+        // Log but don't fail the post creation if notification fails
+        console.error('Failed to create comment reply notification:', notificationError);
       }
     }
 
@@ -174,3 +159,71 @@ serve(async (req) => {
     return createErrorResponse(error, {}, origin);
   }
 });
+
+// Helper function for creating comment reply notifications
+async function createCommentReplyNotification(supabase: any, payload: {
+  parent_post_id: number;
+  new_comment_id: number;
+  commenter_id: string;
+}) {
+  // Get parent post/comment info and its author
+  const { data: parentContent, error: parentError } = await supabase
+    .from('CommunityPosts')
+    .select(`
+      id,
+      title,
+      author_id,
+      parent_post_id,
+      author:Practitioners!CommunityPosts_author_id_fkey(id, full_name)
+    `)
+    .eq('id', payload.parent_post_id)
+    .single();
+
+  if (parentError || !parentContent) {
+    throw new Error('Parent post not found');
+  }
+
+  // Don't create notification for self-replies
+  if (parentContent.author_id === payload.commenter_id) {
+    return;
+  }
+
+  // Get commenter info
+  const { data: commenterData } = await supabase
+    .from('Practitioners')
+    .select('full_name')
+    .eq('id', payload.commenter_id)
+    .single();
+
+  const commenterName = commenterData?.full_name || 'Alguém';
+
+  // Determine if this is a reply to a post or to a comment
+  const isReplyToPost = !parentContent.parent_post_id;
+  const contentType = isReplyToPost ? 'post' : 'comentário';
+  const contentTitle = parentContent.title || 'Sem título';
+
+  const notification = {
+    operation: 'create',
+    recipient_id: parentContent.author_id,
+    type: 'comment_reply',
+    title: `${commenterName} respondeu seu ${contentType}!`,
+    message: `${commenterName} respondeu seu ${contentType} "${contentTitle}".`,
+    metadata: {
+      parent_post_id: payload.parent_post_id,
+      new_comment_id: payload.new_comment_id,
+      commenter_id: payload.commenter_id,
+      commenter_name: commenterName,
+      parent_title: contentTitle,
+      is_reply_to_post: isReplyToPost
+    }
+  };
+
+  // Call manage-notifications Edge Function
+  const { error } = await supabase.functions.invoke('manage-notifications', {
+    body: notification
+  });
+
+  if (error) {
+    throw new Error(`Failed to create comment reply notification: ${error.message}`);
+  }
+}
