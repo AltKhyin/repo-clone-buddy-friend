@@ -264,20 +264,13 @@ const ReviewDetailPageContent = () => {
           </section>
         )}
 
-        {/* Unified Comment Section - Works with both virtual and community posts */}
-        <section className="border-t border-border pt-8 mt-16" aria-labelledby="comments-heading">
-          <h2 id="comments-heading" className="text-2xl font-bold text-foreground font-serif mb-6">
-            Comentários
-          </h2>
-          
-          {isCommentsLoading ? (
-            <div className="space-y-4">
-              <Skeleton className="h-20 w-full rounded-lg" /> {/* Comment input */}
-              <Skeleton className="h-32 w-full rounded-lg" /> {/* Comment 1 */}
-              <Skeleton className="h-24 w-11/12 rounded-lg ml-6" /> {/* Reply 1 */}
-              <Skeleton className="h-28 w-full rounded-lg" /> {/* Comment 2 */}
-            </div>
-          ) : commentsData ? (
+        {/* Conditional Comment Section - Only shown if review has an associated community post */}
+        {!isCommentsLoading && commentsData && (
+          <section className="border-t border-border pt-8 mt-16" aria-labelledby="comments-heading">
+            <h2 id="comments-heading" className="text-2xl font-bold text-foreground font-serif mb-6">
+              Comentários
+            </h2>
+            
             <div className="space-y-4">
               {/* Review Comment Input - Only for authenticated users */}
               {user && review && (
@@ -305,14 +298,23 @@ const ReviewDetailPageContent = () => {
                 }}
               />
             </div>
-          ) : (
-            <div className="bg-muted/30 rounded-lg p-8 text-center">
-              <p className="text-muted-foreground">
-                Não foi possível carregar os comentários.
-              </p>
+          </section>
+        )}
+        
+        {/* Loading state for comments - only when checking for community post */}
+        {isCommentsLoading && (
+          <section className="border-t border-border pt-8 mt-16" aria-labelledby="comments-loading">
+            <h2 id="comments-loading" className="text-2xl font-bold text-foreground font-serif mb-6">
+              Comentários
+            </h2>
+            <div className="space-y-4">
+              <Skeleton className="h-20 w-full rounded-lg" /> {/* Comment input */}
+              <Skeleton className="h-32 w-full rounded-lg" /> {/* Comment 1 */}
+              <Skeleton className="h-24 w-11/12 rounded-lg ml-6" /> {/* Reply 1 */}
+              <Skeleton className="h-28 w-full rounded-lg" /> {/* Comment 2 */}
             </div>
-          )}
-        </section>
+          </section>
+        )}
       </div>
 
       {/* Footer */}

@@ -102,56 +102,73 @@ const createVirtualReviewPost = (reviewData: ReviewData): ReviewCommentsData => 
 };
 
 /**
- * Fetches review comments with smart data source switching.
- * Uses community post system if review has community_post_id, otherwise creates virtual post structure.
+ * Fetches review comments ONLY if review has an associated community post.
+ * Returns null if no community post exists, hiding the comment section.
+ * Supports both public and hidden community posts (hidden posts show comments but not in feed).
  * 
  * @param reviewId The ID of the review to fetch comments for
- * @returns ReviewCommentsData in identical format to usePostWithCommentsQuery
+ * @returns ReviewCommentsData if community post exists, null otherwise
  */
 export const useReviewCommentsQuery = (reviewId: number | undefined) => {
-  // First, fetch review data to determine if it has community_post_id
-  const reviewDataQuery = useQuery({
-    queryKey: ['reviewData', reviewId],
-    queryFn: () => fetchReviewData(reviewId!),
+  // First, check if review has an associated community post (either by community_post_id or review_id)
+  const communityPostCheckQuery = useQuery({
+    queryKey: ['reviewCommunityPostCheck', reviewId],
+    queryFn: async (): Promise<{ postId: number | null }> => {
+      if (!reviewId) return { postId: null };
+
+      // Method 1: Check by review's community_post_id field
+      const { data: reviewData } = await supabase
+        .from('Reviews')
+        .select('community_post_id')
+        .eq('id', reviewId)
+        .single();
+
+      if (reviewData?.community_post_id) {
+        return { postId: reviewData.community_post_id };
+      }
+
+      // Method 2: Check for community post with this review_id (admin-created posts)
+      const { data: communityPost } = await supabase
+        .from('CommunityPosts')
+        .select('id')
+        .eq('review_id', reviewId)
+        .single();
+
+      return { postId: communityPost?.id || null };
+    },
     enabled: !!reviewId && reviewId > 0,
-    staleTime: 5 * 60 * 1000, // 5 minutes - review data doesn't change often
+    staleTime: 5 * 60 * 1000, // 5 minutes - community post association doesn't change often
     gcTime: 10 * 60 * 1000,
   });
 
-  // If review has community_post_id, use existing community post system
-  const communityPostQuery = usePostWithCommentsQuery(
-    reviewDataQuery.data?.community_post_id || 0
-  );
+  // If no community post found, return null (no comments)
+  const communityPostId = communityPostCheckQuery.data?.postId;
 
-  // Main query that returns unified data structure
+  // Fetch community post comments only if community post exists
+  const communityPostQuery = usePostWithCommentsQuery(communityPostId || 0);
+
+  // Main query that returns comments data only if community post exists
   return useQuery({
     queryKey: ['reviewComments', reviewId],
-    queryFn: async (): Promise<ReviewCommentsData> => {
-      if (!reviewDataQuery.data) {
-        throw new Error('Review data not available');
+    queryFn: async (): Promise<ReviewCommentsData | null> => {
+      if (!communityPostId) {
+        console.log(`🔄 REVIEW COMMENTS: No community post found for review ${reviewId} - hiding comment section`);
+        return null;
       }
 
-      // Strategy: Smart data source switching
-      if (reviewDataQuery.data.community_post_id) {
-        // Use existing community post system
-        console.log(`🔄 REVIEW COMMENTS: Using community post ${reviewDataQuery.data.community_post_id} for review ${reviewId}`);
-        
-        if (!communityPostQuery.data) {
-          throw new Error('Community post data not available');
-        }
-        
-        return {
-          post: communityPostQuery.data.post,
-          comments: communityPostQuery.data.comments
-        };
-      } else {
-        // Create virtual review post structure
-        console.log(`🔄 REVIEW COMMENTS: Using virtual post structure for review ${reviewId}`);
-        return createVirtualReviewPost(reviewDataQuery.data);
+      if (!communityPostQuery.data) {
+        throw new Error('Community post data not available');
       }
+
+      console.log(`🔄 REVIEW COMMENTS: Using community post ${communityPostId} for review ${reviewId}`);
+      
+      return {
+        post: communityPostQuery.data.post,
+        comments: communityPostQuery.data.comments
+      };
     },
-    enabled: !!reviewId && !!reviewDataQuery.data && 
-             ((!reviewDataQuery.data.community_post_id) || !!communityPostQuery.data),
+    enabled: !!reviewId && communityPostCheckQuery.data !== undefined && 
+             (!communityPostId || !!communityPostQuery.data),
     
     // Performance optimizations matching usePostWithCommentsQuery
     staleTime: 2 * 60 * 1000, // 2 minutes

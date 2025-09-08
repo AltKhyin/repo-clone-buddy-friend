@@ -480,6 +480,24 @@ export const UserListTable = () => {
                               console.error('Time adjustment failed:', error);
                             }
                           }}
+                          onSetAbsoluteDate={async (userId, newDate) => {
+                            try {
+                              const { data, error } = await supabase.functions.invoke('admin-manage-users-working', {
+                                body: {
+                                  action: 'set_absolute_date',
+                                  userId,
+                                  newDate
+                                }
+                              });
+
+                              if (error) throw error;
+                              
+                              // Refresh the user list to show updated data
+                              queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+                            } catch (error) {
+                              console.error('Absolute date setting failed:', error);
+                            }
+                          }}
                         />
                       </TableCell>
 

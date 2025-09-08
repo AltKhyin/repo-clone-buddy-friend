@@ -43,7 +43,7 @@ Deno.serve(async (req: Request) => {
 
     // Parse request body
     const payload = await req.json();
-    const { action, filters, userId, adjustmentDays } = payload;
+    const { action, filters, userId, adjustmentDays, newDate } = payload;
 
     // Handle list action (main functionality)
     if (action === 'list') {
@@ -253,6 +253,73 @@ Deno.serve(async (req: Request) => {
         success: true, 
         message: `Subscription time adjusted by ${days} days`,
         newEndDate 
+      }), {
+        headers: { ...getCorsHeaders(origin), 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Handle absolute date setting
+    if (action === 'set_absolute_date') {
+      if (!userId || !newDate) {
+        return new Response(JSON.stringify({ error: 'userId and newDate are required' }), {
+          status: 400,
+          headers: { ...getCorsHeaders(origin), 'Content-Type': 'application/json' },
+        });
+      }
+
+      // Validate the date format
+      const targetDate = new Date(newDate);
+      if (isNaN(targetDate.getTime())) {
+        return new Response(JSON.stringify({ error: 'Invalid date format' }), {
+          status: 400,
+          headers: { ...getCorsHeaders(origin), 'Content-Type': 'application/json' },
+        });
+      }
+
+      // Get current user data
+      const { data: currentUser, error: getUserError } = await supabaseAdmin
+        .from('Practitioners')
+        .select('subscription_tier')
+        .eq('id', userId)
+        .single();
+
+      if (getUserError || !currentUser) {
+        return new Response(JSON.stringify({ error: 'User not found' }), {
+          status: 404,
+          headers: { ...getCorsHeaders(origin), 'Content-Type': 'application/json' },
+        });
+      }
+
+      // Update subscription data with absolute date
+      const updateData: any = {
+        subscription_end_date: newDate,
+        subscription_created_by: 'admin',
+        admin_subscription_notes: `Set absolute date by admin: ${targetDate.toLocaleDateString('pt-BR')} on ${new Date().toLocaleDateString('pt-BR')}`,
+      };
+
+      // If user is free tier and we're setting a future date, upgrade to premium
+      const now = new Date();
+      if (currentUser.subscription_tier === 'free' && targetDate > now) {
+        updateData.subscription_tier = 'premium';
+        updateData.subscription_start_date = new Date().toISOString();
+      }
+
+      const { error: updateError } = await supabaseAdmin
+        .from('Practitioners')
+        .update(updateData)
+        .eq('id', userId);
+
+      if (updateError) {
+        return new Response(JSON.stringify({ error: `Failed to set absolute date: ${updateError.message}` }), {
+          status: 500,
+          headers: { ...getCorsHeaders(origin), 'Content-Type': 'application/json' },
+        });
+      }
+
+      return new Response(JSON.stringify({ 
+        success: true, 
+        message: `Subscription date set to ${targetDate.toLocaleDateString('pt-BR')}`,
+        newEndDate: newDate
       }), {
         headers: { ...getCorsHeaders(origin), 'Content-Type': 'application/json' },
       });

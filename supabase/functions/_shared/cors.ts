@@ -8,8 +8,8 @@ const isValidDevelopmentOrigin = (origin: string): boolean => {
     const host = url.hostname;
     const port = url.port;
     
-    // Must be port 8080 for development server
-    if (port !== '8080') return false;
+    // Must be port 8080 or 8081 for development server
+    if (port !== '8080' && port !== '8081') return false;
     
     // Localhost variants
     if (host === 'localhost' || host === '127.0.0.1') return true;
@@ -33,6 +33,7 @@ const getAllowedOrigin = (requestOrigin?: string): string => {
     'http://localhost:3000',
     'http://localhost:5173',  
     'http://localhost:8080',
+    'http://localhost:8081',
     // Production domains
     'https://reviews.igoreckert.com.br',
     'https://www.reviews.igoreckert.com.br',

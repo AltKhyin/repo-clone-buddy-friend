@@ -3,6 +3,7 @@
 import React from 'react';
 import { useParams } from 'react-router-dom';
 import { ReviewMetadataPanel } from '@/components/admin/ReviewManagement/ReviewMetadataPanel';
+import { AdminCommunityPostEditor } from '@/components/admin/ReviewManagement/AdminCommunityPostEditor';
 import { UnifiedSaveProvider } from '@/components/admin/common/UnifiedSaveProvider';
 import { SaveButton } from '@/components/admin/common/SaveButton';
 import { useAdminReviewManagement } from '../../packages/hooks/useAdminReviewManagement';
@@ -111,8 +112,9 @@ export default function ReviewManagementPage() {
           </div>
 
           {/* Main Content - Linear single-column layout optimized for review editing workflow */}
-          <div className="max-w-4xl">
+          <div className="max-w-4xl space-y-8">
             <ReviewMetadataPanel review={review} />
+            <AdminCommunityPostEditor review={review} />
           </div>
         </UnifiedSaveProvider>
       </StandardLayout>
