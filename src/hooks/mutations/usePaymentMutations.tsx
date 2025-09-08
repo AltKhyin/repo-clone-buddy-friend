@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { supabase } from '@/integrations/supabase/client';
 import { pagarmeClientConfig, type PagarmeOrder, type PixPaymentConfig, type CreditCardPaymentConfig } from '@/lib/pagarme';
 import { resolvePlanPricingAndFlow, type ResolvedPlanPricing, type PaymentFlowType } from '@/lib/paymentRouter';
-import { triggerPaymentSuccessWebhook } from '@/services/makeWebhookService';
+// Webhook integration removed from mutations - only triggers on actual payment confirmation
 
 // =================================================================
 // Type Definitions & Validation Schemas
@@ -567,44 +567,7 @@ const createPlanBasedSubscription = async (input: {
 };
 
 // =================================================================
-// Webhook Helper Functions
-// =================================================================
-
-/**
- * Helper function to trigger webhook on payment success
- * Non-blocking: webhook failures won't affect payment flow
- */
-const triggerWebhookSafely = async (paymentData: {
-  id: string;
-  amount: number;
-  method: string;
-  status: string;
-  metadata?: Record<string, any>;
-  pagarme_transaction_id?: string;
-}) => {
-  try {
-    // Get current user
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (user?.id) {
-      console.log('🔗 Mutation webhook trigger for user:', user.id);
-      console.log('🔗 Payment data:', paymentData);
-      
-      // Trigger webhook asynchronously - don't block mutation success
-      triggerPaymentSuccessWebhook(user.id, paymentData).catch((error) => {
-        console.error('🚨 Mutation webhook failed (non-blocking):', error);
-      });
-    } else {
-      console.log('⚠️ No authenticated user found for mutation webhook');
-    }
-  } catch (error) {
-    console.error('🚨 Error in mutation webhook helper:', error);
-    // Don't throw - webhook failures should never break payment flow
-  }
-};
-
-// =================================================================
-// Mutation Hooks
+// Mutation Hooks (Webhooks triggered only on payment confirmation)
 // =================================================================
 
 /**
@@ -680,25 +643,8 @@ export const useCreatePlanBasedPixPayment = () => {
     onSuccess: async (data, variables) => {
       console.log('Plan-based PIX payment created:', data.id);
       
-      // Trigger webhook for PIX payment success
-      const webhookPaymentData = {
-        id: data.id || data.subscription_id || 'unknown',
-        amount: data.amount || 0,
-        method: 'pix',
-        status: 'created', // PIX starts as created, will be updated to 'paid' via polling
-        metadata: {
-          planId: variables.planId,
-          customerName: variables.metadata.customerName,
-          customerEmail: variables.metadata.customerEmail,
-          customerDocument: variables.metadata.customerDocument,
-          customerPhone: variables.metadata.customerPhone,
-          paymentFlow: 'pix_payment',
-          source: 'mutation_hook'
-        },
-        pagarme_transaction_id: data.id
-      };
-      
-      await triggerWebhookSafely(webhookPaymentData);
+      // NOTE: Webhook will be triggered only when payment is confirmed (status 'paid')
+      // This happens in TwoStepPaymentForm.tsx via useEffect when paymentStatus.status === 'paid'
       
       // Invalidate payment-related queries
       queryClient.invalidateQueries({ queryKey: ['payment-history'] });
@@ -727,34 +673,8 @@ export const useCreatePlanBasedCreditCardPayment = () => {
     onSuccess: async (data, variables) => {
       console.log('Plan-based credit card payment created:', data.id || data.subscription_id);
       
-      // Trigger webhook for credit card payment success
-      const paymentId = data.subscription_id || data.id || 'unknown';
-      const webhookPaymentData = {
-        id: paymentId,
-        amount: data.amount || 0,
-        method: 'credit_card',
-        status: data.status || 'paid',
-        metadata: {
-          planId: variables.planId,
-          customerName: variables.metadata.customerName,
-          customerEmail: variables.metadata.customerEmail,
-          customerDocument: variables.metadata.customerDocument,
-          customerPhone: variables.metadata.customerPhone,
-          installments: variables.installments,
-          paymentFlow: data.subscription_id ? 'subscription_signup' : 'one_time_payment',
-          cardLastDigits: variables.cardData?.number?.slice(-4) || '',
-          billingAddress: {
-            street: variables.billingAddress?.line_1 || '',
-            zipCode: variables.billingAddress?.zip_code || '',
-            city: variables.billingAddress?.city || '',
-            state: variables.billingAddress?.state || ''
-          },
-          source: 'mutation_hook'
-        },
-        pagarme_transaction_id: paymentId
-      };
-      
-      await triggerWebhookSafely(webhookPaymentData);
+      // NOTE: Webhook will be triggered only when payment is confirmed 
+      // This happens in TwoStepPaymentForm.tsx onSuccess callback when data.status === 'paid' || 'approved'
       
       // Invalidate payment-related queries
       queryClient.invalidateQueries({ queryKey: ['payment-history'] });

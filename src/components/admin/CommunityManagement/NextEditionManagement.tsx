@@ -51,33 +51,50 @@ const CountdownScheduleDialog = ({
   open,
   onOpenChange,
   currentTargetDate,
+  currentStartDate,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   currentTargetDate?: string;
+  currentStartDate?: string;
 }) => {
   const { toast } = useToast();
   const updateCountdownMutation = useUpdateCountdown();
   const [targetDate, setTargetDate] = useState(
     currentTargetDate ? new Date(currentTargetDate).toISOString().slice(0, 16) : ''
   );
+  const [startDate, setStartDate] = useState(
+    currentStartDate ? new Date(currentStartDate).toISOString().slice(0, 16) : new Date().toISOString().slice(0, 16)
+  );
 
   const handleSchedule = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!targetDate) {
+    if (!targetDate || !startDate) {
       toast({
         title: 'Erro',
-        description: 'Selecione uma data e hora para o countdown.',
+        description: 'Selecione as datas de início e fim para o countdown.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (new Date(startDate) >= new Date(targetDate)) {
+      toast({
+        title: 'Erro',
+        description: 'A data de início deve ser anterior à data de fim.',
         variant: 'destructive',
       });
       return;
     }
 
     try {
-      await updateCountdownMutation.mutateAsync(new Date(targetDate).toISOString());
+      await updateCountdownMutation.mutateAsync({
+        targetDate: new Date(targetDate).toISOString(),
+        startDate: new Date(startDate).toISOString()
+      });
       toast({
         title: 'Countdown agendado',
-        description: `Countdown atualizado para ${format(new Date(targetDate), 'dd/MM/yyyy HH:mm', { locale: ptBR })}.`,
+        description: `Countdown atualizado de ${format(new Date(startDate), 'dd/MM/yyyy HH:mm', { locale: ptBR })} até ${format(new Date(targetDate), 'dd/MM/yyyy HH:mm', { locale: ptBR })}.`,
       });
       onOpenChange(false);
     } catch (error: any) {
@@ -101,7 +118,18 @@ const CountdownScheduleDialog = ({
 
         <form onSubmit={handleSchedule} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="target-date">Data e Hora</Label>
+            <Label htmlFor="start-date">Data e Hora de Início</Label>
+            <Input
+              id="start-date"
+              type="datetime-local"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="target-date">Data e Hora de Fim</Label>
             <Input
               id="target-date"
               type="datetime-local"
@@ -418,6 +446,7 @@ export const NextEditionManagement = () => {
         open={scheduleDialogOpen}
         onOpenChange={setScheduleDialogOpen}
         currentTargetDate={countdown?.target_date}
+        currentStartDate={countdown?.start_date}
       />
     </div>
   );

@@ -66,9 +66,11 @@ const NextEditionModule: React.FC<NextEditionModuleProps> = ({ suggestions }) =>
     }
     countdownText += `${minutes}min`;
 
-    // Calculate progress (assume countdown started 30 days ago for demo)
-    const totalDuration = 30 * 24 * 60 * 60 * 1000; // 30 days in milliseconds
-    const elapsed = totalDuration - diff;
+    // Calculate progress using real start and end dates
+    const startTime = new Date(countdown.start_date).getTime();
+    const targetTime = new Date(countdown.target_date).getTime();
+    const totalDuration = targetTime - startTime;
+    const elapsed = now.getTime() - startTime;
     const progressPercentage = Math.max(0, Math.min(100, (elapsed / totalDuration) * 100));
 
     return { countdownText: countdownText.trim(), progressPercentage };

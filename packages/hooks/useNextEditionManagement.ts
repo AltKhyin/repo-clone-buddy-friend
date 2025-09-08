@@ -8,6 +8,7 @@ interface CountdownData {
   title: string;
   description: string | null;
   target_date: string;
+  start_date: string;
   timezone: string;
   is_active: boolean;
   is_featured: boolean;
@@ -115,12 +116,12 @@ export const useReviewMode = () => {
   });
 };
 
-// Update countdown target date
+// Update countdown target and start dates
 export const useUpdateCountdown = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (targetDate: string) => {
+    mutationFn: async ({ targetDate, startDate }: { targetDate: string; startDate: string }) => {
       // First try to update existing countdown
       const { data: existing } = await supabase
         .from('CommunityCountdowns')
@@ -133,6 +134,7 @@ export const useUpdateCountdown = () => {
           .from('CommunityCountdowns')
           .update({ 
             target_date: targetDate,
+            start_date: startDate,
             updated_at: new Date().toISOString()
           })
           .eq('id', existing.id)
@@ -149,6 +151,7 @@ export const useUpdateCountdown = () => {
             title: 'Próxima Edição',
             description: 'Contagem regressiva para a próxima edição',
             target_date: targetDate,
+            start_date: startDate,
             timezone: 'UTC',
             is_active: true,
             is_featured: true,
@@ -205,12 +208,21 @@ export const useDeleteSuggestion = () => {
 
   return useMutation({
     mutationFn: async (suggestionId: number) => {
-      const { error } = await supabase
-        .from('Suggestions')
-        .delete()
-        .eq('id', suggestionId);
+      const { data, error } = await supabase.functions.invoke('delete-suggestion', {
+        body: { suggestionId }
+      });
 
-      if (error) throw new Error(`Failed to delete suggestion: ${error.message}`);
+      if (error) {
+        console.error('Delete suggestion error:', error);
+        throw new Error(error.message || 'Failed to delete suggestion');
+      }
+
+      if (data?.error) {
+        console.error('Delete suggestion API error:', data.error);
+        throw new Error(data.error.message || 'Failed to delete suggestion');
+      }
+
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['all-suggestions'] });
@@ -225,12 +237,21 @@ export const useWipeAllSuggestions = () => {
 
   return useMutation({
     mutationFn: async () => {
-      const { error } = await supabase
-        .from('Suggestions')
-        .delete()
-        .neq('id', 0); // Delete all rows
+      const { data, error } = await supabase.functions.invoke('delete-suggestion', {
+        body: { deleteAll: true }
+      });
 
-      if (error) throw new Error(`Failed to wipe suggestions: ${error.message}`);
+      if (error) {
+        console.error('Wipe suggestions error:', error);
+        throw new Error(error.message || 'Failed to wipe suggestions');
+      }
+
+      if (data?.error) {
+        console.error('Wipe suggestions API error:', data.error);
+        throw new Error(data.error.message || 'Failed to wipe suggestions');
+      }
+
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['all-suggestions'] });

@@ -285,6 +285,27 @@ const TwoStepPaymentForm: React.FC<TwoStepPaymentFormProps> = ({
   const pixPaymentMutation = useCreatePlanBasedPixPayment();
   const creditCardPaymentMutation = useCreatePlanBasedCreditCardPayment();
 
+  // Form setup - MUST be declared before useEffect that uses it
+  const form = useForm<PaymentFormInput>({
+    resolver: zodResolver(paymentFormSchema),
+    defaultValues: {
+      customerName: '',
+      customerEmail: '',
+      customerEmailConfirm: '',
+      customerDocument: '',
+      customerPhone: '',
+      cardNumber: '',
+      cardHolderName: '',
+      cardExpirationDate: '',
+      cardCvv: '',
+      installments: '1',
+      billingStreet: '',
+      billingZipCode: '',
+      billingCity: '',
+      billingState: '',
+    }
+  });
+
   // Poll payment status when PIX QR code is displayed
   const { data: paymentStatus } = usePaymentStatus(
     pixData?.id, 
@@ -328,26 +349,6 @@ const TwoStepPaymentForm: React.FC<TwoStepPaymentFormProps> = ({
       setPaymentResult(result);
     }
   }, [paymentStatus?.status, pixData, displayPrice, plan.name, resultConfigs, form, triggerWebhookIfUserAuthenticated]);
-
-  const form = useForm<PaymentFormInput>({
-    resolver: zodResolver(paymentFormSchema),
-    defaultValues: {
-      customerName: '',
-      customerEmail: '',
-      customerEmailConfirm: '',
-      customerDocument: '',
-      customerPhone: '',
-      cardNumber: '',
-      cardHolderName: '',
-      cardExpirationDate: '',
-      cardCvv: '',
-      installments: '1',
-      billingStreet: '',
-      billingZipCode: '',
-      billingCity: '',
-      billingState: '',
-    }
-  });
 
   // Step validation and transition logic
   const handleStep1Continue = async () => {
@@ -549,33 +550,40 @@ const TwoStepPaymentForm: React.FC<TwoStepPaymentFormProps> = ({
               return;
             }
             
-            // SUCCESS: Trigger webhook for credit card payment success
-            const webhookPaymentData = {
-              id: paymentId || 'unknown',
-              amount: displayPrice,
-              method: 'credit_card',
-              status: 'paid',
-              metadata: {
-                planId: plan.id,
-                planName: plan.name,
-                customerName: values.customerName,
-                customerEmail: values.customerEmail,
-                customerDocument: values.customerDocument,
-                customerPhone: values.customerPhone,
-                installments: parseInt(values.installments || '1'),
-                paymentFlow: data.subscription_id ? 'subscription_signup' : 'one_time_payment',
-                cardLastDigits: values.cardNumber?.slice(-4) || '',
-                billingAddress: {
-                  street: values.billingStreet || '',
-                  zipCode: values.billingZipCode || '',
-                  city: values.billingCity || '',
-                  state: values.billingState || ''
-                }
-              },
-              pagarme_transaction_id: paymentId
-            };
-            
-            triggerWebhookIfUserAuthenticated(webhookPaymentData);
+            // IMPORTANT: Only trigger webhook if payment is actually confirmed/paid
+            // For credit cards, this happens immediately if approved
+            if (data.status === 'paid' || data.status === 'approved') {
+              console.log('Credit card payment confirmed, triggering webhook');
+              
+              const webhookPaymentData = {
+                id: paymentId || 'unknown',
+                amount: displayPrice,
+                method: 'credit_card',
+                status: 'paid',
+                metadata: {
+                  planId: plan.id,
+                  planName: plan.name,
+                  customerName: values.customerName,
+                  customerEmail: values.customerEmail,
+                  customerDocument: values.customerDocument,
+                  customerPhone: values.customerPhone,
+                  installments: parseInt(values.installments || '1'),
+                  paymentFlow: data.subscription_id ? 'subscription_signup' : 'one_time_payment',
+                  cardLastDigits: values.cardNumber?.slice(-4) || '',
+                  billingAddress: {
+                    street: values.billingStreet || '',
+                    zipCode: values.billingZipCode || '',
+                    city: values.billingCity || '',
+                    state: values.billingState || ''
+                  }
+                },
+                pagarme_transaction_id: paymentId
+              };
+              
+              triggerWebhookIfUserAuthenticated(webhookPaymentData);
+            } else {
+              console.log(`Credit card payment not yet confirmed (status: ${data.status}), webhook not triggered`);
+            }
             
             // Success case - determine if it's subscription or one-time
             const context = {
