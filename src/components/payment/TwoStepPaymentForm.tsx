@@ -19,12 +19,36 @@ import { useContactInfo } from '@/hooks/useContactInfo';
 import { triggerPaymentSuccessWebhook } from '@/services/makeWebhookService';
 import { supabase } from '@/integrations/supabase/client';
 import type { Tables } from '@/integrations/supabase/types';
+import { 
+  getUserAuthenticationStatus, 
+  authenticateUser, 
+  createUserAccount,
+  type AuthStatus 
+} from '@/services/authenticationService';
 
 // =================================================================
 // Types & Interfaces
 // =================================================================
 
 type PaymentMethod = 'pix' | 'credit_card';
+
+// Dynamic Step System Types
+type PaymentStep = 'plan_selection' | 'authentication' | 'payment_details';
+type AuthStep = 'login' | 'signup' | null;
+
+interface StepFlowState {
+  currentStepIndex: number;
+  steps: PaymentStep[];
+  authStep: AuthStep;
+  authStatus: AuthStatus;
+  userEmail?: string;
+}
+
+interface AuthenticationData {
+  email: string;
+  password: string;
+  confirmPassword?: string;
+}
 
 interface PaymentMethodOption {
   id: PaymentMethod;
@@ -106,17 +130,50 @@ interface TwoStepPaymentFormProps {
 // =================================================================
 
 interface ProgressStepsProps {
-  currentStep: 1 | 2;
+  currentStepIndex: number;
+  totalSteps: number;
+  steps: PaymentStep[];
 }
 
-const ProgressSteps: React.FC<ProgressStepsProps> = ({ currentStep }) => {
+const ProgressSteps: React.FC<ProgressStepsProps> = ({ currentStepIndex, totalSteps, steps }) => {
   return (
     <div className="mb-6">
       <div className="flex items-center">
-        {/* Step 1 */}
-        <div className={`w-full h-2 rounded-l-full transition-all duration-500 ease-in-out ${currentStep >= 1 ? 'bg-gray-600' : 'bg-gray-200'}`} />
-        {/* Step 2 */}
-        <div className={`w-full h-2 rounded-r-full transition-all duration-500 ease-in-out ${currentStep === 2 ? 'bg-gray-600' : 'bg-gray-200'}`} />
+        {Array.from({ length: totalSteps }, (_, index) => {
+          const isFirst = index === 0;
+          const isLast = index === totalSteps - 1;
+          const isActive = index <= currentStepIndex;
+          
+          let roundedClass = 'rounded-none';
+          if (isFirst && isLast) {
+            roundedClass = 'rounded-full';
+          } else if (isFirst) {
+            roundedClass = 'rounded-l-full';
+          } else if (isLast) {
+            roundedClass = 'rounded-r-full';
+          }
+
+          return (
+            <div
+              key={index}
+              className={`w-full h-2 transition-all duration-500 ease-in-out ${roundedClass} ${
+                isActive ? 'bg-gray-600' : 'bg-gray-200'
+              }`}
+            />
+          );
+        })}
+      </div>
+      {/* Optional step labels */}
+      <div className="flex justify-between mt-2 text-xs text-gray-500">
+        {steps.map((step, index) => (
+          <span 
+            key={step}
+            className={`${index <= currentStepIndex ? 'text-gray-700 font-medium' : 'text-gray-400'}`}
+          >
+            {step === 'plan_selection' ? 'Dados' : 
+             step === 'authentication' ? 'Login' : 'Pagamento'}
+          </span>
+        ))}
       </div>
     </div>
   );
@@ -133,7 +190,24 @@ const TwoStepPaymentForm: React.FC<TwoStepPaymentFormProps> = ({
   onSuccess,
   onCancel
 }) => {
-  const [currentStep, setCurrentStep] = useState<1 | 2>(1);
+  // Dynamic Step Flow State
+  const [stepFlow, setStepFlow] = useState<StepFlowState>({
+    currentStepIndex: 0,
+    steps: ['plan_selection', 'payment_details'], // Default for logged-in users
+    authStep: null,
+    authStatus: 'logged_in', // Will be updated after auth check
+    userEmail: undefined,
+  });
+  
+  // Authentication State
+  const [authData, setAuthData] = useState<AuthenticationData>({
+    email: '',
+    password: '',
+    confirmPassword: '',
+  });
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
+  
+  // Payment State (existing)
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>('credit_card'); // Default to credit card
   const [isProcessing, setIsProcessing] = useState(false);
   const [showPixCode, setShowPixCode] = useState(false);
@@ -281,6 +355,67 @@ const TwoStepPaymentForm: React.FC<TwoStepPaymentFormProps> = ({
     canRetry: boolean;
   } | null>(null);
 
+  // =================================================================
+  // Step Flow Logic Functions
+  // =================================================================
+
+  const determineStepFlow = (authStatus: AuthStatus, email?: string): PaymentStep[] => {
+    console.log('Determining step flow for auth status:', authStatus);
+    
+    if (authStatus === 'logged_in') {
+      return ['plan_selection', 'payment_details'];
+    }
+    if (authStatus === 'account_exists' || authStatus === 'no_account') {
+      return ['plan_selection', 'authentication', 'payment_details'];
+    }
+    return ['plan_selection', 'payment_details']; // fallback
+  };
+
+  const updateStepFlow = async (email?: string) => {
+    try {
+      const authStatusResult = await getUserAuthenticationStatus(email);
+      const newSteps = determineStepFlow(authStatusResult.status, email);
+      
+      setStepFlow(prev => ({
+        ...prev,
+        steps: newSteps,
+        authStatus: authStatusResult.status,
+        userEmail: authStatusResult.email,
+        authStep: authStatusResult.status === 'account_exists' ? 'login' : 
+                 authStatusResult.status === 'no_account' ? 'signup' : null,
+      }));
+      
+      console.log('Step flow updated:', { 
+        authStatus: authStatusResult.status, 
+        steps: newSteps,
+        authStep: authStatusResult.status === 'account_exists' ? 'login' : 
+                 authStatusResult.status === 'no_account' ? 'signup' : null
+      });
+    } catch (error) {
+      console.error('Error updating step flow:', error);
+      // Fallback to default flow
+      setStepFlow(prev => ({
+        ...prev,
+        steps: ['plan_selection', 'payment_details'],
+        authStatus: 'logged_in',
+      }));
+    }
+  };
+
+  const advanceStep = () => {
+    setStepFlow(prev => ({
+      ...prev,
+      currentStepIndex: Math.min(prev.currentStepIndex + 1, prev.steps.length - 1)
+    }));
+  };
+
+  const goBackStep = () => {
+    setStepFlow(prev => ({
+      ...prev,
+      currentStepIndex: Math.max(prev.currentStepIndex - 1, 0)
+    }));
+  };
+
   // Plan-based payment mutation hooks
   const pixPaymentMutation = useCreatePlanBasedPixPayment();
   const creditCardPaymentMutation = useCreatePlanBasedCreditCardPayment();
@@ -350,7 +485,33 @@ const TwoStepPaymentForm: React.FC<TwoStepPaymentFormProps> = ({
     }
   }, [paymentStatus?.status, pixData, displayPrice, plan.name, resultConfigs, form, triggerWebhookIfUserAuthenticated]);
 
-  // Step validation and transition logic
+  // Initialize authentication status on component mount
+  useEffect(() => {
+    updateStepFlow();
+  }, []);
+
+  // Update authentication status when email changes (debounced)
+  useEffect(() => {
+    const subscription = form.watch((value, { name }) => {
+      if (name === 'customerEmail') {
+        const email = value.customerEmail;
+        if (email && email.includes('@') && email !== stepFlow.userEmail) {
+          const timeoutId = setTimeout(() => {
+            updateStepFlow(email);
+          }, 500); // 500ms debounce
+          
+          return () => clearTimeout(timeoutId);
+        }
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [stepFlow.userEmail]);
+
+  // =================================================================
+  // Step Transition Logic (Updated for Dynamic Steps)
+  // =================================================================
+
   const handleStep1Continue = async () => {
     const step1Fields = ['customerName', 'customerEmail', 'customerEmailConfirm', 'customerDocument', 'customerPhone'];
     const isStep1Valid = await form.trigger(step1Fields as any);
@@ -364,16 +525,98 @@ const TwoStepPaymentForm: React.FC<TwoStepPaymentFormProps> = ({
         phone: form.getValues('customerPhone'),
       };
       
-      // TODO: Send lead data to analytics/CRM
+      // Update auth data with email for next step
+      setAuthData(prev => ({
+        ...prev,
+        email: form.getValues('customerEmail')
+      }));
+      
+      // Update step flow based on latest email
+      await updateStepFlow(form.getValues('customerEmail'));
+      
       console.log('Lead captured:', customerData);
-      toast.success('Dados salvos! Prossiga para o pagamento.');
-      setCurrentStep(2);
+      toast.success('Dados salvos! Prosseguindo...');
+      advanceStep();
     }
   };
 
-  const handleBackToStep1 = () => {
-    setCurrentStep(1);
+  const handleBackStep = () => {
+    goBackStep();
     setPaymentError(null); // Clear errors when going back
+  };
+
+  // Authentication handlers
+  const handleAuthenticationSuccess = async (user: any) => {
+    console.log('Authentication successful:', user.id);
+    toast.success('Login realizado com sucesso!');
+    
+    // Update step flow to logged in status
+    setStepFlow(prev => ({
+      ...prev,
+      authStatus: 'logged_in',
+      authStep: null
+    }));
+    
+    advanceStep(); // Move to payment step
+  };
+
+  const handleLogin = async () => {
+    if (!authData.email || !authData.password) {
+      toast.error('Email e senha são obrigatórios');
+      return;
+    }
+
+    setIsAuthenticating(true);
+    try {
+      const result = await authenticateUser(authData.email, authData.password);
+      
+      if (result.success && result.user) {
+        handleAuthenticationSuccess(result.user);
+      } else {
+        toast.error(result.error || 'Erro ao fazer login');
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      toast.error('Erro inesperado ao fazer login');
+    } finally {
+      setIsAuthenticating(false);
+    }
+  };
+
+  const handleSignup = async () => {
+    if (!authData.email || !authData.password || !authData.confirmPassword) {
+      toast.error('Todos os campos são obrigatórios');
+      return;
+    }
+
+    if (authData.password !== authData.confirmPassword) {
+      toast.error('Senhas não coincidem');
+      return;
+    }
+
+    if (authData.password.length < 8) {
+      toast.error('Senha deve ter pelo menos 8 caracteres');
+      return;
+    }
+
+    setIsAuthenticating(true);
+    try {
+      const result = await createUserAccount(authData.email, authData.password, {
+        customerName: form.getValues('customerName'),
+        customerPhone: form.getValues('customerPhone'),
+      });
+      
+      if (result.success && result.user) {
+        handleAuthenticationSuccess(result.user);
+      } else {
+        toast.error(result.error || 'Erro ao criar conta');
+      }
+    } catch (error) {
+      console.error('Signup error:', error);
+      toast.error('Erro inesperado ao criar conta');
+    } finally {
+      setIsAuthenticating(false);
+    }
   };
 
   const parsePaymentError = (errorMessage: string) => {
@@ -391,8 +634,19 @@ const TwoStepPaymentForm: React.FC<TwoStepPaymentFormProps> = ({
 
 
   const onSubmit = async (values: PaymentFormInput) => {
-    if (currentStep === 1) {
+    const currentStepType = stepFlow.steps[stepFlow.currentStepIndex];
+    
+    if (currentStepType === 'plan_selection') {
       handleStep1Continue();
+      return;
+    }
+    
+    if (currentStepType === 'authentication') {
+      if (stepFlow.authStep === 'login') {
+        handleLogin();
+      } else if (stepFlow.authStep === 'signup') {
+        handleSignup();
+      }
       return;
     }
 
@@ -813,7 +1067,11 @@ const TwoStepPaymentForm: React.FC<TwoStepPaymentFormProps> = ({
       </div>
 
       {/* Progress Indicator */}
-      <ProgressSteps currentStep={currentStep} />
+      <ProgressSteps 
+        currentStepIndex={stepFlow.currentStepIndex} 
+        totalSteps={stepFlow.steps.length}
+        steps={stepFlow.steps}
+      />
 
       {/* Enhanced Plan Information */}
       <div className="mb-6">
@@ -824,7 +1082,7 @@ const TwoStepPaymentForm: React.FC<TwoStepPaymentFormProps> = ({
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           
           {/* Step 1: Customer Data Collection */}
-          {currentStep === 1 && (
+          {stepFlow.steps[stepFlow.currentStepIndex] === 'plan_selection' && (
             <div className="transition-all duration-300 ease-in-out animate-in fade-in slide-in-from-right-4 space-y-4">
             <>
               <FormField
@@ -943,8 +1201,59 @@ const TwoStepPaymentForm: React.FC<TwoStepPaymentFormProps> = ({
             </div>
           )}
 
+          {/* Authentication Step */}
+          {stepFlow.steps[stepFlow.currentStepIndex] === 'authentication' && (
+            <div className="transition-all duration-300 ease-in-out animate-in fade-in slide-in-from-left-4 space-y-4">
+              <div className="text-center mb-4">
+                <h3 className="text-lg font-medium text-black mb-2">
+                  {stepFlow.authStep === 'login' ? 'Fazer Login' : 'Criar Conta'}
+                </h3>
+                <p className="text-sm text-gray-600">
+                  {stepFlow.authStep === 'login' 
+                    ? 'Digite sua senha para continuar com o pagamento'
+                    : 'Crie uma senha para prosseguir com o pagamento'
+                  }
+                </p>
+              </div>
+
+              <div className="bg-gray-50 p-3 rounded-lg mb-4">
+                <p className="text-sm text-gray-700 font-medium">Email: {authData.email}</p>
+              </div>
+
+              <div className="space-y-4">
+                <Input
+                  type="password"
+                  placeholder="Digite sua senha"
+                  value={authData.password}
+                  onChange={(e) => setAuthData(prev => ({ ...prev, password: e.target.value }))}
+                  className="bg-white border-gray-300 focus:border-black focus:ring-0"
+                />
+                
+                {stepFlow.authStep === 'signup' && (
+                  <Input
+                    type="password"
+                    placeholder="Confirme sua senha"
+                    value={authData.confirmPassword}
+                    onChange={(e) => setAuthData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                    className="bg-white border-gray-300 focus:border-black focus:ring-0"
+                  />
+                )}
+              </div>
+
+              <Button
+                type="submit"
+                disabled={isAuthenticating || !authData.password || (stepFlow.authStep === 'signup' && !authData.confirmPassword)}
+                className="w-full bg-black hover:bg-gray-800 text-white h-12 rounded-md font-medium"
+              >
+                {isAuthenticating ? 'Processando...' : 
+                 stepFlow.authStep === 'login' ? 'Fazer Login e Continuar' : 'Criar Conta e Continuar'}
+                <ArrowRight className="h-4 w-4 ml-2" />
+              </Button>
+            </div>
+          )}
+
           {/* Step 2: Payment Method Selection */}
-          {currentStep === 2 && (
+          {stepFlow.steps[stepFlow.currentStepIndex] === 'payment_details' && (
             <div className="transition-all duration-300 ease-in-out animate-in fade-in slide-in-from-left-4 space-y-4">
             <>
               {/* Payment Method Selection - Dropdown with sophisticated gray colors */}
@@ -1290,15 +1599,15 @@ const TwoStepPaymentForm: React.FC<TwoStepPaymentFormProps> = ({
         </form>
       </Form>
 
-      {/* Bottom Navigation - Only show Voltar when on Step 2 */}
-      {currentStep === 2 && (
+      {/* Bottom Navigation - Show back button when not on first step */}
+      {stepFlow.currentStepIndex > 0 && (
         <div className="mt-4">
           <Button 
             type="button"
             variant="outline"
-            onClick={handleBackToStep1}
+            onClick={handleBackStep}
             className="w-full bg-white hover:bg-gray-50 border-gray-300 text-gray-700 flex items-center justify-center gap-2 touch-manipulation"
-            disabled={isProcessing}
+            disabled={isProcessing || isAuthenticating}
           >
             <ArrowLeft className="h-4 w-4" />
             Voltar

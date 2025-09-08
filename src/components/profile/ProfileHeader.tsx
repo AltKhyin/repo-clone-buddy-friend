@@ -859,15 +859,6 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ userProfile, isLoa
                 {/* Subscription Details */}
                 <div className="bg-gray-50 rounded-lg p-3 space-y-2">
                   <div className="flex justify-between items-center">
-                    <span className="text-xs text-gray-600">Último acesso renovado</span>
-                    <span className="text-xs font-medium text-gray-900">
-                      {enhancedStatus.userProfile?.subscription_start_date 
-                        ? new Date(enhancedStatus.userProfile.subscription_start_date).toLocaleDateString('pt-BR')
-                        : 'N/A'
-                      }
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
                     <span className="text-xs text-gray-600">Próxima renovação</span>
                     <span className="text-xs font-medium text-gray-900">
                       {enhancedStatus.userProfile?.subscription_end_date 
@@ -908,15 +899,6 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ userProfile, isLoa
                   
                   {/* Subscription Timeline */}
                   <div className="space-y-3 pl-8">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">Último acesso renovado</span>
-                      <span className="text-sm font-medium text-gray-900">
-                        {enhancedStatus.userProfile?.subscription_start_date 
-                          ? new Date(enhancedStatus.userProfile.subscription_start_date).toLocaleDateString('pt-BR')
-                          : 'N/A'
-                        }
-                      </span>
-                    </div>
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-gray-600">Próxima renovação</span>
                       <span className="text-sm font-medium text-gray-900">
