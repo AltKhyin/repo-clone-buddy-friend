@@ -419,19 +419,22 @@ const TwoStepPaymentForm: React.FC<TwoStepPaymentFormProps> = ({
       const authStatusResult = await getUserAuthenticationStatus(email);
       const newSteps = determineStepFlow(authStatusResult.status, email);
       
+      // Automatically determine authStep based on account existence
+      const authStep = authStatusResult.status === 'account_exists' ? 'login' : 
+                       authStatusResult.status === 'no_account' ? 'signup' : null;
+      
       setStepFlow(prev => ({
         ...prev,
         steps: newSteps,
         authStatus: authStatusResult.status,
         userEmail: authStatusResult.email,
-        authStep: 'login', // Always start with login - user can switch to signup if needed
+        authStep: authStep,
       }));
       
       console.log('Step flow updated:', { 
         authStatus: authStatusResult.status, 
         steps: newSteps,
-        authStep: authStatusResult.status === 'account_exists' ? 'login' : 
-                 authStatusResult.status === 'no_account' ? 'signup' : null
+        authStep: authStep
       });
     } catch (error) {
       console.error('Error updating step flow:', error);
@@ -643,9 +646,16 @@ const TwoStepPaymentForm: React.FC<TwoStepPaymentFormProps> = ({
 
     setIsAuthenticating(true);
     try {
+      const formValues = form.getValues();
+      console.log('Creating account with form data:', {
+        email: authData.email,
+        customerName: formValues.customerName,
+        customerPhone: formValues.customerPhone
+      });
+      
       const result = await createUserAccount(authData.email, authData.password, {
-        customerName: form.getValues('customerName'),
-        customerPhone: form.getValues('customerPhone'),
+        customerName: formValues.customerName,
+        customerPhone: formValues.customerPhone,
       });
       
       if (result.success && result.user) {
@@ -1267,15 +1277,18 @@ const TwoStepPaymentForm: React.FC<TwoStepPaymentFormProps> = ({
             </div>
           )}
 
-          {/* Authentication Step */}
+          {/* Authentication Step - Simplified */}
           {stepFlow.steps[stepFlow.currentStepIndex] === 'authentication' && (
             <div className="transition-all duration-300 ease-in-out animate-in fade-in slide-in-from-left-4 space-y-4">
               <div className="text-center mb-4">
                 <h3 className="text-lg font-medium text-black mb-2">
-                  Acesso à Conta
+                  {stepFlow.authStep === 'login' ? 'Fazer Login' : 'Criar Conta'}
                 </h3>
                 <p className="text-sm text-gray-600">
-                  Digite sua senha para continuar. Se não tem conta, uma será criada automaticamente.
+                  {stepFlow.authStep === 'login' 
+                    ? 'Digite sua senha para acessar sua conta existente.'
+                    : 'Crie uma nova conta para continuar com o pagamento.'
+                  }
                 </p>
               </div>
 
@@ -1293,58 +1306,26 @@ const TwoStepPaymentForm: React.FC<TwoStepPaymentFormProps> = ({
                 />
                 
                 {stepFlow.authStep === 'signup' && (
-                  <>
-                    <Input
-                      type="password"
-                      placeholder="Confirme sua senha"
-                      value={authData.confirmPassword}
-                      onChange={(e) => setAuthData(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                      className="bg-white border-gray-300 focus:border-black focus:ring-0"
-                    />
-                    <div className="text-xs text-gray-500 bg-blue-50 p-2 rounded">
-                      <strong>Nova conta:</strong> A senha deve ter pelo menos 12 caracteres, incluindo maiúsculas, minúsculas, números e símbolos.
-                    </div>
-                  </>
+                  <Input
+                    type="password"
+                    placeholder="Confirme sua senha"
+                    value={authData.confirmPassword}
+                    onChange={(e) => setAuthData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                    className="bg-white border-gray-300 focus:border-black focus:ring-0"
+                  />
                 )}
               </div>
 
-              <div className="space-y-2">
-                <Button
-                  type="button"
-                  onClick={handleLogin}
-                  disabled={isAuthenticating || !authData.password}
-                  className="w-full bg-black hover:bg-gray-800 text-white h-12 rounded-md font-medium"
-                >
-                  {isAuthenticating ? 'Processando...' : 'Fazer Login e Continuar'}
-                  <ArrowRight className="h-4 w-4 ml-2" />
-                </Button>
-                
-                <div className="text-center text-sm text-gray-500">ou</div>
-                
-{stepFlow.authStep === 'login' ? (
-                  <Button
-                    type="button"
-                    onClick={() => {
-                      setStepFlow(prev => ({ ...prev, authStep: 'signup' }));
-                    }}
-                    variant="outline"
-                    disabled={isAuthenticating}
-                    className="w-full h-12 rounded-md font-medium"
-                  >
-                    Criar Nova Conta
-                  </Button>
-                ) : (
-                  <Button
-                    type="button"
-                    onClick={handleSignup}
-                    disabled={isAuthenticating || !authData.password || !authData.confirmPassword}
-                    variant="outline"
-                    className="w-full h-12 rounded-md font-medium"
-                  >
-                    {isAuthenticating ? 'Criando conta...' : 'Confirmar e Criar Conta'}
-                  </Button>
-                )}
-              </div>
+              <Button
+                type="button"
+                onClick={stepFlow.authStep === 'login' ? handleLogin : handleSignup}
+                disabled={isAuthenticating || !authData.password || (stepFlow.authStep === 'signup' && !authData.confirmPassword)}
+                className="w-full bg-black hover:bg-gray-800 text-white h-12 rounded-md font-medium"
+              >
+                {isAuthenticating ? 'Processando...' : 
+                 stepFlow.authStep === 'login' ? 'Fazer Login e Continuar' : 'Criar Conta e Continuar'}
+                <ArrowRight className="h-4 w-4 ml-2" />
+              </Button>
             </div>
           )}
 
