@@ -13,7 +13,7 @@ const corsHeaders = {
 interface SubscriptionCreationRequest {
   planId: string; // EVIDENS PaymentPlan ID
   customerId: string; // EVIDENS customer ID  
-  paymentMethod: 'credit_card' | 'debit_card' | 'boleto';
+  paymentMethod: 'credit_card' | 'pix';
   cardData?: {
     number: string;
     holderName: string;
@@ -67,6 +67,27 @@ serve(async (req: Request) => {
   }
 
   try {
+    // Verify JWT and extract user (REQUIRED for authenticated subscription creation)
+    const authHeader = req.headers.get('Authorization')?.replace('Bearer ', '')
+    if (!authHeader) {
+      return sendError('Authentication required for subscription creation', 401)
+    }
+
+    // Initialize Supabase client with service role for admin operations
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
+    // Get authenticated user from JWT
+    const { data: { user }, error: authError } = await supabase.auth.getUser(authHeader)
+    if (authError || !user) {
+      console.error('Authentication failed:', authError)
+      return sendError('Invalid authentication token', 401)
+    }
+
+    console.log('✅ Authenticated user:', user.id, user.email)
+
     // Parse request body
     const request: SubscriptionCreationRequest = await req.json();
     
@@ -114,11 +135,7 @@ serve(async (req: Request) => {
       }
     }
 
-    // Initialize Supabase client
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
+    // Supabase client already initialized above for JWT verification
 
     // Get the plan details
     const { data: plan, error: planError } = await supabase
@@ -207,8 +224,14 @@ serve(async (req: Request) => {
       if (request.installments && request.installments > 1) {
         subscriptionPayload.installments = request.installments;
       }
-    } else if (request.paymentMethod === 'boleto') {
-      subscriptionPayload.payment_method = 'boleto';
+    } else if (request.paymentMethod === 'pix') {
+      // CRITICAL FIX: Handle PIX payment method for subscriptions
+      subscriptionPayload.payment_method = 'pix';
+      console.log('🔍 Setting PIX payment method for subscription');
+    } else {
+      // Default to PIX if no valid payment method specified
+      console.warn('⚠️ Unknown payment method, defaulting to PIX:', request.paymentMethod);
+      subscriptionPayload.payment_method = 'pix';
     }
 
     // Log payload structure (without sensitive data) for debugging
@@ -285,17 +308,24 @@ serve(async (req: Request) => {
     });
 
     // Get current user access time to calculate new expiration
-    console.log('🔍 Getting current user access data...');
+    // Use authenticated user UID to lookup Practitioners record
+    console.log('🔍 Getting current user access data using UID:', user.id);
     const { data: currentUser, error: getUserError } = await supabase
       .from('Practitioners')
-      .select('subscription_end_date, subscription_tier')
-      .eq('id', request.customerId)
+      .select('id, subscription_end_date, subscription_tier')
+      .eq('id', user.id)
       .single();
 
     if (getUserError) {
       console.error('Failed to get user data for access calculation:', getUserError);
-      return sendError('Failed to update user access time', 500);
+      // If practitioner record doesn't exist, this is a critical issue
+      if (getUserError.code === 'PGRST116') {
+        return sendError('Practitioner record not found. Please contact support.', 404);
+      }
+      return sendError('Failed to retrieve user subscription data', 500);
     }
+
+    console.log('✅ Found practitioner record:', currentUser.id);
 
     // Calculate new access time using EVIDENS plan days
     console.log('🕐 Calculating access time using plan days:', plan.days);
@@ -341,11 +371,10 @@ serve(async (req: Request) => {
         
         // Subscription metadata  
         subscription_status: subscription.status === 'active' ? 'active' : 'pending',
-        subscription_id: subscription.id,
+        subscription_id: subscription.id, // This IS the pagarme subscription ID
         subscription_plan: plan.name,
         subscription_start_date: paymentDate.toISOString(),
-        pagarme_subscription_id: subscription.id,
-        subscription_next_billing: subscription.next_billing_at,
+        next_billing_date: subscription.next_billing_at,
         
         // Tracking and admin info
         last_payment_date: paymentDate.toISOString(),
@@ -353,7 +382,7 @@ serve(async (req: Request) => {
         admin_subscription_notes: `Payment processed: +${planDays} days on ${paymentDate.toLocaleDateString('pt-BR')}. Upgraded to premium.`,
         updated_at: paymentDate.toISOString()
       })
-      .eq('id', request.customerId);
+      .eq('id', currentUser.id);
 
     if (updateError) {
       console.error('Failed to update practitioner:', updateError);

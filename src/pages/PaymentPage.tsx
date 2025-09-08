@@ -133,7 +133,24 @@ const PaymentPage = () => {
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 3000), // Exponential backoff
   });
 
-  const handlePaymentSuccess = async (orderId: string, customerData?: any) => {
+  const handlePaymentSuccess = async (orderId: string, customerData?: any, paymentResponse?: any) => {
+    console.log('🎯 handlePaymentSuccess called with:', { orderId, hasCustomerData: !!customerData, hasPaymentResponse: !!paymentResponse });
+    
+    // CRITICAL: Validate payment response before considering success
+    if (!paymentResponse) {
+      console.error('❌ Payment response is missing - cannot proceed to success page');
+      throw new Error('Payment response is required to verify payment creation');
+    }
+
+    // Verify payment has required data based on payment type
+    const isValidPayment = validatePaymentResponse(paymentResponse);
+    if (!isValidPayment.valid) {
+      console.error('❌ Payment validation failed:', isValidPayment.reason);
+      throw new Error(`Payment creation failed: ${isValidPayment.reason}`);
+    }
+
+    console.log('✅ Payment validation passed, proceeding with success flow');
+
     // Update plan usage count with enhanced error handling
     if (plan?.id) {
       try {
@@ -169,7 +186,7 @@ const PaymentPage = () => {
     // Note: Webhook integration is now handled by PaymentSuccessPage 
     // which creates accounts automatically and triggers webhooks with complete user data
     
-    // Always navigate to success page regardless of usage update results
+    // Navigate to success page with validated payment data
     try {
       // Build success URL with customer data for automatic account creation
       const successUrl = new URL('/pagamento-sucesso', window.location.origin);
@@ -186,15 +203,76 @@ const PaymentPage = () => {
         if (customerData.paymentMethod) successUrl.searchParams.set('paymentMethod', customerData.paymentMethod);
       }
       
+      // Add payment validation status to URL for PaymentSuccessPage to use
+      successUrl.searchParams.set('paymentValidated', 'true');
+      successUrl.searchParams.set('paymentType', paymentResponse.type || 'unknown');
+      
       navigate(successUrl.pathname + successUrl.search);
     } catch (navigationError) {
       // Fallback navigation in case of routing issues
       console.error('Navigation error after payment success:', navigationError);
       const fallbackUrl = customerData 
-        ? `/pagamento-sucesso?orderId=${orderId}&customerEmail=${customerData.customerEmail || ''}&customerName=${customerData.customerName || ''}`
-        : `/pagamento-sucesso?orderId=${orderId}`;
+        ? `/pagamento-sucesso?orderId=${orderId}&customerEmail=${customerData.customerEmail || ''}&customerName=${customerData.customerName || ''}&paymentValidated=true`
+        : `/pagamento-sucesso?orderId=${orderId}&paymentValidated=true`;
       window.location.href = fallbackUrl;
     }
+  };
+
+  // Helper function to validate payment response has all required data
+  const validatePaymentResponse = (paymentResponse: any): { valid: boolean; reason?: string } => {
+    console.log('PaymentPage validation - Response structure:', {
+      hasId: !!paymentResponse.id,
+      hasSubscriptionId: !!paymentResponse.subscription_id,
+      hasCharges: !!paymentResponse.charges,
+      hasStatus: !!paymentResponse.status,
+      responseKeys: Object.keys(paymentResponse || {})
+    });
+
+    // CRITICAL FIX: Check for both subscription_id and id fields
+    const paymentId = paymentResponse.subscription_id || paymentResponse.id;
+    if (!paymentId) {
+      return { valid: false, reason: 'Payment ID is missing' };
+    }
+
+    // Detect response type based on actual structure, not a type field
+    const isSubscription = !!paymentResponse.subscription_id;
+    const isOrder = !!paymentResponse.id && !paymentResponse.subscription_id;
+
+    console.log('PaymentPage validation - Detected type:', { isSubscription, isOrder });
+
+    if (isSubscription) {
+      // For subscriptions, validate subscription data exists
+      if (!paymentResponse.status) {
+        return { valid: false, reason: 'Subscription status is missing' };
+      }
+      console.log('PaymentPage validation - Subscription validation passed');
+    }
+
+    if (isOrder) {
+      // For orders, validate charges exist
+      const charges = paymentResponse.charges;
+      if (!charges || charges.length === 0) {
+        return { valid: false, reason: 'No payment charges found' };
+      }
+      
+      // If it's a PIX order, validate PIX data
+      const pixCharge = charges.find((charge: any) => charge.payment_method === 'pix');
+      if (pixCharge) {
+        const pixTransaction = pixCharge.last_transaction;
+        if (!pixTransaction) {
+          return { valid: false, reason: 'PIX transaction data is missing' };
+        }
+        
+        // PIX data is directly in last_transaction
+        if (!pixTransaction.qr_code_url && !pixTransaction.qr_code) {
+          return { valid: false, reason: 'PIX QR code data is missing' };
+        }
+      }
+      console.log('PaymentPage validation - Order validation passed');
+    }
+
+    console.log('PaymentPage validation - All validation passed');
+    return { valid: true };
   };
 
   const handlePaymentCancel = () => {

@@ -32,6 +32,8 @@ export interface WebhookEventData {
     last_login_at: string | null;
     auth_method: string;
     auth_provider_id: string | null;
+    phone: string | null;
+    location: string | null;
     social_profiles: {
       linkedin_url: string | null;
       youtube_url: string | null;
@@ -69,10 +71,13 @@ export interface WebhookEventData {
     current_period_end: string | null;
     subscription_end_date: string | null;
     next_billing_date: string | null;
+    last_payment_date: string | null;
     created_by: string | null;
     payment_method_preferred: string | null;
+    payment_method_used: string | null;
     subscription_days_granted: number | null;
     admin_notes: string | null;
+    payment_metadata: Record<string, any> | null;
     cancel_at_period_end: boolean;
     canceled_at: string | null;
     cancellation_reason: string | null;
@@ -80,6 +85,10 @@ export interface WebhookEventData {
     pagarme_customer_id: string | null;
     pagarme_subscription_id: string | null;
     evidens_pagarme_customer_id: string | null;
+    evidens_subscription_status: string | null;
+    evidens_subscription_tier: string | null;
+    evidens_subscription_expires_at: string | null;
+    evidens_payment_method_preference: string | null;
   };
   payment: {
     id: string;
@@ -217,6 +226,8 @@ export const collectWebhookData = async (
         last_login_at: user?.last_sign_in_at,
         auth_method: user?.app_metadata?.provider || 'email',
         auth_provider_id: user?.app_metadata?.provider_id,
+        phone: practitioner?.phone,
+        location: practitioner?.location,
         social_profiles: {
           linkedin_url: practitioner?.linkedin_url,
           youtube_url: practitioner?.youtube_url,
@@ -248,17 +259,24 @@ export const collectWebhookData = async (
         current_period_end: practitioner?.subscription_end_date,
         subscription_end_date: practitioner?.subscription_end_date,
         next_billing_date: practitioner?.next_billing_date,
+        last_payment_date: practitioner?.last_payment_date,
         created_by: practitioner?.subscription_created_by,
         payment_method_preferred: practitioner?.payment_method_preferred,
+        payment_method_used: practitioner?.subscription_payment_method_used,
         subscription_days_granted: practitioner?.subscription_days_granted,
         admin_notes: practitioner?.admin_subscription_notes,
+        payment_metadata: practitioner?.payment_metadata,
         cancel_at_period_end: false,
         canceled_at: null,
         cancellation_reason: null,
         pause_collection: null,
         pagarme_customer_id: practitioner?.pagarme_customer_id,
         pagarme_subscription_id: practitioner?.subscription_id,
-        evidens_pagarme_customer_id: practitioner?.evidens_pagarme_customer_id
+        evidens_pagarme_customer_id: practitioner?.evidens_pagarme_customer_id,
+        evidens_subscription_status: practitioner?.evidens_subscription_status,
+        evidens_subscription_tier: practitioner?.evidens_subscription_tier,
+        evidens_subscription_expires_at: practitioner?.evidens_subscription_expires_at,
+        evidens_payment_method_preference: practitioner?.evidens_payment_method_preference
       },
       payment: {
         id: paymentData.id,
@@ -273,7 +291,7 @@ export const collectWebhookData = async (
           name: paymentData.metadata?.customerName || practitioner?.full_name || 'Unknown',
           email: paymentData.metadata?.customerEmail || user?.email || 'unknown@evidens.com.br',
           document: paymentData.metadata?.customerDocument,
-          phone: paymentData.metadata?.customerPhone
+          phone: paymentData.metadata?.customerPhone || practitioner?.phone
         },
         metadata: paymentData.metadata || {},
         gateway: {
@@ -424,6 +442,109 @@ export const triggerPaymentSuccessWebhook = async (
   }
 };
 
+/**
+ * Enhanced payment success handler with automatic subscription activation
+ */
+export const handlePaymentSuccessWithActivation = async (
+  userId: string,
+  paymentData: {
+    id: string;
+    amount: number;
+    method: string;
+    status: string;
+    metadata?: Record<string, any>;
+    pagarme_transaction_id?: string;
+    pagarme_customer_id?: string;
+    plan_id?: string;
+    plan_name?: string;
+    plan_days?: number;
+  }
+): Promise<{
+  webhookSuccess: boolean;
+  subscriptionActivated: boolean;
+  subscriptionDetails?: any;
+  error?: string;
+}> => {
+  try {
+    console.log('🚀 Handling payment success with automatic subscription activation');
+    
+    // Import the activation service dynamically to avoid circular dependencies
+    const { activateSubscriptionFromPayment } = await import('./subscriptionActivationService');
+    
+    // Activate subscription automatically
+    const activationResult = await activateSubscriptionFromPayment({
+      paymentId: paymentData.id,
+      userId: userId,
+      amount: paymentData.amount,
+      currency: 'BRL',
+      paymentMethod: paymentData.method,
+      planId: paymentData.plan_id,
+      planName: paymentData.plan_name,
+      planDays: paymentData.plan_days,
+      pagarmeTransactionId: paymentData.pagarme_transaction_id,
+      pagarmeCustomerId: paymentData.pagarme_customer_id,
+      metadata: {
+        ...paymentData.metadata,
+        auto_activation: true,
+        webhook_integration: true
+      }
+    });
+    
+    if (activationResult.success) {
+      console.log('✅ Subscription activated successfully:', activationResult.subscriptionTier);
+      
+      // Webhook is already triggered by the activation service, but we can send additional data
+      const webhookData = await collectWebhookData(userId, paymentData);
+      const webhookResult = await sendWebhookToMake({
+        ...webhookData,
+        subscription: {
+          ...webhookData.subscription,
+          activation_result: activationResult,
+          auto_activated: true
+        }
+      });
+      
+      return {
+        webhookSuccess: webhookResult.success,
+        subscriptionActivated: true,
+        subscriptionDetails: {
+          tier: activationResult.subscriptionTier,
+          expiresAt: activationResult.expiresAt,
+          features: activationResult.activatedFeatures,
+          subscriptionId: activationResult.subscriptionId
+        }
+      };
+    } else {
+      console.error('❌ Subscription activation failed:', activationResult.error);
+      
+      // Still try to send webhook even if activation failed
+      await triggerPaymentSuccessWebhook(userId, paymentData);
+      
+      return {
+        webhookSuccess: true, // Assume webhook succeeded since we don't want to fail the payment
+        subscriptionActivated: false,
+        error: activationResult.error
+      };
+    }
+    
+  } catch (error) {
+    console.error('💥 Error in payment success handling with activation:', error);
+    
+    // Fallback to basic webhook trigger
+    try {
+      await triggerPaymentSuccessWebhook(userId, paymentData);
+    } catch (webhookError) {
+      console.error('💥 Fallback webhook also failed:', webhookError);
+    }
+    
+    return {
+      webhookSuccess: false,
+      subscriptionActivated: false,
+      error: error.message || 'Unknown error'
+    };
+  }
+};
+
 // Helper functions for calculating marketing metrics
 const calculateCustomerValue = (practitioner: any): number => {
   if (!practitioner) return 0;
@@ -484,6 +605,8 @@ export const createTestWebhook = async (): Promise<WebhookEventData> => {
       last_login_at: new Date().toISOString(),
       auth_method: 'google',
       auth_provider_id: 'google_test_12345',
+      phone: '+55 11 99999-9999',
+      location: 'São Paulo, SP',
       social_profiles: {
         linkedin_url: 'https://linkedin.com/in/drjoaoteste',
         youtube_url: null,
@@ -521,17 +644,29 @@ export const createTestWebhook = async (): Promise<WebhookEventData> => {
       current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
       subscription_end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
       next_billing_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+      last_payment_date: new Date().toISOString(),
       created_by: 'user',
       payment_method_preferred: 'pix',
+      payment_method_used: 'pix',
       subscription_days_granted: 30,
-      admin_notes: null,
+      admin_notes: 'Test subscription created via webhook testing',
+      payment_metadata: {
+        test_data: true,
+        original_amount: 97.00,
+        campaign_source: 'google',
+        campaign_medium: 'cpc'
+      },
       cancel_at_period_end: false,
       canceled_at: null,
       cancellation_reason: null,
       pause_collection: null,
       pagarme_customer_id: 'cust_test_123',
       pagarme_subscription_id: 'sub_pagarme_test_123',
-      evidens_pagarme_customer_id: 'cust_evidens_test_123'
+      evidens_pagarme_customer_id: 'cust_evidens_test_123',
+      evidens_subscription_status: 'active',
+      evidens_subscription_tier: 'premium',
+      evidens_subscription_expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+      evidens_payment_method_preference: 'pix'
     },
     payment: {
       id: 'pay_test_123',

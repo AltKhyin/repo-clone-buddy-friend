@@ -53,14 +53,29 @@ serve(async (req: Request) => {
 
     console.log(`Submitting suggestion "${title}" by user ${user.id}`);
 
-    // STEP 6: Core Business Logic
+    // STEP 6: Check review mode setting
+    const { data: reviewModeSetting } = await supabase
+      .from('SiteSettings')
+      .select('value')
+      .eq('key', 'suggestion_review_mode')
+      .single();
+
+    // Determine status based on review mode
+    const isReviewModeEnabled = reviewModeSetting?.value === true || 
+                               (typeof reviewModeSetting?.value === 'string' && reviewModeSetting.value === 'true');
+    
+    const suggestionStatus = isReviewModeEnabled ? 'pending' : 'approved';
+    
+    console.log(`Review mode enabled: ${isReviewModeEnabled}, setting status to: ${suggestionStatus}`);
+
+    // STEP 7: Core Business Logic
     const { data: newSuggestion, error: insertError } = await supabase
       .from('Suggestions')
       .insert({
         title: title.trim(),
         description: description ? description.trim() : null,
         submitted_by: user.id,
-        status: 'pending',
+        status: suggestionStatus,
         upvotes: 0
       })
       .select()
@@ -75,11 +90,11 @@ serve(async (req: Request) => {
       suggestion: newSuggestion
     };
 
-    // STEP 7: Standardized Success Response
+    // STEP 8: Standardized Success Response
     return createSuccessResponse(response, rateLimitHeaders(rateLimitResult), origin);
 
   } catch (error) {
-    // STEP 8: Centralized Error Handling
+    // STEP 9: Centralized Error Handling
     console.error('Error in submit-suggestion:', error);
     return createErrorResponse(error, {}, origin);
   }

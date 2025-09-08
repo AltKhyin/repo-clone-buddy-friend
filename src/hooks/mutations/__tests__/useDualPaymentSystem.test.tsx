@@ -55,7 +55,7 @@ describe('Dual Payment System', () => {
   });
 
   describe('Subscription Flow Routing', () => {
-    it('should create subscription for subscription-type plan via PIX', async () => {
+    it('should create one-time payment for subscription-type plan via PIX (PIX subscriptions not supported)', async () => {
       // Mock subscription plan
       const mockSubscriptionPlan = {
         id: 'sub-plan-123',
@@ -78,20 +78,19 @@ describe('Dual Payment System', () => {
         })
       });
 
-      // Mock subscription Edge Function response
+      // Mock one-time payment Edge Function response (PIX subscriptions not supported)
       (global.fetch as any).mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({
-          success: true,
-          message: 'Subscription created successfully',
-          subscription_id: 'sub_123',
-          status: 'active',
-          plan_name: 'Monthly Subscription',
-          subscription_details: {
-            id: 'sub_123',
-            status: 'active',
-            next_billing_at: '2025-02-07'
-          }
+          id: 'order_pix_123',
+          amount: 9999,
+          status: 'pending',
+          charges: [{
+            last_transaction: {
+              qr_code: 'mock-qr-code',
+              qr_code_url: 'https://qr.code/url'
+            }
+          }]
         })
       });
 
@@ -115,16 +114,16 @@ describe('Dual Payment System', () => {
         expect(result.current.isSuccess).toBe(true);
       });
 
-      // Verify subscription Edge Function was called
+      // Verify one-time payment Edge Function was called (not subscription)
       expect(global.fetch).toHaveBeenCalledWith(
-        'https://mock.supabase.co/functions/v1/evidens-create-subscription',
+        'https://mock.supabase.co/functions/v1/evidens-create-payment',
         expect.objectContaining({
           method: 'POST',
-          body: expect.stringContaining('boleto') // PIX through boleto for subscriptions
+          body: expect.stringContaining('pix') // PIX payment method
         })
       );
 
-      expect(result.current.data.subscription_id).toBe('sub_123');
+      expect(result.current.data.id).toBe('order_pix_123');
     });
 
     it('should create subscription for subscription-type plan via Credit Card', async () => {

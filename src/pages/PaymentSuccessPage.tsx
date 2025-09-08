@@ -9,7 +9,120 @@ import { useJourneyOrchestration } from '@/hooks/useJourneyOrchestration';
 import { checkProfileCompleteness } from '@/lib/profileCompleteness';
 import { createOrAssociateAccountFromPayment, type PaymentAccountCreationData, type AccountCreationResult } from '@/services/paymentAccountService';
 import { sendPaymentAccountWelcomeEmail } from '@/services/emailWelcomeService';
-import { triggerPaymentSuccessWebhook } from '@/services/makeWebhookService';
+import { triggerPaymentSuccessWebhook, handlePaymentSuccessWithActivation } from '@/services/makeWebhookService';
+import { supabase } from '@/integrations/supabase/client';
+
+// =================================================================
+// Helper Functions
+// =================================================================
+
+/**
+ * Comprehensive webhook trigger for PaymentSuccessPage
+ * Ensures webhook is called with complete transaction and user context data
+ */
+const triggerComprehensiveWebhook = async (
+  userId: string, 
+  paymentData: PaymentAccountCreationData, 
+  accountResult: AccountCreationResult
+) => {
+  try {
+    console.log('🔗 PaymentSuccessPage: Triggering comprehensive webhook with subscription activation for user:', userId);
+    console.log('🔗 Payment data:', paymentData);
+    console.log('🔗 Account result:', accountResult);
+    
+    const enhancedPaymentData = {
+      id: paymentData.orderId,
+      amount: paymentData.amount,
+      method: paymentData.paymentMethod || 'unknown',
+      status: 'paid',
+      metadata: {
+        customerName: paymentData.customerName,
+        customerEmail: paymentData.customerEmail,
+        customerDocument: paymentData.customerDocument || '',
+        customerPhone: paymentData.customerPhone || '',
+        planId: paymentData.planId,
+        accountAction: accountResult.action,
+        accountCreated: accountResult.action === 'created',
+        requiresPasswordSetup: accountResult.requiresPasswordSetup || false,
+        paymentFlow: 'success_page_processing',
+        userJourney: accountResult.action === 'created' ? 'new_account_from_payment' : 'existing_account_payment',
+        source: 'payment_success_page'
+      },
+      pagarme_transaction_id: paymentData.orderId,
+      plan_id: paymentData.planId,
+      plan_name: `Plan-${paymentData.planId}`,
+      plan_days: paymentData.planDays || (paymentData.amount >= 58800 ? 365 : 30) // Yearly if >= R$588, otherwise monthly
+    };
+    
+    // Use enhanced handler with automatic subscription activation
+    const result = await handlePaymentSuccessWithActivation(userId, enhancedPaymentData);
+    
+    if (result.subscriptionActivated) {
+      console.log('✅ PaymentSuccessPage: Subscription activated successfully', result.subscriptionDetails);
+    } else {
+      console.log('⚠️ PaymentSuccessPage: Subscription activation failed', result.error);
+    }
+    
+    console.log('✅ PaymentSuccessPage enhanced webhook completed');
+    
+  } catch (webhookError) {
+    console.error('🚨 PaymentSuccessPage webhook failed (non-blocking):', webhookError);
+    // Don't throw - webhook failures should not affect user flow
+  }
+};
+
+/**
+ * Fallback webhook trigger for scenarios without account creation
+ * Ensures webhook is always triggered even when payment data is limited
+ */
+const triggerFallbackWebhook = async (orderId: string, searchParams: URLSearchParams) => {
+  try {
+    // Get current user
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user?.id) {
+      console.log('⚠️ No authenticated user found for fallback webhook');
+      return;
+    }
+    
+    console.log('🔗 PaymentSuccessPage: Triggering fallback webhook with subscription activation for user:', user.id);
+    
+    const amount = parseInt(searchParams.get('amount') || '0');
+    const enhancedPaymentData = {
+      id: orderId,
+      amount,
+      method: searchParams.get('paymentMethod') || 'unknown',
+      status: 'paid',
+      metadata: {
+        customerName: searchParams.get('customerName') || '',
+        customerEmail: searchParams.get('customerEmail') || '',
+        customerDocument: searchParams.get('customerDocument') || '',
+        customerPhone: searchParams.get('customerPhone') || '',
+        planId: searchParams.get('planId') || 'unknown',
+        paymentFlow: 'success_page_fallback',
+        source: 'payment_success_page_fallback'
+      },
+      pagarme_transaction_id: orderId,
+      plan_id: searchParams.get('planId') || 'fallback_plan',
+      plan_name: searchParams.get('planName') || `Fallback-Plan-${amount}`,
+      plan_days: amount >= 58800 ? 365 : 30 // Determine duration based on amount
+    };
+    
+    // Use enhanced handler with automatic subscription activation
+    const result = await handlePaymentSuccessWithActivation(user.id, enhancedPaymentData);
+    
+    if (result.subscriptionActivated) {
+      console.log('✅ PaymentSuccessPage fallback: Subscription activated successfully', result.subscriptionDetails);
+    } else {
+      console.log('⚠️ PaymentSuccessPage fallback: Subscription activation failed', result.error);
+    }
+    
+    console.log('✅ PaymentSuccessPage fallback webhook completed');
+    
+  } catch (webhookError) {
+    console.error('🚨 PaymentSuccessPage fallback webhook failed (non-blocking):', webhookError);
+  }
+};
 
 const PaymentSuccessPage = () => {
   const navigate = useNavigate();
@@ -51,7 +164,22 @@ const PaymentSuccessPage = () => {
       
       if (!orderId) {
         console.log('No orderId in URL, skipping automatic account creation');
+        
+        // Try to trigger webhook with any available payment data from URL params
+        if (searchParams.get('customerEmail')) {
+          console.log('Found customer email in URL, triggering fallback webhook without orderId');
+          await triggerFallbackWebhook('url_no_order_id', searchParams);
+        }
+        
         setAccountStatus('complete');
+        return;
+      }
+
+      // Check if payment was validated before proceeding
+      const paymentValidated = searchParams.get('paymentValidated') === 'true';
+      if (!paymentValidated) {
+        console.error('Payment was not validated - this may indicate a payment creation failure');
+        setAccountStatus('error');
         return;
       }
 
@@ -66,6 +194,10 @@ const PaymentSuccessPage = () => {
         
         if (!extractedPaymentData) {
           console.warn('Could not extract payment data for orderId:', orderId);
+          
+          // Trigger fallback webhook even without full payment data
+          await triggerFallbackWebhook(orderId, searchParams);
+          
           setAccountStatus('complete');
           return;
         }
@@ -97,26 +229,8 @@ const PaymentSuccessPage = () => {
             }
           }
 
-          // Trigger webhook with user data
-          try {
-            await triggerPaymentSuccessWebhook(result.user.id, {
-              id: extractedPaymentData.orderId,
-              amount: extractedPaymentData.amount,
-              method: extractedPaymentData.paymentMethod || 'unknown',
-              status: 'paid',
-              metadata: {
-                customerName: extractedPaymentData.customerName,
-                customerEmail: extractedPaymentData.customerEmail,
-                customerDocument: extractedPaymentData.customerDocument,
-                customerPhone: extractedPaymentData.customerPhone,
-                planId: extractedPaymentData.planId,
-                accountAction: result.action
-              }
-            });
-            console.log('Payment webhook triggered successfully');
-          } catch (webhookError) {
-            console.error('Webhook trigger failed (non-blocking):', webhookError);
-          }
+          // Trigger comprehensive webhook with user data
+          await triggerComprehensiveWebhook(result.user.id, extractedPaymentData, result);
 
           // Update status based on result
           if (result.action === 'created') {
@@ -294,10 +408,26 @@ const PaymentSuccessPage = () => {
         };
 
       case 'error':
+        // Check if this was a payment validation failure
+        const paymentValidated = searchParams.get('paymentValidated') === 'true';
+        if (!paymentValidated) {
+          return {
+            icon: <Shield className="w-8 h-8 text-red-600" />,
+            title: 'Falha na criação do pagamento',
+            description: 'O pagamento não pôde ser processado corretamente. Isso pode ter acontecido por problemas na geração do PIX ou na comunicação com o processador de pagamentos. Tente novamente.',
+            showButton: true,
+            buttonText: 'Tentar fazer pagamento novamente',
+            buttonAction: () => {
+              navigate('/pagamento');
+            }
+          };
+        }
+        
+        // Account creation error
         return {
           icon: <Shield className="w-8 h-8 text-red-600" />,
           title: 'Erro ao processar conta',
-          description: accountResult?.message || 'Houve um problema. Entre em contato com o suporte.',
+          description: accountResult?.message || 'Houve um problema ao criar ou associar sua conta. Entre em contato com o suporte.',
           showButton: true,
           buttonText: 'Tentar novamente',
           buttonAction: () => {
@@ -317,18 +447,30 @@ const PaymentSuccessPage = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-green-50 p-4">
       <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center space-y-6">
-        {/* Payment Success Icon */}
-        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
-          <CheckCircle className="w-8 h-8 text-green-600" />
+        {/* Payment Icon - conditional based on status */}
+        <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto ${
+          accountStatus === 'error' ? 'bg-red-100' : 'bg-green-100'
+        }`}>
+          {accountStatus === 'error' ? (
+            <Shield className="w-8 h-8 text-red-600" />
+          ) : (
+            <CheckCircle className="w-8 h-8 text-green-600" />
+          )}
         </div>
         
-        {/* Payment Success Message */}
+        {/* Payment Message - conditional based on status */}
         <div className="space-y-2">
           <h1 className="text-2xl font-bold text-gray-900">
-            Pagamento Processado!
+            {accountStatus === 'error' 
+              ? 'Falha no Pagamento'
+              : 'Pagamento Processado!'
+            }
           </h1>
           <p className="text-gray-600">
-            Seu pagamento foi processado com sucesso.
+            {accountStatus === 'error'
+              ? 'Houve um problema ao processar seu pagamento.'
+              : 'Seu pagamento foi processado com sucesso.'
+            }
           </p>
         </div>
 

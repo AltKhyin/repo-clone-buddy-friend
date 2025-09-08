@@ -4,12 +4,13 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Megaphone, Layout, Folder, Bell } from 'lucide-react';
+import { Megaphone, Layout, Folder, Bell, Clock } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
 import { CategoryManagement } from '@/components/admin/CommunityManagement/CategoryManagement';
 import { SidebarSectionManagement } from '@/components/admin/CommunityManagement/SidebarSectionManagement';
 import { AnnouncementManagement } from '@/components/admin/CommunityManagement/AnnouncementManagement';
 import { NotificationManagement } from '@/components/admin/CommunityManagement/NotificationManagement';
+import { NextEditionManagement } from '@/components/admin/CommunityManagement/NextEditionManagement';
 import { StandardLayout } from '@/components/layout/StandardLayout';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
@@ -28,6 +29,15 @@ const AdminCommunityManagementContent = () => {
 
       {/* Simplified Single-Page Management Interface */}
       <div className="space-y-8">
+        {/* Next Edition Management */}
+        <section>
+          <div className="flex items-center gap-2 mb-4">
+            <Clock className="h-5 w-5" />
+            <h3 className="text-lg font-semibold">Gestão da Próxima Edição</h3>
+          </div>
+          <NextEditionManagement />
+        </section>
+
         {/* Sidebar Sections Management */}
         <section>
           <div className="flex items-center gap-2 mb-4">

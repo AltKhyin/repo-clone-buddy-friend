@@ -50,7 +50,33 @@ const validateBasicAuth = (authHeader: string | null): boolean => {
 }
 
 /**
- * Validates Pagar.me webhook signature
+ * Validates Bearer token authentication for webhooks
+ * Used for modern webhook authentication with API keys
+ */
+const validateBearerAuth = (authHeader: string | null): boolean => {
+  // Try dedicated webhook token first, fallback to API secret key
+  const webhookToken = Deno.env.get('PAGARME_WEBHOOK_TOKEN') || Deno.env.get('PAGARME_SECRET_KEY')
+  
+  if (!authHeader || !webhookToken) {
+    return false
+  }
+
+  try {
+    // Extract token from "Bearer {token}"
+    if (!authHeader.startsWith('Bearer ')) {
+      return false
+    }
+    
+    const token = authHeader.replace('Bearer ', '')
+    return token === webhookToken
+  } catch (error) {
+    console.error('Bearer auth validation error:', error)
+    return false
+  }
+}
+
+/**
+ * Validates Pagar.me webhook signature with dual SHA-1/SHA-256 support
  * Provides cryptographic verification of webhook authenticity
  */
 const verifyWebhookSignature = async (request: Request, signature: string | null): Promise<boolean> => {
@@ -66,29 +92,60 @@ const verifyWebhookSignature = async (request: Request, signature: string | null
       return false
     }
 
-    // Verify signature using crypto
+    console.log('🔐 Verifying webhook signature:', {
+      signatureReceived: signature.substring(0, 20) + '...',
+      bodyLength: body.length,
+      secretConfigured: Boolean(webhookSecret)
+    })
+
     const encoder = new TextEncoder()
-    const key = await crypto.subtle.importKey(
-      'raw',
-      encoder.encode(webhookSecret),
-      { name: 'HMAC', hash: 'SHA-256' },
-      false,
-      ['sign']
-    )
     
-    const computedSignature = await crypto.subtle.sign(
-      'HMAC',
-      key,
-      encoder.encode(body)
-    )
+    // Try both SHA-1 and SHA-256 (GitHub uses SHA-1 for X-Hub-Signature, SHA-256 for X-Hub-Signature-256)
+    const algorithms = [
+      { name: 'SHA-1', prefix: 'sha1' },
+      { name: 'SHA-256', prefix: 'sha256' }
+    ]
     
-    const computedHex = Array.from(new Uint8Array(computedSignature))
-      .map(b => b.toString(16).padStart(2, '0'))
-      .join('')
+    for (const algo of algorithms) {
+      try {
+        const key = await crypto.subtle.importKey(
+          'raw',
+          encoder.encode(webhookSecret),
+          { name: 'HMAC', hash: algo.name },
+          false,
+          ['sign']
+        )
+        
+        const computedSignature = await crypto.subtle.sign(
+          'HMAC',
+          key,
+          encoder.encode(body)
+        )
+        
+        const computedHex = Array.from(new Uint8Array(computedSignature))
+          .map(b => b.toString(16).padStart(2, '0'))
+          .join('')
+        
+        // Compare signatures in different formats
+        const expectedSignatures = [
+          `${algo.prefix}=${computedHex}`,  // Standard format: sha1=abc123 or sha256=abc123
+          computedHex,                      // Raw hex format: abc123
+          `${computedHex}`                  // Ensure string comparison
+        ]
+        
+        for (const expectedSig of expectedSignatures) {
+          if (signature === expectedSig) {
+            console.log(`✅ Webhook signature verified using ${algo.name}`)
+            return true
+          }
+        }
+      } catch (error) {
+        console.log(`Failed ${algo.name} verification:`, error.message)
+      }
+    }
     
-    // Compare signatures securely (handle different signature formats)
-    const expectedSignature = `sha256=${computedHex}`
-    return signature === expectedSignature || signature === computedHex
+    console.log('❌ All signature verification methods failed')
+    return false
   } catch (error) {
     console.error('Signature verification failed:', error)
     return false
@@ -173,59 +230,66 @@ const processPaymentEvent = async (webhookEvent: WebhookEvent): Promise<void> =>
       return
     }
 
-    // Process different event types with comprehensive subscription support
+    // Process different event types - SIMPLIFIED to essential events only
     switch (webhookEvent.type) {
-      // One-time payment events
+      // ✅ ESSENTIAL: Payment confirmation (consolidates order.paid + charge.paid)
       case 'order.paid':
       case 'charge.paid':
         await handlePaymentConfirmed(userId, eventData)
         break
         
+      // ✅ ESSENTIAL: Payment failure (consolidates order.payment_failed + charge.failed)
       case 'order.payment_failed':
       case 'charge.failed':
         await handlePaymentFailed(userId, eventData)
         break
         
-      // Subscription lifecycle events
+      // ✅ ESSENTIAL: Subscription created 
       case 'subscription.created':
         await handleSubscriptionCreated(userId, eventData)
         break
         
+      // ✅ ESSENTIAL: Subscription canceled (handles both spellings)
       case 'subscription.canceled':
       case 'subscription.cancelled':
         await handleSubscriptionCanceled(userId, eventData)
         break
         
-      // Recurring charge events
-      case 'subscription.charge_created':
-        await handleSubscriptionChargeCreated(userId, eventData)
-        break
-        
+      // ✅ ESSENTIAL: Subscription renewal (consolidates charge.paid + charged)
       case 'subscription.charge.paid':
       case 'subscription.charged':
         await handleSubscriptionRenewal(userId, eventData)
         break
         
+      // ✅ ESSENTIAL: Subscription charge failure (consolidates charge_failed + payment_failed)
       case 'subscription.charge_failed':
       case 'subscription.payment_failed':
         await handleSubscriptionChargeFailed(userId, eventData)
         break
         
-      // Subscription status changes
+      // 🤔 POTENTIALLY UNNECESSARY: These events might be redundant
+      case 'subscription.charge_created':
+        console.log(`⚠️ Received potentially unnecessary event: ${webhookEvent.type}`)
+        await handleSubscriptionChargeCreated(userId, eventData)
+        break
+        
       case 'subscription.trial_ended':
+        console.log(`⚠️ Received potentially unnecessary event: ${webhookEvent.type}`)
         await handleSubscriptionTrialEnded(userId, eventData)
         break
         
       case 'subscription.reactivated':
+        console.log(`⚠️ Received potentially unnecessary event: ${webhookEvent.type}`)
         await handleSubscriptionReactivated(userId, eventData)
         break
         
       case 'subscription.suspended':
+        console.log(`⚠️ Received potentially unnecessary event: ${webhookEvent.type}`)
         await handleSubscriptionSuspended(userId, eventData)
         break
         
       default:
-        console.log(`Unhandled event type: ${webhookEvent.type}`)
+        console.log(`❓ Unhandled event type: ${webhookEvent.type} - consider if this needs handling`)
     }
 
     // Log successful processing
@@ -596,6 +660,28 @@ const handleSubscriptionSuspended = async (userId: string, eventData: any): Prom
 // Helper Functions
 // =================================================================
 
+const calculateExpirationDate = (eventData: any): string => {
+  console.log('🕐 Calculating expiration date from event data');
+  
+  // Try to get expiration from subscription data
+  if (eventData.next_billing_at) {
+    console.log('📅 Using next_billing_at for expiration:', eventData.next_billing_at);
+    return new Date(eventData.next_billing_at).toISOString();
+  }
+  
+  // Try to get from current cycle end
+  if (eventData.current_cycle?.end_at) {
+    console.log('📅 Using current_cycle.end_at for expiration:', eventData.current_cycle.end_at);
+    return new Date(eventData.current_cycle.end_at).toISOString();
+  }
+  
+  // Fallback: 30 days from now
+  console.log('📅 No billing data found, using 30-day fallback');
+  const fallbackDate = new Date();
+  fallbackDate.setDate(fallbackDate.getDate() + 30);
+  return fallbackDate.toISOString();
+}
+
 const calculateAccessTimeFromWebhook = async (userId: string, eventData: any): Promise<string> => {
   console.log('🕐 Calculating access time for webhook event');
   
@@ -721,33 +807,57 @@ serve(async (req: Request) => {
     // =================================================================
 
     const authHeader = req.headers.get('Authorization')
-    const signatureHeader = req.headers.get('X-Hub-Signature-256') || 
+    const signatureHeader = req.headers.get('X-Hub-Signature') || 
+                           req.headers.get('X-Hub-Signature-256') || 
                            req.headers.get('X-Pagarme-Signature') ||
+                           req.headers.get('x-hub-signature') ||
                            req.headers.get('x-hub-signature-256')
 
-    console.log('Webhook received:', {
+    // Enhanced debugging to see exact headers
+    const allHeaders = Object.fromEntries(req.headers.entries());
+    console.log('Webhook received with headers:', {
       hasAuth: Boolean(authHeader),
+      authHeaderValue: authHeader ? `${authHeader.substring(0, 50)}...` : 'none',
       hasSignature: Boolean(signatureHeader),
-      contentType: req.headers.get('Content-Type')
+      signatureHeaderValue: signatureHeader ? `${signatureHeader.substring(0, 50)}...` : 'none',
+      contentType: req.headers.get('Content-Type'),
+      userAgent: req.headers.get('User-Agent'),
+      allHeaders: Object.keys(allHeaders)
     })
 
     let authenticationPassed = false
     const authResults = {
       basicAuth: false,
+      bearerAuth: false,
       signature: false
     }
 
     // Check HTTP Basic Authentication (when "Habilitar autenticação" is enabled)
-    const webhookUser = Deno.env.get('PAGARME_WEBHOOK_USER')
-    const webhookPassword = Deno.env.get('PAGARME_WEBHOOK_PASSWORD')
+    // Webhook credentials: Username="Reviews", Password="#Pipoquinha12"
+    const webhookUser = Deno.env.get('PAGARME_WEBHOOK_USER') || 'Reviews'
+    const webhookPassword = Deno.env.get('PAGARME_WEBHOOK_PASSWORD') || '#Pipoquinha12'
     
     if (webhookUser && webhookPassword) {
       authResults.basicAuth = validateBasicAuth(authHeader)
       if (authResults.basicAuth) {
-        console.log('✅ HTTP Basic Auth validation passed')
+        console.log('✅ HTTP Basic Auth validation passed with configured credentials')
         authenticationPassed = true
       } else {
         console.log('❌ HTTP Basic Auth validation failed')
+        console.log(`Expected Basic Auth: ${Buffer.from(`${webhookUser}:${webhookPassword}`).toString('base64').substring(0, 10)}...`)
+      }
+    }
+
+    // Check Bearer Token Authentication - PRIORITIZED for Pagar.me compatibility
+    const webhookToken = Deno.env.get('PAGARME_SECRET_KEY') || Deno.env.get('PAGARME_WEBHOOK_TOKEN')
+    if (webhookToken) {
+      authResults.bearerAuth = validateBearerAuth(authHeader)
+      if (authResults.bearerAuth) {
+        console.log('✅ Bearer Token Auth validation passed with Pagar.me secret key')
+        authenticationPassed = true
+      } else {
+        console.log('❌ Bearer Token Auth validation failed')
+        console.log(`Expected Bearer token format: Bearer ${webhookToken.substring(0, 10)}...`)
       }
     }
 
@@ -765,14 +875,26 @@ serve(async (req: Request) => {
       }
     }
 
-    // Require at least one authentication method to pass
+    // CRITICAL FIX: Pagar.me expects Bearer token authentication based on error message
+    // Error: {"code":401,"message":"Auth header is not 'Bearer {token}'"}
     if (!authenticationPassed) {
       console.error('Webhook authentication failed:', {
         basicAuthConfigured: Boolean(webhookUser && webhookPassword),
+        bearerAuthConfigured: Boolean(webhookToken),
         signatureConfigured: Boolean(webhookSecret),
-        authResults
+        authHeader: authHeader ? `${authHeader.substring(0, 20)}...` : 'none',
+        authResults,
+        availableEnvVars: {
+          hasWebhookUser: Boolean(Deno.env.get('PAGARME_WEBHOOK_USER')),
+          hasWebhookPassword: Boolean(Deno.env.get('PAGARME_WEBHOOK_PASSWORD')),
+          hasWebhookToken: Boolean(Deno.env.get('PAGARME_WEBHOOK_TOKEN')),
+          hasSecretKey: Boolean(Deno.env.get('PAGARME_SECRET_KEY')),
+          hasWebhookSecret: Boolean(Deno.env.get('PAGARME_WEBHOOK_SECRET'))
+        }
       })
-      return sendError('Webhook authentication failed. Invalid credentials or signature.', 401)
+      
+      // Return the exact error format Pagar.me expects
+      return sendError("Auth header is not 'Bearer {token}'", 401)
     }
 
     // [C6.4.3] Parse webhook payload

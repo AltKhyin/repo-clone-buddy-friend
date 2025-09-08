@@ -13,8 +13,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { PhoneInput } from '@/components/ui/PhoneInput';
 import { useCreatePlanBasedPixPayment, useCreatePlanBasedCreditCardPayment, usePaymentStatus, planBasedPixPaymentSchema, planBasedCreditCardPaymentSchema, type PlanBasedPixPaymentInput, type PlanBasedCreditCardPaymentInput } from '../../hooks/mutations/usePaymentMutations';
 import { EnhancedPlanDisplay } from './EnhancedPlanDisplay';
+import { PaymentResultDisplay, type PaymentResultData } from './PaymentResultDisplay';
+import { PaymentResultConfigs } from './paymentResultConfigs';
 import { useContactInfo } from '@/hooks/useContactInfo';
-// Note: Webhook integration now handled by PaymentSuccessPage for complete user data flow
+import { triggerPaymentSuccessWebhook } from '@/services/makeWebhookService';
+import { supabase } from '@/integrations/supabase/client';
 import type { Tables } from '@/integrations/supabase/types';
 
 // =================================================================
@@ -135,7 +138,126 @@ const TwoStepPaymentForm: React.FC<TwoStepPaymentFormProps> = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const [showPixCode, setShowPixCode] = useState(false);
   const [pixData, setPixData] = useState<any>(null);
+  const [paymentResult, setPaymentResult] = useState<PaymentResultData | null>(null);
   const { displayText: contactEmail, href: contactLink } = useContactInfo();
+
+  // Initialize result configs with support info
+  const resultConfigs = new PaymentResultConfigs({
+    email: contactEmail,
+    link: contactLink
+  });
+
+  // Helper function to validate PIX payment response has all required QR code data
+  const validatePixPaymentResponse = (paymentResponse: any): { valid: boolean; reason?: string } => {
+    if (!paymentResponse) {
+      return { valid: false, reason: 'Resposta do pagamento está vazia' };
+    }
+
+    // Check for payment ID (different field names for different payment types)
+    const paymentId = paymentResponse.id || paymentResponse.subscription_id || paymentResponse.order_id;
+    if (!paymentId) {
+      return { valid: false, reason: 'ID do pagamento não foi gerado' };
+    }
+
+    // For subscription payments, we don't expect charges array
+    if (paymentResponse.subscription_id) {
+      // This is a subscription response - different validation
+      if (paymentResponse.status === 'active') {
+        return { valid: true }; // Subscription is active, no QR code needed
+      }
+    }
+
+    // CRITICAL FIX: PIX payments can have two different response structures
+    // 1. Order format with charges array (old format)
+    // 2. Direct PIX response with qr_code in root (new format)
+    
+    console.log('PIX validation: Checking response structure...');
+    console.log('Has charges:', !!paymentResponse.charges);
+    console.log('Has qr_code:', !!paymentResponse.qr_code);
+    console.log('Has qr_code_url:', !!paymentResponse.qr_code_url);
+    console.log('Payment method:', paymentResponse.payment_method);
+    
+    // NEW FORMAT: PIX data directly in response root (current format)
+    if (paymentResponse.payment_method === 'pix') {
+      console.log('PIX validation: Using direct PIX response format');
+      
+      if (!paymentResponse.qr_code_url && !paymentResponse.qr_code) {
+        console.error('PIX validation: No QR code data in direct PIX response. Available fields:', 
+          Object.keys(paymentResponse));
+        return { valid: false, reason: 'QR code do PIX não foi gerado' };
+      }
+      
+      console.log('PIX validation: Direct PIX QR code validation passed');
+      return { valid: true };
+    }
+    
+    // OLD FORMAT: PIX data in charges array (fallback)
+    const charges = paymentResponse.charges;
+    if (!charges || charges.length === 0) {
+      console.error('PIX validation: No charges found and not direct PIX format');
+      return { valid: false, reason: 'Nenhuma cobrança foi criada' };
+    }
+    
+    console.log(`PIX validation: Found ${charges.length} charges`);
+    
+    const pixCharge = charges.find((charge: any) => charge.payment_method === 'pix');
+    if (!pixCharge) {
+      console.error('PIX validation: No PIX charge found. Available payment methods:', 
+        charges.map((c: any) => c.payment_method));
+      return { valid: false, reason: 'Cobrança PIX não foi encontrada' };
+    }
+    
+    console.log('PIX validation: Found PIX charge:', pixCharge.id);
+    
+    const pixTransaction = pixCharge.last_transaction;
+    if (!pixTransaction) {
+      console.error('PIX validation: No last_transaction found in PIX charge');
+      return { valid: false, reason: 'Transação PIX não foi criada' };
+    }
+    
+    console.log('PIX validation: Found transaction:', pixTransaction.id);
+    
+    // PIX transaction data is directly in last_transaction, not in a nested pix object
+    // Check for QR code data directly in the transaction
+    if (!pixTransaction.qr_code_url && !pixTransaction.qr_code) {
+      console.error('PIX validation: No QR code data found in transaction. Available fields:', 
+        Object.keys(pixTransaction));
+      return { valid: false, reason: 'QR code do PIX não foi gerado' };
+    }
+    
+    console.log('PIX validation: Charge-based QR code validation passed');
+
+    return { valid: true };
+  };
+
+  // Helper function to trigger webhook for payment success
+  const triggerWebhookIfUserAuthenticated = async (paymentData: {
+    id: string;
+    amount: number;
+    method: string;
+    status: string;
+    metadata?: Record<string, any>;
+    pagarme_transaction_id?: string;
+  }) => {
+    try {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (user?.id) {
+        console.log('Triggering payment success webhook for user:', user.id);
+        console.log('Payment data:', paymentData);
+        
+        // Trigger webhook asynchronously - don't block success flow
+        triggerPaymentSuccessWebhook(user.id, paymentData).catch((error) => {
+          console.error('Webhook trigger failed (non-blocking):', error);
+        });
+      } else {
+        console.log('No authenticated user found, skipping webhook trigger');
+      }
+    } catch (error) {
+      console.error('Error checking user authentication for webhook:', error);
+    }
+  };
 
   // Use plan directly (now required prop)
   const displayPlan = plan;
@@ -168,6 +290,44 @@ const TwoStepPaymentForm: React.FC<TwoStepPaymentFormProps> = ({
     pixData?.id, 
     showPixCode // Only poll when QR code is shown
   );
+
+  // Auto-redirect to success page when PIX payment is confirmed
+  useEffect(() => {
+    if (paymentStatus?.status === 'paid' && pixData) {
+      console.log('PIX payment confirmed, showing success result');
+      
+      // Trigger webhook for PIX payment success
+      const webhookPaymentData = {
+        id: pixData.id || pixData.subscription_id || 'unknown',
+        amount: displayPrice,
+        method: 'pix',
+        status: 'paid',
+        metadata: {
+          planId: plan.id,
+          planName: plan.name,
+          customerName: form.getValues('customerName'),
+          customerEmail: form.getValues('customerEmail'),
+          customerDocument: form.getValues('customerDocument'),
+          customerPhone: form.getValues('customerPhone'),
+          paymentFlow: 'pix_payment'
+        },
+        pagarme_transaction_id: pixData.id
+      };
+      
+      triggerWebhookIfUserAuthenticated(webhookPaymentData);
+      
+      // PIX Payment Success - Auto-redirect to success result
+      const context = {
+        orderId: pixData.id,
+        amount: displayPrice,
+        paymentMethod: 'pix' as const,
+        planName: plan.name
+      };
+      
+      const result = resultConfigs.pixSuccess(context);
+      setPaymentResult(result);
+    }
+  }, [paymentStatus?.status, pixData, displayPrice, plan.name, resultConfigs, form, triggerWebhookIfUserAuthenticated]);
 
   const form = useForm<PaymentFormInput>({
     resolver: zodResolver(paymentFormSchema),
@@ -253,14 +413,58 @@ const TwoStepPaymentForm: React.FC<TwoStepPaymentFormProps> = ({
 
       pixPaymentMutation.mutate(pixPaymentData, {
         onSuccess: (data) => {
+          console.log('PIX payment response:', data);
+          console.log('PIX payment charges:', data.charges);
+          
+          // CRITICAL FIX: Add detailed logging for PIX validation debugging
+          if (data.charges && data.charges.length > 0) {
+            console.log('First charge:', data.charges[0]);
+            console.log('First charge payment_method:', data.charges[0].payment_method);
+            console.log('Last transaction:', data.charges[0].last_transaction);
+          }
+          
+          // Validate PIX response has required QR code data
+          const hasValidPixData = validatePixPaymentResponse(data);
+          if (!hasValidPixData.valid) {
+            console.error('PIX payment validation failed:', hasValidPixData.reason);
+            console.error('Full PIX response for debugging:', JSON.stringify(data, null, 2));
+            
+            const context = {
+              orderId: data.id || data.subscription_id,
+              amount: displayPrice,
+              paymentMethod: 'pix' as const
+            };
+            
+            const result = resultConfigs.technicalError(context, hasValidPixData.reason);
+            setPaymentResult(result);
+            setIsProcessing(false);
+            return;
+          }
+          
           setPixData(data);
           setShowPixCode(true);
-          toast.success('Código PIX gerado com sucesso!');
           setIsProcessing(false);
         },
         onError: (error) => {
-          console.error(error);
-          parsePaymentError(error.message);
+          console.error('PIX payment error:', error);
+          
+          const context = {
+            orderId: undefined,
+            amount: displayPrice,
+            paymentMethod: 'pix' as const
+          };
+          
+          // Determine error type and show appropriate result
+          const errorMessage = error.message || '';
+          let result;
+          
+          if (errorMessage.includes('network') || errorMessage.includes('connection')) {
+            result = resultConfigs.networkError(context);
+          } else {
+            result = resultConfigs.technicalError(context);
+          }
+          
+          setPaymentResult(result);
           setIsProcessing(false);
         }
       });
@@ -317,34 +521,131 @@ const TwoStepPaymentForm: React.FC<TwoStepPaymentFormProps> = ({
 
         creditCardPaymentMutation.mutate(creditCardPaymentData, {
           onSuccess: (data) => {
-            toast.success('Pagamento processado com sucesso!');
+            // CRITICAL FIX: Handle both subscription and order response structures
+            // Subscription responses have subscription_id, order responses have id
+            const paymentId = data.subscription_id || data.id;
             
-            // Call parent success handler with order ID and customer data
-            // PaymentSuccessPage will handle account creation and webhook integration
-            onSuccess?.(data.id, {
-              customerName: values.customerName,
-              customerEmail: values.customerEmail,
-              customerDocument: values.customerDocument,
-              customerPhone: values.customerPhone,
-              planId: plan.id,
-              amount: displayPrice,
-              paymentMethod: 'credit_card'
+            console.log('Credit card payment success:', { 
+              hasSubscriptionId: !!data.subscription_id, 
+              hasOrderId: !!data.id, 
+              paymentId,
+              responseType: data.subscription_id ? 'subscription' : 'order',
+              status: data.status
             });
+            
+            // Check for failed payments (e.g., card declined)
+            if (data.status === 'failed') {
+              const context = {
+                orderId: paymentId,
+                amount: displayPrice,
+                paymentMethod: 'credit_card' as const,
+                installments: parseInt(values.installments || '1')
+              };
+              
+              // Show elegant failure result
+              const result = resultConfigs.creditCardDeclined(context, 'installment_not_supported');
+              setPaymentResult(result);
+              setIsProcessing(false);
+              return;
+            }
+            
+            // SUCCESS: Trigger webhook for credit card payment success
+            const webhookPaymentData = {
+              id: paymentId || 'unknown',
+              amount: displayPrice,
+              method: 'credit_card',
+              status: 'paid',
+              metadata: {
+                planId: plan.id,
+                planName: plan.name,
+                customerName: values.customerName,
+                customerEmail: values.customerEmail,
+                customerDocument: values.customerDocument,
+                customerPhone: values.customerPhone,
+                installments: parseInt(values.installments || '1'),
+                paymentFlow: data.subscription_id ? 'subscription_signup' : 'one_time_payment',
+                cardLastDigits: values.cardNumber?.slice(-4) || '',
+                billingAddress: {
+                  street: values.billingStreet || '',
+                  zipCode: values.billingZipCode || '',
+                  city: values.billingCity || '',
+                  state: values.billingState || ''
+                }
+              },
+              pagarme_transaction_id: paymentId
+            };
+            
+            triggerWebhookIfUserAuthenticated(webhookPaymentData);
+            
+            // Success case - determine if it's subscription or one-time
+            const context = {
+              orderId: paymentId,
+              amount: displayPrice,
+              paymentMethod: 'credit_card' as const,
+              planName: plan.name,
+              installments: parseInt(values.installments || '1')
+            };
+            
+            const result = data.subscription_id 
+              ? resultConfigs.subscriptionSuccess(context)
+              : resultConfigs.creditCardSuccess(context);
+            
+            setPaymentResult(result);
             setIsProcessing(false);
+            
+            // SUCCESS: Don't call onSuccess callback - we're showing unified result instead of navigating
+            // The unified result will handle the user flow with proper success messaging
           },
           onError: (error) => {
-            console.error(error);
-            parsePaymentError(error.message);
+            console.error('Credit card payment error:', error);
+            
+            const context = {
+              orderId: undefined,
+              amount: displayPrice,
+              paymentMethod: 'credit_card' as const,
+              installments: parseInt(values.installments || '1')
+            };
+            
+            // Determine error type and show appropriate result
+            const errorMessage = error.message || '';
+            let result;
+            
+            if (errorMessage.includes('insufficient')) {
+              result = resultConfigs.creditCardDeclined(context, 'insufficient_funds');
+            } else if (errorMessage.includes('expired')) {
+              result = resultConfigs.creditCardDeclined(context, 'expired_card');
+            } else if (errorMessage.includes('blocked')) {
+              result = resultConfigs.creditCardDeclined(context, 'blocked_card');
+            } else if (errorMessage.includes('network') || errorMessage.includes('connection')) {
+              result = resultConfigs.networkError(context);
+            } else {
+              result = resultConfigs.technicalError(context);
+            }
+            
+            setPaymentResult(result);
             setIsProcessing(false);
           }
         });
       } catch (error) {
-        console.error(error);
-        parsePaymentError(error.message || 'Erro no processamento do pagamento');
+        console.error('Payment processing error:', error);
+        
+        const context = {
+          orderId: undefined,
+          amount: displayPrice,
+          paymentMethod: selectedMethod
+        };
+        
+        const result = resultConfigs.technicalError(context, 'Erro no processamento do pagamento');
+        setPaymentResult(result);
         setIsProcessing(false);
       }
     }
   };
+
+  // Payment Result Display (unified success/failure handling)
+  if (paymentResult) {
+    return <PaymentResultDisplay result={paymentResult} />;
+  }
 
   // PIX Code Display (for demo purposes)
   if (showPixCode) {
@@ -365,30 +666,78 @@ const TwoStepPaymentForm: React.FC<TwoStepPaymentFormProps> = ({
             Use o QR Code ou copie o código PIX abaixo. O pagamento é confirmado instantaneamente.
           </p>
 
-          {/* Mock QR Code */}
+          {/* PIX QR Code */}
           <div className="bg-white h-48 w-48 mx-auto mb-4 flex items-center justify-center rounded-lg border">
-            {pixData?.qr_code_url ? (
-              <img 
-                src={pixData.qr_code_url} 
-                alt="PIX QR Code"
-                className="h-44 w-44 object-contain"
-              />
-            ) : (
-              <div className="text-center">
-                <QrCode className="h-16 w-16 text-gray-400 mx-auto mb-2" />
-                <p className="text-xs text-gray-500">QR Code PIX</p>
-              </div>
-            )}
+            {(() => {
+              // Handle both response formats: direct PIX response and charge-based
+              let qrCodeUrl;
+              
+              if (pixData?.payment_method === 'pix') {
+                // NEW FORMAT: Direct PIX response format
+                qrCodeUrl = pixData.qr_code_url;
+              } else {
+                // OLD FORMAT: PIX QR code URL is in the last_transaction of the first charge
+                const pixCharge = pixData?.charges?.[0];
+                qrCodeUrl = pixCharge?.last_transaction?.qr_code_url;
+              }
+              
+              return qrCodeUrl ? (
+                <img 
+                  src={qrCodeUrl} 
+                  alt="PIX QR Code"
+                  className="h-44 w-44 object-contain"
+                />
+              ) : (
+                <div className="text-center">
+                  <QrCode className="h-16 w-16 text-gray-400 mx-auto mb-2" />
+                  <p className="text-xs text-gray-500">QR Code PIX</p>
+                </div>
+              );
+            })()}
           </div>
 
           {/* Copy PIX Code Button */}
           <Button 
             onClick={async () => {
-              const pixCode = pixData?.qr_code_text || pixData?.qr_code || pixData?.pix_code;
+              // Handle both response formats: direct PIX response and charge-based
+              let pixCode;
+              
+              if (pixData?.payment_method === 'pix') {
+                // NEW FORMAT: Direct PIX response format
+                pixCode = pixData.qr_code;
+              } else {
+                // OLD FORMAT: PIX code is in the last_transaction of the first charge
+                const pixCharge = pixData?.charges?.[0];
+                pixCode = pixCharge?.last_transaction?.qr_code;
+              }
+              
               if (pixCode) {
                 try {
-                  await navigator.clipboard.writeText(pixCode);
-                  toast.success('Código PIX copiado!');
+                  // Check if clipboard API is available
+                  if (navigator.clipboard && window.isSecureContext) {
+                    await navigator.clipboard.writeText(pixCode);
+                    toast.success('Código PIX copiado!');
+                  } else {
+                    // Fallback for non-HTTPS or unsupported browsers
+                    const textArea = document.createElement('textarea');
+                    textArea.value = pixCode;
+                    textArea.style.position = 'fixed';
+                    textArea.style.left = '-999999px';
+                    textArea.style.top = '-999999px';
+                    document.body.appendChild(textArea);
+                    textArea.focus();
+                    textArea.select();
+                    
+                    try {
+                      document.execCommand('copy');
+                      toast.success('Código PIX copiado!');
+                    } catch (fallbackError) {
+                      console.error('Fallback clipboard error:', fallbackError);
+                      toast.error('Não foi possível copiar automaticamente. Selecione e copie manualmente.');
+                    }
+                    
+                    document.body.removeChild(textArea);
+                  }
                 } catch (error) {
                   console.error('Clipboard error:', error);
                   toast.error('Erro ao copiar código PIX');
@@ -407,28 +756,7 @@ const TwoStepPaymentForm: React.FC<TwoStepPaymentFormProps> = ({
             Válido por 1 hora • R$ {(displayPrice / 100).toFixed(2).replace('.', ',')}
           </div>
           
-          {/* Payment status monitoring */}
-          {paymentStatus?.status === 'paid' && (
-            <Button 
-              onClick={() => {
-                // Call parent success handler with order ID and customer data
-                // PaymentSuccessPage will handle account creation and webhook integration
-                const formValues = form.getValues();
-                onSuccess?.(pixData.id, {
-                  customerName: formValues.customerName,
-                  customerEmail: formValues.customerEmail,
-                  customerDocument: formValues.customerDocument,
-                  customerPhone: formValues.customerPhone,
-                  planId: plan.id,
-                  amount: displayPrice,
-                  paymentMethod: 'pix'
-                });
-              }}
-              className="w-full h-12 sm:h-14 !bg-green-600 hover:!bg-green-700 !text-white text-base sm:text-lg font-medium touch-manipulation"
-            >
-              Pagamento confirmado! ✓
-            </Button>
-          )}
+          {/* Payment status monitoring - Auto-redirects when paid via useEffect */}
 
           <Button 
             onClick={() => setShowPixCode(false)}
@@ -551,7 +879,7 @@ const TwoStepPaymentForm: React.FC<TwoStepPaymentFormProps> = ({
                   <FormItem className="space-y-0">
                     <FormControl>
                       <Input
-                        placeholder="000.000.000-00"
+                        placeholder="Digite seu CPF ou CNPJ"
                         {...field}
                         onChange={(e) => {
                           let value = e.target.value.replace(/\D/g, '');

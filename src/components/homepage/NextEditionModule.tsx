@@ -1,7 +1,7 @@
 
 // ABOUTME: Module component for the next edition suggestion and voting system with mobile progressive disclosure.
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Progress } from '../ui/progress';
@@ -9,6 +9,7 @@ import { Clock } from 'lucide-react';
 import SuggestionPollItem from './SuggestionPollItem';
 import { useSubmitSuggestionMutation } from '@packages/hooks/useSubmitSuggestionMutation';
 import { useIsMobile } from '../../hooks/use-mobile';
+import { useActiveCountdown, useReviewMode } from '../../../packages/hooks/useNextEditionManagement';
 
 export interface Suggestion {
   id: number;
@@ -32,10 +33,46 @@ const NextEditionModule: React.FC<NextEditionModuleProps> = ({ suggestions }) =>
   const [showAllSuggestions, setShowAllSuggestions] = useState(false);
   const submitSuggestionMutation = useSubmitSuggestionMutation();
   const isMobile = useIsMobile();
+  
+  // Real countdown data from database
+  const { data: countdown, isLoading: countdownLoading } = useActiveCountdown();
+  const { data: reviewMode } = useReviewMode();
 
-  // Mock countdown data (we'll implement backend later)
-  const mockCountdown = "5d 34min";
-  const mockProgress = 65; // Progress percentage
+  // Calculate real countdown and progress
+  const { countdownText, progressPercentage } = useMemo(() => {
+    if (!countdown) {
+      return { countdownText: 'Não configurado', progressPercentage: 0 };
+    }
+
+    const now = new Date();
+    const target = new Date(countdown.target_date);
+    const diff = target.getTime() - now.getTime();
+
+    if (diff <= 0) {
+      return { countdownText: 'Finalizado', progressPercentage: 100 };
+    }
+
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+    // Create countdown text
+    let countdownText = '';
+    if (days > 0) {
+      countdownText += `${days}d `;
+    }
+    if (hours > 0 || days > 0) {
+      countdownText += `${hours}h `;
+    }
+    countdownText += `${minutes}min`;
+
+    // Calculate progress (assume countdown started 30 days ago for demo)
+    const totalDuration = 30 * 24 * 60 * 60 * 1000; // 30 days in milliseconds
+    const elapsed = totalDuration - diff;
+    const progressPercentage = Math.max(0, Math.min(100, (elapsed / totalDuration) * 100));
+
+    return { countdownText: countdownText.trim(), progressPercentage };
+  }, [countdown]);
 
   // Progressive disclosure for mobile - show only top 3-5 items per DOC_8 RULE 5
   const displayedSuggestions = isMobile && !showAllSuggestions 
@@ -71,13 +108,13 @@ const NextEditionModule: React.FC<NextEditionModuleProps> = ({ suggestions }) =>
               <h2 className="text-xl font-bold text-foreground font-serif">Próxima Edição</h2>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Clock size={16} />
-                <span>{mockCountdown}</span>
+                <span>{countdownLoading ? 'Carregando...' : countdownText}</span>
               </div>
             </div>
             
             {/* Progress Bar */}
             <div className="mb-6">
-              <Progress value={mockProgress} className="w-full h-2" />
+              <Progress value={progressPercentage} className="w-full h-2" />
             </div>
           </div>
 
