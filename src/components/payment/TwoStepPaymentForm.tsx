@@ -410,10 +410,8 @@ const TwoStepPaymentForm: React.FC<TwoStepPaymentFormProps> = ({
     if (authStatus === 'logged_in') {
       return ['plan_selection', 'payment_details'];
     }
-    if (authStatus === 'account_exists' || authStatus === 'no_account') {
-      return ['plan_selection', 'authentication', 'payment_details'];
-    }
-    return ['plan_selection', 'payment_details']; // fallback
+    // For any non-logged-in user, show authentication step
+    return ['plan_selection', 'authentication', 'payment_details'];
   };
 
   const updateStepFlow = async (email?: string) => {
@@ -426,8 +424,7 @@ const TwoStepPaymentForm: React.FC<TwoStepPaymentFormProps> = ({
         steps: newSteps,
         authStatus: authStatusResult.status,
         userEmail: authStatusResult.email,
-        authStep: authStatusResult.status === 'account_exists' ? 'login' : 
-                 authStatusResult.status === 'no_account' ? 'signup' : null,
+        authStep: 'login', // Always start with login - user can switch to signup if needed
       }));
       
       console.log('Step flow updated:', { 
@@ -1335,17 +1332,29 @@ const TwoStepPaymentForm: React.FC<TwoStepPaymentFormProps> = ({
                 
                 <div className="text-center text-sm text-gray-500">ou</div>
                 
-                <Button
-                  type="button"
-                  onClick={() => {
-                    setStepFlow(prev => ({ ...prev, authStep: 'signup' }));
-                  }}
-                  variant="outline"
-                  disabled={isAuthenticating}
-                  className="w-full h-12 rounded-md font-medium"
-                >
-                  Criar Nova Conta
-                </Button>
+{stepFlow.authStep === 'login' ? (
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      setStepFlow(prev => ({ ...prev, authStep: 'signup' }));
+                    }}
+                    variant="outline"
+                    disabled={isAuthenticating}
+                    className="w-full h-12 rounded-md font-medium"
+                  >
+                    Criar Nova Conta
+                  </Button>
+                ) : (
+                  <Button
+                    type="button"
+                    onClick={handleSignup}
+                    disabled={isAuthenticating || !authData.password || !authData.confirmPassword}
+                    variant="outline"
+                    className="w-full h-12 rounded-md font-medium"
+                  >
+                    {isAuthenticating ? 'Criando conta...' : 'Confirmar e Criar Conta'}
+                  </Button>
+                )}
               </div>
             </div>
           )}
@@ -1528,17 +1537,10 @@ const TwoStepPaymentForm: React.FC<TwoStepPaymentFormProps> = ({
                                     value={installmentCount.toString()} 
                                     className="text-black hover:bg-gray-50 focus:bg-gray-50 data-[highlighted]:bg-gray-50 data-[state=checked]:text-black focus:text-black"
                                   >
-                                    <div className="flex flex-col">
-                                      <span>
-                                        {installmentCount}x de R$ {formatCurrency(calculation.installmentAmount)}
-                                        {isVista && " (à vista)"}
-                                      </span>
-                                      {!isVista && calculation.feeAmount > 0 && (
-                                        <span className="text-xs text-gray-500">
-                                          Total: R$ {formatCurrency(calculation.totalAmount)} (com taxas)
-                                        </span>
-                                      )}
-                                    </div>
+                                    <span>
+                                      {installmentCount}x de R$ {formatCurrency(calculation.installmentAmount)}
+                                      {isVista && " (à vista)"}
+                                    </span>
                                   </SelectItem>
                                 );
                               });
