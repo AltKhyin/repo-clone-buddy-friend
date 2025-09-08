@@ -6,7 +6,7 @@ import type { CreateCommunityPostResponse } from '../../src/types/community';
 
 interface CreatePostPayload {
   title: string; // NOW MANDATORY per requirements
-  content?: string; // NOW OPTIONAL per requirements
+  content?: string; // NOW OPTIONAL per requirements (will default to empty string)
   category: string;
   post_type?: 'text' | 'image' | 'poll' | 'video' | 'link';
   image_url?: string;

@@ -188,7 +188,7 @@ export const CreatePostForm = ({ onPostCreated }: CreatePostFormProps) => {
 
     const payload = {
       title: title.trim(), // Now mandatory per requirements
-      content: content.trim() || undefined, // Now optional per requirements
+      content: content.trim() || '', // Send empty string instead of undefined to satisfy backend validation
       category,
       post_type: postType,
       ...(postType === 'image' && uploadedImageUrl && { image_url: uploadedImageUrl }),

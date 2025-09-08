@@ -8,13 +8,15 @@ import { createSuccessResponse, createErrorResponse, authenticateUser } from '..
 import { checkRateLimit, rateLimitHeaders, RateLimitError } from '../_shared/rate-limit.ts';
 
 interface CreatePostRequest {
-  title?: string;
-  content: string;
+  title: string; // Now mandatory per frontend requirements
+  content?: string; // Now optional per frontend requirements
   category: string;
-  post_type?: 'text' | 'image' | 'video' | 'poll';
+  post_type?: 'text' | 'image' | 'video' | 'poll' | 'link';
   image_url?: string;
   video_url?: string;
   poll_data?: Record<string, any>;
+  link_url?: string;
+  link_preview_data?: Record<string, any>;
   review_id?: number;
   parent_post_id?: number; // This makes it a comment if provided
 }
@@ -58,9 +60,13 @@ serve(async (req) => {
     // STEP 6: Input Validation
     const body: CreatePostRequest = await req.json();
     
-    if (!body.content || body.content.trim().length === 0) {
-      throw new Error('VALIDATION_FAILED: Post content is required');
+    // Title is now mandatory (NEW REQUIREMENT)
+    if (!body.title || body.title.trim().length === 0) {
+      throw new Error('VALIDATION_FAILED: Post title is required');
     }
+
+    // Content is now optional but must be provided as string (empty string is OK)
+    const postContent = body.content?.trim() || '';
 
     if (!body.category || body.category.trim().length === 0) {
       throw new Error('VALIDATION_FAILED: Post category is required');
@@ -84,13 +90,13 @@ serve(async (req) => {
       throw new Error('VALIDATION_FAILED: Categoria inválida fornecida. Categorias válidas: discussao-geral, duvida-clinica, caso-clinico, evidencia-cientifica, tecnologia-saude, carreira-medicina, bem-estar-medico');
     }
 
-    // Content length validation
-    if (body.content.length > 10000) {
+    // Content length validation (now optional)
+    if (postContent.length > 10000) {
       throw new Error('VALIDATION_FAILED: Post content exceeds maximum length (10,000 characters)');
     }
 
-    // Title validation (if provided)
-    if (body.title && body.title.length > 200) {
+    // Title validation (now mandatory)
+    if (body.title.length > 200) {
       throw new Error('VALIDATION_FAILED: Post title exceeds maximum length (200 characters)');
     }
 
@@ -98,8 +104,8 @@ serve(async (req) => {
     const { data: result, error: createError } = await supabase
       .rpc('create_post_and_auto_vote', {
         p_author_id: user.id,
-        p_title: body.title || null,
-        p_content: body.content,
+        p_title: body.title, // Now mandatory
+        p_content: postContent, // Now can be empty string
         p_category: body.category,
         p_parent_id: body.parent_post_id || null // Support for comments
       });
@@ -111,13 +117,15 @@ serve(async (req) => {
     const newPostId = result[0].post_id;
 
     // Update post with multimedia fields if provided
-    if (body.post_type || body.image_url || body.video_url || body.poll_data) {
+    if (body.post_type || body.image_url || body.video_url || body.poll_data || body.link_url || body.link_preview_data) {
       const updateData: any = {};
       
       if (body.post_type) updateData.post_type = body.post_type;
       if (body.image_url) updateData.image_url = body.image_url;
       if (body.video_url) updateData.video_url = body.video_url;
       if (body.poll_data) updateData.poll_data = body.poll_data;
+      if (body.link_url) updateData.link_url = body.link_url;
+      if (body.link_preview_data) updateData.link_preview_data = body.link_preview_data;
 
       const { error: updateError } = await supabase
         .from('CommunityPosts')

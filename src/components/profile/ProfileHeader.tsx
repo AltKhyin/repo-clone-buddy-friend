@@ -76,6 +76,16 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ userProfile, isLoa
   
   // Customer support settings
   const { data: supportSettings } = useCustomerSupportSettings();
+  
+  // Calculate subscription days remaining
+  const getSubscriptionDaysRemaining = () => {
+    if (!enhancedStatus.userProfile?.subscription_end_date) return null;
+    const endDate = new Date(enhancedStatus.userProfile.subscription_end_date);
+    const today = new Date();
+    const diffTime = endDate.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays > 0 ? diffDays : 0;
+  };
 
   // Update form data when userProfile changes
   useEffect(() => {
@@ -422,8 +432,8 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ userProfile, isLoa
               </div>
             </div>
 
-            {/* MOBILE-FIRST: Information Sections */}
-            <div className="px-4 md:px-6 pb-6 space-y-6">
+            {/* MOBILE ONLY: Information Sections */}
+            <div className="block md:hidden px-4 pb-6 space-y-6">
               {/* Essential Contact Information */}
               <div className="space-y-4">
                 <h3 className="font-serif text-base font-medium text-black">Contato</h3>
@@ -534,6 +544,131 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ userProfile, isLoa
                   </p>
                 </div>
               )}
+            </div>
+
+            {/* DESKTOP ONLY: Two-Column Layout */}
+            <div className="hidden md:block p-6">
+              <div className="grid grid-cols-2 gap-8">
+                {/* Left Column: Contact Information */}
+                <div className="space-y-6">
+                  <div className="space-y-4">
+                    <h3 className="font-serif text-lg font-medium text-black">Informações de contato</h3>
+                    
+                    <div className="space-y-3">
+                      {/* Email */}
+                      <div className="flex items-center gap-3">
+                        <Mail className="h-5 w-5 text-gray-400 flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-gray-900 truncate">{displayEmail}</span>
+                            {session?.user?.email_confirmed_at && (
+                              <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Phone */}
+                      <div className="flex items-center gap-3">
+                        <Phone className="h-5 w-5 text-gray-400 flex-shrink-0" />
+                        <span className="font-medium text-gray-900">
+                          {userProfile?.phone || <span className="text-gray-400 italic">Adicionar telefone</span>}
+                        </span>
+                      </div>
+
+                      {/* Location */}
+                      <div className="flex items-center gap-3">
+                        <MapPin className="h-5 w-5 text-gray-400 flex-shrink-0" />
+                        <span className="font-medium text-gray-900">
+                          {userProfile?.location || <span className="text-gray-400 italic">Adicionar localização</span>}
+                        </span>
+                      </div>
+
+                      {/* Website */}
+                      {userProfile?.website_url && (
+                        <div className="flex items-center gap-3">
+                          <Globe className="h-5 w-5 text-gray-400 flex-shrink-0" />
+                          <a 
+                            href={userProfile.website_url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="font-medium text-gray-900 hover:text-black transition-colors"
+                          >
+                            {userProfile.website_url.replace(/^https?:\/\//, '')}
+                          </a>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right Column: Social Media */}
+                <div className="space-y-6">
+                  {(userProfile?.instagram_url || userProfile?.linkedin_url || userProfile?.twitter_url) ? (
+                    <div className="space-y-4">
+                      <h3 className="font-serif text-lg font-medium text-black">Redes sociais</h3>
+                      
+                      <div className="space-y-3">
+                        {userProfile?.instagram_url && (
+                          <div className="flex items-center gap-3">
+                            <Instagram className="h-5 w-5 text-gray-400 flex-shrink-0" />
+                            <a 
+                              href={formatSocialLink('instagram', userProfile.instagram_url)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="font-medium text-gray-900 hover:text-black transition-colors"
+                            >
+                              {getDisplayValue('instagram', userProfile.instagram_url)}
+                            </a>
+                          </div>
+                        )}
+
+                        {userProfile?.linkedin_url && (
+                          <div className="flex items-center gap-3">
+                            <Linkedin className="h-5 w-5 text-gray-400 flex-shrink-0" />
+                            <a 
+                              href={formatSocialLink('linkedin', userProfile.linkedin_url)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="font-medium text-gray-900 hover:text-black transition-colors"
+                            >
+                              {getDisplayValue('linkedin', userProfile.linkedin_url)}
+                            </a>
+                          </div>
+                        )}
+
+                        {userProfile?.twitter_url && (
+                          <div className="flex items-center gap-3">
+                            <Twitter className="h-5 w-5 text-gray-400 flex-shrink-0" />
+                            <a 
+                              href={formatSocialLink('twitter', userProfile.twitter_url)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="font-medium text-gray-900 hover:text-black transition-colors"
+                            >
+                              {getDisplayValue('twitter', userProfile.twitter_url)}
+                            </a>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <h3 className="font-serif text-lg font-medium text-black">Redes sociais</h3>
+                      <p className="text-gray-400 italic">Nenhuma rede social adicionada</p>
+                    </div>
+                  )}
+
+                  {/* Membership Info */}
+                  {userProfile?.created_at && (
+                    <div className="pt-6 border-t border-gray-100">
+                      <p className="text-sm text-gray-500">
+                        Membro desde {new Date(userProfile.created_at).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </>
         ) : (
@@ -700,20 +835,47 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ userProfile, isLoa
         )}
       </Card>
 
-      {/* MOBILE-FIRST: Subscription Management */}
+      {/* Subscription Management - Enhanced Display */}
       {enhancedStatus.isMember && (
         <Card className="border-0 shadow-sm bg-background/95 backdrop-blur-sm">
           <div className="p-4 md:p-6">
-            <h3 className="font-serif text-base font-medium text-black mb-4">Assinatura</h3>
+            <div className="flex items-center gap-2 mb-6">
+              <span className="h-1.5 w-1.5 rounded-full bg-black"></span>
+              <h3 className="font-serif text-base md:text-lg font-medium text-black">Assinatura</h3>
+            </div>
             
-            {/* Mobile: Single Column Layout */}
-            <div className="space-y-4">
-              {/* Status */}
-              <div className="flex items-center justify-between py-2">
-                <span className="text-sm text-gray-600">Status</span>
-                <div className="flex items-center gap-2">
-                  <CheckCircle className="h-4 w-4 text-green-600" />
-                  <span className="text-sm font-medium text-black">Ativa</span>
+            {/* Mobile: Enhanced Single Column */}
+            <div className="block md:hidden space-y-4">
+              {/* Status Section */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
+                  <div>
+                    <span className="text-base font-medium text-black">Plano Ativo</span>
+                    <p className="text-xs text-gray-500">Assinatura {enhancedStatus.subscriptionTier}</p>
+                  </div>
+                </div>
+                
+                {/* Subscription Details */}
+                <div className="bg-gray-50 rounded-lg p-3 space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-gray-600">Último acesso renovado</span>
+                    <span className="text-xs font-medium text-gray-900">
+                      {enhancedStatus.userProfile?.subscription_start_date 
+                        ? new Date(enhancedStatus.userProfile.subscription_start_date).toLocaleDateString('pt-BR')
+                        : 'N/A'
+                      }
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-gray-600">Próxima renovação</span>
+                    <span className="text-xs font-medium text-gray-900">
+                      {enhancedStatus.userProfile?.subscription_end_date 
+                        ? new Date(enhancedStatus.userProfile.subscription_end_date).toLocaleDateString('pt-BR')
+                        : 'N/A'
+                      }
+                    </span>
+                  </div>
                 </div>
               </div>
               
@@ -728,6 +890,60 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ userProfile, isLoa
                   <HelpCircle className="h-4 w-4" />
                   Precisa de ajuda? Falar com o suporte
                 </Button>
+              </div>
+            </div>
+
+            {/* Desktop: Two Column Enhanced Layout */}
+            <div className="hidden md:block">
+              <div className="grid grid-cols-2 gap-8">
+                {/* Left Column: Status and Details */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
+                    <div>
+                      <span className="text-lg font-medium text-black">Plano Ativo</span>
+                      <p className="text-sm text-gray-500 capitalize">Assinatura {enhancedStatus.subscriptionTier}</p>
+                    </div>
+                  </div>
+                  
+                  {/* Subscription Timeline */}
+                  <div className="space-y-3 pl-8">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">Último acesso renovado</span>
+                      <span className="text-sm font-medium text-gray-900">
+                        {enhancedStatus.userProfile?.subscription_start_date 
+                          ? new Date(enhancedStatus.userProfile.subscription_start_date).toLocaleDateString('pt-BR')
+                          : 'N/A'
+                        }
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">Próxima renovação</span>
+                      <span className="text-sm font-medium text-gray-900">
+                        {enhancedStatus.userProfile?.subscription_end_date 
+                          ? new Date(enhancedStatus.userProfile.subscription_end_date).toLocaleDateString('pt-BR')
+                          : 'N/A'
+                        }
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right Column: Support */}
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="font-medium text-black mb-3">Suporte</h4>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleSupportClick}
+                      className="w-full justify-start gap-2 bg-background hover:bg-muted border-gray-300 text-gray-700 font-normal"
+                    >
+                      <HelpCircle className="h-4 w-4" />
+                      Precisa de ajuda? Falar com o suporte
+                    </Button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
