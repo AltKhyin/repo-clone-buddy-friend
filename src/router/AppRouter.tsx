@@ -15,6 +15,8 @@ import SuggestionPage from '@/pages/SuggestionPage';
 import UnauthorizedPage from '@/pages/UnauthorizedPage';
 import LoginPage from '@/pages/LoginPage';
 import RegistrationPage from '@/pages/RegistrationPage';
+import ForgotPasswordPage from '@/pages/ForgotPasswordPage';
+import ResetPasswordPage from '@/pages/ResetPasswordPage';
 import PaymentPage from '@/pages/PaymentPage';
 import EmbeddedPaymentPage from '@/pages/EmbeddedPaymentPage';
 import ProfileCompletionPage from '@/pages/ProfileCompletionPage';
@@ -42,6 +44,14 @@ const router = createBrowserRouter([
   {
     path: '/registrar',
     element: <RegistrationPage />,
+  },
+  {
+    path: '/esqueci-senha',
+    element: <ForgotPasswordPage />,
+  },
+  {
+    path: '/redefinir-senha',
+    element: <ResetPasswordPage />,
   },
   {
     path: '/pagar',

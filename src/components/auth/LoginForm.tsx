@@ -14,7 +14,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import GoogleIcon from '@/components/icons/GoogleIcon';
 import { useAuthFormTransition } from '@/hooks/useAuthFormTransition';
 import { useState } from 'react';
-import { Mail } from 'lucide-react';
+import { Mail, AlertCircle } from 'lucide-react';
 
 const LoginForm = () => {
   const navigate = useNavigate();
@@ -23,14 +23,25 @@ const LoginForm = () => {
   const { switchToRegister } = useAuthFormTransition();
   const [showEmailConfirmation, setShowEmailConfirmation] = useState(false);
   const [userEmail, setUserEmail] = useState('');
+  const [loginError, setLoginError] = useState('');
   
   const form = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
     defaultValues: { email: '', password: '' },
   });
 
+  // Clear error when user starts typing
+  const clearErrorOnChange = () => {
+    if (loginError) {
+      setLoginError('');
+    }
+  };
+
   const onSubmit = (values: z.infer<typeof loginSchema>) => {
+    // Clear any previous errors
+    setLoginError('');
     setUserEmail(values.email);
+    
     mutation.mutate(values, {
       onSuccess: () => {
         toast.success('Login bem-sucedido!');
@@ -40,8 +51,11 @@ const LoginForm = () => {
         if (error.message === 'EMAIL_NOT_CONFIRMED') {
           setShowEmailConfirmation(true);
         } else {
-          toast.error('Email ou senha inválidos.');
-          console.error(error);
+          // Display the error message directly in the form instead of just toast
+          setLoginError(error.message);
+          // Keep the toast for consistency but make it less generic
+          toast.error(error.message);
+          console.error('Login error:', error);
         }
       },
     });
@@ -106,6 +120,10 @@ const LoginForm = () => {
                   <Input
                     placeholder="Email"
                     {...field}
+                    onChange={(e) => {
+                      field.onChange(e);
+                      clearErrorOnChange();
+                    }}
                     className="bg-white border-gray-300 focus:border-black focus:ring-0 text-black placeholder:text-gray-500"
                   />
                 </FormControl>
@@ -123,6 +141,10 @@ const LoginForm = () => {
                     type="password"
                     placeholder="Senha"
                     {...field}
+                    onChange={(e) => {
+                      field.onChange(e);
+                      clearErrorOnChange();
+                    }}
                     className="bg-white border-gray-300 focus:border-black focus:ring-0 text-black placeholder:text-gray-500"
                   />
                 </FormControl>
@@ -144,10 +166,21 @@ const LoginForm = () => {
                 Lembrar de mim
               </label>
             </div>
-            <button type="button" className="text-sm text-gray-700 hover:text-black">
+            <Link
+              to="/esqueci-senha"
+              className="text-sm text-gray-700 hover:text-black hover:underline"
+            >
               Esqueceu?
-            </button>
+            </Link>
           </div>
+
+          {/* Login Error Display */}
+          {loginError && (
+            <div className="flex items-center space-x-2 p-3 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm">
+              <AlertCircle className="h-4 w-4 flex-shrink-0" />
+              <span>{loginError}</span>
+            </div>
+          )}
           
           <Button type="submit" className="w-full !mt-8 !bg-black hover:!bg-gray-800 !text-white" disabled={mutation.isPending}>
             {mutation.isPending ? 'Entrando...' : 'Entrar'}
@@ -169,7 +202,16 @@ const LoginForm = () => {
       <div className="mt-6">
         <Button 
           type="button"
-          onClick={() => googleAuthMutation.mutate()}
+          onClick={() => {
+            // Clear any previous errors when attempting Google auth
+            setLoginError('');
+            googleAuthMutation.mutate(undefined, {
+              onError: (error) => {
+                // Display Google auth errors in the same format as login errors
+                setLoginError(error.message || 'Erro ao conectar com Google');
+              },
+            });
+          }}
           disabled={googleAuthMutation.isPending}
           variant="outline" 
           className="w-full bg-white hover:bg-gray-50 border-gray-300 text-gray-700 flex items-center justify-center gap-2"

@@ -30,20 +30,21 @@ export const usePostCategories = () => {
     queryFn: async (): Promise<PostCategory[]> => {
       console.log('Fetching post categories...');
 
-      const { data, error } = await supabase.functions.invoke('get-post-categories');
+      // Query the database directly instead of non-existent Edge Function
+      const { data, error } = await supabase
+        .from('CommunityCategories')
+        .select('*')
+        .eq('is_active', true)
+        .neq('hidden_from_user_selection', true) // Exclude hidden categories for regular users
+        .order('display_order', { ascending: true });
 
       if (error) {
         console.error('Categories fetch error:', error);
         throw new Error(error.message || 'Failed to fetch categories');
       }
 
-      if (!data?.success) {
-        console.error('Categories API returned failure:', data);
-        throw new Error('Categories API returned failure');
-      }
-
-      console.log('Categories fetched successfully:', data.categories);
-      return data.categories || [];
+      console.log('Categories fetched successfully:', data);
+      return data || [];
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes

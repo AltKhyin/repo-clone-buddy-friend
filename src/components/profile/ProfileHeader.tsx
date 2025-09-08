@@ -21,6 +21,9 @@ import {
   Phone,
   Mail,
   MapPin,
+  CreditCard,
+  Pause,
+  HelpCircle,
 } from 'lucide-react';
 import { useUpdateProfileMutation } from '@packages/hooks/useUpdateProfileMutation';
 import { useToast } from '../../hooks/use-toast';
@@ -30,6 +33,7 @@ import { useEnhancedUserStatus } from '@/hooks/useEnhancedUserStatus';
 import { useNavigate } from 'react-router-dom';
 import { SubscriptionStatus } from './SubscriptionStatus';
 import { SubscriptionActions } from './SubscriptionActions';
+import { useCustomerSupportSettings, getPrimaryContact } from '@/hooks/useCustomerSupportSettings';
 import type { ExtendedUserProfile, ProfileUpdateData } from '@/types';
 
 interface ProfileHeaderProps {
@@ -69,6 +73,9 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ userProfile, isLoa
   
   // Enhanced user status for membership differentiation
   const enhancedStatus = useEnhancedUserStatus();
+  
+  // Customer support settings
+  const { data: supportSettings } = useCustomerSupportSettings();
 
   // Update form data when userProfile changes
   useEffect(() => {
@@ -185,6 +192,13 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ userProfile, isLoa
     navigate(enhancedStatus.upgradeRedirectPath);
   };
 
+  const handleSupportClick = () => {
+    if (supportSettings) {
+      const primaryContact = getPrimaryContact(supportSettings);
+      window.open(primaryContact.formatted, '_blank');
+    }
+  };
+
   const displayName = userProfile?.full_name || 'Usuário';
   const displayEmail = session?.user?.email || '';
 
@@ -204,292 +218,411 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ userProfile, isLoa
     );
   }
 
+  // Smart link detection utilities
+  const formatSocialLink = (platform: string, value: string): string => {
+    if (!value) return '';
+    
+    const cleanValue = value.trim();
+    
+    // If it's already a full URL, return as is
+    if (cleanValue.startsWith('http://') || cleanValue.startsWith('https://')) {
+      return cleanValue;
+    }
+    
+    // Handle platform-specific formatting
+    switch (platform) {
+      case 'instagram':
+        const instaHandle = cleanValue.replace('@', '');
+        return `https://instagram.com/${instaHandle}`;
+      case 'twitter':
+        const twitterHandle = cleanValue.replace('@', '');
+        return `https://twitter.com/${twitterHandle}`;
+      case 'linkedin':
+        // LinkedIn can be either /in/username or full profile URL
+        if (cleanValue.includes('linkedin.com')) {
+          return cleanValue;
+        }
+        return `https://linkedin.com/in/${cleanValue}`;
+      default:
+        return cleanValue;
+    }
+  };
+
+  const getDisplayValue = (platform: string, value: string): string => {
+    if (!value) return '';
+    
+    const cleanValue = value.trim();
+    
+    // If it's a full URL, extract the relevant part for display
+    if (cleanValue.startsWith('http://') || cleanValue.startsWith('https://')) {
+      if (platform === 'instagram' || platform === 'twitter') {
+        const match = cleanValue.match(/(?:instagram\.com|twitter\.com)\/(.+)/i);
+        return match ? `@${match[1]}` : cleanValue;
+      }
+      if (platform === 'linkedin') {
+        const match = cleanValue.match(/linkedin\.com\/in\/(.+)/i);
+        return match ? match[1] : cleanValue.replace(/^https?:\/\//i, '');
+      }
+      return cleanValue.replace(/^https?:\/\//i, '');
+    }
+    
+    // For handles, add @ for Instagram and Twitter
+    if (platform === 'instagram' || platform === 'twitter') {
+      return cleanValue.startsWith('@') ? cleanValue : `@${cleanValue}`;
+    }
+    
+    return cleanValue;
+  };
+
   return (
     <div className="space-y-6">
       {/* Main Profile Card - Premium Design */}
       <Card className="border-0 shadow-sm bg-background/95 backdrop-blur-sm">
-        <CardHeader className="pb-6">
-          <div className="flex items-start gap-6">
-            {/* Avatar Section - Clean & Simple */}
-            <div 
-              className="relative group cursor-pointer flex-shrink-0"
-              onClick={handleAvatarUpload}
-            >
-              <div className="relative h-28 w-28 rounded-full overflow-hidden">
-                <Avatar className="h-full w-full">
-                  <AvatarImage src={userProfile?.avatar_url ?? undefined} />
-                  <AvatarFallback className="text-lg font-serif tracking-tight bg-gray-100 text-black">
-                    {displayName
-                      ?.split(' ')
-                      .map(n => n[0])
-                      .join('') || 'U'}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-center justify-center">
-                  <Camera className="h-5 w-5 text-white" />
+        {!isEditing ? (
+          <>
+            {/* MOBILE-FIRST: Hero Section */}
+            <div className="p-4 md:hidden">
+              {/* MOBILE ONLY: Centralized Layout */}
+              <div className="flex flex-col items-center text-center">
+                {/* Edit Button - Top Right Absolute */}
+                <div className="relative w-full">
+                  <button
+                    onClick={() => setIsEditing(true)}
+                    className="absolute top-0 right-0 min-w-[48px] min-h-[48px] flex items-center justify-center p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+                    aria-label="Editar perfil"
+                  >
+                    <Edit className="h-5 w-5" />
+                  </button>
+                </div>
+
+                {/* Avatar - Centered */}
+                <div 
+                  className="relative group cursor-pointer mb-4"
+                  onClick={handleAvatarUpload}
+                >
+                  <div className="relative h-20 w-20 rounded-full overflow-hidden mx-auto">
+                    <Avatar className="h-full w-full">
+                      <AvatarImage src={userProfile?.avatar_url ?? undefined} />
+                      <AvatarFallback className="text-lg font-serif tracking-tight bg-gray-100 text-black">
+                        {displayName?.split(' ').map(n => n[0]).join('') || 'U'}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-center justify-center">
+                      <Camera className="h-4 w-4 text-white" />
+                    </div>
+                  </div>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileChange}
+                    className="hidden"
+                  />
+                </div>
+
+                {/* Name & Profession - Centered, No Badge on Mobile */}
+                <div className="space-y-2 mb-6 w-full">
+                  <h1 className="text-2xl font-serif tracking-tight text-black font-medium">
+                    {displayName}
+                  </h1>
+                  <p className="text-base text-gray-600 font-normal">
+                    {userProfile?.profession || (
+                      <span className="text-gray-400 italic">Adicionar profissão</span>
+                    )}
+                  </p>
+
+                  {/* Upgrade Button - Mobile Full Width */}
+                  {enhancedStatus.subscriptionTier === 'free' && enhancedStatus.shouldShowUpgradeButton && (
+                    <Button 
+                      variant="outline"
+                      onClick={handleUpgradeClick}
+                      className="w-full bg-background hover:bg-muted border-gray-300 text-gray-700 font-normal mt-4"
+                    >
+                      {enhancedStatus.upgradeButtonText}
+                    </Button>
+                  )}
                 </div>
               </div>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleFileChange}
-                className="hidden"
-              />
             </div>
 
-            {/* Profile Info - Expanded Personal Information */}
-            <div className="flex-1 space-y-6">
-              {!isEditing ? (
-                <>
-                  {/* Hero Header Section */}
-                  <div className="space-y-6 pb-6 border-b border-gray-100">
-                    <div className="flex items-start justify-between">
-                      <div className="relative">
-                        {/* Edit button positioned independently */}
-                        <button
-                          onClick={() => setIsEditing(true)}
-                          className="absolute -right-2 -top-2 p-2 text-gray-400 hover:text-gray-600 hover:bg-muted rounded-full transition-colors z-10"
+            {/* DESKTOP: Original Hero Section - Hidden on Mobile */}
+            <div className="hidden md:block">
+              <div className="flex items-start gap-6 p-6">
+                {/* Avatar Section */}
+                <div 
+                  className="relative group cursor-pointer flex-shrink-0"
+                  onClick={handleAvatarUpload}
+                >
+                  <div className="relative h-28 w-28 rounded-full overflow-hidden">
+                    <Avatar className="h-full w-full">
+                      <AvatarImage src={userProfile?.avatar_url ?? undefined} />
+                      <AvatarFallback className="text-lg font-serif tracking-tight bg-gray-100 text-black">
+                        {displayName?.split(' ').map(n => n[0]).join('') || 'U'}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-center justify-center">
+                      <Camera className="h-5 w-5 text-white" />
+                    </div>
+                  </div>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileChange}
+                    className="hidden"
+                  />
+                </div>
+
+                {/* Content Section */}
+                <div className="flex-1">
+                  <div className="flex items-start justify-between">
+                    <div className="space-y-3">
+                      {/* Name & Badge */}
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-1">
+                          <span className="h-1.5 w-1.5 rounded-full bg-black"></span>
+                          <h1 className="text-4xl font-serif tracking-tight text-black font-medium">
+                            {displayName}
+                          </h1>
+                        </div>
+                        {enhancedStatus.isMember && (
+                          <Badge className="bg-black text-white font-normal text-xs px-2 py-1">
+                            {enhancedStatus.memberBadge.text}
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-lg text-gray-600 font-normal">
+                        {userProfile?.profession || (
+                          <span className="text-gray-400 italic">Adicionar profissão</span>
+                        )}
+                      </p>
+
+                      {/* Upgrade Button */}
+                      {enhancedStatus.subscriptionTier === 'free' && enhancedStatus.shouldShowUpgradeButton && (
+                        <Button 
+                          variant="outline"
+                          onClick={handleUpgradeClick}
+                          className="bg-background hover:bg-muted border-gray-300 text-gray-700 font-normal mt-4"
                         >
-                          <Edit className="h-4 w-4" />
-                        </button>
-                        
-                        {/* Aligned content with consistent left margin */}
-                        <div className="space-y-3">
-                          <div className="flex items-start gap-4">
-                            <span className="h-1.5 w-1.5 rounded-full bg-black mt-2.5 flex-shrink-0"></span>
-                            <div className="space-y-2">
-                              <div className="flex items-baseline gap-3 flex-wrap">
-                                <h1 className="text-4xl font-serif tracking-tight text-black font-medium leading-tight">
-                                  {displayName}
-                                </h1>
-                                {enhancedStatus.isMember && (
-                                  <Badge 
-                                    variant="default"
-                                    className="bg-black text-white hover:bg-gray-800 font-normal text-xs px-3 py-1 self-start"
-                                  >
-                                    {enhancedStatus.memberBadge.text}
-                                  </Badge>
-                                )}
-                              </div>
-                              <p className="text-xl text-gray-600 font-normal leading-relaxed">
-                                {userProfile?.profession || (
-                                  <span className="text-gray-400 italic">Adicionar profissão</span>
-                                )}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
+                          {enhancedStatus.upgradeButtonText}
+                        </Button>
+                      )}
+                    </div>
 
-                        {/* Upgrade Button - Only for non-members */}
-                        {enhancedStatus.subscriptionTier === 'free' && enhancedStatus.shouldShowUpgradeButton && (
-                          <Button 
-                            variant="outline"
-                            size="sm"
-                            onClick={handleUpgradeClick}
-                            className="bg-background hover:bg-muted border-gray-300 text-gray-700 font-normal px-6 py-3 text-base"
-                          >
-                            {enhancedStatus.upgradeButtonText}
-                          </Button>
+                    {/* Edit Button */}
+                    <button
+                      onClick={() => setIsEditing(true)}
+                      className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+                      aria-label="Editar perfil"
+                    >
+                      <Edit className="h-5 w-5" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* MOBILE-FIRST: Information Sections */}
+            <div className="px-4 md:px-6 pb-6 space-y-6">
+              {/* Essential Contact Information */}
+              <div className="space-y-4">
+                <h3 className="font-serif text-base font-medium text-black">Contato</h3>
+                
+                <div className="space-y-1">
+                  {/* Email */}
+                  <div className="flex items-center gap-3 min-h-[48px] py-2">
+                    <Mail className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-gray-900 truncate">{displayEmail}</span>
+                        {session?.user?.email_confirmed_at && (
+                          <CheckCircle className="h-3 w-3 text-green-600 flex-shrink-0" />
                         )}
                       </div>
                     </div>
                   </div>
 
-                  {/* Comprehensive Information Grid */}
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    {/* Contact Information Section */}
-                    <div className="space-y-6">
-                      <div className="space-y-1">
-                        <h3 className="font-serif text-lg tracking-tight text-black font-medium">Informações da conta (confidenciais)</h3>
-                        <p className="text-sm text-gray-500">Como você pode ser encontrado</p>
-                      </div>
-                      
-                      <div className="space-y-4">
-                        <div className="flex items-center gap-4 py-2">
-                          <Mail className="h-5 w-5 text-gray-400 flex-shrink-0" />
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2">
-                              <span className="text-gray-800 font-medium">{displayEmail}</span>
-                              {session?.user?.email_confirmed_at && (
-                                <CheckCircle className="h-4 w-4 text-green-600" />
-                              )}
-                            </div>
-                            <p className="text-xs text-gray-500">Email principal</p>
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-center gap-4 py-2">
-                          <Phone className="h-5 w-5 text-gray-400 flex-shrink-0" />
-                          <div className="flex-1">
-                            <span className="text-gray-800 font-medium">
-                              {userProfile?.phone || <span className="text-gray-400">Adicionar telefone</span>}
-                            </span>
-                            <p className="text-xs text-gray-500">Número de contato</p>
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-center gap-4 py-2">
-                          <MapPin className="h-5 w-5 text-gray-400 flex-shrink-0" />
-                          <div className="flex-1">
-                            <span className="text-gray-800 font-medium">
-                              {userProfile?.location || <span className="text-gray-400">Adicionar localização</span>}
-                            </span>
-                            <p className="text-xs text-gray-500">Cidade e estado</p>
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-center gap-4 py-2">
-                          <Globe className="h-5 w-5 text-gray-400 flex-shrink-0" />
-                          <div className="flex-1">
-                            {userProfile?.website_url ? (
-                              <a 
-                                href={userProfile.website_url} 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                className="text-gray-800 font-medium hover:text-black transition-colors"
-                              >
-                                {userProfile.website_url.replace(/^https?:\/\//, '')}
-                              </a>
-                            ) : (
-                              <span className="text-gray-400 font-medium">Adicionar website</span>
-                            )}
-                            <p className="text-xs text-gray-500">Site pessoal ou profissional</p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Social Media & Professional Links */}
-                    <div className="space-y-6">
-                      <div className="space-y-1">
-                        <h3 className="font-serif text-lg tracking-tight text-black font-medium">Redes sociais</h3>
-                        <p className="text-sm text-gray-500">Conecte suas redes profissionais</p>
-                      </div>
-                      
-                      <div className="space-y-4">
-                        <div className="flex items-center gap-4 py-2">
-                          <Instagram className="h-5 w-5 text-gray-400 flex-shrink-0" />
-                          <div className="flex-1">
-                            {userProfile?.instagram_url ? (
-                              <a 
-                                href={`https://instagram.com/${userProfile.instagram_url.replace('@', '')}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-gray-800 font-medium hover:text-black transition-colors"
-                              >
-                                @{userProfile.instagram_url.replace('@', '')}
-                              </a>
-                            ) : (
-                              <span className="text-gray-400 font-medium">Conectar Instagram</span>
-                            )}
-                            <p className="text-xs text-gray-500">Perfil no Instagram</p>
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-center gap-4 py-2">
-                          <Linkedin className="h-5 w-5 text-gray-400 flex-shrink-0" />
-                          <div className="flex-1">
-                            {userProfile?.linkedin_url ? (
-                              <a 
-                                href={`https://linkedin.com/in/${userProfile.linkedin_url}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-gray-800 font-medium hover:text-black transition-colors"
-                              >
-                                {userProfile.linkedin_url}
-                              </a>
-                            ) : (
-                              <span className="text-gray-400 font-medium">Conectar LinkedIn</span>
-                            )}
-                            <p className="text-xs text-gray-500">Perfil profissional</p>
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-center gap-4 py-2">
-                          <Twitter className="h-5 w-5 text-gray-400 flex-shrink-0" />
-                          <div className="flex-1">
-                            {userProfile?.twitter_url ? (
-                              <a 
-                                href={`https://twitter.com/${userProfile.twitter_url.replace('@', '')}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-gray-800 font-medium hover:text-black transition-colors"
-                              >
-                                @{userProfile.twitter_url.replace('@', '')}
-                              </a>
-                            ) : (
-                              <span className="text-gray-400 font-medium">Conectar Twitter</span>
-                            )}
-                            <p className="text-xs text-gray-500">Perfil no Twitter</p>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      {/* Membership Info */}
-                      <div className="pt-4 border-t border-gray-100">
-                        {userProfile?.created_at && (
-                          <p className="text-sm text-gray-600">
-                            <span className="font-medium">Membro desde:</span> {new Date(userProfile.created_at).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <div className="space-y-6">
-                  {/* Basic Info */}
-                  <div className="space-y-4">
-                    <h3 className="font-serif text-lg tracking-tight text-black font-medium">Informações pessoais</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="name" className="text-sm font-medium text-gray-700">Nome completo</Label>
-                        <Input
-                          id="name"
-                          value={formData.full_name}
-                          onChange={e => handleInputChange('full_name', e.target.value)}
-                          placeholder="Seu nome completo"
-                          className="bg-background border-gray-300 focus:border-black focus:ring-0 text-black"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="profession" className="text-sm font-medium text-gray-700">Profissão</Label>
-                        <Input
-                          id="profession"
-                          value={formData.profession}
-                          onChange={e => handleInputChange('profession', e.target.value)}
-                          placeholder="Sua profissão"
-                          className="bg-background border-gray-300 focus:border-black focus:ring-0 text-black"
-                        />
-                      </div>
-                    </div>
+                  {/* Phone */}
+                  <div className="flex items-center gap-3 min-h-[48px] py-2">
+                    <Phone className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                    <span className="text-sm font-medium text-gray-900">
+                      {userProfile?.phone || <span className="text-gray-400">Adicionar telefone</span>}
+                    </span>
                   </div>
 
-                  {/* Contact Info */}
+                  {/* Location */}
+                  <div className="flex items-center gap-3 min-h-[48px] py-2">
+                    <MapPin className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                    <span className="text-sm font-medium text-gray-900">
+                      {userProfile?.location || <span className="text-gray-400">Adicionar localização</span>}
+                    </span>
+                  </div>
+
+                  {/* Website */}
+                  {userProfile?.website_url && (
+                    <div className="flex items-center gap-3 min-h-[48px] py-2">
+                      <Globe className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                      <a 
+                        href={userProfile.website_url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-sm font-medium text-gray-900 hover:text-black"
+                      >
+                        {userProfile.website_url.replace(/^https?:\/\//, '')}
+                      </a>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Social Media */}
+              {(userProfile?.instagram_url || userProfile?.linkedin_url || userProfile?.twitter_url) && (
+                <div className="space-y-4">
+                  <h3 className="font-serif text-base font-medium text-black">Redes sociais</h3>
+                  
+                  <div className="space-y-1">
+                    {userProfile?.instagram_url && (
+                      <div className="flex items-center gap-3 min-h-[48px] py-2">
+                        <Instagram className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                        <a 
+                          href={formatSocialLink('instagram', userProfile.instagram_url)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm font-medium text-gray-900 hover:text-black"
+                        >
+                          {getDisplayValue('instagram', userProfile.instagram_url)}
+                        </a>
+                      </div>
+                    )}
+
+                    {userProfile?.linkedin_url && (
+                      <div className="flex items-center gap-3 min-h-[48px] py-2">
+                        <Linkedin className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                        <a 
+                          href={formatSocialLink('linkedin', userProfile.linkedin_url)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm font-medium text-gray-900 hover:text-black"
+                        >
+                          {getDisplayValue('linkedin', userProfile.linkedin_url)}
+                        </a>
+                      </div>
+                    )}
+
+                    {userProfile?.twitter_url && (
+                      <div className="flex items-center gap-3 min-h-[48px] py-2">
+                        <Twitter className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                        <a 
+                          href={formatSocialLink('twitter', userProfile.twitter_url)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm font-medium text-gray-900 hover:text-black"
+                        >
+                          {getDisplayValue('twitter', userProfile.twitter_url)}
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Membership Info */}
+              {userProfile?.created_at && (
+                <div className="pt-4 border-t border-gray-100">
+                  <p className="text-xs text-gray-500">
+                    Membro desde {new Date(userProfile.created_at).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
+                  </p>
+                </div>
+              )}
+            </div>
+          </>
+        ) : (
+          /* MOBILE-FIRST: Editing State - Complete Rebuild */
+          <div className="p-4 md:p-6 space-y-6">
+            {/* Mobile: Avatar centered at top | Desktop: Left with content */}
+            <div className="flex flex-col md:flex-row md:items-start gap-6">
+              {/* Avatar Section */}
+              <div className="flex justify-center md:justify-start">
+                <div 
+                  className="relative group cursor-pointer flex-shrink-0"
+                  onClick={handleAvatarUpload}
+                >
+                  <div className="relative h-20 w-20 md:h-28 md:w-28 rounded-full overflow-hidden">
+                    <Avatar className="h-full w-full">
+                      <AvatarImage src={userProfile?.avatar_url ?? undefined} />
+                      <AvatarFallback className="text-lg md:text-xl font-serif tracking-tight bg-gray-100 text-black">
+                        {displayName
+                          ?.split(' ')
+                          .map(n => n[0])
+                          .join('') || 'U'}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-center justify-center">
+                      <Camera className="h-4 w-4 md:h-5 md:w-5 text-white" />
+                    </div>
+                  </div>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileChange}
+                    className="hidden"
+                  />
+                </div>
+              </div>
+
+              {/* Form Content - Full width on mobile */}
+              <div className="flex-1">
+                {/* Basic Info */}
+                <div className="space-y-4 mb-8">
+                  <h3 className="font-serif text-lg tracking-tight text-black font-medium">Informações pessoais</h3>
                   <div className="space-y-4">
-                    <h3 className="font-serif text-lg tracking-tight text-black font-medium">Informações da conta (confidenciais)</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="phone" className="text-sm font-medium text-gray-700">Telefone</Label>
-                        <Input
-                          id="phone"
-                          value={formData.phone}
-                          onChange={e => handleInputChange('phone', e.target.value)}
-                          placeholder="Seu telefone"
-                          className="bg-background border-gray-300 focus:border-black focus:ring-0 text-black"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="location" className="text-sm font-medium text-gray-700">Localização</Label>
-                        <Input
-                          id="location"
-                          value={formData.location}
-                          onChange={e => handleInputChange('location', e.target.value)}
-                          placeholder="Cidade, Estado"
-                          className="bg-background border-gray-300 focus:border-black focus:ring-0 text-black"
-                        />
-                      </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="name" className="text-sm font-medium text-gray-700">Nome completo</Label>
+                      <Input
+                        id="name"
+                        value={formData.full_name}
+                        onChange={e => handleInputChange('full_name', e.target.value)}
+                        placeholder="Seu nome completo"
+                        className="bg-background border-gray-300 focus:border-black focus:ring-0 text-black min-h-[44px]"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="profession" className="text-sm font-medium text-gray-700">Profissão</Label>
+                      <Input
+                        id="profession"
+                        value={formData.profession}
+                        onChange={e => handleInputChange('profession', e.target.value)}
+                        placeholder="Sua profissão"
+                        className="bg-background border-gray-300 focus:border-black focus:ring-0 text-black min-h-[44px]"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Contact Info */}
+                <div className="space-y-4 mb-8">
+                  <h3 className="font-serif text-lg tracking-tight text-black font-medium">Informações da conta (confidenciais)</h3>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="phone" className="text-sm font-medium text-gray-700">Telefone</Label>
+                      <Input
+                        id="phone"
+                        value={formData.phone}
+                        onChange={e => handleInputChange('phone', e.target.value)}
+                        placeholder="Seu telefone"
+                        className="bg-background border-gray-300 focus:border-black focus:ring-0 text-black min-h-[44px]"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="location" className="text-sm font-medium text-gray-700">Localização</Label>
+                      <Input
+                        id="location"
+                        value={formData.location}
+                        onChange={e => handleInputChange('location', e.target.value)}
+                        placeholder="Cidade, Estado"
+                        className="bg-background border-gray-300 focus:border-black focus:ring-0 text-black min-h-[44px]"
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="website" className="text-sm font-medium text-gray-700">Website</Label>
@@ -498,94 +631,106 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ userProfile, isLoa
                         value={formData.website}
                         onChange={e => handleInputChange('website', e.target.value)}
                         placeholder="https://seusite.com"
-                        className="bg-background border-gray-300 focus:border-black focus:ring-0 text-black"
+                        className="bg-background border-gray-300 focus:border-black focus:ring-0 text-black min-h-[44px]"
                       />
                     </div>
                   </div>
+                </div>
 
-                  {/* Social Media */}
+                {/* Social Media */}
+                <div className="space-y-4 mb-8">
+                  <h3 className="font-serif text-lg tracking-tight text-black font-medium">Redes sociais</h3>
                   <div className="space-y-4">
-                    <h3 className="font-serif text-lg tracking-tight text-black font-medium">Redes sociais</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="instagram" className="text-sm font-medium text-gray-700">Instagram</Label>
-                        <Input
-                          id="instagram"
-                          value={formData.instagram}
-                          onChange={e => handleInputChange('instagram', e.target.value)}
-                          placeholder="@seuusuario"
-                          className="bg-background border-gray-300 focus:border-black focus:ring-0 text-black"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="linkedin" className="text-sm font-medium text-gray-700">LinkedIn</Label>
-                        <Input
-                          id="linkedin"
-                          value={formData.linkedin}
-                          onChange={e => handleInputChange('linkedin', e.target.value)}
-                          placeholder="seuusuario"
-                          className="bg-background border-gray-300 focus:border-black focus:ring-0 text-black"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="twitter" className="text-sm font-medium text-gray-700">Twitter</Label>
-                        <Input
-                          id="twitter"
-                          value={formData.twitter}
-                          onChange={e => handleInputChange('twitter', e.target.value)}
-                          placeholder="@seuusuario"
-                          className="bg-background border-gray-300 focus:border-black focus:ring-0 text-black"
-                        />
-                      </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="instagram" className="text-sm font-medium text-gray-700">Instagram</Label>
+                      <Input
+                        id="instagram"
+                        value={formData.instagram}
+                        onChange={e => handleInputChange('instagram', e.target.value)}
+                        placeholder="@seuusuario ou https://instagram.com/seuusuario"
+                        className="bg-background border-gray-300 focus:border-black focus:ring-0 text-black min-h-[44px]"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="linkedin" className="text-sm font-medium text-gray-700">LinkedIn</Label>
+                      <Input
+                        id="linkedin"
+                        value={formData.linkedin}
+                        onChange={e => handleInputChange('linkedin', e.target.value)}
+                        placeholder="seuusuario ou https://linkedin.com/in/seuusuario"
+                        className="bg-background border-gray-300 focus:border-black focus:ring-0 text-black min-h-[44px]"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="twitter" className="text-sm font-medium text-gray-700">Twitter</Label>
+                      <Input
+                        id="twitter"
+                        value={formData.twitter}
+                        onChange={e => handleInputChange('twitter', e.target.value)}
+                        placeholder="@seuusuario ou https://twitter.com/seuusuario"
+                        className="bg-background border-gray-300 focus:border-black focus:ring-0 text-black min-h-[44px]"
+                      />
                     </div>
                   </div>
                 </div>
-              )}
+              </div>
             </div>
 
-            {/* Action Buttons - Only when editing */}
-            {isEditing && (
-              <div className="flex gap-2 pt-4">
+            {/* Action Buttons - Mobile: Full width stacked | Desktop: Inline */}
+            <div className="flex flex-col md:flex-row gap-3 md:gap-2 pt-4 border-t border-gray-100">
+              <Button
+                variant="outline"
+                onClick={handleCancel}
+                disabled={updateProfileMutation.isPending}
+                className="w-full md:w-auto bg-background hover:bg-muted border-gray-300 text-gray-700 flex items-center justify-center gap-2 font-normal min-h-[48px] md:min-h-auto"
+              >
+                <X className="h-4 w-4" />
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleSave}
+                disabled={updateProfileMutation.isPending}
+                className="w-full md:w-auto !bg-black hover:!bg-gray-800 !text-white flex items-center justify-center gap-2 min-h-[48px] md:min-h-auto"
+              >
+                <Save className="h-4 w-4" />
+                {updateProfileMutation.isPending ? 'Salvando...' : 'Salvar'}
+              </Button>
+            </div>
+          </div>
+        )}
+      </Card>
+
+      {/* MOBILE-FIRST: Subscription Management */}
+      {enhancedStatus.isMember && (
+        <Card className="border-0 shadow-sm bg-background/95 backdrop-blur-sm">
+          <div className="p-4 md:p-6">
+            <h3 className="font-serif text-base font-medium text-black mb-4">Assinatura</h3>
+            
+            {/* Mobile: Single Column Layout */}
+            <div className="space-y-4">
+              {/* Status */}
+              <div className="flex items-center justify-between py-2">
+                <span className="text-sm text-gray-600">Status</span>
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4 text-green-600" />
+                  <span className="text-sm font-medium text-black">Ativa</span>
+                </div>
+              </div>
+              
+              {/* Customer Support Button */}
+              <div className="pt-2">
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={handleCancel}
-                  disabled={updateProfileMutation.isPending}
-                  className="bg-background hover:bg-muted border-gray-300 text-gray-700 flex items-center gap-2 font-normal"
+                  onClick={handleSupportClick}
+                  className="w-full justify-start gap-2 bg-background hover:bg-muted border-gray-300 text-gray-700 font-normal min-h-[44px]"
                 >
-                  <X className="h-4 w-4" />
-                  Cancelar
-                </Button>
-                <Button
-                  size="sm"
-                  onClick={handleSave}
-                  disabled={updateProfileMutation.isPending}
-                  className="!bg-black hover:!bg-gray-800 !text-white flex items-center gap-2"
-                >
-                  <Save className="h-4 w-4" />
-                  {updateProfileMutation.isPending ? 'Salvando...' : 'Salvar'}
+                  <HelpCircle className="h-4 w-4" />
+                  Precisa de ajuda? Falar com o suporte
                 </Button>
               </div>
-            )}
+            </div>
           </div>
-        </CardHeader>
-      </Card>
-
-      {/* Subscription Management - Minimalist approach */}
-      {enhancedStatus.isMember && (
-        <Card className="border-0 shadow-sm bg-background/95 backdrop-blur-sm">
-          <CardHeader className="pb-4">
-            <div className="flex items-center gap-2">
-              <span className="h-1.5 w-1.5 rounded-full bg-black"></span>
-              <h3 className="font-serif text-base tracking-tight text-black font-medium">Assinatura</h3>
-            </div>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <SubscriptionStatus />
-              <SubscriptionActions />
-            </div>
-          </CardContent>
         </Card>
       )}
     </div>

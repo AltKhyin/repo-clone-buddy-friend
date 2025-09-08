@@ -4,6 +4,13 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Mobile-first touch targets for accessibility and usability */
+@layer utilities {
+  .touch-target-44 {
+    min-height: 44px;
+  }
+}
+
 /* Comment nesting scope hover effects - constrained to comment area only */
 .comment-thread-item.show-nested-scope .comment-content .nested-replies {
   background: hsl(var(--accent) / 0.05);

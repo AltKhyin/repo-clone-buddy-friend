@@ -22,16 +22,16 @@ interface NotificationDropdownProps {
 const getNotificationIcon = (type: NotificationType) => {
   switch (type) {
     case 'comment_reply':
-      return <MessageCircle className="h-4 w-4 text-blue-500" />;
+      return <MessageCircle className="text-blue-500" />;
     case 'post_like':
     case 'comment_like':
-      return <Heart className="h-4 w-4 text-red-500" />;
+      return <Heart className="text-red-500" />;
     case 'new_review':
-      return <FileText className="h-4 w-4 text-green-500" />;
+      return <FileText className="text-green-500" />;
     case 'admin_custom':
-      return <Bell className="h-4 w-4 text-purple-500" />;
+      return <Bell className="text-purple-500" />;
     default:
-      return <Bell className="h-4 w-4 text-gray-500" />;
+      return <Bell className="text-gray-500" />;
   }
 };
 
@@ -117,15 +117,21 @@ export const NotificationDropdown = ({ isOpen, onClose }: NotificationDropdownPr
   return (
     <div
       ref={dropdownRef}
-      className="absolute right-0 top-full mt-2 w-80 bg-background border rounded-lg shadow-lg z-50"
+      className="fixed sm:absolute 
+                 right-2 sm:right-0 
+                 top-16 sm:top-full 
+                 left-2 sm:left-auto
+                 sm:mt-2 
+                 w-auto sm:w-80 md:w-96 
+                 bg-background border rounded-lg shadow-lg z-50"
     >
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b">
-        <div className="flex items-center gap-2">
-          <Bell className="h-4 w-4" />
-          <span className="font-medium">Notificações</span>
+      <div className="flex items-center justify-between p-4 sm:p-6 border-b">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <Bell className="h-5 w-5 sm:h-4 sm:w-4" />
+          <span className="font-medium text-base sm:text-sm">Notificações</span>
           {unreadCount > 0 && (
-            <Badge variant="secondary" className="bg-orange-100 text-orange-800">
+            <Badge variant="secondary" className="bg-orange-100 text-orange-800 text-xs sm:text-xs">
               {unreadCount}
             </Badge>
           )}
@@ -134,30 +140,33 @@ export const NotificationDropdown = ({ isOpen, onClose }: NotificationDropdownPr
           variant="ghost"
           size="icon"
           onClick={onClose}
-          className="h-7 w-7"
+          className="h-10 w-10 sm:h-8 sm:w-8 touch-target-44"
+          aria-label="Fechar notificações"
         >
-          <X className="h-3 w-3" />
+          <X className="h-5 w-5 sm:h-4 sm:w-4" />
         </Button>
       </div>
 
       {/* Content */}
       <ScrollArea 
-        className="h-96" 
+        className="h-80 sm:h-96 max-h-[60vh] sm:max-h-[70vh] overflow-auto" 
         onScrollCapture={handleScroll}
       >
-        <div className="p-2">
+        <div className="p-3 sm:p-2">
           {isLoading && notifications.length === 0 ? (
-            <div className="flex items-center justify-center py-8 text-sm text-muted-foreground">
+            <div className="flex items-center justify-center py-12 sm:py-8 text-base sm:text-sm text-muted-foreground">
               Carregando notificações...
             </div>
           ) : notifications.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-8 text-sm text-muted-foreground">
-              <Bell className="h-8 w-8 mb-2 opacity-50" />
-              <p>Nenhuma notificação ainda</p>
-              <p className="text-xs mt-1">Você receberá notificações de likes e comentários aqui</p>
+            <div className="flex flex-col items-center justify-center py-12 sm:py-8 text-center px-4">
+              <Bell className="h-12 w-12 sm:h-8 sm:w-8 mb-3 sm:mb-2 opacity-50" />
+              <p className="text-base sm:text-sm text-muted-foreground font-medium">Nenhuma notificação ainda</p>
+              <p className="text-sm sm:text-xs mt-2 sm:mt-1 text-muted-foreground max-w-64">
+                Você receberá notificações de likes e comentários aqui
+              </p>
             </div>
           ) : (
-            <div className="space-y-1">
+            <div className="space-y-2 sm:space-y-1">
               {notifications.map((notification) => (
                 <NotificationItem
                   key={notification.id}
@@ -167,7 +176,7 @@ export const NotificationDropdown = ({ isOpen, onClose }: NotificationDropdownPr
               ))}
               
               {isFetchingNextPage && (
-                <div className="flex items-center justify-center py-4 text-sm text-muted-foreground">
+                <div className="flex items-center justify-center py-6 sm:py-4 text-base sm:text-sm text-muted-foreground">
                   Carregando mais...
                 </div>
               )}
@@ -190,29 +199,35 @@ const NotificationItem = ({
 }: NotificationItemProps) => {
   return (
     <div
-      className={`p-3 rounded-md hover:bg-muted/50 transition-colors ${
-        !notification.is_read ? 'bg-orange-50 border-l-2 border-l-orange-500' : ''
+      className={`p-4 sm:p-3 rounded-lg sm:rounded-md active:bg-muted/70 sm:hover:bg-muted/50 transition-colors touch-target-44 ${
+        !notification.is_read ? 'bg-orange-50 border-l-4 sm:border-l-2 border-l-orange-500' : ''
       }`}
+      role="button"
+      tabIndex={0}
     >
-      <div className="flex items-start gap-3">
+      <div className="flex items-start gap-4 sm:gap-3">
         {/* Icon */}
-        <div className="flex-shrink-0 mt-0.5">
-          {getNotificationIcon(notification.type)}
+        <div className="flex-shrink-0 mt-1 sm:mt-0.5">
+          <div className="p-1 sm:p-0">
+            {React.cloneElement(getNotificationIcon(notification.type), {
+              className: `h-5 w-5 sm:h-4 sm:w-4 ${getNotificationIcon(notification.type).props.className}`
+            })}
+          </div>
         </div>
 
         {/* Content */}
         <div className="flex-1 min-w-0">
-          <p className={`text-sm ${!notification.is_read ? 'font-medium' : ''}`}>
+          <p className={`text-base sm:text-sm leading-relaxed sm:leading-normal ${!notification.is_read ? 'font-semibold sm:font-medium' : 'font-medium sm:font-normal'}`}>
             {notification.title}
           </p>
-          <p className="text-xs text-muted-foreground mt-1">
+          <p className="text-sm sm:text-xs text-muted-foreground mt-2 sm:mt-1 leading-relaxed sm:leading-normal">
             {notification.message}
           </p>
-          <div className="flex items-center gap-2 mt-2">
-            <Badge variant="outline" className="text-xs">
+          <div className="flex items-center gap-3 sm:gap-2 mt-3 sm:mt-2">
+            <Badge variant="outline" className="text-xs sm:text-xs px-2 py-1 sm:px-1.5 sm:py-0.5">
               {getNotificationTypeLabel(notification.type)}
             </Badge>
-            <span className="text-xs text-muted-foreground">
+            <span className="text-xs sm:text-xs text-muted-foreground">
               {formatTimeAgo(notification.created_at)}
             </span>
           </div>

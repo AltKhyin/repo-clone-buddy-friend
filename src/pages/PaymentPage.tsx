@@ -133,7 +133,7 @@ const PaymentPage = () => {
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 3000), // Exponential backoff
   });
 
-  const handlePaymentSuccess = async (orderId: string) => {
+  const handlePaymentSuccess = async (orderId: string, customerData?: any) => {
     // Update plan usage count with enhanced error handling
     if (plan?.id) {
       try {
@@ -166,39 +166,34 @@ const PaymentPage = () => {
       }
     }
 
-    // Trigger external webhook to Make.com (non-blocking)
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user?.id && plan) {
-        // Extract payment data for webhook
-        const paymentData = {
-          id: orderId,
-          amount: plan.amount,
-          method: 'unknown', // Will be populated by specific payment forms
-          status: 'paid',
-          metadata: {
-            planName: plan.name,
-            planId: plan.id,
-            customerEmail: user.email
-          }
-        };
-
-        // Trigger webhook without blocking payment success
-        triggerPaymentSuccessWebhook(user.id, paymentData).catch(error => {
-          console.error('Webhook trigger failed (non-blocking):', error);
-        });
-      }
-    } catch (error) {
-      console.error('Error preparing webhook data (non-blocking):', error);
-    }
+    // Note: Webhook integration is now handled by PaymentSuccessPage 
+    // which creates accounts automatically and triggers webhooks with complete user data
     
     // Always navigate to success page regardless of usage update results
     try {
-      navigate(`/pagamento-sucesso?orderId=${orderId}`);
+      // Build success URL with customer data for automatic account creation
+      const successUrl = new URL('/pagamento-sucesso', window.location.origin);
+      successUrl.searchParams.set('orderId', orderId);
+      
+      // Add customer data if provided (from TwoStepPaymentForm)
+      if (customerData) {
+        if (customerData.customerEmail) successUrl.searchParams.set('customerEmail', customerData.customerEmail);
+        if (customerData.customerName) successUrl.searchParams.set('customerName', customerData.customerName);
+        if (customerData.customerDocument) successUrl.searchParams.set('customerDocument', customerData.customerDocument);
+        if (customerData.customerPhone) successUrl.searchParams.set('customerPhone', customerData.customerPhone);
+        if (customerData.planId) successUrl.searchParams.set('planId', customerData.planId);
+        if (customerData.amount) successUrl.searchParams.set('amount', customerData.amount.toString());
+        if (customerData.paymentMethod) successUrl.searchParams.set('paymentMethod', customerData.paymentMethod);
+      }
+      
+      navigate(successUrl.pathname + successUrl.search);
     } catch (navigationError) {
       // Fallback navigation in case of routing issues
       console.error('Navigation error after payment success:', navigationError);
-      window.location.href = `/pagamento-sucesso?orderId=${orderId}`;
+      const fallbackUrl = customerData 
+        ? `/pagamento-sucesso?orderId=${orderId}&customerEmail=${customerData.customerEmail || ''}&customerName=${customerData.customerName || ''}`
+        : `/pagamento-sucesso?orderId=${orderId}`;
+      window.location.href = fallbackUrl;
     }
   };
 

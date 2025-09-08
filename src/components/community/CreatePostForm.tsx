@@ -12,7 +12,6 @@ import { toast } from 'sonner';
 import { TiptapEditor } from './TiptapEditor';
 import { ImageUploadZone } from './ImageUploadZone';
 import { VideoInput } from './VideoInput';
-import { PollCreator } from './PollCreator';
 import { LinkInput } from './LinkInput';
 import { useCreateCommunityPostMutation } from '@packages/hooks/useCreateCommunityPostMutation';
 import { usePostCategories } from '@packages/hooks/usePostCategories';
@@ -31,15 +30,10 @@ export const CreatePostForm = ({ onPostCreated }: CreatePostFormProps) => {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [category, setCategory] = useState('');
-  const [postType, setPostType] = useState<'text' | 'image' | 'poll' | 'video' | 'link'>('text');
+  const [postType, setPostType] = useState<'text' | 'image' | 'video' | 'link'>('text');
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [videoUrl, setVideoUrl] = useState('');
   const [videoFile, setVideoFile] = useState<File | null>(null);
-  const [pollData, setPollData] = useState<{
-    question: string;
-    options: Array<{ id: string; text: string }>;
-    expiresAt?: string;
-  } | null>(null);
   const [linkUrl, setLinkUrl] = useState('');
   const [linkPreviewData, setLinkPreviewData] = useState<LinkPreviewData | null>(null);
 
@@ -100,23 +94,12 @@ export const CreatePostForm = ({ onPostCreated }: CreatePostFormProps) => {
       return;
     }
 
-    if (postType === 'poll' && (!pollData || pollData.options.length < 2)) {
-      toast.error('Adicione pelo menos 2 opções para a enquete');
-      return;
-    }
 
     if (postType === 'link' && !linkUrl.trim()) {
       toast.error('Adicione um link válido para posts do tipo link');
       return;
     }
 
-    // Transform poll data to match API expectations
-    const transformedPollData = pollData
-      ? {
-          question: pollData.question,
-          options: pollData.options.map(opt => ({ text: opt.text })),
-        }
-      : undefined;
 
     // Handle image upload to Supabase Storage if needed
     let uploadedImageUrl = '';
@@ -210,7 +193,6 @@ export const CreatePostForm = ({ onPostCreated }: CreatePostFormProps) => {
       post_type: postType,
       ...(postType === 'image' && uploadedImageUrl && { image_url: uploadedImageUrl }),
       ...(postType === 'video' && finalVideoUrl && { video_url: finalVideoUrl }),
-      ...(postType === 'poll' && transformedPollData && { poll_data: transformedPollData }),
       ...(postType === 'link' && linkUrl && { link_url: linkUrl.trim() }),
       ...(postType === 'link' && linkPreviewData && { link_preview_data: linkPreviewData }),
     };
@@ -310,11 +292,10 @@ export const CreatePostForm = ({ onPostCreated }: CreatePostFormProps) => {
           <div className="space-y-2">
             <label className="text-sm font-medium">Tipo de Post</label>
             <Tabs value={postType} onValueChange={value => setPostType(value as typeof postType)}>
-              <TabsList className="grid w-full grid-cols-5">
+              <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="text">Texto</TabsTrigger>
                 <TabsTrigger value="image">Imagem</TabsTrigger>
                 <TabsTrigger value="video">Vídeo</TabsTrigger>
-                <TabsTrigger value="poll">Enquete</TabsTrigger>
                 <TabsTrigger value="link">Link</TabsTrigger>
               </TabsList>
 
@@ -370,13 +351,6 @@ export const CreatePostForm = ({ onPostCreated }: CreatePostFormProps) => {
                 />
               </TabsContent>
 
-              <TabsContent value="poll" className="space-y-4">
-                <PollCreator
-                  value={pollData}
-                  onChange={setPollData}
-                  onRemove={() => setPollData(null)}
-                />
-              </TabsContent>
 
               <TabsContent value="link" className="space-y-4">
                 <div className="space-y-2">
@@ -404,22 +378,18 @@ export const CreatePostForm = ({ onPostCreated }: CreatePostFormProps) => {
             <label className="text-sm font-medium">
               Conteúdo (opcional)
               <Badge variant="secondary" className="ml-2">
-                {postType === 'poll'
-                  ? 'Descrição da enquete'
-                  : postType === 'link'
-                    ? 'Comentário sobre o link'
-                    : 'Sua discussão'}
+                {postType === 'link'
+                  ? 'Comentário sobre o link'
+                  : 'Sua discussão'}
               </Badge>
             </label>
             <TiptapEditor
               content={content}
               onChange={setContent}
               placeholder={
-                postType === 'poll'
-                  ? 'Descreva sua enquete e forneça contexto...'
-                  : postType === 'link'
-                    ? 'Adicione um comentário sobre o link (opcional)...'
-                    : 'Compartilhe seus pensamentos, faça uma pergunta ou inicie uma discussão...'
+                postType === 'link'
+                  ? 'Adicione um comentário sobre o link (opcional)...'
+                  : 'Compartilhe seus pensamentos, faça uma pergunta ou inicie uma discussão...'
               }
             />
           </div>

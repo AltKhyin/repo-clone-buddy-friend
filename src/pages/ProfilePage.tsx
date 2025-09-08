@@ -6,6 +6,7 @@ import { useUserProfileQuery } from '../../packages/hooks/useUserProfileQuery';
 import { ProfileHeader } from '@/components/profile/ProfileHeader';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { StandardLayout } from '@/components/layout/StandardLayout';
+import { Footer } from '@/components/layout/Footer';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle, User } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -55,13 +56,18 @@ const PerfilPageContent = () => {
   }
 
   return (
-    <StandardLayout type="wide" contentClassName="space-y-6">
-      {/* Profile Header */}
-      <ProfileHeader 
-        userProfile={userProfile} 
-        isLoading={profileLoading} 
-      />
-    </StandardLayout>
+    <>
+      <StandardLayout type="wide" contentClassName="space-y-6">
+        {/* Profile Header */}
+        <ProfileHeader 
+          userProfile={userProfile} 
+          isLoading={profileLoading} 
+        />
+      </StandardLayout>
+      
+      {/* Footer */}
+      <Footer />
+    </>
   );
 };
 

@@ -14,8 +14,7 @@ import { PhoneInput } from '@/components/ui/PhoneInput';
 import { useCreatePlanBasedPixPayment, useCreatePlanBasedCreditCardPayment, usePaymentStatus, planBasedPixPaymentSchema, planBasedCreditCardPaymentSchema, type PlanBasedPixPaymentInput, type PlanBasedCreditCardPaymentInput } from '../../hooks/mutations/usePaymentMutations';
 import { EnhancedPlanDisplay } from './EnhancedPlanDisplay';
 import { useContactInfo } from '@/hooks/useContactInfo';
-import { triggerPaymentSuccessWebhook } from '@/services/makeWebhookService';
-import { supabase } from '@/integrations/supabase/client';
+// Note: Webhook integration now handled by PaymentSuccessPage for complete user data flow
 import type { Tables } from '@/integrations/supabase/types';
 
 // =================================================================
@@ -87,7 +86,15 @@ type PaymentFormInput = z.infer<typeof paymentFormSchema>;
 interface TwoStepPaymentFormProps {
   plan: Tables<'PaymentPlans'>; // Required - plan object with promotional config
   customerId?: string; // Optional customer ID
-  onSuccess?: (data: any) => void;
+  onSuccess?: (orderId: string, customerData?: {
+    customerName: string;
+    customerEmail: string;
+    customerDocument?: string;
+    customerPhone?: string;
+    planId: string;
+    amount: number;
+    paymentMethod: string;
+  }) => void;
   onCancel?: () => void;
 }
 
@@ -245,39 +252,10 @@ const TwoStepPaymentForm: React.FC<TwoStepPaymentFormProps> = ({
       };
 
       pixPaymentMutation.mutate(pixPaymentData, {
-        onSuccess: async (data) => {
+        onSuccess: (data) => {
           setPixData(data);
           setShowPixCode(true);
           toast.success('Código PIX gerado com sucesso!');
-          
-          // Trigger webhook for PIX payment creation (PIX is immediately paid)
-          try {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (user?.id) {
-              const paymentData = {
-                id: data.id,
-                amount: displayPlan.amount,
-                method: 'pix',
-                status: 'paid',
-                metadata: {
-                  customerName: values.customerName,
-                  customerEmail: values.customerEmail,
-                  customerDocument: values.customerDocument,
-                  customerPhone: values.customerPhone,
-                  planName: displayPlan.name,
-                  planId: displayPlan.id
-                }
-              };
-
-              // Non-blocking webhook trigger
-              triggerPaymentSuccessWebhook(user.id, paymentData).catch(error => {
-                console.error('PIX webhook trigger failed (non-blocking):', error);
-              });
-            }
-          } catch (error) {
-            console.error('Error preparing PIX webhook data (non-blocking):', error);
-          }
-          
           setIsProcessing(false);
         },
         onError: (error) => {
@@ -338,41 +316,20 @@ const TwoStepPaymentForm: React.FC<TwoStepPaymentFormProps> = ({
         };
 
         creditCardPaymentMutation.mutate(creditCardPaymentData, {
-          onSuccess: async (data) => {
+          onSuccess: (data) => {
             toast.success('Pagamento processado com sucesso!');
             
-            // Trigger webhook for credit card payment success
-            try {
-              const { data: { user } } = await supabase.auth.getUser();
-              if (user?.id) {
-                const paymentData = {
-                  id: data.id,
-                  amount: displayPlan.amount,
-                  method: 'credit_card',
-                  status: 'paid',
-                  pagarme_transaction_id: data.pagarme_transaction_id,
-                  metadata: {
-                    customerName: values.customerName,
-                    customerEmail: values.customerEmail,
-                    customerDocument: values.customerDocument,
-                    customerPhone: values.customerPhone,
-                    planName: displayPlan.name,
-                    planId: displayPlan.id,
-                    cardHolderName: values.cardHolderName,
-                    installments: 1 // Default for this form
-                  }
-                };
-
-                // Non-blocking webhook trigger
-                triggerPaymentSuccessWebhook(user.id, paymentData).catch(error => {
-                  console.error('Credit card webhook trigger failed (non-blocking):', error);
-                });
-              }
-            } catch (error) {
-              console.error('Error preparing credit card webhook data (non-blocking):', error);
-            }
-            
-            onSuccess?.(data.id);
+            // Call parent success handler with order ID and customer data
+            // PaymentSuccessPage will handle account creation and webhook integration
+            onSuccess?.(data.id, {
+              customerName: values.customerName,
+              customerEmail: values.customerEmail,
+              customerDocument: values.customerDocument,
+              customerPhone: values.customerPhone,
+              planId: plan.id,
+              amount: displayPrice,
+              paymentMethod: 'credit_card'
+            });
             setIsProcessing(false);
           },
           onError: (error) => {
@@ -453,7 +410,20 @@ const TwoStepPaymentForm: React.FC<TwoStepPaymentFormProps> = ({
           {/* Payment status monitoring */}
           {paymentStatus?.status === 'paid' && (
             <Button 
-              onClick={() => onSuccess?.(pixData.id)}
+              onClick={() => {
+                // Call parent success handler with order ID and customer data
+                // PaymentSuccessPage will handle account creation and webhook integration
+                const formValues = form.getValues();
+                onSuccess?.(pixData.id, {
+                  customerName: formValues.customerName,
+                  customerEmail: formValues.customerEmail,
+                  customerDocument: formValues.customerDocument,
+                  customerPhone: formValues.customerPhone,
+                  planId: plan.id,
+                  amount: displayPrice,
+                  paymentMethod: 'pix'
+                });
+              }}
               className="w-full h-12 sm:h-14 !bg-green-600 hover:!bg-green-700 !text-white text-base sm:text-lg font-medium touch-manipulation"
             >
               Pagamento confirmado! ✓
