@@ -70,41 +70,45 @@ export const checkEmailAccountExists = async (email: string): Promise<AccountExi
 
     console.log('Checking account existence for email:', email);
     
-    // TRY LOGIN APPROACH: Attempt login with a known invalid password
-    // If we get "Invalid login credentials" vs "Email not confirmed" we can differentiate
+    // IMPROVED APPROACH: Try to sign up with the email to check if it already exists
     try {
-      const { error: loginError } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signUp({
         email: email.toLowerCase(),
-        password: 'definitely_wrong_password_12345!@#'
+        password: 'temp_check_password_123', // Temporary password for checking
       });
 
-      if (loginError) {
-        // Analyze the error message to determine if account exists
-        const errorMsg = loginError.message.toLowerCase();
+      if (error) {
+        const errorMsg = error.message.toLowerCase();
         
-        if (errorMsg.includes('invalid login credentials') || errorMsg.includes('invalid email or password')) {
-          // This typically means email doesn't exist OR wrong password
-          // We can't distinguish, so we'll assume email doesn't exist
-          console.log('Login attempt suggests no account exists for:', email);
-          const result = { exists: false };
-          setCachedResult(email, result);
-          return result;
-        } else if (errorMsg.includes('email not confirmed') || errorMsg.includes('signup required')) {
-          // Account exists but email not confirmed
-          console.log('Account exists but not confirmed for:', email);
+        if (errorMsg.includes('user already registered') || 
+            errorMsg.includes('email already registered') || 
+            errorMsg.includes('already been registered')) {
+          // Account exists
+          console.log('Account exists for email:', email);
           const result = { exists: true };
           setCachedResult(email, result);
           return result;
         } else {
-          // Other errors might indicate account exists
-          console.log('Account likely exists based on error type for:', email);
-          const result = { exists: true };
+          // Other signup errors - assume account doesn't exist
+          console.log('Signup error suggests no account for:', email, errorMsg);
+          const result = { exists: false };
           setCachedResult(email, result);
           return result;
         }
       }
       
-      // No error (shouldn't happen with wrong password)
+      // If signup succeeded, the account didn't exist before, but now it does
+      // We need to immediately delete this temporary account
+      if (data.user) {
+        // Clean up the temporary account
+        try {
+          await supabase.auth.admin.deleteUser(data.user.id);
+        } catch (cleanupError) {
+          console.warn('Could not clean up temporary account:', cleanupError);
+        }
+      }
+      
+      console.log('Account did not exist for email:', email);
       const result = { exists: false };
       setCachedResult(email, result);
       return result;

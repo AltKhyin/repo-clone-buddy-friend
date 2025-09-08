@@ -636,19 +636,8 @@ const TwoStepPaymentForm: React.FC<TwoStepPaymentFormProps> = ({
       return;
     }
 
-    if (authData.password.length < 12) {
-      toast.error('Senha deve ter pelo menos 12 caracteres para maior segurança');
-      return;
-    }
-
-    // Basic password strength validation
-    const hasNumber = /\d/.test(authData.password);
-    const hasUpper = /[A-Z]/.test(authData.password);
-    const hasLower = /[a-z]/.test(authData.password);
-    const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(authData.password);
-
-    if (!hasNumber || !hasUpper || !hasLower || !hasSpecial) {
-      toast.error('Senha deve conter pelo menos: 1 número, 1 letra maiúscula, 1 minúscula e 1 caractere especial');
+    if (authData.password.length < 6) {
+      toast.error('Senha deve ter pelo menos 6 caracteres');
       return;
     }
 
