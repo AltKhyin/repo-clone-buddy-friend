@@ -73,6 +73,16 @@ const createMockPractitioner = (overrides: Partial<Practitioner> = {}): Practiti
   ...overrides
 });
 
+// Mock window.supabase for conflict detection tests
+Object.defineProperty(window, 'supabase', {
+  value: {
+    auth: {
+      getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null })
+    }
+  },
+  writable: true
+});
+
 describe('checkProfileCompleteness', () => {
   it('should return incomplete profile when user is null', () => {
     const result = checkProfileCompleteness(null, null);
@@ -204,8 +214,8 @@ describe('utility functions', () => {
     expect(hasEmailAuth(googleUser)).toBe(false);
   });
 
-  it('should have placeholder conflict detection', () => {
-    const result = detectAuthMethodConflict('test@example.com', 'email');
+  it('should have placeholder conflict detection', async () => {
+    const result = await detectAuthMethodConflict('test@example.com', 'email');
     
     expect(result.hasConflict).toBe(false);
   });

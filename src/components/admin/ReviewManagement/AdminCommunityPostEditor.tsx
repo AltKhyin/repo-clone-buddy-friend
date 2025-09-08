@@ -123,14 +123,10 @@ export const AdminCommunityPostEditor: React.FC<AdminCommunityPostEditorProps> =
     const postData = { ...getPostData(), post_status: 'draft' as const, visibility_level: 'public' as const };
 
     if (existingPost) {
-      await updateMutation.mutateAsync({
-        reviewId: review.id,
-        postData,
-        postId: existingPost.id,
-      });
+      await updateMutation.updatePost(review.id, postData, existingPost.id);
       toast.success('Rascunho salvo com sucesso!');
     } else {
-      await createMutation.mutateAsync(review.id, postData);
+      await createMutation.createPost(review.id, postData);
       toast.success('Rascunho criado com sucesso!');
     }
     refetch();
@@ -145,16 +141,12 @@ export const AdminCommunityPostEditor: React.FC<AdminCommunityPostEditorProps> =
     if (existingPost) {
       // Update first, then publish
       const postData = getPostData();
-      await updateMutation.mutateAsync({
-        reviewId: review.id,
-        postData,
-        postId: existingPost.id,
-      });
-      await publishMutation.mutateAsync(review.id, existingPost.id);
+      await updateMutation.updatePost(review.id, postData, existingPost.id);
+      await publishMutation.publishPost(review.id, existingPost.id);
     } else {
       // Create and publish
       const postData = { ...getPostData(), post_status: 'published' as const, visibility_level: 'public' as const };
-      await createMutation.mutateAsync(review.id, postData);
+      await createMutation.createPost(review.id, postData);
     }
     toast.success('Post publicado com sucesso!');
     refetch();
@@ -173,13 +165,9 @@ export const AdminCommunityPostEditor: React.FC<AdminCommunityPostEditorProps> =
     };
 
     if (existingPost) {
-      await updateMutation.mutateAsync({
-        reviewId: review.id,
-        postData,
-        postId: existingPost.id,
-      });
+      await updateMutation.updatePost(review.id, postData, existingPost.id);
     } else {
-      await createMutation.mutateAsync(review.id, postData);
+      await createMutation.createPost(review.id, postData);
     }
     
     const message = review.review_status === 'published' 
@@ -198,14 +186,10 @@ export const AdminCommunityPostEditor: React.FC<AdminCommunityPostEditorProps> =
     const postData = { ...getPostData(), post_status: 'hidden' as const, visibility_level: 'hidden' as const };
 
     if (existingPost) {
-      await updateMutation.mutateAsync({
-        reviewId: review.id,
-        postData,
-        postId: existingPost.id,
-      });
-      await hideMutation.mutateAsync(review.id, existingPost.id);
+      await updateMutation.updatePost(review.id, postData, existingPost.id);
+      await hideMutation.hidePost(review.id, existingPost.id);
     } else {
-      await createMutation.mutateAsync(review.id, postData);
+      await createMutation.createPost(review.id, postData);
     }
     toast.success('Post oculto criado com sucesso!');
     refetch();
@@ -215,10 +199,10 @@ export const AdminCommunityPostEditor: React.FC<AdminCommunityPostEditorProps> =
     if (!existingPost) return;
 
     if (existingPost.visibility_level === 'hidden') {
-      await unhideMutation.mutateAsync(review.id, existingPost.id);
+      await unhideMutation.unhidePost(review.id, existingPost.id);
       toast.success('Post agora está visível na comunidade!');
     } else {
-      await hideMutation.mutateAsync(review.id, existingPost.id);
+      await hideMutation.hidePost(review.id, existingPost.id);
       toast.success('Post ocultado da comunidade!');
     }
     refetch();

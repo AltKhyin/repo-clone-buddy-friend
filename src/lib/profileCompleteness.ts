@@ -132,16 +132,52 @@ export function hasEmailAuth(user: User): boolean {
 }
 
 /**
- * Simple check if account with this email already exists
+ * Simple check if account with this email already exists with a different auth method
  * Returns the auth method conflict if detected
  */
-export function detectAuthMethodConflict(
+export async function detectAuthMethodConflict(
   email: string,
   currentAuthMethod: 'email' | 'google'
-): { hasConflict: boolean; existingMethod?: 'email' | 'google' } {
-  // This would need to be implemented with a database check in practice
-  // For now, just a placeholder structure
-  return {
-    hasConflict: false
-  };
+): Promise<{ hasConflict: boolean; existingMethod?: 'email' | 'google'; message?: string }> {
+  try {
+    // Check if user exists in auth.users table using Supabase
+    const { data: { user }, error } = await window.supabase.auth.getUser();
+    
+    if (error) {
+      console.error('Error checking auth conflict:', error);
+      return { hasConflict: false };
+    }
+
+    // If no current user, try to detect by attempting sign in
+    // Note: This is a simplified approach for MVP
+    if (!user) {
+      return { hasConflict: false };
+    }
+
+    // Check user's existing auth method
+    const userEmail = user.email?.toLowerCase();
+    const checkEmail = email.toLowerCase();
+    
+    if (userEmail === checkEmail) {
+      // Same user, check if they're trying a different method
+      const existingMethod = isGoogleUser(user) ? 'google' : 'email';
+      
+      if (existingMethod !== currentAuthMethod) {
+        const message = existingMethod === 'google' 
+          ? 'Esta conta foi criada com Google. Use o botão "Entrar com Google" para acessar.'
+          : 'Esta conta foi criada com email e senha. Use o formulário de login para acessar.';
+          
+        return {
+          hasConflict: true,
+          existingMethod,
+          message
+        };
+      }
+    }
+
+    return { hasConflict: false };
+  } catch (error) {
+    console.error('Error in detectAuthMethodConflict:', error);
+    return { hasConflict: false };
+  }
 }

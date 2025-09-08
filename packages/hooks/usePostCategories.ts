@@ -59,16 +59,34 @@ export const usePostCategoriesAdmin = () => {
     queryFn: async (): Promise<PostCategory[]> => {
       console.log('Fetching all post categories for admin...');
 
-      const { data, error } = await supabase.functions.invoke('get-post-categories?admin=true');
+      // Get user session for auth header
+      const { data: { session } } = await supabase.auth.getSession();
+      const authToken = session?.access_token;
 
-      if (error) {
-        console.error('Admin categories fetch error:', error);
-        throw new Error(error.message || 'Failed to fetch admin categories');
+      if (!authToken) {
+        throw new Error('Not authenticated');
       }
+
+      // Use direct fetch with GET method instead of supabase.functions.invoke
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const response = await fetch(`${supabaseUrl}/functions/v1/get-post-categories?admin=true`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch admin categories: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
 
       if (!data?.success) {
         console.error('Admin categories API returned failure:', data);
-        throw new Error('Admin categories API returned failure');
+        throw new Error(data?.error?.message || 'Admin categories API returned failure');
       }
 
       console.log('Admin categories fetched successfully:', data.categories);

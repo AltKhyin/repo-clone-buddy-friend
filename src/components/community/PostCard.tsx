@@ -34,6 +34,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   'tecnologia-saude': 'Tecnologia & Saúde',
   'carreira-medicina': 'Carreira em Medicina',
   'bem-estar-medico': 'Bem-estar Médico',
+  'review': 'Review',
   // Legacy English categories for backward compatibility
   general: 'Geral',
   review_discussion: 'Review',
@@ -288,27 +289,50 @@ export const PostCard = ({ post }: PostCardProps) => {
           </div>
         </div>
 
-        {/* Title - Always Present */}
-        <h3
-          className={cn(
-            'reddit-post-title mb-3 line-clamp-2',
-            getPinnedTextClass(),
-            post.is_pinned && 'pinned-post'
-          )}
-        >
-          {post.title || 'Post sem título'}
-        </h3>
+        {/* Title - Hidden for review posts with banner, shown for others */}
+        {!(post.category === 'review' && post.post_type === 'image' && post.image_url) && (
+          <h3
+            className={cn(
+              'reddit-post-title mb-3 line-clamp-2',
+              getPinnedTextClass(),
+              post.is_pinned && 'pinned-post'
+            )}
+          >
+            {post.title || 'Post sem título'}
+          </h3>
+        )}
 
         {/* Content Preview or Multimedia */}
         {post.post_type === 'image' && post.image_url ? (
-          <div className="mb-3">
-            <img
-              src={post.image_url}
-              alt="Post image"
-              className="w-full aspect-video object-cover rounded border"
-              loading="lazy"
-            />
-          </div>
+          post.category === 'review' ? (
+            // Review banner style with gradient overlay and title
+            <div className="mb-3 relative rounded-lg overflow-hidden border border-border bg-surface-muted">
+              <div className="relative h-32 sm:h-40">
+                <img
+                  src={post.image_url}
+                  alt={post.title}
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                />
+                <div className="absolute inset-0 bg-gradient-to-r from-black/60 to-black/40" />
+                <div className="absolute bottom-3 left-3 right-3">
+                  <h3 className="text-white font-bold text-lg leading-tight line-clamp-2">
+                    {post.title}
+                  </h3>
+                </div>
+              </div>
+            </div>
+          ) : (
+            // Regular image display for non-review posts
+            <div className="mb-3">
+              <img
+                src={post.image_url}
+                alt="Post image"
+                className="w-full aspect-video object-cover rounded border"
+                loading="lazy"
+              />
+            </div>
+          )
         ) : post.post_type === 'video' && post.video_url ? (
           <div className="mb-3">
             {(() => {

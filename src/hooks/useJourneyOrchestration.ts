@@ -22,10 +22,10 @@ export function useJourneyOrchestration() {
     const searchParams = new URLSearchParams(location.search);
     
     return {
-      source: searchParams.get('source') as 'payment' | 'google-auth' | undefined,
-      paymentId: searchParams.get('paymentId') || undefined,
-      token: searchParams.get('token') || undefined,
-      flow: searchParams.get('flow') as 'payment-complete' | 'profile-incomplete' | undefined,
+      source: searchParams.get('source') as 'payment' | 'google-auth' | null,
+      paymentId: searchParams.get('paymentId'),
+      token: searchParams.get('token'),
+      flow: searchParams.get('flow') as 'payment-complete' | 'profile-incomplete' | null,
     };
   };
 

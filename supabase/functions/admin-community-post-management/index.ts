@@ -215,9 +215,10 @@ async function handleCreateCommunityPost(
     'evidencia-cientifica',
     'tecnologia-saude',
     'carreira-medicina',
-    'bem-estar-medico'
+    'bem-estar-medico',
+    'review'
   ];
-  const category = data.category || 'evidencia-cientifica';
+  const category = data.category || 'review';
   if (!validCategories.includes(category)) {
     throw new Error(`Invalid category. Valid categories: ${validCategories.join(', ')}`);
   }
@@ -228,7 +229,7 @@ async function handleCreateCommunityPost(
     content: data.content || '',
     category,
     post_type: data.post_type || 'image', // Default to image for review banners
-    user_id: review.author_id, // Post is authored by the review author
+    author_id: review.author_id, // Post is authored by the review author
     review_id,
     // Admin fields
     post_status: data.post_status || 'draft',
@@ -311,7 +312,6 @@ async function handleUpdateCommunityPost(
   // Prepare update data
   const updateData: any = {
     ...data,
-    updated_at: new Date().toISOString(),
   };
 
   // Validate category if provided
@@ -323,7 +323,8 @@ async function handleUpdateCommunityPost(
       'evidencia-cientifica',
       'tecnologia-saude',
       'carreira-medicina',
-      'bem-estar-medico'
+      'bem-estar-medico',
+      'review'
     ];
     if (!validCategories.includes(data.category)) {
       throw new Error(`Invalid category. Valid categories: ${validCategories.join(', ')}`);
@@ -440,8 +441,6 @@ async function handlePublishCommunityPost(
     .update({
       post_status: 'published',
       visibility_level: 'public',
-      published_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
     })
     .eq('id', communityPostId)
     .select('*')
@@ -488,7 +487,6 @@ async function handleScheduleCommunityPost(
     .update({
       post_status: 'scheduled',
       scheduled_publish_at: data.scheduled_publish_at,
-      updated_at: new Date().toISOString(),
     })
     .eq('id', communityPostId)
     .select('*')
@@ -531,7 +529,6 @@ async function handleHideCommunityPost(
     .update({
       post_status: 'hidden',
       visibility_level: 'hidden',
-      updated_at: new Date().toISOString(),
     })
     .eq('id', communityPostId)
     .select('*')
@@ -574,7 +571,6 @@ async function handleUnhideCommunityPost(
     .update({
       post_status: 'published',
       visibility_level: 'public',
-      updated_at: new Date().toISOString(),
     })
     .eq('id', communityPostId)
     .select('*')

@@ -17,6 +17,8 @@ import LoginPage from '@/pages/LoginPage';
 import RegistrationPage from '@/pages/RegistrationPage';
 import PaymentPage from '@/pages/PaymentPage';
 import EmbeddedPaymentPage from '@/pages/EmbeddedPaymentPage';
+import ProfileCompletionPage from '@/pages/ProfileCompletionPage';
+import PaymentSuccessPage from '@/pages/PaymentSuccessPage';
 import { OptimizedRouteProtection } from '@/components/routes/OptimizedRouteProtection';
 import { AdminDashboard } from '@/pages/AdminDashboard';
 import ContentManagement from '@/pages/ContentManagement';
@@ -50,24 +52,12 @@ const router = createBrowserRouter([
     element: <PaymentPage />,
   },
   {
+    path: '/completar-perfil',
+    element: <ProfileCompletionPage />,
+  },
+  {
     path: '/pagamento-sucesso',
-    element: <div className="min-h-screen flex items-center justify-center bg-green-50">
-      <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
-        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
-          </svg>
-        </div>
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Pagamento Processado!</h1>
-        <p className="text-gray-600 mb-6">Seu pagamento foi processado com sucesso. Você receberá um email de confirmação em breve.</p>
-        <button 
-          onClick={() => window.location.href = '/'} 
-          className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors"
-        >
-          Voltar ao Início
-        </button>
-      </div>
-    </div>,
+    element: <PaymentSuccessPage />,
   },
   {
     path: '/',

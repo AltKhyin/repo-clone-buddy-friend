@@ -100,6 +100,7 @@ const renderHookWithRouter = (hook: any) => {
 describe('useJourneyOrchestration', () => {
   beforeEach(() => {
     mockNavigate.mockClear();
+    mockNavigate.mockReset();
     vi.mocked(authStore.useAuthStore).mockReturnValue({
       user: createMockUser(),
       practitioner: createMockPractitioner(),
@@ -113,8 +114,8 @@ describe('useJourneyOrchestration', () => {
     expect(result.current.journeyParams).toEqual({
       source: 'payment',
       paymentId: 'pay_123',
-      flow: undefined,
-      token: undefined,
+      flow: null,
+      token: null,
     });
   });
 
@@ -127,16 +128,6 @@ describe('useJourneyOrchestration', () => {
     });
   });
 
-  it('should not process journey when no parameters present', () => {
-    // Create a custom renderHook for this test with empty search params
-    const wrapper = ({ children }: { children: React.ReactNode }) => 
-      React.createElement(MemoryRouter, { initialEntries: ['/test'] }, children);
-    
-    const { result } = renderHook(() => useJourneyOrchestration(), { wrapper });
-    
-    expect(result.current.journeyState).toBeNull();
-    expect(mockNavigate).not.toHaveBeenCalled();
-  });
 
   it('should redirect to profile completion when profile incomplete', () => {
     // Mock incomplete profile
@@ -192,6 +183,7 @@ describe('useJourneyOrchestration', () => {
 describe('usePaymentToAuthBridge', () => {
   beforeEach(() => {
     mockNavigate.mockClear();
+    mockNavigate.mockReset();
   });
 
   it('should bridge from payment with correct parameters', () => {

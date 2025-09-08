@@ -152,9 +152,15 @@ const processPaymentEvent = async (webhookEvent: WebhookEvent): Promise<void> =>
       userId = user?.id
     }
 
-    // If we can't find the user, log and continue
+    // If we can't find the user, handle unlinked payments for payment-to-auth flow
     if (!userId) {
       console.warn(`User not found for customer ID: ${customerId}`)
+      
+      // For successful payments without linked users, store payment data for future auth bridging
+      if (webhookEvent.type === 'order.paid' || webhookEvent.type === 'charge.paid') {
+        await handleUnlinkedPayment(eventData, webhookEvent)
+      }
+      
       // Still log the event for debugging
       await logPaymentEvent({
         user_id: 'unknown',
@@ -252,6 +258,48 @@ const processPaymentEvent = async (webhookEvent: WebhookEvent): Promise<void> =>
 // =================================================================
 // Payment Event Handlers
 // =================================================================
+
+/**
+ * Handles payments from users without accounts (payment-to-auth flow)
+ * Stores payment data for later retrieval during auth process
+ */
+const handleUnlinkedPayment = async (eventData: any, webhookEvent: WebhookEvent): Promise<void> => {
+  console.log('Storing unlinked payment data for payment-to-auth flow')
+  
+  try {
+    const customer = eventData.customer || {}
+    const paymentData = {
+      pagarme_payment_id: eventData.id || webhookEvent.id,
+      customer_name: customer.name || '',
+      customer_email: customer.email || '',
+      customer_document: customer.document || '',
+      customer_phone: customer.phones?.[0] || '',
+      amount_paid: eventData.amount || 0,
+      payment_method: eventData.payment_method || 'pix',
+      plan_purchased: eventData.metadata?.plan_name || 'premium',
+      payment_date: new Date().toISOString(),
+      webhook_event_id: webhookEvent.id,
+      status: 'paid_unlinked', // Special status for unlinked payments
+      expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours to link
+      created_at: new Date().toISOString()
+    }
+
+    // Store in a simple payment_bridge table for retrieval during auth
+    const { error } = await supabase
+      .from('payment_bridge')
+      .insert(paymentData)
+
+    if (error) {
+      console.error('Failed to store unlinked payment data:', error)
+      throw error
+    }
+
+    console.log(`Successfully stored unlinked payment data for payment ID: ${paymentData.pagarme_payment_id}`)
+  } catch (error) {
+    console.error('Error in handleUnlinkedPayment:', error)
+    throw error
+  }
+}
 
 const handlePaymentConfirmed = async (userId: string, eventData: any): Promise<void> => {
   console.log(`Payment confirmed for user: ${userId}`)

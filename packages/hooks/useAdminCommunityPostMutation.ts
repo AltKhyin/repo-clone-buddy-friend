@@ -132,7 +132,7 @@ export const useCreateAdminCommunityPost = () => {
   return {
     ...mutation,
     createPost: (reviewId: number, postData: NonNullable<AdminCommunityPostRequest['data']>) => 
-      mutation.mutate({ 
+      mutation.mutateAsync({ 
         operation: 'create', 
         review_id: reviewId, 
         data: postData 
@@ -146,7 +146,7 @@ export const useUpdateAdminCommunityPost = () => {
   return {
     ...mutation,
     updatePost: (reviewId: number, postData: NonNullable<AdminCommunityPostRequest['data']>, postId?: number) => 
-      mutation.mutate({ 
+      mutation.mutateAsync({ 
         operation: 'update', 
         review_id: reviewId, 
         data: postData,
@@ -161,7 +161,7 @@ export const usePublishAdminCommunityPost = () => {
   return {
     ...mutation,
     publishPost: (reviewId: number, postId?: number) => 
-      mutation.mutate({ 
+      mutation.mutateAsync({ 
         operation: 'publish', 
         review_id: reviewId,
         post_id: postId
@@ -190,7 +190,7 @@ export const useHideAdminCommunityPost = () => {
   return {
     ...mutation,
     hidePost: (reviewId: number, postId?: number) => 
-      mutation.mutate({ 
+      mutation.mutateAsync({ 
         operation: 'hide', 
         review_id: reviewId,
         post_id: postId
@@ -204,7 +204,7 @@ export const useUnhideAdminCommunityPost = () => {
   return {
     ...mutation,
     unhidePost: (reviewId: number, postId?: number) => 
-      mutation.mutate({ 
+      mutation.mutateAsync({ 
         operation: 'unhide', 
         review_id: reviewId,
         post_id: postId

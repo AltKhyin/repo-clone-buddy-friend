@@ -34,6 +34,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   'tecnologia-saude': 'Tecnologia & Saúde',
   'carreira-medicina': 'Carreira em Medicina',
   'bem-estar-medico': 'Bem-estar Médico',
+  'review': 'Review',
   // Legacy English categories for backward compatibility
   general: 'Discussão Geral',
   review_discussion: 'Review',
@@ -50,6 +51,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   'tecnologia-saude': 'outline',
   'carreira-medicina': 'secondary',
   'bem-estar-medico': 'outline',
+  'review': 'destructive', // Orange branding for review category
   // Legacy English categories for backward compatibility
   general: 'default',
   review_discussion: 'secondary',
@@ -268,16 +270,18 @@ export const PostDetailCard = ({ post, totalComments }: PostDetailCardProps) => 
           </div>
         </div>
 
-        {/* Title - Always Present */}
-        <h1
-          className={cn(
-            'reddit-post-title text-xl mb-3',
-            getPinnedTextClass(),
-            post.is_pinned && 'pinned-post'
-          )}
-        >
-          {post.title || 'Post sem título'}
-        </h1>
+        {/* Title - Hidden for review posts since it's shown in the banner */}
+        {post.category !== 'review' && (
+          <h1
+            className={cn(
+              'reddit-post-title text-xl mb-3',
+              getPinnedTextClass(),
+              post.is_pinned && 'pinned-post'
+            )}
+          >
+            {post.title || 'Post sem título'}
+          </h1>
+        )}
 
         {/* Full content - Text first, then media */}
         {post.content && (
@@ -295,14 +299,35 @@ export const PostDetailCard = ({ post, totalComments }: PostDetailCardProps) => 
         {/* Media content - Displayed based on post_type */}
 
         {post.post_type === 'image' && post.image_url && (
-          <div className="mb-4">
-            <img
-              src={post.image_url}
-              alt="Post image"
-              className="w-full aspect-video object-cover rounded-lg border"
-              loading="lazy"
-            />
-          </div>
+          post.category === 'review' ? (
+            // Review banner style with gradient overlay and title
+            <div className="mb-4 relative rounded-lg overflow-hidden border border-border bg-surface-muted">
+              <div className="relative h-48 sm:h-56">
+                <img
+                  src={post.image_url}
+                  alt={post.title}
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                />
+                <div className="absolute inset-0 bg-gradient-to-r from-black/60 to-black/40" />
+                <div className="absolute bottom-4 left-4 right-4">
+                  <h1 className="text-white font-bold text-xl sm:text-2xl leading-tight line-clamp-3">
+                    {post.title}
+                  </h1>
+                </div>
+              </div>
+            </div>
+          ) : (
+            // Regular image display for non-review posts
+            <div className="mb-4">
+              <img
+                src={post.image_url}
+                alt="Post image"
+                className="w-full aspect-video object-cover rounded-lg border"
+                loading="lazy"
+              />
+            </div>
+          )
         )}
 
         {post.post_type === 'video' && post.video_url && (
