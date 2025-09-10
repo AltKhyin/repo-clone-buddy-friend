@@ -389,6 +389,106 @@ export function buildSubscriptionRequest(formData: {
   };
 }
 
+// V2.0 Enhanced: Build credit card subscription request with PaymentPlanV2
+export function buildSubscriptionRequestV2(
+  formData: {
+    name: string;
+    email: string;
+    document: string;
+    phone: string;
+    zipCode: string;
+    address: string;
+    city: string;
+    state: string;
+    cardNumber: string;
+    cardName: string;
+    cardExpiry: string;
+    cardCvv: string;
+    installments: number;
+  },
+  paymentPlan: {
+    id: string;
+    name: string;
+    final_amount: number;
+    installment_config: any;
+    duration_days: number;
+    plan_type: string;
+  },
+  installmentOption: {
+    installments: number;
+    totalAmount: number;
+    feeRate: number;
+  }
+): PaymentV2Request {
+  const phoneData = formatPhoneForPagarme(formData.phone);
+  const cardExpiry = parseCardExpiry(formData.cardExpiry);
+  
+  return {
+    code: `evidens-v2-${paymentPlan.id}-${Date.now()}`,
+    customer: {
+      name: formData.name,
+      type: 'individual',
+      email: formData.email,
+      document: formatDocumentForPagarme(formData.document),
+      address: {
+        line_1: formData.address,
+        zip_code: formatZipCodeForPagarme(formData.zipCode),
+        city: formData.city,
+        state: formData.state,
+        country: 'BR',
+      },
+      phones: {
+        mobile_phone: {
+          country_code: '55',
+          area_code: phoneData.area_code,
+          number: phoneData.number,
+        },
+      },
+    },
+    billing_type: 'prepaid',
+    interval: 'month',
+    interval_count: 1,
+    items: [
+      {
+        description: `EVIDENS - ${paymentPlan.name} (${formData.installments}x)`,
+        quantity: 1,
+        code: `evidens-v2-${paymentPlan.plan_type}-${formData.installments}x`,
+        pricing_scheme: {
+          scheme_type: 'unit',
+          price: installmentOption.totalAmount,
+        },
+      },
+    ],
+    payment_method: 'credit_card',
+    card: {
+      number: formData.cardNumber.replace(/\s/g, ''),
+      holder_name: formData.cardName,
+      exp_month: cardExpiry.exp_month,
+      exp_year: cardExpiry.exp_year,
+      cvv: formData.cardCvv,
+      billing_address: {
+        line_1: formData.address,
+        zip_code: formatZipCodeForPagarme(formData.zipCode),
+        city: formData.city,
+        state: formData.state,
+        country: 'BR',
+      },
+    },
+    installments: formData.installments,
+    statement_descriptor: 'EVIDENS',
+    metadata: {
+      platform: 'evidens',
+      plan_type: paymentPlan.plan_type,
+      plan_id: paymentPlan.id,
+      installments: `${formData.installments}x`,
+      base_price: paymentPlan.final_amount,
+      fee_included: installmentOption.totalAmount - paymentPlan.final_amount,
+      fee_rate: `${(installmentOption.feeRate * 100).toFixed(2)}%`,
+      duration_days: paymentPlan.duration_days.toString(),
+    },
+  };
+}
+
 // PIX Payment Types
 export interface PixPaymentRequest {
   code: string;
@@ -443,7 +543,7 @@ export interface PixPaymentResponse {
   created_at?: string;
 }
 
-// Build PIX payment request
+// Build PIX payment request (Legacy)
 export function buildPixPaymentRequest(formData: {
   name: string;
   email: string;
@@ -482,6 +582,61 @@ export function buildPixPaymentRequest(formData: {
         amount: baseAmount,
         pix: {
           expires_in: 3600, // 1 hour
+        },
+      },
+    ],
+  };
+}
+
+// V2.0 Enhanced: Build PIX payment request with PaymentPlanV2
+export function buildPixPaymentRequestV2(
+  formData: {
+    name: string;
+    email: string;
+    document: string;
+    phone: string;
+  },
+  paymentPlan: {
+    id: string;
+    name: string;
+    final_amount: number;
+    pixFinalAmount: number; // Pre-calculated PIX price with discount
+    pix_config: any;
+    duration_days: number;
+  }
+): PixPaymentRequest {
+  const phoneData = formatPhoneForPagarme(formData.phone);
+  const pixAmount = paymentPlan.pixFinalAmount || paymentPlan.final_amount;
+  const expirationMinutes = paymentPlan.pix_config?.expirationMinutes || 60;
+  
+  return {
+    code: `evidens-v2-pix-${paymentPlan.id}-${Date.now()}`,
+    customer: {
+      name: formData.name,
+      type: 'individual',
+      email: formData.email,
+      document: formatDocumentForPagarme(formData.document),
+      phones: {
+        mobile_phone: {
+          country_code: '55',
+          area_code: phoneData.area_code,
+          number: phoneData.number,
+        },
+      },
+    },
+    items: [
+      {
+        description: `EVIDENS - ${paymentPlan.name} (PIX)`,
+        quantity: 1,
+        amount: pixAmount,
+      },
+    ],
+    payments: [
+      {
+        payment_method: 'pix',
+        amount: pixAmount,
+        pix: {
+          expires_in: expirationMinutes * 60, // Convert minutes to seconds
         },
       },
     ],

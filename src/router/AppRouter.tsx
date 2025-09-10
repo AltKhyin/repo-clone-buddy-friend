@@ -32,6 +32,7 @@ import AdminAnalytics from '@/pages/AdminAnalytics';
 import AdminAccessControl from '@/pages/AdminAccessControl';
 import AdminCommunityManagement from '@/pages/AdminCommunityManagement';
 import AdminPaymentManagement from '@/pages/AdminPaymentManagement';
+import AdminPaymentV2Management from '@/pages/AdminPaymentV2Management';
 import EditorPage from '@/pages/EditorPage';
 import ReviewManagementPage from '@/pages/ReviewManagementPage';
 import DebugSidebar from '@/pages/DebugSidebar';
@@ -190,6 +191,10 @@ const router = createBrowserRouter([
       {
         path: '/admin/payment',
         element: <AdminPaymentManagement />,
+      },
+      {
+        path: '/admin/payment-v2',
+        element: <AdminPaymentV2Management />,
       },
       {
         path: '/admin/review/:reviewId',

@@ -119,7 +119,15 @@ export const navigationItems: NavigationItem[] = [
   },
   {
     path: '/admin/payment',
-    label: 'Gestão de Pagamentos',
+    label: 'Gestão de Pagamentos V1',
+    icon: CreditCard,
+    requiredRoles: ['admin', 'editor'],
+    showOnMobile: false,
+    showOnDesktop: true,
+  },
+  {
+    path: '/admin/payment-v2',
+    label: 'Gestão de Pagamentos V2.0',
     icon: CreditCard,
     requiredRoles: ['admin', 'editor'],
     showOnMobile: false,
