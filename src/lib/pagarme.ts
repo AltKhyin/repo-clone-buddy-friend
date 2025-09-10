@@ -20,7 +20,7 @@
 
 const PAGARME_CONFIG = {
   // API Configuration
-  baseURL: 'https://api.pagar.me/core/v5',
+  baseURL: 'https://sdx-api.pagar.me/core/v5',
   apiVersion: import.meta.env.PAGARME_API_VERSION || '2019-09-01',
   
   // Client-side keys (safe for browser)

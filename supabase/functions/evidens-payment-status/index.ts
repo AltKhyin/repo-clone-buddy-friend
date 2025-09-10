@@ -60,7 +60,7 @@ async function fetchPagarmeOrderStatus(
 ): Promise<PagarmeOrder> {
   const authToken = btoa(`${pagarmeSecretKey}:`);
   
-  const response = await fetch(`https://api.pagar.me/core/v5/orders/${orderId}`, {
+  const response = await fetch(`https://sdx-api.pagar.me/core/v5/orders/${orderId}`, {
     method: 'GET',
     headers: {
       'Authorization': `Basic ${authToken}`,

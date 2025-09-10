@@ -46,7 +46,7 @@ async function manageSubscription(
 
   switch (action) {
     case 'cancel':
-      endpoint = `https://api.pagar.me/core/v5/subscriptions/${subscriptionId}`;
+      endpoint = `https://sdx-api.pagar.me/core/v5/subscriptions/${subscriptionId}`;
       method = 'DELETE';
       if (reason) {
         body.cancellation_reason = reason;
@@ -54,12 +54,12 @@ async function manageSubscription(
       break;
       
     case 'reactivate':
-      endpoint = `https://api.pagar.me/core/v5/subscriptions/${subscriptionId}/reactivate`;
+      endpoint = `https://sdx-api.pagar.me/core/v5/subscriptions/${subscriptionId}/reactivate`;
       method = 'POST';
       break;
       
     case 'pause':
-      endpoint = `https://api.pagar.me/core/v5/subscriptions/${subscriptionId}/pause`;
+      endpoint = `https://sdx-api.pagar.me/core/v5/subscriptions/${subscriptionId}/pause`;
       method = 'POST';
       if (reason) {
         body.pause_reason = reason;

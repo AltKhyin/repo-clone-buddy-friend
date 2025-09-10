@@ -155,7 +155,7 @@ async function tokenizeCard(
     expiry: `${cardData.expirationMonth}/${cardData.expirationYear}`
   });
 
-  const response = await fetch(`https://api.pagar.me/core/v5/tokens?appId=${pagarmePublicKey}`, {
+  const response = await fetch(`https://sdx-api.pagar.me/core/v5/tokens?appId=${pagarmePublicKey}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -246,8 +246,8 @@ async function createOrUpdatePagarmeCustomer(
 
   const method = existingCustomerId ? 'PUT' : 'POST';
   const url = existingCustomerId 
-    ? `https://api.pagar.me/core/v5/customers/${existingCustomerId}`
-    : 'https://api.pagar.me/core/v5/customers';
+    ? `https://sdx-api.pagar.me/core/v5/customers/${existingCustomerId}`
+    : 'https://sdx-api.pagar.me/core/v5/customers';
 
   const response = await fetch(url, {
     method,
@@ -336,7 +336,7 @@ async function createPagarmeOrder(
     orderData.payments.push(creditCardPayment);
   }
 
-  const response = await fetch('https://api.pagar.me/core/v5/orders', {
+  const response = await fetch('https://sdx-api.pagar.me/core/v5/orders', {
     method: 'POST',
     headers: {
       'Authorization': `Basic ${authToken}`,

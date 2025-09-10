@@ -18,6 +18,7 @@ import RegistrationPage from '@/pages/RegistrationPage';
 import ForgotPasswordPage from '@/pages/ForgotPasswordPage';
 import ResetPasswordPage from '@/pages/ResetPasswordPage';
 import PaymentPage from '@/pages/PaymentPage';
+import PaymentV2Page from '@/pages/PaymentV2Page';
 import EmbeddedPaymentPage from '@/pages/EmbeddedPaymentPage';
 import ProfileCompletionPage from '@/pages/ProfileCompletionPage';
 import PaymentSuccessPage from '@/pages/PaymentSuccessPage';
@@ -60,6 +61,10 @@ const router = createBrowserRouter([
   {
     path: '/pagamento',
     element: <PaymentPage />,
+  },
+  {
+    path: '/pagamento-v2',
+    element: <PaymentV2Page />,
   },
   {
     path: '/completar-perfil',

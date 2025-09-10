@@ -159,8 +159,8 @@ async function createOrUpdatePagarmeCustomer(
 
   const method = existingCustomerId ? 'PUT' : 'POST';
   const url = existingCustomerId 
-    ? `https://api.pagar.me/core/v5/customers/${existingCustomerId}`
-    : 'https://api.pagar.me/core/v5/customers';
+    ? `https://sdx-api.pagar.me/core/v5/customers/${existingCustomerId}`
+    : 'https://sdx-api.pagar.me/core/v5/customers';
 
   const response = await fetch(url, {
     method,
@@ -269,7 +269,7 @@ async function createPagarmeSubscription(
 
   console.log('Creating admin subscription with data:', JSON.stringify(subscriptionData, null, 2));
 
-  const response = await fetch('https://api.pagar.me/core/v5/subscriptions', {
+  const response = await fetch('https://sdx-api.pagar.me/core/v5/subscriptions', {
     method: 'POST',
     headers: {
       'Authorization': `Basic ${authToken}`,

@@ -250,7 +250,7 @@ serve(async (req: Request) => {
 
     // Call pagar.me API
     console.log('📡 Sending request to pagar.me API...');
-    const pagarmeResponse = await fetch('https://api.pagar.me/core/v5/subscriptions', {
+    const pagarmeResponse = await fetch('https://sdx-api.pagar.me/core/v5/subscriptions', {
       method: 'POST',
       headers: {
         'Authorization': `Basic ${btoa(pagarmeApiKey + ':')}`,

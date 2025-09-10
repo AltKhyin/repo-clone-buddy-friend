@@ -17,7 +17,7 @@ const supabase = createClient(
 )
 
 const PAGARME_SECRET_KEY = Deno.env.get('PAGARME_SECRET_KEY')
-const PAGARME_API_URL = 'https://api.pagar.me/core/v5'
+const PAGARME_API_URL = 'https://sdx-api.pagar.me/core/v5'
 
 // =================================================================
 // Helper Functions

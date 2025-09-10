@@ -193,7 +193,7 @@ serve(async (req: Request) => {
 
       // Create subscription via pagar.me API
       console.log('📡 Creating subscription via pagar.me...');
-      const pagarmeResponse = await fetch('https://api.pagar.me/core/v5/subscriptions', {
+      const pagarmeResponse = await fetch('https://sdx-api.pagar.me/core/v5/subscriptions', {
         method: 'POST',
         headers: {
           'Authorization': `Basic ${btoa(pagarmeApiKey + ':')}`,
@@ -287,7 +287,7 @@ serve(async (req: Request) => {
 
       // Create order via pagar.me API
       console.log('📡 Creating order via pagar.me...');
-      const pagarmeResponse = await fetch('https://api.pagar.me/core/v5/orders', {
+      const pagarmeResponse = await fetch('https://sdx-api.pagar.me/core/v5/orders', {
         method: 'POST',
         headers: {
           'Authorization': `Basic ${btoa(pagarmeApiKey + ':')}`,

@@ -1,7 +1,7 @@
 // Manual test to verify PIX payment logic with improved customer format
 const testManualPix = async () => {
   const PAGARME_SECRET_KEY = 'sk_test_635827fe8bc44b8e9983e3a4ad3b07f9'
-  const PAGARME_API_URL = 'https://api.pagar.me/core/v5'
+  const PAGARME_API_URL = 'https://sdx-api.pagar.me/core/v5'
   
   // Test customer data (same as from user's error logs)
   const customerData = {

@@ -151,7 +151,7 @@ async function tokenizeCard(
   });
 
   // Tokenization uses public key as query parameter, NO Authorization header
-  const response = await fetch(`https://api.pagar.me/core/v5/tokens?appId=${pagarmePublicKey}`, {
+  const response = await fetch(`https://sdx-api.pagar.me/core/v5/tokens?appId=${pagarmePublicKey}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -249,7 +249,7 @@ async function updatePagarmeCustomer(
     }
   };
 
-  const response = await fetch(`https://api.pagar.me/core/v5/customers/${customerId}`, {
+  const response = await fetch(`https://sdx-api.pagar.me/core/v5/customers/${customerId}`, {
     method: 'PUT',
     headers: {
       'Authorization': `Basic ${authToken}`,
@@ -338,7 +338,7 @@ async function createPagarmeCustomer(
     }
   };
 
-  const response = await fetch('https://api.pagar.me/core/v5/customers', {
+  const response = await fetch('https://sdx-api.pagar.me/core/v5/customers', {
     method: 'POST',
     headers: {
       'Authorization': `Basic ${authToken}`,
@@ -422,7 +422,7 @@ async function createPagarmeOrder(
     orderData.payments.push(creditCardPayment);
   }
 
-  const response = await fetch('https://api.pagar.me/core/v5/orders', {
+  const response = await fetch('https://sdx-api.pagar.me/core/v5/orders', {
     method: 'POST',
     headers: {
       'Authorization': `Basic ${authToken}`,
