@@ -25,6 +25,11 @@ export interface PaymentPlanSelectorState {
   paymentMethod: 'credit_card' | 'pix';
 }
 
+export interface PaymentPlanSelectorOptions {
+  initialCustomParameter?: string | null;
+  initialPaymentMethod?: 'credit_card' | 'pix' | null;
+}
+
 export interface UsePaymentPlanSelectorResult {
   // State
   state: PaymentPlanSelectorState;
@@ -74,11 +79,15 @@ export interface UsePaymentPlanSelectorResult {
 // HOOK
 // =============================================================================
 
-export const usePaymentPlanSelector = (): UsePaymentPlanSelectorResult => {
+export const usePaymentPlanSelector = (
+  options: PaymentPlanSelectorOptions = {}
+): UsePaymentPlanSelectorResult => {
+  const { initialCustomParameter, initialPaymentMethod } = options;
+  
   const [state, setState] = useState<PaymentPlanSelectorState>({
-    selectedPlanId: null,
+    selectedPlanId: null, // Will be set based on custom parameter
     selectedInstallments: 1,
-    paymentMethod: 'credit_card'
+    paymentMethod: initialPaymentMethod || 'credit_card'
   });
 
   // Get available plans
@@ -102,15 +111,40 @@ export const usePaymentPlanSelector = (): UsePaymentPlanSelectorResult => {
     autoCalculate: true
   });
 
-  // Auto-select first available plan if none selected
+  // Initialize plan selection based on custom parameter
   useMemo(() => {
+    if (availablePlans.length === 0) return; // Wait for plans to load
+    
+    // If we already have a selected plan, don't override
+    if (state.selectedPlanId && availablePlans.find(p => p.id === state.selectedPlanId)) {
+      return;
+    }
+    
+    // Try to find plan by custom parameter if provided
+    if (initialCustomParameter) {
+      const planByCustomParam = availablePlans.find(plan => {
+        // Check if the plan has a custom_link_parameter that matches
+        const planCustomParam = (plan as any)?.custom_link_parameter;
+        return planCustomParam === initialCustomParameter;
+      });
+      
+      if (planByCustomParam) {
+        setState(prev => ({
+          ...prev,
+          selectedPlanId: planByCustomParam.id
+        }));
+        return;
+      }
+    }
+    
+    // Fallback: auto-select first available plan if none found/specified
     if (!state.selectedPlanId && availablePlans.length > 0) {
       setState(prev => ({
         ...prev,
         selectedPlanId: availablePlans[0].id
       }));
     }
-  }, [availablePlans, state.selectedPlanId]);
+  }, [availablePlans, state.selectedPlanId, initialCustomParameter]);
 
   // Actions
   const selectPlan = (planId: string) => {

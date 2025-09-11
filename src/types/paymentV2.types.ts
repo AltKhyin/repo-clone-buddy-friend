@@ -83,6 +83,56 @@ export interface CreditCardConfigV2 {
   antifraudEnabled?: boolean;
 }
 
+/**
+ * Visual customization configuration for promotional features (V1 equivalent)
+ */
+export interface PromotionalConfigV2 {
+  // Basic promotional settings
+  isActive: boolean;
+  promotionValue: number; // Discount amount (percentage or fixed)
+  displayAsPercentage: boolean; // Show as percentage or fixed amount
+  promotionalName: string; // Custom promotional name
+  customMessage: string; // Custom promotional message
+  
+  // Feature visibility toggles
+  showDiscountAmount: boolean;
+  showSavingsAmount: boolean;
+  showCountdownTimer: boolean;
+  
+  // Timer configuration
+  expiresAt: string; // ISO date string
+  
+  // Visual theming - Basic colors
+  titleColor: string; // Plan title color
+  descriptionColor: string; // Description text color
+  borderColor: string; // Border color
+  backgroundColor: string; // Background color
+  
+  // Visual theming - Promotional elements
+  timerColor: string; // Countdown timer color
+  discountTagBackgroundColor: string; // Discount badge background
+  discountTagTextColor: string; // Discount badge text
+  savingsColor: string; // Savings amount text color
+}
+
+/**
+ * Display configuration for plan presentation (V1 equivalent)
+ */
+export interface DisplayConfigV2 {
+  // Content visibility
+  showCustomName: boolean;
+  showCustomDescription: boolean;
+  
+  // Promotional elements visibility
+  showDiscountAmount: boolean;
+  showSavingsAmount: boolean;
+  showCountdownTimer: boolean;
+  
+  // Custom content
+  customName?: string;
+  customDescription?: string;
+}
+
 // =============================================================================
 // PRICING CALCULATION TYPES
 // =============================================================================
@@ -157,9 +207,16 @@ export interface PaymentPlanV2FormData {
   pixConfig: PixConfigV2;
   creditCardConfig: CreditCardConfigV2;
   
+  // Visual customization configurations
+  promotionalConfig: PromotionalConfigV2;
+  displayConfig: DisplayConfigV2;
+  
   // Plan settings
   isActive?: boolean;
   slug?: string;
+  
+  // Custom URL parameter for direct linking
+  customLinkParameter?: string;
 }
 
 /**
@@ -440,6 +497,8 @@ export type {
   DiscountConfigV2,
   PixConfigV2,
   CreditCardConfigV2,
+  PromotionalConfigV2,
+  DisplayConfigV2,
   
   // Pricing types
   PricingCalculationV2,

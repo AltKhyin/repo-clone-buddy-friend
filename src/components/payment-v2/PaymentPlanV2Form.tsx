@@ -22,11 +22,15 @@ import {
   Zap
 } from 'lucide-react';
 import { usePaymentPricingV2 } from '@/hooks/usePaymentPricingV2';
+import { PromotionalConfigurationSectionV2 } from './PromotionalConfigurationSectionV2';
+import { EnhancedPlanDisplayV2 } from './EnhancedPlanDisplayV2';
 import type { 
   PaymentPlanV2FormData, 
   PaymentPlanV2Row, 
   DiscountConfigV2,
-  InstallmentConfigV2 
+  InstallmentConfigV2,
+  PromotionalConfigV2,
+  DisplayConfigV2
 } from '@/types/paymentV2.types';
 
 // =============================================================================
@@ -72,7 +76,32 @@ const getDefaultFormData = (): PaymentPlanV2FormData => ({
   creditCardConfig: {
     enabled: true,
     requireCvv: true
-  }
+  },
+  promotionalConfig: {
+    isActive: false,
+    promotionValue: 0,
+    displayAsPercentage: false,
+    showDiscountAmount: true,
+    showSavingsAmount: true,
+    showCountdownTimer: false,
+    titleColor: '#111827',
+    descriptionColor: '#6B7280',
+    borderColor: '#E5E7EB',
+    timerColor: '#374151',
+    discountTagBackgroundColor: '#111827',
+    discountTagTextColor: '#FFFFFF',
+    savingsColor: '#059669'
+  },
+  displayConfig: {
+    customName: '',
+    customDescription: '',
+    showCustomName: false,
+    showCustomDescription: false,
+    showDiscountAmount: true,
+    showSavingsAmount: true,
+    showCountdownTimer: false
+  },
+  customLinkParameter: ''
 });
 
 // =============================================================================
@@ -97,7 +126,10 @@ export default function PaymentPlanV2Form({
         installmentConfig: (initialData.installment_config as InstallmentConfigV2) || getDefaultFormData().installmentConfig,
         discountConfig: (initialData.discount_config as DiscountConfigV2) || getDefaultFormData().discountConfig,
         pixConfig: (initialData.pix_config as any) || getDefaultFormData().pixConfig,
-        creditCardConfig: (initialData.credit_card_config as any) || getDefaultFormData().creditCardConfig
+        creditCardConfig: (initialData.credit_card_config as any) || getDefaultFormData().creditCardConfig,
+        promotionalConfig: (initialData.promotional_config as PromotionalConfigV2) || getDefaultFormData().promotionalConfig,
+        displayConfig: (initialData.display_config as DisplayConfigV2) || getDefaultFormData().displayConfig,
+        customLinkParameter: (initialData as any)?.custom_link_parameter || ''
       };
     }
     return getDefaultFormData();
@@ -116,6 +148,8 @@ export default function PaymentPlanV2Form({
     discount_config: formData.discountConfig,
     pix_config: formData.pixConfig,
     credit_card_config: formData.creditCardConfig,
+    promotional_config: formData.promotionalConfig,
+    display_config: formData.displayConfig,
     is_active: true,
     slug: null,
     usage_count: 0,
@@ -174,6 +208,28 @@ export default function PaymentPlanV2Form({
       ...prev,
       pixConfig: {
         ...prev.pixConfig,
+        ...updates
+      }
+    }));
+  };
+
+  // Update promotional configuration
+  const updatePromotionalConfig = (updates: Partial<PromotionalConfigV2>) => {
+    setFormData(prev => ({
+      ...prev,
+      promotionalConfig: {
+        ...prev.promotionalConfig,
+        ...updates
+      }
+    }));
+  };
+
+  // Update display configuration
+  const updateDisplayConfig = (updates: Partial<DisplayConfigV2>) => {
+    setFormData(prev => ({
+      ...prev,
+      displayConfig: {
+        ...prev.displayConfig,
         ...updates
       }
     }));
@@ -283,6 +339,24 @@ export default function PaymentPlanV2Form({
                   placeholder="Descrição opcional do plano..."
                   rows={3}
                 />
+              </div>
+              
+              {/* Custom Link Parameter */}
+              <div>
+                <Label htmlFor="customLinkParameter">Parâmetro Personalizado do Link</Label>
+                <Input
+                  id="customLinkParameter"
+                  value={formData.customLinkParameter}
+                  onChange={(e) => setFormData(prev => ({ ...prev, customLinkParameter: e.target.value }))}
+                  placeholder="premium-20-off"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  {formData.customLinkParameter ? (
+                    <>Link gerado: <code className="bg-gray-100 px-1 rounded text-xs">/pagamento-v2?plano={formData.customLinkParameter}</code></>
+                  ) : (
+                    'Digite um valor personalizado como "premium-20-off" para criar links diretos'
+                  )}
+                </p>
               </div>
             </CardContent>
           </Card>
@@ -428,10 +502,41 @@ export default function PaymentPlanV2Form({
               )}
             </CardContent>
           </Card>
+
+          {/* Visual Customization Section */}
+          <PromotionalConfigurationSectionV2 
+            promotionalConfig={formData.promotionalConfig}
+            displayConfig={formData.displayConfig}
+            discountConfig={formData.discountConfig}
+            onPromotionalConfigChange={updatePromotionalConfig}
+            onDisplayConfigChange={updateDisplayConfig}
+          />
         </div>
 
         {/* Preview Section */}
         <div className="space-y-6">
+          
+          {/* Plan Preview */}
+          <Card className="border-purple-200">
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M15 12C15 13.6569 13.6569 15 12 15C10.3431 15 9 13.6569 9 12C9 10.3431 10.3431 9 12 9C13.6569 9 15 10.3431 15 12Z" stroke="currentColor" strokeWidth="2"/>
+                  <path d="M2.458 12C3.732 7.943 7.523 5 12 5C16.478 5 20.268 7.943 21.542 12C20.268 16.057 16.478 19 12 19C7.523 19 3.732 16.057 2.458 12Z" stroke="currentColor" strokeWidth="2"/>
+                </svg>
+                Prévia Visual do Plano
+              </CardTitle>
+              <CardDescription>
+                Como o plano aparecerá para os usuários com as customizações aplicadas
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <EnhancedPlanDisplayV2 
+                plan={previewPlan}
+                className="max-w-md"
+              />
+            </CardContent>
+          </Card>
           
           {/* Validation Errors */}
           {!isValid && validationErrors.length > 0 && (

@@ -109,8 +109,31 @@ const transformFormDataToInsert = (data: PaymentPlanV2FormData): PaymentPlanV2In
     pix_config: data.pixConfig,
     credit_card_config: data.creditCardConfig,
     is_active: data.isActive ?? true,
-    slug: data.slug || generateSlug(data.name)
+    slug: data.slug || generateSlug(data.name),
+    custom_link_parameter: data.customLinkParameter || null
   };
+};
+
+const transformFormDataToUpdate = (data: Partial<PaymentPlanV2FormData>): any => {
+  const updateData: any = {};
+  
+  // Map form fields to database column names
+  if (data.name !== undefined) updateData.name = data.name;
+  if (data.description !== undefined) updateData.description = data.description || null;
+  if (data.baseAmount !== undefined) updateData.base_amount = data.baseAmount;
+  if (data.planType !== undefined) updateData.plan_type = data.planType;
+  if (data.durationDays !== undefined) updateData.duration_days = data.durationDays;
+  if (data.installmentConfig !== undefined) updateData.installment_config = data.installmentConfig;
+  if (data.discountConfig !== undefined) updateData.discount_config = data.discountConfig;
+  if (data.pixConfig !== undefined) updateData.pix_config = data.pixConfig;
+  if (data.creditCardConfig !== undefined) updateData.credit_card_config = data.creditCardConfig;
+  if (data.isActive !== undefined) updateData.is_active = data.isActive;
+  if (data.customLinkParameter !== undefined) updateData.custom_link_parameter = data.customLinkParameter || null;
+  
+  // Always update timestamp
+  updateData.updated_at = new Date().toISOString();
+  
+  return updateData;
 };
 
 // =============================================================================
@@ -214,9 +237,10 @@ export const usePaymentPlansV2 = (): UsePaymentPlansV2Result => {
     }): Promise<PaymentPlanV2Row> => {
       console.log('🔄 Updating V2 payment plan:', id, updates);
       
-      // If updating core pricing fields, recalculate final_amount
-      let updateData: any = { ...updates, updated_at: new Date().toISOString() };
+      // Transform form data to database column names
+      let updateData = transformFormDataToUpdate(updates);
       
+      // If updating core pricing fields, recalculate final_amount
       if (updates.baseAmount !== undefined || updates.discountConfig !== undefined) {
         const baseAmount = updates.baseAmount ?? 
           plans.find(p => p.id === id)?.base_amount ?? 0;
