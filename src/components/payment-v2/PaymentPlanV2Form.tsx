@@ -9,28 +9,20 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
   CreditCard, 
   Percent, 
   Calculator, 
   AlertTriangle, 
-  CheckCircle,
-  TrendingDown,
-  Clock,
-  Zap
+  CheckCircle
 } from 'lucide-react';
 import { usePaymentPricingV2 } from '@/hooks/usePaymentPricingV2';
-import { PromotionalConfigurationSectionV2 } from './PromotionalConfigurationSectionV2';
-import { EnhancedPlanDisplayV2 } from './EnhancedPlanDisplayV2';
 import type { 
   PaymentPlanV2FormData, 
   PaymentPlanV2Row, 
   DiscountConfigV2,
-  InstallmentConfigV2,
-  PromotionalConfigV2,
-  DisplayConfigV2
+  InstallmentConfigV2
 } from '@/types/paymentV2.types';
 
 // =============================================================================
@@ -49,58 +41,150 @@ interface PaymentPlanV2FormProps {
 // DEFAULT VALUES
 // =============================================================================
 
+// =============================================================================
+// BI-DIRECTIONAL CALCULATION FUNCTIONS
+// =============================================================================
+
+// Linear fee calculation helper - 3-month fee becomes the base reference
+const generateLinearInstallmentOptions = (baseFeeRate: number = 0.06) => {
+  const options = [];
+  for (let i = 1; i <= 12; i++) {
+    let feeRate = 0;
+    if (i === 1) {
+      feeRate = 0; // 1x always 0% fee
+    } else if (i <= 3) {
+      // Linear interpolation from 0% (1x) to baseFeeRate (3x)
+      feeRate = baseFeeRate * (i - 1) / 2;
+    } else {
+      // Linear progression: 6x = baseFee * 2, 12x = baseFee * 4
+      feeRate = baseFeeRate * (i - 1) / 2;
+    }
+    options.push({ installments: i, feeRate });
+  }
+  return options;
+};
+
+// Calculate linear fee for any month based on 3-month reference
+const calculateLinearFeeRate = (months: number, baseFeeFor3Months: number): number => {
+  if (months === 1) return 0; // 1x always free
+  return baseFeeFor3Months * (months - 1) / 2;
+};
+
+// Reverse calculate base fee rate from any month's fee
+const calculateBaseFeeFromMonth = (months: number, monthFeeRate: number): number => {
+  if (months === 1) return 0.06; // Default if trying to reverse from 1x
+  return (monthFeeRate * 2) / (months - 1);
+};
+
+// Calculate all installment options from base fee rate
+const recalculateAllInstallments = (baseFeeRate: number) => {
+  return generateLinearInstallmentOptions(baseFeeRate);
+};
+
+// Reverse calculate base fee from target installment value
+const calculateBaseFeeFromTargetValue = (
+  months: number, 
+  targetValueInCents: number, 
+  baseAmount: number
+): number => {
+  if (months === 1) {
+    // For 1x, target should equal baseAmount (0% fee)
+    return 0.06; // Return default base fee
+  }
+  
+  // target = (baseAmount * (1 + feeRate)) / months
+  // feeRate = (target * months / baseAmount) - 1
+  const requiredFeeRate = Math.max(0, (targetValueInCents * months / baseAmount) - 1);
+  
+  // Convert this specific month's fee rate back to base 3-month fee
+  return calculateBaseFeeFromMonth(months, requiredFeeRate);
+};
+
+// Calculate installment value from fee rate
+const calculateInstallmentValue = (baseAmount: number, months: number, feeRate: number): number => {
+  const totalWithFee = baseAmount * (1 + feeRate);
+  return Math.round(totalWithFee / months);
+};
+
+// Calculate total value from fee rate
+const calculateTotalValue = (baseAmount: number, feeRate: number): number => {
+  return Math.round(baseAmount * (1 + feeRate));
+};
+
+// Currency formatting utilities - cents-first input mask
+const formatCurrencyInputCentsFirst = (value: string): string => {
+  // Remove all non-numeric characters
+  const digits = value.replace(/\D/g, '');
+  
+  // If empty, return empty
+  if (!digits) return '';
+  
+  // Convert to number and format as cents-first
+  const numericValue = parseInt(digits, 10);
+  
+  // Format as decimal with 2 decimal places, then use Brazilian comma
+  const formatted = (numericValue / 100).toFixed(2);
+  return formatted.replace('.', ',');
+};
+
+// Regular currency formatting for non-table inputs
+const formatCurrencyInput = (value: string): string => {
+  // Remove non-numeric characters except comma and dot
+  const cleaned = value.replace(/[^\d,\.]/g, '');
+  
+  // Allow natural typing - don't auto-format until blur
+  // Just clean unwanted characters and ensure proper decimal separator
+  if (cleaned.includes('.')) {
+    return cleaned.replace('.', ',');
+  }
+  
+  return cleaned;
+};
+
+const parseCurrencyInput = (value: string): number => {
+  // Convert Brazilian format (comma as decimal) to cents
+  const normalized = value.replace(',', '.');
+  const parsed = parseFloat(normalized) || 0;
+  return Math.round(parsed * 100); // Convert to cents
+};
+
+const formatCurrencyDisplay = (amountInCents: number): string => {
+  // Format amount from cents to Brazilian decimal format (x,xx)
+  return (amountInCents / 100).toFixed(2).replace('.', ',');
+};
+
 const getDefaultFormData = (): PaymentPlanV2FormData => ({
   name: '',
   description: '',
-  planType: 'premium',
+  planType: 'premium', // Always premium, but will be removed from UI
   durationDays: 365,
   baseAmount: 1990, // R$ 19.90
   installmentConfig: {
-    enabled: true,
-    options: [
-      { installments: 1, feeRate: 0.0299 },
-      { installments: 3, feeRate: 0.0699 },
-      { installments: 6, feeRate: 0.0999 },
-      { installments: 12, feeRate: 0.1499 }
-    ]
+    enabled: true, // Always enabled
+    options: generateLinearInstallmentOptions(0.06) // 6% base fee for 3x
   },
   discountConfig: {
     enabled: false,
     type: 'percentage'
   },
+  // PIX is always enabled and free - no configuration needed
   pixConfig: {
     enabled: true,
     expirationMinutes: 60,
-    baseFeeRate: 0.014, // 1.4% PIX processing fee
-    discountPercentage: 0.05 // 5% PIX discount
+    baseFeeRate: 0, // PIX is always free
+    discountPercentage: 0 // No PIX discount needed since it's free
   },
   creditCardConfig: {
     enabled: true,
     requireCvv: true
   },
+  // Minimal promotional config - no customization needed
   promotionalConfig: {
-    isActive: false,
-    promotionValue: 0,
-    displayAsPercentage: false,
-    showDiscountAmount: true,
-    showSavingsAmount: true,
-    showCountdownTimer: false,
-    titleColor: '#111827',
-    descriptionColor: '#6B7280',
-    borderColor: '#E5E7EB',
-    timerColor: '#374151',
-    discountTagBackgroundColor: '#111827',
-    discountTagTextColor: '#FFFFFF',
-    savingsColor: '#059669'
+    isActive: false
   },
   displayConfig: {
-    customName: '',
-    customDescription: '',
-    showCustomName: false,
-    showCustomDescription: false,
     showDiscountAmount: true,
-    showSavingsAmount: true,
-    showCountdownTimer: false
+    showSavingsAmount: true
   },
   customLinkParameter: ''
 });
@@ -128,13 +212,16 @@ export default function PaymentPlanV2Form({
         discountConfig: (initialData.discount_config as DiscountConfigV2) || getDefaultFormData().discountConfig,
         pixConfig: (initialData.pix_config as any) || getDefaultFormData().pixConfig,
         creditCardConfig: (initialData.credit_card_config as any) || getDefaultFormData().creditCardConfig,
-        promotionalConfig: (initialData.promotional_config as PromotionalConfigV2) || getDefaultFormData().promotionalConfig,
-        displayConfig: (initialData.display_config as DisplayConfigV2) || getDefaultFormData().displayConfig,
+        promotionalConfig: getDefaultFormData().promotionalConfig,
+        displayConfig: getDefaultFormData().displayConfig,
         customLinkParameter: (initialData as any)?.custom_link_parameter || ''
       };
     }
     return getDefaultFormData();
   });
+
+  // Local state for table input values (to prevent read-only warning)
+  const [inputValues, setInputValues] = useState<{[key: string]: string}>({});
 
   // Create a mock plan for pricing preview
   const previewPlan: PaymentPlanV2Row = useMemo(() => ({
@@ -214,27 +301,7 @@ export default function PaymentPlanV2Form({
     }));
   };
 
-  // Update promotional configuration
-  const updatePromotionalConfig = (updates: Partial<PromotionalConfigV2>) => {
-    setFormData(prev => ({
-      ...prev,
-      promotionalConfig: {
-        ...prev.promotionalConfig,
-        ...updates
-      }
-    }));
-  };
-
-  // Update display configuration
-  const updateDisplayConfig = (updates: Partial<DisplayConfigV2>) => {
-    setFormData(prev => ({
-      ...prev,
-      displayConfig: {
-        ...prev.displayConfig,
-        ...updates
-      }
-    }));
-  };
+  // Promotional and display configs are now minimal and don't need update functions
 
   return (
     <div className="space-y-6">
@@ -251,66 +318,61 @@ export default function PaymentPlanV2Form({
         </CardHeader>
       </Card>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Form Section */}
-        <div className="space-y-6">
+      {/* Form Section */}
+      <div className="space-y-6">
           
-          {/* Basic Information */}
+          {/* Basic Information - Simplified */}
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Informações Básicas</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="name">Nome do Plano *</Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                    placeholder="Ex: Premium V2 Anual"
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <Label htmlFor="planType">Tipo do Plano</Label>
-                  <Select 
-                    value={formData.planType} 
-                    onValueChange={(value: 'premium' | 'basic' | 'custom') => 
-                      setFormData(prev => ({ ...prev, planType: value }))
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="premium">Premium</SelectItem>
-                      <SelectItem value="basic">Básico</SelectItem>
-                      <SelectItem value="custom">Personalizado</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+              <div>
+                <Label htmlFor="name">Nome do Plano *</Label>
+                <Input
+                  id="name"
+                  value={formData.name}
+                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                  placeholder="Ex: Premium Anual"
+                  required
+                />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="baseAmount">Valor Base (centavos) *</Label>
+                  <Label htmlFor="baseAmount">Preço (R$) *</Label>
                   <Input
                     id="baseAmount"
-                    type="number"
-                    value={formData.baseAmount}
-                    onChange={(e) => setFormData(prev => ({ 
-                      ...prev, 
-                      baseAmount: parseInt(e.target.value) || 0 
-                    }))}
-                    placeholder="1990"
+                    type="text"
+                    value={inputValues['baseAmount'] ?? formatCurrencyDisplay(formData.baseAmount)}
+                    onChange={(e) => {
+                      // Allow natural typing without aggressive formatting
+                      const cleaned = formatCurrencyInput(e.target.value);
+                      setInputValues(prev => ({ ...prev, baseAmount: cleaned }));
+                    }}
+                    onBlur={(e) => {
+                      const amountInCents = parseCurrencyInput(e.target.value);
+                      setFormData(prev => ({ ...prev, baseAmount: amountInCents }));
+                      setInputValues(prev => {
+                        const { baseAmount: removed, ...rest } = prev;
+                        return rest;
+                      });
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        const amountInCents = parseCurrencyInput(e.currentTarget.value);
+                        setFormData(prev => ({ ...prev, baseAmount: amountInCents }));
+                        setInputValues(prev => {
+                          const { baseAmount: removed, ...rest } = prev;
+                          return rest;
+                        });
+                        e.currentTarget.blur();
+                      }
+                    }}
+                    placeholder="19,90"
                     required
-                    min="100"
+                    step="0.01"
                   />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Valor atual: {formatCurrency(formData.baseAmount)}
-                  </p>
                 </div>
                 
                 <div>
@@ -342,476 +404,420 @@ export default function PaymentPlanV2Form({
                 />
               </div>
               
-              {/* Custom Link Parameter */}
               <div>
-                <Label htmlFor="customLinkParameter">Parâmetro Personalizado do Link</Label>
+                <Label htmlFor="customLinkParameter">Parâmetro do Link</Label>
                 <Input
                   id="customLinkParameter"
                   value={formData.customLinkParameter}
                   onChange={(e) => setFormData(prev => ({ ...prev, customLinkParameter: e.target.value }))}
-                  placeholder="premium-20-off"
+                  placeholder="premium-anual"
                 />
                 <p className="text-xs text-muted-foreground mt-1">
                   {formData.customLinkParameter ? (
-                    <>Link gerado: <code className="bg-gray-100 px-1 rounded text-xs">/pagamento-v2?plano={formData.customLinkParameter}</code></>
+                    <>Link: <code className="bg-gray-100 px-1 rounded text-xs">/pagamento-v2?plano={formData.customLinkParameter}</code></>
                   ) : (
-                    'Digite um valor personalizado como "premium-20-off" para criar links diretos'
+                    'Parâmetro para links diretos (ex: "premium-anual")'
                   )}
                 </p>
               </div>
             </CardContent>
           </Card>
 
-          {/* Discount Configuration */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Percent className="h-4 w-4" />
-                Configuração de Desconto
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Habilitar Desconto</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Aplicar desconto antes do envio para Pagar.me
-                  </p>
-                </div>
-                <Switch
-                  checked={formData.discountConfig.enabled}
-                  onCheckedChange={(enabled) => updateDiscountConfig({ enabled })}
-                />
-              </div>
-
-              {formData.discountConfig.enabled && (
-                <div className="space-y-4">
-                  <div>
-                    <Label>Tipo de Desconto</Label>
-                    <Select 
-                      value={formData.discountConfig.type} 
-                      onValueChange={(value: 'percentage' | 'fixed_amount') => 
-                        updateDiscountConfig({ type: value })
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="percentage">Percentual</SelectItem>
-                        <SelectItem value="fixed_amount">Valor Fixo</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {formData.discountConfig.type === 'percentage' && (
-                    <div>
-                      <Label htmlFor="discountPercentage">Percentual de Desconto (%)</Label>
-                      <Input
-                        id="discountPercentage"
-                        type="number"
-                        value={(formData.discountConfig.percentage || 0) * 100}
-                        onChange={(e) => updateDiscountConfig({ 
-                          percentage: (parseFloat(e.target.value) || 0) / 100 
-                        })}
-                        placeholder="20"
-                        min="0"
-                        max="100"
-                        step="0.1"
-                      />
-                    </div>
-                  )}
-
-                  {formData.discountConfig.type === 'fixed_amount' && (
-                    <div>
-                      <Label htmlFor="discountAmount">Valor do Desconto (centavos)</Label>
-                      <Input
-                        id="discountAmount"
-                        type="number"
-                        value={formData.discountConfig.fixedAmount || 0}
-                        onChange={(e) => updateDiscountConfig({ 
-                          fixedAmount: parseInt(e.target.value) || 0 
-                        })}
-                        placeholder="200"
-                        min="0"
-                      />
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Valor do desconto: {formatCurrency(formData.discountConfig.fixedAmount || 0)}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* PIX Configuration */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Zap className="h-4 w-4" />
-                Configuração PIX
-              </CardTitle>
-              <CardDescription>
-                Configure taxas e descontos específicos para pagamento PIX
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Habilitar PIX</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Pagamento instantâneo via PIX
-                  </p>
-                </div>
-                <Switch
-                  checked={formData.pixConfig.enabled}
-                  onCheckedChange={(enabled) => updatePixConfig({ enabled })}
-                />
-              </div>
-
-              {formData.pixConfig.enabled && (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="pixBaseFee">Taxa Base PIX (%)</Label>
-                      <Input
-                        id="pixBaseFee"
-                        type="number"
-                        value={((formData.pixConfig.baseFeeRate || 0.014) * 100).toFixed(2)}
-                        onChange={(e) => updatePixConfig({ 
-                          baseFeeRate: (parseFloat(e.target.value) || 0) / 100 
-                        })}
-                        placeholder="1.40"
-                        min="0"
-                        max="10"
-                        step="0.01"
-                        className="text-center"
-                      />
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Taxa de processamento base do PIX (padrão: 1.4%)
-                      </p>
-                    </div>
-                    
-                    <div>
-                      <Label htmlFor="pixDiscount">Desconto PIX (%)</Label>
-                      <Input
-                        id="pixDiscount"
-                        type="number"
-                        value={((formData.pixConfig.discountPercentage || 0) * 100).toFixed(1)}
-                        onChange={(e) => updatePixConfig({ 
-                          discountPercentage: (parseFloat(e.target.value) || 0) / 100 
-                        })}
-                        placeholder="5.0"
-                        min="0"
-                        max="15"
-                        step="0.1"
-                        className="text-center"
-                      />
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Desconto adicional para incentivar pagamento PIX
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="pixTargetValue">Valor alvo PIX (R$)</Label>
-                      <Input
-                        id="pixTargetValue"
-                        type="number"
-                        placeholder="18.50"
-                        onChange={(e) => {
-                          const targetValue = parseFloat(e.target.value) || 0;
-                          if (targetValue > 0) {
-                            // Reverse calculation for PIX
-                            // target = baseAmount * (1 + baseFeeRate) * (1 - discountPercentage)
-                            // Assuming we want to adjust discountPercentage to reach target
-                            const targetCents = Math.round(targetValue * 100);
-                            const baseAmount = pricing?.baseAmount || formData.baseAmount;
-                            const baseFeeRate = formData.pixConfig.baseFeeRate || 0.014;
-                            const amountWithBaseFee = baseAmount * (1 + baseFeeRate);
-                            
-                            // discountPercentage = 1 - (target / amountWithBaseFee)
-                            const newDiscountPercentage = Math.max(0, Math.min(0.15, 1 - (targetCents / amountWithBaseFee)));
-                            
-                            updatePixConfig({ 
-                              discountPercentage: newDiscountPercentage
-                            });
-                          }
-                        }}
-                        step="0.01"
-                        className="text-center"
-                      />
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Digite o valor final desejado para PIX
-                      </p>
-                    </div>
-
-                    <div>
-                      <Label htmlFor="pixExpiration">Expiração (minutos)</Label>
-                      <Input
-                        id="pixExpiration"
-                        type="number"
-                        value={formData.pixConfig.expirationMinutes || 60}
-                        onChange={(e) => updatePixConfig({ 
-                          expirationMinutes: parseInt(e.target.value) || 60 
-                        })}
-                        placeholder="60"
-                        min="5"
-                        max="1440"
-                        className="text-center"
-                      />
-                    </div>
-                  </div>
-
-                  {/* PIX Result Preview */}
-                  {pricing && (
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-green-800">PIX Final:</span>
-                        <span className="text-lg font-bold text-green-600">
-                          {formatCurrency(pricing.pixFinalAmount)}
-                        </span>
-                      </div>
-                      <div className="text-xs text-green-600 mt-1 space-y-1">
-                        <div>Base: {formatCurrency(formData.baseAmount)}</div>
-                        <div>Taxa base ({((formData.pixConfig.baseFeeRate || 0.014) * 100).toFixed(2)}%): +{formatCurrency(Math.round(formData.baseAmount * (formData.pixConfig.baseFeeRate || 0.014)))}</div>
-                        {pricing.pixDiscount.amount > 0 && (
-                          <div>Desconto ({((formData.pixConfig.discountPercentage || 0) * 100).toFixed(1)}%): -{formatCurrency(pricing.pixDiscount.amount)}</div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Installment Configuration */}
+          {/* Consolidated Price Settings */}
           <Card>
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <Calculator className="h-4 w-4" />
-                Configuração de Parcelamento
+                Configurações de Preço
               </CardTitle>
               <CardDescription>
-                Customize as taxas para cada opção de parcelamento ou use o cálculo reverso
+                PIX sempre ativo e gratuito • Parcelamentos sempre habilitados
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Habilitar Parcelamento</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Permitir pagamento parcelado no cartão de crédito
-                  </p>
+            <CardContent className="space-y-6">
+              
+              {/* Discount Section */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Desconto</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Aplicar desconto no preço base
+                    </p>
+                  </div>
+                  <Switch
+                    checked={formData.discountConfig.enabled}
+                    onCheckedChange={(enabled) => updateDiscountConfig({ enabled })}
+                  />
                 </div>
-                <Switch
-                  checked={formData.installmentConfig.enabled}
-                  onCheckedChange={(enabled) => updateInstallmentConfig({ enabled })}
-                />
-              </div>
 
-              {formData.installmentConfig.enabled && (
-                <div className="space-y-4">
-                  <Alert>
-                    <Calculator className="h-4 w-4" />
-                    <AlertDescription>
-                      <strong>Cálculo Reverso:</strong> Digite o valor desejado no campo "Valor alvo" de qualquer parcela e os outros campos serão calculados automaticamente.
-                    </AlertDescription>
-                  </Alert>
-
-                  {formData.installmentConfig.options?.map((option, index) => (
-                    <div key={option.installments} className="border rounded-lg p-4 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <Label className="text-base font-medium">
-                          {option.installments === 1 ? 'À vista' : `${option.installments}x`}
-                        </Label>
-                        <Badge variant="outline">
-                          Taxa atual: {(option.feeRate * 100).toFixed(2)}%
-                        </Badge>
-                      </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        {/* Fee Rate Input */}
-                        <div>
-                          <Label htmlFor={`fee-${option.installments}`}>Taxa (%)</Label>
-                          <Input
-                            id={`fee-${option.installments}`}
-                            type="number"
-                            value={(option.feeRate * 100).toFixed(2)}
-                            onChange={(e) => {
-                              const newFeeRate = (parseFloat(e.target.value) || 0) / 100;
-                              const newOptions = [...(formData.installmentConfig.options || [])];
-                              newOptions[index] = { ...option, feeRate: newFeeRate };
-                              updateInstallmentConfig({ options: newOptions });
-                            }}
-                            placeholder="2.99"
-                            min="0"
-                            max="50"
-                            step="0.01"
-                            className="text-center"
-                          />
-                        </div>
-
-                        {/* Target Value Input (Reverse Calculation) */}
-                        <div>
-                          <Label htmlFor={`target-${option.installments}`}>
-                            Valor alvo {option.installments === 1 ? '(total)' : '(por parcela)'}
-                          </Label>
-                          <Input
-                            id={`target-${option.installments}`}
-                            type="number"
-                            placeholder={option.installments === 1 ? "19.90" : "29.90"}
-                            onChange={(e) => {
-                              const targetValue = parseFloat(e.target.value) || 0;
-                              if (targetValue > 0) {
-                                // Reverse calculation logic
-                                const targetCents = Math.round(targetValue * 100);
-                                let newFeeRate: number;
-                                
-                                if (option.installments === 1) {
-                                  // For single payment: target = finalAmount * (1 + feeRate)
-                                  // So: feeRate = (target / finalAmount) - 1
-                                  const finalAmount = pricing?.finalAmount || formData.baseAmount;
-                                  newFeeRate = Math.max(0, (targetCents / finalAmount) - 1);
-                                } else {
-                                  // For installments: target = (finalAmount * (1 + feeRate)) / installments
-                                  // So: feeRate = (target * installments / finalAmount) - 1
-                                  const finalAmount = pricing?.finalAmount || formData.baseAmount;
-                                  newFeeRate = Math.max(0, (targetCents * option.installments / finalAmount) - 1);
-                                }
-                                
-                                const newOptions = [...(formData.installmentConfig.options || [])];
-                                newOptions[index] = { ...option, feeRate: newFeeRate };
-                                updateInstallmentConfig({ options: newOptions });
-                              }
-                            }}
-                            step="0.01"
-                            className="text-center"
-                          />
-                        </div>
-
-                        {/* Calculated Result Display */}
-                        <div>
-                          <Label>Resultado calculado</Label>
-                          <div className="h-9 flex items-center justify-center border rounded-md bg-gray-50 text-sm font-medium">
-                            {pricing && pricing.installmentOptions.find(opt => opt.installments === option.installments) && (
-                              option.installments === 1 
-                                ? formatCurrency(pricing.installmentOptions.find(opt => opt.installments === option.installments)!.totalAmount)
-                                : `${formatCurrency(pricing.installmentOptions.find(opt => opt.installments === option.installments)!.installmentAmount)}/parcela`
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                      
-                      {pricing && pricing.installmentOptions.find(opt => opt.installments === option.installments) && (
-                        <div className="text-xs text-muted-foreground">
-                          Total com taxas: {formatCurrency(pricing.installmentOptions.find(opt => opt.installments === option.installments)!.totalAmount)}
-                          {option.feeRate > 0 && (
-                            <> • Taxas: {formatCurrency(pricing.installmentOptions.find(opt => opt.installments === option.installments)!.totalFees)}</>
-                          )}
-                        </div>
-                      )}
+                {formData.discountConfig.enabled && (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <Label>Tipo de Desconto</Label>
+                      <Select 
+                        value={formData.discountConfig.type} 
+                        onValueChange={(value: 'percentage' | 'fixed_amount') => 
+                          updateDiscountConfig({ type: value })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="percentage">Percentual</SelectItem>
+                          <SelectItem value="fixed_amount">Valor Fixo</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
-                  ))}
 
-                  {/* Quick Fee Templates */}
-                  <div className="border-t pt-4">
-                    <Label className="text-sm">Templates rápidos:</Label>
-                    <div className="flex gap-2 mt-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          const templateOptions = [
-                            { installments: 1, feeRate: 0.029 },
-                            { installments: 3, feeRate: 0.069 },
-                            { installments: 6, feeRate: 0.099 },
-                            { installments: 12, feeRate: 0.149 }
-                          ];
-                          updateInstallmentConfig({ options: templateOptions });
-                        }}
-                      >
-                        Padrão Conservador
-                      </Button>
-                      
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          const templateOptions = [
-                            { installments: 1, feeRate: 0.0199 },
-                            { installments: 3, feeRate: 0.0499 },
-                            { installments: 6, feeRate: 0.0799 },
-                            { installments: 12, feeRate: 0.1199 }
-                          ];
-                          updateInstallmentConfig({ options: templateOptions });
-                        }}
-                      >
-                        Competitivo
-                      </Button>
-                      
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          const templateOptions = [
-                            { installments: 1, feeRate: 0.0399 },
-                            { installments: 3, feeRate: 0.0899 },
-                            { installments: 6, feeRate: 0.1299 },
-                            { installments: 12, feeRate: 0.1799 }
-                          ];
-                          updateInstallmentConfig({ options: templateOptions });
-                        }}
-                      >
-                        Premium
-                      </Button>
+                    {formData.discountConfig.type === 'percentage' ? (
+                      <div>
+                        <Label htmlFor="discountPercentage">Desconto (%)</Label>
+                        <Input
+                          id="discountPercentage"
+                          type="number"
+                          value={inputValues['discountPercentage'] ?? ((formData.discountConfig.percentage || 0) * 100).toFixed(1)}
+                          onChange={(e) => {
+                            setInputValues(prev => ({ ...prev, discountPercentage: e.target.value }));
+                          }}
+                          onBlur={(e) => {
+                            updateDiscountConfig({ 
+                              percentage: (parseFloat(e.target.value) || 0) / 100 
+                            });
+                            setInputValues(prev => {
+                              const { discountPercentage: removed, ...rest } = prev;
+                              return rest;
+                            });
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              updateDiscountConfig({ 
+                                percentage: (parseFloat(e.currentTarget.value) || 0) / 100 
+                              });
+                              e.currentTarget.blur();
+                              setInputValues(prev => {
+                                const { discountPercentage: removed, ...rest } = prev;
+                                return rest;
+                              });
+                            }
+                          }}
+                          placeholder="20.0"
+                          min="0"
+                          max="100"
+                          step="0.1"
+                          className="text-center"
+                        />
+                      </div>
+                    ) : (
+                      <div>
+                        <Label htmlFor="discountAmount">Desconto (R$)</Label>
+                        <Input
+                          id="discountAmount"
+                          type="text"
+                          value={inputValues['discountAmount'] ?? formatCurrencyDisplay(formData.discountConfig.fixedAmount || 0)}
+                          onChange={(e) => {
+                            const cleaned = formatCurrencyInput(e.target.value);
+                            setInputValues(prev => ({ ...prev, discountAmount: cleaned }));
+                          }}
+                          onBlur={(e) => {
+                            updateDiscountConfig({ 
+                              fixedAmount: parseCurrencyInput(e.target.value)
+                            });
+                            setInputValues(prev => {
+                              const { discountAmount: removed, ...rest } = prev;
+                              return rest;
+                            });
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              updateDiscountConfig({ 
+                                fixedAmount: parseCurrencyInput(e.currentTarget.value)
+                              });
+                              e.currentTarget.blur();
+                              setInputValues(prev => {
+                                const { discountAmount: removed, ...rest } = prev;
+                                return rest;
+                              });
+                            }
+                          }}
+                          placeholder="2,00"
+                          min="0"
+                          step="0.01"
+                          className="text-center"
+                        />
+                      </div>
+                    )}
+                    
+                    {/* Preview discounted price */}
+                    <div>
+                      <Label>Preço com desconto</Label>
+                      <div className="h-9 flex items-center justify-center border rounded-md bg-green-50 text-sm font-medium text-green-700">
+                        {pricing ? formatCurrency(pricing.finalAmount) : formatCurrency(formData.baseAmount)}
+                      </div>
                     </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
+
             </CardContent>
           </Card>
 
-          {/* Visual Customization Section */}
-          <PromotionalConfigurationSectionV2 
-            promotionalConfig={formData.promotionalConfig}
-            displayConfig={formData.displayConfig}
-            discountConfig={formData.discountConfig}
-            onPromotionalConfigChange={updatePromotionalConfig}
-            onDisplayConfigChange={updateDisplayConfig}
-          />
-        </div>
-
-        {/* Preview Section */}
-        <div className="space-y-6">
-          
-          {/* Plan Preview */}
-          <Card className="border-purple-200">
+          {/* Installment Table - 12 Rows */}
+          <Card>
             <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M15 12C15 13.6569 13.6569 15 12 15C10.3431 15 9 13.6569 9 12C9 10.3431 10.3431 9 12 9C13.6569 9 15 10.3431 15 12Z" stroke="currentColor" strokeWidth="2"/>
-                  <path d="M2.458 12C3.732 7.943 7.523 5 12 5C16.478 5 20.268 7.943 21.542 12C20.268 16.057 16.478 19 12 19C7.523 19 3.732 16.057 2.458 12Z" stroke="currentColor" strokeWidth="2"/>
-                </svg>
-                Prévia Visual do Plano
-              </CardTitle>
+              <CardTitle className="text-lg">Configurações de Parcelamento</CardTitle>
               <CardDescription>
-                Como o plano aparecerá para os usuários com as customizações aplicadas
+                1x sempre gratuito • PIX sempre gratuito • Edite qualquer campo para recalcular automaticamente
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <EnhancedPlanDisplayV2 
-                plan={previewPlan}
-                className="max-w-md"
-              />
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse border border-gray-200">
+                  <thead>
+                    <tr className="bg-gray-50">
+                      <th className="border border-gray-200 px-3 py-2 text-left font-medium">Parcelas</th>
+                      <th className="border border-gray-200 px-3 py-2 text-center font-medium">Taxa %</th>
+                      <th className="border border-gray-200 px-3 py-2 text-center font-medium">Parcela</th>
+                      <th className="border border-gray-200 px-3 py-2 text-center font-medium">Total R$</th>
+                      <th className="border border-gray-200 px-3 py-2 text-center font-medium">Total %</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {/* PIX Row - Always First */}
+                    <tr className="bg-green-50">
+                      <td className="border border-gray-200 px-3 py-2 font-medium text-green-700">PIX</td>
+                      <td className="border border-gray-200 px-3 py-2 text-center text-green-700 font-medium">0%</td>
+                      <td className="border border-gray-200 px-3 py-2 text-center text-green-700 font-medium">
+                        {pricing ? formatCurrency(pricing.finalAmount) : formatCurrency(formData.baseAmount)}
+                      </td>
+                      <td className="border border-gray-200 px-3 py-2 text-center text-green-700 font-medium">
+                        {pricing ? formatCurrency(pricing.finalAmount) : formatCurrency(formData.baseAmount)}
+                      </td>
+                      <td className="border border-gray-200 px-3 py-2 text-center text-green-700 font-medium">0%</td>
+                    </tr>
+                    
+                    {/* Installment Rows - 1x to 12x */}
+                    {formData.installmentConfig.options?.map((option, index) => {
+                      const currentBaseAmount = pricing?.finalAmount || formData.baseAmount;
+                      const installmentValue = calculateInstallmentValue(currentBaseAmount, option.installments, option.feeRate);
+                      const totalValue = calculateTotalValue(currentBaseAmount, option.feeRate);
+                      const totalPercentage = currentBaseAmount > 0 ? ((totalValue - currentBaseAmount) / currentBaseAmount) * 100 : 0;
+                      
+                      return (
+                        <tr key={option.installments} className={option.installments === 1 ? 'bg-blue-50' : 'hover:bg-gray-50'}>
+                          <td className="border border-gray-200 px-3 py-2 font-medium">
+                            {option.installments === 1 ? 'À vista' : `${option.installments}x`}
+                          </td>
+                          <td className="border border-gray-200 px-2 py-1">
+                            {option.installments === 1 ? (
+                              <div className="text-center font-medium text-blue-700">0%</div>
+                            ) : (
+                              <Input
+                                type="number"
+                                value={inputValues[`fee-${option.installments}`] ?? (option.feeRate * 100).toFixed(2)}
+                                onChange={(e) => {
+                                  // Update local state only
+                                  setInputValues(prev => ({
+                                    ...prev,
+                                    [`fee-${option.installments}`]: e.target.value
+                                  }));
+                                }}
+                                onBlur={(e) => {
+                                  const newFeeRate = (parseFloat(e.target.value) || 0) / 100;
+                                  const newBaseFeeRate = calculateBaseFeeFromMonth(option.installments, newFeeRate);
+                                  const newOptions = recalculateAllInstallments(newBaseFeeRate);
+                                  updateInstallmentConfig({ options: newOptions });
+                                  // Clear local state after sync
+                                  setInputValues(prev => {
+                                    const { [`fee-${option.installments}`]: removed, ...rest } = prev;
+                                    return rest;
+                                  });
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    const newFeeRate = (parseFloat(e.currentTarget.value) || 0) / 100;
+                                    const newBaseFeeRate = calculateBaseFeeFromMonth(option.installments, newFeeRate);
+                                    const newOptions = recalculateAllInstallments(newBaseFeeRate);
+                                    updateInstallmentConfig({ options: newOptions });
+                                    e.currentTarget.blur(); // Remove focus after Enter
+                                    // Clear local state after sync
+                                    setInputValues(prev => {
+                                      const { [`fee-${option.installments}`]: removed, ...rest } = prev;
+                                      return rest;
+                                    });
+                                  }
+                                }}
+                                className="text-center text-xs h-8 border-0 bg-transparent focus:bg-white focus:ring-1"
+                                step="0.01"
+                                min="0"
+                                max="50"
+                              />
+                            )}
+                          </td>
+                          <td className="border border-gray-200 px-2 py-1">
+                            <Input
+                              type="text"
+                              value={inputValues[`installment-${option.installments}`] ?? formatCurrencyDisplay(installmentValue)}
+                              onChange={(e) => {
+                                // Use cents-first input mask for table fields
+                                const formatted = formatCurrencyInputCentsFirst(e.target.value);
+                                setInputValues(prev => ({
+                                  ...prev,
+                                  [`installment-${option.installments}`]: formatted
+                                }));
+                              }}
+                              onBlur={(e) => {
+                                const targetValue = parseCurrencyInput(e.target.value);
+                                if (targetValue > 0) {
+                                  const newBaseFeeRate = calculateBaseFeeFromTargetValue(
+                                    option.installments, 
+                                    targetValue, 
+                                    currentBaseAmount
+                                  );
+                                  const newOptions = recalculateAllInstallments(newBaseFeeRate);
+                                  updateInstallmentConfig({ options: newOptions });
+                                }
+                                // Clear local state after sync
+                                setInputValues(prev => {
+                                  const { [`installment-${option.installments}`]: removed, ...rest } = prev;
+                                  return rest;
+                                });
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  const targetValue = parseCurrencyInput(e.currentTarget.value);
+                                  if (targetValue > 0) {
+                                    const newBaseFeeRate = calculateBaseFeeFromTargetValue(
+                                      option.installments, 
+                                      targetValue, 
+                                      currentBaseAmount
+                                    );
+                                    const newOptions = recalculateAllInstallments(newBaseFeeRate);
+                                    updateInstallmentConfig({ options: newOptions });
+                                    e.currentTarget.blur(); // Remove focus after Enter
+                                  }
+                                  // Clear local state after sync
+                                  setInputValues(prev => {
+                                    const { [`installment-${option.installments}`]: removed, ...rest } = prev;
+                                    return rest;
+                                  });
+                                }
+                              }}
+                              className="text-center text-xs h-8 border-0 bg-transparent focus:bg-white focus:ring-1"
+                              step="0.01"
+                              min="0"
+                            />
+                          </td>
+                          <td className="border border-gray-200 px-2 py-1">
+                            <Input
+                              type="text"
+                              value={inputValues[`total-${option.installments}`] ?? formatCurrencyDisplay(totalValue)}
+                              onChange={(e) => {
+                                // Use cents-first input mask for table fields
+                                const formatted = formatCurrencyInputCentsFirst(e.target.value);
+                                setInputValues(prev => ({
+                                  ...prev,
+                                  [`total-${option.installments}`]: formatted
+                                }));
+                              }}
+                              onBlur={(e) => {
+                                const targetCents = parseCurrencyInput(e.target.value);
+                                if (targetCents > 0 && option.installments > 1) {
+                                  // Calculate required fee rate to reach target total
+                                  const newFeeRate = Math.max(0, (targetCents / currentBaseAmount) - 1);
+                                  const newBaseFeeRate = calculateBaseFeeFromMonth(option.installments, newFeeRate);
+                                  const newOptions = recalculateAllInstallments(newBaseFeeRate);
+                                  updateInstallmentConfig({ options: newOptions });
+                                }
+                                // Clear local state after sync
+                                setInputValues(prev => {
+                                  const { [`total-${option.installments}`]: removed, ...rest } = prev;
+                                  return rest;
+                                });
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  const targetCents = parseCurrencyInput(e.currentTarget.value);
+                                  if (targetCents > 0 && option.installments > 1) {
+                                    // Calculate required fee rate to reach target total
+                                    const newFeeRate = Math.max(0, (targetCents / currentBaseAmount) - 1);
+                                    const newBaseFeeRate = calculateBaseFeeFromMonth(option.installments, newFeeRate);
+                                    const newOptions = recalculateAllInstallments(newBaseFeeRate);
+                                    updateInstallmentConfig({ options: newOptions });
+                                    e.currentTarget.blur(); // Remove focus after Enter
+                                  }
+                                  // Clear local state after sync
+                                  setInputValues(prev => {
+                                    const { [`total-${option.installments}`]: removed, ...rest } = prev;
+                                    return rest;
+                                  });
+                                }
+                              }}
+                              className="text-center text-xs h-8 border-0 bg-transparent focus:bg-white focus:ring-1"
+                              step="0.01"
+                              min="0"
+                              disabled={option.installments === 1}
+                            />
+                          </td>
+                          <td className="border border-gray-200 px-3 py-2 text-center text-sm">
+                            {totalPercentage.toFixed(1)}%
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              
+              {/* Quick Fee Templates */}
+              <div className="mt-4 pt-4 border-t">
+                <Label className="text-sm">Templates rápidos:</Label>
+                <div className="flex gap-2 mt-2 flex-wrap">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const newOptions = recalculateAllInstallments(0.04); // 4% base fee
+                      updateInstallmentConfig({ options: newOptions });
+                    }}
+                  >
+                    Baixo (+2% p/mês)
+                  </Button>
+                  
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const newOptions = recalculateAllInstallments(0.06); // 6% base fee
+                      updateInstallmentConfig({ options: newOptions });
+                    }}
+                  >
+                    Padrão (+3% p/mês)
+                  </Button>
+                  
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const newOptions = recalculateAllInstallments(0.08); // 8% base fee
+                      updateInstallmentConfig({ options: newOptions });
+                    }}
+                  >
+                    Alto (+4% p/mês)
+                  </Button>
+                </div>
+              </div>
             </CardContent>
           </Card>
+
+      </div>
+
+      {/* Validation Errors and Form Actions */}
+          
           
           {/* Validation Errors */}
           {!isValid && validationErrors.length > 0 && (
@@ -830,99 +836,6 @@ export default function PaymentPlanV2Form({
             </Alert>
           )}
 
-          {/* Pricing Preview */}
-          {pricing && (
-            <Card className="border-green-200">
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Calculator className="h-4 w-4" />
-                  Prévia de Preços
-                </CardTitle>
-                <CardDescription>
-                  Cálculos em tempo real baseados na configuração
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                
-                {/* Base Price */}
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Valor Base:</span>
-                  <span className="font-medium">{formatCurrency(pricing.baseAmount)}</span>
-                </div>
-
-                {/* Discount */}
-                {pricing.metadata.hasDiscount && (
-                  <div className="flex items-center justify-between text-red-600">
-                    <span className="text-sm">Desconto:</span>
-                    <span className="font-medium flex items-center gap-1">
-                      <TrendingDown className="h-3 w-3" />
-                      -{formatCurrency(pricing.discountAmount)}
-                    </span>
-                  </div>
-                )}
-
-                {/* Final Amount */}
-                <div className="flex items-center justify-between border-t pt-2">
-                  <span className="text-sm font-medium">Valor Final (Cartão):</span>
-                  <span className="font-bold text-lg">{formatCurrency(pricing.finalAmount)}</span>
-                </div>
-
-                {/* PIX Price */}
-                {pricing.metadata.hasPixDiscount && (
-                  <>
-                    <div className="flex items-center justify-between text-green-600">
-                      <span className="text-sm">Desconto PIX adicional:</span>
-                      <span className="font-medium flex items-center gap-1">
-                        <TrendingDown className="h-3 w-3" />
-                        -{formatCurrency(pricing.pixDiscount.amount)}
-                      </span>
-                    </div>
-                    
-                    <div className="flex items-center justify-between border-t pt-2">
-                      <span className="text-sm font-medium">Valor Final (PIX):</span>
-                      <span className="font-bold text-lg text-green-600">
-                        {formatCurrency(pricing.pixFinalAmount)}
-                      </span>
-                    </div>
-                  </>
-                )}
-
-                <Separator />
-
-                {/* Installment Options */}
-                <div>
-                  <Label className="text-sm font-medium">Opções de Parcelamento:</Label>
-                  <div className="mt-2 space-y-2">
-                    {pricing.installmentOptions.map((option, index) => (
-                      <div key={index} className="flex items-center justify-between text-sm">
-                        <span>
-                          {option.installments}x de {formatCurrency(option.installmentAmount)}
-                        </span>
-                        <Badge variant="outline" className="text-xs">
-                          Total: {formatCurrency(option.totalAmount)}
-                        </Badge>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Total Savings */}
-                {pricing.savings.amount > 0 && (
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                    <div className="flex items-center gap-2">
-                      <CheckCircle className="h-4 w-4 text-green-600" />
-                      <span className="text-sm font-medium text-green-800">
-                        Economia Total: {formatCurrency(pricing.savings.amount)}
-                      </span>
-                    </div>
-                    <p className="text-xs text-green-600 mt-1">
-                      {formatPercentage(pricing.savings.percentage)} de desconto no valor original
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
 
           {/* Form Actions */}
           <Card>
@@ -957,8 +870,6 @@ export default function PaymentPlanV2Form({
               </div>
             </CardContent>
           </Card>
-        </div>
-      </div>
     </div>
   );
 }

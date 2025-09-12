@@ -12,17 +12,13 @@ import {
   Edit3, 
   Plus, 
   AlertTriangle, 
-  Calculator,
   TrendingUp,
-  Zap,
   Eye,
-  Settings,
   BarChart
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { usePaymentPlansV2 } from '@/hooks/usePaymentPlansV2';
 import PaymentPlanV2Form from '@/components/payment-v2/PaymentPlanV2Form';
-import PricingCalculatorV2 from '@/components/payment-v2/PricingCalculatorV2';
 import type { PaymentPlanV2FormData, PaymentPlanV2Row } from '@/types/paymentV2.types';
 
 export default function AdminPaymentV2Management() {
@@ -42,7 +38,6 @@ export default function AdminPaymentV2Management() {
 
   const [activeTab, setActiveTab] = useState<'overview' | 'create' | 'edit'>('overview');
   const [editingPlan, setEditingPlan] = useState<PaymentPlanV2Row | null>(null);
-  const [selectedPlanForPreview, setSelectedPlanForPreview] = useState<PaymentPlanV2Row | null>(null);
 
   // Handle form submission
   const handleFormSubmit = async (data: PaymentPlanV2FormData) => {
@@ -209,10 +204,10 @@ export default function AdminPaymentV2Management() {
             </Card>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 gap-6">
             
             {/* Plans List */}
-            <div className="lg:col-span-2">
+            <div>
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
@@ -253,10 +248,9 @@ export default function AdminPaymentV2Management() {
                       {plans.map((plan) => (
                         <div 
                           key={plan.id} 
-                          className={`border rounded-lg p-4 transition-all cursor-pointer ${
+                          className={`border rounded-lg p-4 transition-all ${
                             !plan.is_active ? 'opacity-70 bg-gray-50' : 'bg-white hover:shadow-sm'
-                          } ${selectedPlanForPreview?.id === plan.id ? 'ring-2 ring-blue-500' : ''}`}
-                          onClick={() => setSelectedPlanForPreview(plan)}
+                          }`}
                         >
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
@@ -298,22 +292,8 @@ export default function AdminPaymentV2Management() {
                             
                             {/* Actions */}
                             <div className="flex items-center gap-2">
-                              {/* Preview Button */}
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setSelectedPlanForPreview(plan);
-                                }}
-                                className="h-8 w-8 p-0"
-                                title="Ver prévia de preços"
-                              >
-                                <Eye className="h-3 w-3" />
-                              </Button>
-                              
                               {/* Active Toggle */}
-                              <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                              <div className="flex items-center gap-1">
                                 <Switch
                                   checked={plan.is_active || false}
                                   onCheckedChange={() => handleToggle(plan)}
@@ -326,10 +306,7 @@ export default function AdminPaymentV2Management() {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleEdit(plan);
-                                }}
+                                onClick={() => handleEdit(plan)}
                                 className="h-8 w-8 p-0"
                                 title="Editar plano"
                               >
@@ -340,10 +317,7 @@ export default function AdminPaymentV2Management() {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDelete(plan);
-                                }}
+                                onClick={() => handleDelete(plan)}
                                 disabled={isDeleting}
                                 className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
                                 title="Excluir plano"
@@ -368,48 +342,6 @@ export default function AdminPaymentV2Management() {
               </Card>
             </div>
 
-            {/* Pricing Preview Sidebar */}
-            <div>
-              <PricingCalculatorV2 
-                plan={selectedPlanForPreview}
-                showTitle={true}
-                compact={false}
-              />
-              
-              {selectedPlanForPreview && (
-                <div className="mt-4">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-sm flex items-center gap-2">
-                        <Settings className="h-4 w-4" />
-                        Ações Rápidas
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-2">
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="w-full justify-start"
-                        onClick={() => handleEdit(selectedPlanForPreview)}
-                      >
-                        <Edit3 className="h-3 w-3 mr-2" />
-                        Editar Configurações
-                      </Button>
-                      
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="w-full justify-start"
-                        onClick={() => handleToggle(selectedPlanForPreview)}
-                      >
-                        <Zap className="h-3 w-3 mr-2" />
-                        {selectedPlanForPreview.is_active ? 'Desativar' : 'Ativar'} Plano
-                      </Button>
-                    </CardContent>
-                  </Card>
-                </div>
-              )}
-            </div>
           </div>
         </TabsContent>
 

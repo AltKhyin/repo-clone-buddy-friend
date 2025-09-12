@@ -29,48 +29,27 @@ export interface InstallmentConfigV2 {
 }
 
 /**
- * Discount configuration for pre-request calculation
+ * Discount configuration for pre-request calculation - Simplified
  */
 export interface DiscountConfigV2 {
   enabled: boolean;
-  type: 'percentage' | 'fixed_amount' | 'promotional_code';
+  type: 'percentage' | 'fixed_amount';
   
   // Percentage discount (e.g., 0.15 for 15% off)
   percentage?: number;
   
   // Fixed amount discount in cents
   fixedAmount?: number;
-  
-  // Promotional code configuration
-  promotionalCode?: {
-    code: string;
-    validUntil?: string; // ISO date
-    usageLimit?: number;
-    currentUsage?: number;
-  };
-  
-  // Conditional discount rules
-  conditions?: {
-    minAmount?: number; // Minimum purchase amount in cents
-    maxAmount?: number; // Maximum discount amount in cents
-    validFrom?: string; // ISO date
-    validUntil?: string; // ISO date
-    limitPerUser?: number;
-  };
 }
 
 /**
- * PIX payment specific configuration
+ * PIX payment specific configuration - Simplified (PIX always enabled and free)
  */
 export interface PixConfigV2 {
-  enabled: boolean;
-  expirationMinutes?: number; // Default: 60
-  baseFeeRate?: number; // Base processing fee (e.g., 0.014 for 1.4%)
-  discountPercentage?: number; // Additional discount for PIX payments
-  qrCodeSettings?: {
-    includeDescription: boolean;
-    customMessage?: string;
-  };
+  enabled: boolean; // Always true
+  expirationMinutes: number; // Default: 60
+  baseFeeRate: number; // Always 0 (PIX is free)
+  discountPercentage: number; // Always 0 (no additional PIX discounts)
 }
 
 /**
@@ -85,53 +64,20 @@ export interface CreditCardConfigV2 {
 }
 
 /**
- * Visual customization configuration for promotional features (V1 equivalent)
+ * Visual customization configuration - Simplified (minimal promotional features)
  */
 export interface PromotionalConfigV2 {
-  // Basic promotional settings
+  // Basic promotional settings only
   isActive: boolean;
-  promotionValue: number; // Discount amount (percentage or fixed)
-  displayAsPercentage: boolean; // Show as percentage or fixed amount
-  promotionalName: string; // Custom promotional name
-  customMessage: string; // Custom promotional message
-  
-  // Feature visibility toggles
-  showDiscountAmount: boolean;
-  showSavingsAmount: boolean;
-  showCountdownTimer: boolean;
-  
-  // Timer configuration
-  expiresAt: string; // ISO date string
-  
-  // Visual theming - Basic colors
-  titleColor: string; // Plan title color
-  descriptionColor: string; // Description text color
-  borderColor: string; // Border color
-  backgroundColor: string; // Background color
-  
-  // Visual theming - Promotional elements
-  timerColor: string; // Countdown timer color
-  discountTagBackgroundColor: string; // Discount badge background
-  discountTagTextColor: string; // Discount badge text
-  savingsColor: string; // Savings amount text color
 }
 
 /**
- * Display configuration for plan presentation (V1 equivalent)
+ * Display configuration for plan presentation - Simplified
  */
 export interface DisplayConfigV2 {
-  // Content visibility
-  showCustomName: boolean;
-  showCustomDescription: boolean;
-  
-  // Promotional elements visibility
+  // Basic display options only
   showDiscountAmount: boolean;
   showSavingsAmount: boolean;
-  showCountdownTimer: boolean;
-  
-  // Custom content
-  customName?: string;
-  customDescription?: string;
 }
 
 // =============================================================================
@@ -234,7 +180,7 @@ export interface PaymentPlanV2FormData {
   // Basic plan information
   name: string;
   description?: string;
-  planType: 'premium' | 'basic' | 'custom';
+  planType: 'premium'; // Always premium in simplified version
   durationDays: number;
   
   // Pricing
@@ -264,7 +210,6 @@ export interface PaymentPlanV2FormData {
  */
 export interface PaymentPlanV2Filters {
   isActive?: boolean;
-  planType?: 'premium' | 'basic' | 'custom';
   searchQuery?: string; // Search in name/description
   createdAfter?: string; // ISO date
   createdBefore?: string; // ISO date

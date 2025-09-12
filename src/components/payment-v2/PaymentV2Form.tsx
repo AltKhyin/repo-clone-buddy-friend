@@ -875,16 +875,11 @@ const PaymentV2Form = ({
                                   <SelectItem 
                                     key={option.installments}
                                     value={option.installments.toString()} 
-                                    className="text-black hover:bg-gray-50 focus:bg-gray-50 data-[highlighted]:bg-gray-50 data-[state=checked]:text-black focus:text-black"
+                                    className="text-black hover:bg-gray-50 focus:bg-gray-50 data-[highlighted]:bg-gray-50 data-[state=checked]:text-black focus:text-black py-2"
                                   >
                                     <span>
                                       {option.installments}x de {planSelector.formatCurrency(option.installmentAmount)}
                                       {isVista && " (à vista)"}
-                                      {option.feeRate > 0 && !isVista && (
-                                        <span className="text-xs text-gray-600">
-                                          {" "}(total: {planSelector.formatCurrency(option.totalAmount)})
-                                        </span>
-                                      )}
                                     </span>
                                   </SelectItem>
                                 );

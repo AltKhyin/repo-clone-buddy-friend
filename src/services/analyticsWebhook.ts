@@ -36,15 +36,15 @@ interface AnalyticsWebhookPayload {
     status: 'pending' | 'paid' | 'failed';
     currency: 'BRL';
     amounts: {
-      base_amount: number; // Original price in cents
-      final_amount: number; // Amount actually paid in cents
-      discount_amount: number; // Discount applied in cents
-      fee_amount?: number; // Processing fees in cents
+      base_amount: number; // Original price in decimal format (x.xx)
+      final_amount: number; // Amount actually paid in decimal format (x.xx)
+      discount_amount: number; // Discount applied in decimal format (x.xx)
+      fee_amount?: number; // Processing fees in decimal format (x.xx)
     };
     installments?: {
       count: number;
-      amount_per_installment: number;
-      total_with_fees: number;
+      amount_per_installment: number; // Per installment in decimal format (x.xx)
+      total_with_fees: number; // Total with fees in decimal format (x.xx)
       fee_rate: string;
     };
   };
@@ -98,6 +98,13 @@ interface AnalyticsWebhookPayload {
 }
 
 const ANALYTICS_WEBHOOK_URL = 'https://hook.us2.make.com/qjdetduht1g375p7l556yrrutbi3j6cv';
+
+/**
+ * Convert cents to decimal format (x.xx) for analytics
+ */
+const formatCentsToDecimal = (amountInCents: number): number => {
+  return Math.round((amountInCents / 100) * 100) / 100; // Ensures 2 decimal places
+};
 
 /**
  * Sends comprehensive analytics data to Make.com webhook for processing
@@ -240,16 +247,16 @@ export function buildPaymentSuccessWebhookPayload({
       status: paymentMethod === 'pix' ? 'pending' : 'paid',
       currency: 'BRL',
       amounts: {
-        base_amount: baseAmount,
-        final_amount: finalAmount,
-        discount_amount: discountAmount,
-        fee_amount: feeAmount || 0,
+        base_amount: formatCentsToDecimal(baseAmount),
+        final_amount: formatCentsToDecimal(finalAmount),
+        discount_amount: formatCentsToDecimal(discountAmount),
+        fee_amount: formatCentsToDecimal(feeAmount || 0),
       },
       ...(installments && installments > 1 && {
         installments: {
           count: installments,
-          amount_per_installment: Math.round(finalAmount / installments),
-          total_with_fees: finalAmount + (feeAmount || 0),
+          amount_per_installment: formatCentsToDecimal(Math.round(finalAmount / installments)),
+          total_with_fees: formatCentsToDecimal(finalAmount + (feeAmount || 0)),
           fee_rate: feeRate || '0%',
         },
       }),
@@ -293,10 +300,10 @@ export function buildPaymentSuccessWebhookPayload({
     },
 
     conversion: {
-      value: finalAmount / 100, // Convert cents to reais for ad platforms
+      value: formatCentsToDecimal(finalAmount), // Convert cents to decimal for ad platforms
       currency: 'BRL',
       conversion_type: 'purchase',
-      customer_lifetime_value: finalAmount / 100, // Could be enhanced with historical data
+      customer_lifetime_value: formatCentsToDecimal(finalAmount), // Could be enhanced with historical data
       is_new_customer: true, // Could be enhanced with database check
     },
   };
