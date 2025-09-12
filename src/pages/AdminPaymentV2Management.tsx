@@ -18,7 +18,9 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { usePaymentPlansV2 } from '@/hooks/usePaymentPlansV2';
+import { useSiteSettings } from '@/hooks/useSiteSettings';
 import PaymentPlanV2Form from '@/components/payment-v2/PaymentPlanV2Form';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { PaymentPlanV2FormData, PaymentPlanV2Row } from '@/types/paymentV2.types';
 
 export default function AdminPaymentV2Management() {
@@ -35,6 +37,8 @@ export default function AdminPaymentV2Management() {
     deletePlan,
     togglePlan,
   } = usePaymentPlansV2();
+
+  const siteSettings = useSiteSettings();
 
   const [activeTab, setActiveTab] = useState<'overview' | 'create' | 'edit'>('overview');
   const [editingPlan, setEditingPlan] = useState<PaymentPlanV2Row | null>(null);
@@ -203,6 +207,63 @@ export default function AdminPaymentV2Management() {
               </CardContent>
             </Card>
           </div>
+
+          {/* Default Offer Configuration */}
+          <Card className="border-orange-200 bg-orange-50">
+            <CardHeader>
+              <CardTitle className="text-orange-900 flex items-center gap-2">
+                <CreditCard className="h-5 w-5" />
+                Configurar Oferta Padrão
+              </CardTitle>
+              <CardDescription className="text-orange-700">
+                Selecione qual plano será exibido por padrão na página /pagamento quando não houver parâmetros na URL
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-4">
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-orange-900 mb-2">
+                    Plano padrão para /pagamento
+                  </label>
+                  <Select
+                    value={siteSettings.getSetting('default_payment_offer', null) || '__none__'}
+                    onValueChange={(value) => {
+                      const actualValue = value === '__none__' ? null : value;
+                      siteSettings.updateSetting({
+                        key: 'default_payment_offer',
+                        value: actualValue,
+                        description: 'Default payment plan custom_link_parameter shown on /pagamento when no URL parameters are provided'
+                      });
+                    }}
+                    disabled={siteSettings.isUpdating}
+                  >
+                    <SelectTrigger className="bg-white">
+                      <SelectValue placeholder="Selecionar plano padrão" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">Nenhum (sem plano padrão)</SelectItem>
+                      {activePlans
+                        .filter((plan) => plan.custom_link_parameter && plan.custom_link_parameter.trim() !== '')
+                        .map((plan) => (
+                        <SelectItem 
+                          key={plan.id} 
+                          value={plan.custom_link_parameter!}
+                        >
+                          {plan.name} - {formatCurrency(plan.final_amount)}
+                          {` (${plan.custom_link_parameter})`}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="text-sm text-orange-700">
+                  <div className="bg-white p-3 rounded border border-orange-200">
+                    <strong>Atual:</strong> {siteSettings.getSetting('default_payment_offer', null) || 'Nenhum'}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
           <div className="grid grid-cols-1 gap-6">
             

@@ -193,11 +193,15 @@ interface PaymentData {
 interface PaymentV2FormProps {
   initialCustomParameter?: string | null;
   initialPaymentMethod?: PaymentMethod | null;
+  hideTestData?: boolean; // V1 specific: hide test data toggle
+  useProductionEndpoint?: boolean; // V1 specific: use production endpoint
 }
 
 const PaymentV2Form = ({ 
   initialCustomParameter, 
-  initialPaymentMethod 
+  initialPaymentMethod,
+  hideTestData = false,
+  useProductionEndpoint = false
 }: PaymentV2FormProps = {}) => {
   const [currentStep, setCurrentStep] = useState(0); // Start at 0 (Customer Data) instead of 1
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>(initialPaymentMethod || 'credit_card');
@@ -212,6 +216,7 @@ const PaymentV2Form = ({
     initialCustomParameter,
     initialPaymentMethod: initialPaymentMethod || selectedMethod
   });
+
   const form = useForm<PaymentV2FormData>({
     resolver: zodResolver(paymentV2Schema),
     defaultValues: {
@@ -717,16 +722,19 @@ const PaymentV2Form = ({
           <span className="h-1.5 w-1.5 rounded-full bg-black"></span>
           <h2 className="text-xl font-serif tracking-tight">Pagamento</h2>
         </div>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={fillTestData}
-          className="text-xs bg-blue-50 border-blue-200 text-blue-600 hover:bg-blue-100"
-        >
-          Usar Test Data
-        </Button>
+        {!hideTestData && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={fillTestData}
+            className="text-xs bg-blue-50 border-blue-200 text-blue-600 hover:bg-blue-100"
+          >
+            Usar Test Data
+          </Button>
+        )}
       </div>
+
 
       {/* Enhanced Plan Display - Show selected plan at top like /pagamento */}
       {planSelector.selectedPlan && (

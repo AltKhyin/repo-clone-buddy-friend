@@ -1,15 +1,17 @@
-// ABOUTME: Payment V1.0 page with URL parameter support for plan selection and production-ready configuration
+// ABOUTME: Payment V1.0 page - identical to V2 but with production endpoint and no test data
 
 import React, { useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
-import PaymentFormV1 from '@/components/payment/PaymentFormV1';
+import PaymentV2Form from '@/components/payment-v2/PaymentV2Form';
 import SplitScreenAuthLayout from '@/components/auth/SplitScreenAuthLayout';
 import { AuthFormContainer } from '@/components/auth/AuthFormContainer';
+import { useSiteSettings } from '@/hooks/useSiteSettings';
 
 const PaymentV1Page = () => {
   const location = useLocation();
+  const siteSettings = useSiteSettings();
   
-  // Parse and validate URL parameters for plan selection (same as V2)
+  // Parse and validate URL parameters for plan selection (identical to V2)
   const urlParams = useMemo(() => {
     const searchParams = new URLSearchParams(location.search);
     
@@ -22,6 +24,10 @@ const PaymentV1Page = () => {
       ? plano 
       : null;
     
+    // Use default offer from site settings if no plano parameter is provided
+    const defaultOffer = siteSettings.getSetting('default_payment_offer', null);
+    const finalPlano = validPlano || defaultOffer;
+    
     // Validate payment method
     const validPaymentMethod = paymentMethod === 'pix' || paymentMethod === 'credit_card' 
       ? paymentMethod as 'pix' | 'credit_card' 
@@ -32,6 +38,8 @@ const PaymentV1Page = () => {
       console.log('PaymentV1Page URL Parameters Debug:', {
         rawPlano: plano,
         validPlano: validPlano,
+        defaultOffer: defaultOffer,
+        finalPlano: finalPlano,
         rawPaymentMethod: paymentMethod,
         validPaymentMethod: validPaymentMethod,
         fullSearchString: location.search,
@@ -40,29 +48,21 @@ const PaymentV1Page = () => {
     }
     
     return {
-      plano: validPlano,
+      plano: finalPlano,
       paymentMethod: validPaymentMethod,
     };
-  }, [location.search]);
+  }, [location.search, siteSettings.getSetting]);
 
   return (
     <SplitScreenAuthLayout>
       <AuthFormContainer>
-        <div className="space-y-6">
-          <div className="text-center">
-            <h1 className="text-3xl font-bold tracking-tight text-gray-900">
-              Finalizar Pagamento
-            </h1>
-            <p className="mt-2 text-sm text-gray-600">
-              Sistema de pagamento simplificado - Ambiente de Produção
-            </p>
-          </div>
-          
-          <PaymentFormV1 
-            initialCustomParameter={urlParams.plano}
-            initialPaymentMethod={urlParams.paymentMethod}
-          />
-        </div>
+        <PaymentV2Form 
+          initialCustomParameter={urlParams.plano}
+          initialPaymentMethod={urlParams.paymentMethod}
+          // V1 specific props: no test data, use production endpoint
+          hideTestData={true}
+          useProductionEndpoint={true}
+        />
       </AuthFormContainer>
     </SplitScreenAuthLayout>
   );
