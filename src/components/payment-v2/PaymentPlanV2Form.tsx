@@ -466,7 +466,7 @@ export default function PaymentPlanV2Form({
                 />
                 <p className="text-xs text-muted-foreground mt-1">
                   {formData.customLinkParameter ? (
-                    <>Link: <code className="bg-gray-100 px-1 rounded text-xs">/pagamento-v2?plano={formData.customLinkParameter}</code></>
+                    <>Link: <code className="bg-gray-100 px-1 rounded text-xs">/pagamento?plano={formData.customLinkParameter}</code></>
                   ) : (
                     'Parâmetro para links diretos (ex: "premium-anual")'
                   )}
