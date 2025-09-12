@@ -1093,10 +1093,9 @@ const PaymentV2Form = ({
                         name="billingZipCode"
                         render={({ field }) => (
                           <FormItem className="space-y-1">
-                            <FormLabel className="text-sm font-medium text-gray-700">CEP</FormLabel>
                             <FormControl>
                               <Input
-                                placeholder="00000-000"
+                                placeholder="CEP: 00000-000"
                                 {...field}
                                 onChange={(e) => {
                                   let value = e.target.value.replace(/\D/g, '');
@@ -1143,17 +1142,34 @@ const PaymentV2Form = ({
                                 <SelectValue placeholder="Estado" />
                               </SelectTrigger>
                             </FormControl>
-                            <SelectContent className="bg-white border border-gray-200">
-                              <SelectItem value="SP" className="text-black hover:bg-gray-50 focus:bg-gray-50">São Paulo</SelectItem>
-                              <SelectItem value="RJ" className="text-black hover:bg-gray-50 focus:bg-gray-50">Rio de Janeiro</SelectItem>
-                              <SelectItem value="MG" className="text-black hover:bg-gray-50 focus:bg-gray-50">Minas Gerais</SelectItem>
-                              <SelectItem value="RS" className="text-black hover:bg-gray-50 focus:bg-gray-50">Rio Grande do Sul</SelectItem>
-                              <SelectItem value="PR" className="text-black hover:bg-gray-50 focus:bg-gray-50">Paraná</SelectItem>
-                              <SelectItem value="SC" className="text-black hover:bg-gray-50 focus:bg-gray-50">Santa Catarina</SelectItem>
-                              <SelectItem value="BA" className="text-black hover:bg-gray-50 focus:bg-gray-50">Bahia</SelectItem>
-                              <SelectItem value="GO" className="text-black hover:bg-gray-50 focus:bg-gray-50">Goiás</SelectItem>
-                              <SelectItem value="ES" className="text-black hover:bg-gray-50 focus:bg-gray-50">Espírito Santo</SelectItem>
-                              <SelectItem value="DF" className="text-black hover:bg-gray-50 focus:bg-gray-50">Distrito Federal</SelectItem>
+                            <SelectContent className="bg-white border border-gray-200 max-h-60 overflow-y-auto">
+                              <SelectItem value="AC" className="text-black hover:bg-gray-100 focus:bg-gray-100 data-[highlighted]:bg-gray-100 data-[highlighted]:text-black">Acre</SelectItem>
+                              <SelectItem value="AL" className="text-black hover:bg-gray-100 focus:bg-gray-100 data-[highlighted]:bg-gray-100 data-[highlighted]:text-black">Alagoas</SelectItem>
+                              <SelectItem value="AP" className="text-black hover:bg-gray-100 focus:bg-gray-100 data-[highlighted]:bg-gray-100 data-[highlighted]:text-black">Amapá</SelectItem>
+                              <SelectItem value="AM" className="text-black hover:bg-gray-100 focus:bg-gray-100 data-[highlighted]:bg-gray-100 data-[highlighted]:text-black">Amazonas</SelectItem>
+                              <SelectItem value="BA" className="text-black hover:bg-gray-100 focus:bg-gray-100 data-[highlighted]:bg-gray-100 data-[highlighted]:text-black">Bahia</SelectItem>
+                              <SelectItem value="CE" className="text-black hover:bg-gray-100 focus:bg-gray-100 data-[highlighted]:bg-gray-100 data-[highlighted]:text-black">Ceará</SelectItem>
+                              <SelectItem value="DF" className="text-black hover:bg-gray-100 focus:bg-gray-100 data-[highlighted]:bg-gray-100 data-[highlighted]:text-black">Distrito Federal</SelectItem>
+                              <SelectItem value="ES" className="text-black hover:bg-gray-100 focus:bg-gray-100 data-[highlighted]:bg-gray-100 data-[highlighted]:text-black">Espírito Santo</SelectItem>
+                              <SelectItem value="GO" className="text-black hover:bg-gray-100 focus:bg-gray-100 data-[highlighted]:bg-gray-100 data-[highlighted]:text-black">Goiás</SelectItem>
+                              <SelectItem value="MA" className="text-black hover:bg-gray-100 focus:bg-gray-100 data-[highlighted]:bg-gray-100 data-[highlighted]:text-black">Maranhão</SelectItem>
+                              <SelectItem value="MT" className="text-black hover:bg-gray-100 focus:bg-gray-100 data-[highlighted]:bg-gray-100 data-[highlighted]:text-black">Mato Grosso</SelectItem>
+                              <SelectItem value="MS" className="text-black hover:bg-gray-100 focus:bg-gray-100 data-[highlighted]:bg-gray-100 data-[highlighted]:text-black">Mato Grosso do Sul</SelectItem>
+                              <SelectItem value="MG" className="text-black hover:bg-gray-100 focus:bg-gray-100 data-[highlighted]:bg-gray-100 data-[highlighted]:text-black">Minas Gerais</SelectItem>
+                              <SelectItem value="PA" className="text-black hover:bg-gray-100 focus:bg-gray-100 data-[highlighted]:bg-gray-100 data-[highlighted]:text-black">Pará</SelectItem>
+                              <SelectItem value="PB" className="text-black hover:bg-gray-100 focus:bg-gray-100 data-[highlighted]:bg-gray-100 data-[highlighted]:text-black">Paraíba</SelectItem>
+                              <SelectItem value="PR" className="text-black hover:bg-gray-100 focus:bg-gray-100 data-[highlighted]:bg-gray-100 data-[highlighted]:text-black">Paraná</SelectItem>
+                              <SelectItem value="PE" className="text-black hover:bg-gray-100 focus:bg-gray-100 data-[highlighted]:bg-gray-100 data-[highlighted]:text-black">Pernambuco</SelectItem>
+                              <SelectItem value="PI" className="text-black hover:bg-gray-100 focus:bg-gray-100 data-[highlighted]:bg-gray-100 data-[highlighted]:text-black">Piauí</SelectItem>
+                              <SelectItem value="RJ" className="text-black hover:bg-gray-100 focus:bg-gray-100 data-[highlighted]:bg-gray-100 data-[highlighted]:text-black">Rio de Janeiro</SelectItem>
+                              <SelectItem value="RN" className="text-black hover:bg-gray-100 focus:bg-gray-100 data-[highlighted]:bg-gray-100 data-[highlighted]:text-black">Rio Grande do Norte</SelectItem>
+                              <SelectItem value="RS" className="text-black hover:bg-gray-100 focus:bg-gray-100 data-[highlighted]:bg-gray-100 data-[highlighted]:text-black">Rio Grande do Sul</SelectItem>
+                              <SelectItem value="RO" className="text-black hover:bg-gray-100 focus:bg-gray-100 data-[highlighted]:bg-gray-100 data-[highlighted]:text-black">Rondônia</SelectItem>
+                              <SelectItem value="RR" className="text-black hover:bg-gray-100 focus:bg-gray-100 data-[highlighted]:bg-gray-100 data-[highlighted]:text-black">Roraima</SelectItem>
+                              <SelectItem value="SC" className="text-black hover:bg-gray-100 focus:bg-gray-100 data-[highlighted]:bg-gray-100 data-[highlighted]:text-black">Santa Catarina</SelectItem>
+                              <SelectItem value="SP" className="text-black hover:bg-gray-100 focus:bg-gray-100 data-[highlighted]:bg-gray-100 data-[highlighted]:text-black">São Paulo</SelectItem>
+                              <SelectItem value="SE" className="text-black hover:bg-gray-100 focus:bg-gray-100 data-[highlighted]:bg-gray-100 data-[highlighted]:text-black">Sergipe</SelectItem>
+                              <SelectItem value="TO" className="text-black hover:bg-gray-100 focus:bg-gray-100 data-[highlighted]:bg-gray-100 data-[highlighted]:text-black">Tocantins</SelectItem>
                             </SelectContent>
                           </Select>
                           <FormMessage />
