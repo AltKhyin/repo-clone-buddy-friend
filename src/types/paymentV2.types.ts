@@ -88,6 +88,12 @@ export interface DisplayConfigV2 {
   customDescription?: string;
   showCustomName?: boolean;
   showCustomDescription?: boolean;
+  // Pricing focus
+  focusOnInstallments?: boolean;
+  // Countdown timer
+  showCountdownTimer?: boolean;
+  countdownEndDate?: string; // ISO date string
+  countdownText?: string;
 }
 
 // =============================================================================

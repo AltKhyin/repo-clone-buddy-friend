@@ -196,7 +196,11 @@ const getDefaultFormData = (): PaymentPlanV2FormData => ({
     customName: '',
     customDescription: '',
     showCustomName: false,
-    showCustomDescription: false
+    showCustomDescription: false,
+    focusOnInstallments: false,
+    showCountdownTimer: false,
+    countdownEndDate: '',
+    countdownText: 'Oferta por tempo limitado!'
   },
   customLinkParameter: ''
 });
@@ -937,6 +941,52 @@ export default function PaymentPlanV2Form({
                         />
                         Mostrar economia
                       </label>
+                      
+                      <label className="flex items-center gap-2 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={formData.displayConfig.focusOnInstallments || false}
+                          onChange={(e) => 
+                            updateDisplayConfig({ focusOnInstallments: e.target.checked })
+                          }
+                          className="rounded w-4 h-4"
+                        />
+                        Focar em parcelas
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Countdown Timer */}
+                  <div className="space-y-3">
+                    <Label className="text-sm font-medium text-gray-700">Timer</Label>
+                    <div className="space-y-3">
+                      <label className="flex items-center gap-2 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={formData.displayConfig.showCountdownTimer || false}
+                          onChange={(e) => 
+                            updateDisplayConfig({ showCountdownTimer: e.target.checked })
+                          }
+                          className="rounded w-4 h-4"
+                        />
+                        Exibir timer de oferta
+                      </label>
+                      
+                      {formData.displayConfig.showCountdownTimer && (
+                        <div className="mt-3">
+                          <div className="space-y-2">
+                            <Label htmlFor="countdownEndDate" className="text-sm">Data final</Label>
+                            <Input
+                              id="countdownEndDate"
+                              type="datetime-local"
+                              value={formData.displayConfig.countdownEndDate || ''}
+                              onChange={(e) => 
+                                updateDisplayConfig({ countdownEndDate: e.target.value })
+                              }
+                            />
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
 

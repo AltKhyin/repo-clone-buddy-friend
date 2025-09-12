@@ -921,6 +921,7 @@ const PaymentV2Form = ({
                         name="billingZipCode"
                         render={({ field }) => (
                           <FormItem className="space-y-1">
+                            <FormLabel className="text-sm font-medium text-gray-700">CEP</FormLabel>
                             <FormControl>
                               <Input
                                 placeholder="00000-000"
