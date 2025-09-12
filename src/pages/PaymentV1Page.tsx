@@ -1,27 +1,15 @@
-// ABOUTME: Payment V2.0 page with isolated payment processing system and URL parameter integration
-//
-// URL Parameter Support:
-// - ?plano=<custom-parameter>   - Plan selection by custom parameter (e.g., premium-20-off)
-// - ?method=pix|credit_card     - Pre-select payment method
-// 
-// Example URLs:
-// - /pagamento-v2?plano=premium-20-off
-// - /pagamento-v2?plano=basic-monthly&method=pix
-// - /pagamento-v2?plano=special-offer
-//
-// Parameter Validation:
-// - plano: Must be alphanumeric with hyphens/underscores only
-// - method: Must be 'pix' or 'credit_card'
+// ABOUTME: Payment V1.0 page with URL parameter support for plan selection and production-ready configuration
+
 import React, { useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
-import PaymentV2Form from '@/components/payment-v2/PaymentV2Form';
+import PaymentFormV1 from '@/components/payment/PaymentFormV1';
 import SplitScreenAuthLayout from '@/components/auth/SplitScreenAuthLayout';
 import { AuthFormContainer } from '@/components/auth/AuthFormContainer';
 
-const PaymentV2Page = () => {
+const PaymentV1Page = () => {
   const location = useLocation();
   
-  // Parse and validate URL parameters for plan selection
+  // Parse and validate URL parameters for plan selection (same as V2)
   const urlParams = useMemo(() => {
     const searchParams = new URLSearchParams(location.search);
     
@@ -41,7 +29,7 @@ const PaymentV2Page = () => {
     
     // Log validation results for debugging (only when parameters change)
     if (process.env.NODE_ENV === 'development') {
-      console.log('PaymentV2Page URL Parameters Debug:', {
+      console.log('PaymentV1Page URL Parameters Debug:', {
         rawPlano: plano,
         validPlano: validPlano,
         rawPaymentMethod: paymentMethod,
@@ -60,13 +48,24 @@ const PaymentV2Page = () => {
   return (
     <SplitScreenAuthLayout>
       <AuthFormContainer>
-        <PaymentV2Form 
-          initialCustomParameter={urlParams.plano}
-          initialPaymentMethod={urlParams.paymentMethod}
-        />
+        <div className="space-y-6">
+          <div className="text-center">
+            <h1 className="text-3xl font-bold tracking-tight text-gray-900">
+              Finalizar Pagamento
+            </h1>
+            <p className="mt-2 text-sm text-gray-600">
+              Sistema de pagamento simplificado - Ambiente de Produção
+            </p>
+          </div>
+          
+          <PaymentFormV1 
+            initialCustomParameter={urlParams.plano}
+            initialPaymentMethod={urlParams.paymentMethod}
+          />
+        </div>
       </AuthFormContainer>
     </SplitScreenAuthLayout>
   );
 };
 
-export default PaymentV2Page;
+export default PaymentV1Page;

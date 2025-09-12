@@ -115,33 +115,68 @@ export const usePaymentPlanSelector = (
   useMemo(() => {
     if (availablePlans.length === 0) return; // Wait for plans to load
     
+    // Debug logging for URL parameter plan selection
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔍 usePaymentPlanSelector - Plan Selection Debug:', {
+        initialCustomParameter,
+        availablePlansCount: availablePlans.length,
+        availablePlans: availablePlans.map(p => ({
+          id: p.id,
+          name: p.name,
+          custom_link_parameter: p.custom_link_parameter
+        })),
+        currentSelectedPlanId: state.selectedPlanId
+      });
+    }
+    
     // If we already have a selected plan, don't override
     if (state.selectedPlanId && availablePlans.find(p => p.id === state.selectedPlanId)) {
+      console.log('✅ Plan already selected, keeping current selection:', state.selectedPlanId);
       return;
     }
     
     // Try to find plan by custom parameter if provided
     if (initialCustomParameter) {
+      console.log('🔍 Looking for plan with custom parameter:', initialCustomParameter);
+      
       const planByCustomParam = availablePlans.find(plan => {
         // Check if the plan has a custom_link_parameter that matches
         const planCustomParam = (plan as any)?.custom_link_parameter;
-        return planCustomParam === initialCustomParameter;
+        const matches = planCustomParam === initialCustomParameter;
+        
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`  • Plan "${plan.name}": custom_link_parameter="${planCustomParam}", matches=${matches}`);
+        }
+        
+        return matches;
       });
       
       if (planByCustomParam) {
+        console.log('✅ Found matching plan by custom parameter:', {
+          planId: planByCustomParam.id,
+          planName: planByCustomParam.name,
+          customParam: planByCustomParam.custom_link_parameter
+        });
         setState(prev => ({
           ...prev,
           selectedPlanId: planByCustomParam.id
         }));
         return;
+      } else {
+        console.warn('❌ No plan found with custom parameter:', initialCustomParameter);
       }
     }
     
     // Fallback: auto-select first available plan if none found/specified
     if (!state.selectedPlanId && availablePlans.length > 0) {
+      const fallbackPlan = availablePlans[0];
+      console.log('⚠️ Using fallback plan selection:', {
+        planId: fallbackPlan.id,
+        planName: fallbackPlan.name
+      });
       setState(prev => ({
         ...prev,
-        selectedPlanId: availablePlans[0].id
+        selectedPlanId: fallbackPlan.id
       }));
     }
   }, [availablePlans, state.selectedPlanId, initialCustomParameter]);
