@@ -1,6 +1,6 @@
 // ABOUTME: V2.0 Payment plan selector hook for integrating with existing payment flow
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { usePaymentPlansV2 } from './usePaymentPlansV2';
 import { usePaymentPricingV2 } from './usePaymentPricingV2';
 import { 
@@ -147,27 +147,27 @@ export const usePaymentPlanSelector = (
   }, [availablePlans, state.selectedPlanId, initialCustomParameter]);
 
   // Actions
-  const selectPlan = (planId: string) => {
+  const selectPlan = useCallback((planId: string) => {
     setState(prev => ({
       ...prev,
       selectedPlanId: planId,
       selectedInstallments: 1 // Reset to 1x when changing plans
     }));
-  };
+  }, []);
 
-  const selectInstallments = (installments: number) => {
+  const selectInstallments = useCallback((installments: number) => {
     setState(prev => ({
       ...prev,
       selectedInstallments: installments
     }));
-  };
+  }, []);
 
-  const selectPaymentMethod = (method: 'credit_card' | 'pix') => {
+  const selectPaymentMethod = useCallback((method: 'credit_card' | 'pix') => {
     setState(prev => ({
       ...prev,
       paymentMethod: method
     }));
-  };
+  }, []);
 
   // Get selected installment option
   const getSelectedInstallmentOption = (): InstallmentOption | null => {

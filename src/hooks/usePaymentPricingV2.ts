@@ -124,22 +124,46 @@ export const calculateInstallmentOptions = (
 };
 
 /**
- * Calculate PIX discount (immediate payment incentive)
+ * Calculate PIX pricing with base fee and discount
  */
-export const calculatePixDiscount = (
+export const calculatePixPricing = (
   finalAmount: number,
   pixConfig: any
-): { amount: number; percentage: number } => {
-  if (!pixConfig?.enabled || !pixConfig.discountPercentage) {
-    return { amount: 0, percentage: 0 };
+): { 
+  baseFeeAmount: number; 
+  discountAmount: number; 
+  finalAmount: number;
+  baseFeeRate: number;
+  discountRate: number;
+} => {
+  if (!pixConfig?.enabled) {
+    return { 
+      baseFeeAmount: 0, 
+      discountAmount: 0, 
+      finalAmount: finalAmount,
+      baseFeeRate: 0,
+      discountRate: 0
+    };
   }
   
-  const percentage = Math.min(pixConfig.discountPercentage, 0.15); // Max 15% PIX discount
-  const discountAmount = Math.round(finalAmount * percentage);
+  // Step 1: Apply base PIX processing fee (default 1.4%)
+  const baseFeeRate = pixConfig.baseFeeRate || 0.014;
+  const baseFeeAmount = Math.round(finalAmount * baseFeeRate);
+  const amountWithBaseFee = finalAmount + baseFeeAmount;
+  
+  // Step 2: Apply PIX discount to incentivize immediate payment
+  const discountRate = Math.min(pixConfig.discountPercentage || 0, 0.15); // Max 15% PIX discount
+  const discountAmount = Math.round(amountWithBaseFee * discountRate);
+  
+  // Step 3: Calculate final PIX amount
+  const pixFinalAmount = Math.max(MIN_PLAN_VALUE, amountWithBaseFee - discountAmount);
   
   return {
-    amount: discountAmount,
-    percentage
+    baseFeeAmount,
+    discountAmount,
+    finalAmount: pixFinalAmount,
+    baseFeeRate,
+    discountRate
   };
 };
 
@@ -159,12 +183,12 @@ export const calculateCompletePricing = (plan: PaymentPlanV2Row): PricingCalcula
   // Step 2: Calculate installment options
   const installmentOptions = calculateInstallmentOptions(finalAmount, installmentConfig);
   
-  // Step 3: Calculate PIX discount
-  const pixDiscount = calculatePixDiscount(finalAmount, pixConfig);
-  const pixFinalAmount = finalAmount - pixDiscount.amount;
+  // Step 3: Calculate PIX pricing with base fee and discount
+  const pixPricing = calculatePixPricing(finalAmount, pixConfig);
   
-  // Step 4: Calculate savings
-  const totalSavingsAmount = discountAmount + pixDiscount.amount;
+  // Step 4: Calculate savings (discount + PIX savings vs original base amount)
+  const pixNetSavings = Math.max(0, finalAmount - pixPricing.finalAmount); // Net savings from PIX vs credit card
+  const totalSavingsAmount = discountAmount + pixNetSavings;
   const totalSavingsPercentage = baseAmount > 0 ? totalSavingsAmount / baseAmount : 0;
   
   return {
@@ -172,15 +196,20 @@ export const calculateCompletePricing = (plan: PaymentPlanV2Row): PricingCalcula
     discountAmount,
     finalAmount,
     installmentOptions,
-    pixDiscount,
-    pixFinalAmount: Math.max(MIN_PLAN_VALUE, pixFinalAmount),
+    pixDiscount: {
+      amount: pixPricing.discountAmount,
+      percentage: pixPricing.discountRate
+    },
+    pixFinalAmount: pixPricing.finalAmount,
     savings: {
       amount: totalSavingsAmount,
       percentage: totalSavingsPercentage
     },
     metadata: {
       hasDiscount: discountAmount > 0,
-      hasPixDiscount: pixDiscount.amount > 0,
+      hasPixDiscount: pixPricing.discountAmount > 0,
+      pixBaseFee: pixPricing.baseFeeAmount,
+      pixBaseFeeRate: pixPricing.baseFeeRate,
       maxInstallments: Math.max(...installmentOptions.map(opt => opt.installments)),
       minInstallmentValue: Math.min(...installmentOptions.map(opt => opt.installmentAmount)),
       calculatedAt: new Date().toISOString()

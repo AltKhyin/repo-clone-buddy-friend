@@ -424,7 +424,7 @@ export function buildSubscriptionRequestV2(
   const cardExpiry = parseCardExpiry(formData.cardExpiry);
   
   return {
-    code: `evidens-v2-${paymentPlan.id}-${Date.now()}`,
+    code: `ev2-${paymentPlan.id.slice(0, 8)}-${Date.now().toString().slice(-10)}`,
     customer: {
       name: formData.name,
       type: 'individual',
@@ -610,7 +610,7 @@ export function buildPixPaymentRequestV2(
   const expirationMinutes = paymentPlan.pix_config?.expirationMinutes || 60;
   
   return {
-    code: `evidens-v2-pix-${paymentPlan.id}-${Date.now()}`,
+    code: `ev2-pix-${paymentPlan.id.slice(0, 8)}-${Date.now().toString().slice(-10)}`,
     customer: {
       name: formData.name,
       type: 'individual',

@@ -27,6 +27,7 @@ import { EnhancedPlanDisplayV2 } from './EnhancedPlanDisplayV2';
 import { supabase } from '@/integrations/supabase/client';
 import { PixDisplayV2 } from './PixDisplayV2';
 import { PaymentResultV2, type PaymentResultV2Data } from './PaymentResultV2';
+import { sendAnalyticsWebhook, buildPaymentSuccessWebhookPayload } from '@/services/analyticsWebhook';
 
 // Step 1: Customer Data Collection
 const step1Schema = z.object({
@@ -122,12 +123,9 @@ const ProgressSteps: React.FC<ProgressStepsProps> = ({ currentStepIndex, totalSt
       </div>
       <div className="flex justify-between mt-2 text-xs text-gray-500">
         <span className={`${0 <= currentStepIndex ? 'text-gray-700 font-medium' : 'text-gray-400'}`}>
-          Plano
-        </span>
-        <span className={`${1 <= currentStepIndex ? 'text-gray-700 font-medium' : 'text-gray-400'}`}>
           Dados
         </span>
-        <span className={`${2 <= currentStepIndex ? 'text-gray-700 font-medium' : 'text-gray-400'}`}>
+        <span className={`${1 <= currentStepIndex ? 'text-gray-700 font-medium' : 'text-gray-400'}`}>
           Pagamento
         </span>
       </div>
@@ -187,7 +185,7 @@ const PaymentV2Form = ({
   initialCustomParameter, 
   initialPaymentMethod 
 }: PaymentV2FormProps = {}) => {
-  const [currentStep, setCurrentStep] = useState(0);
+  const [currentStep, setCurrentStep] = useState(0); // Start at 0 (Customer Data) instead of 1
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>(initialPaymentMethod || 'credit_card');
   const [isProcessing, setIsProcessing] = useState(false);
   const [currentView, setCurrentView] = useState<PaymentViewState>('form');
@@ -195,6 +193,7 @@ const PaymentV2Form = ({
   const [paymentResult, setPaymentResult] = useState<PaymentResultV2Data | null>(null);
   
   // V2.0 Dynamic Plan Selection Integration with custom parameter support
+  // Plan is auto-selected based on URL parameter - no manual selection needed
   const planSelector = usePaymentPlanSelector({
     initialCustomParameter,
     initialPaymentMethod: initialPaymentMethod || selectedMethod
@@ -231,30 +230,42 @@ const PaymentV2Form = ({
     ? planSelector.getPixFinalAmount() 
     : planSelector.getCreditCardFinalAmount();
 
-  // Helper function to populate test data
+  // Helper function to populate test data (USER DATA + CREDIT CARD)
   const fillTestData = () => {
-    form.setValue('customerName', TEST_CARDS.APPROVED.name);
+    // Customer Information
+    form.setValue('customerName', 'João Silva Teste');
     form.setValue('customerEmail', 'test@evidens.com');
     form.setValue('customerEmailConfirm', 'test@evidens.com');
-    form.setValue('customerDocument', '04094922059');
+    form.setValue('customerDocument', '04094922059'); // Valid test CPF
     form.setValue('customerPhone', '(11) 99999-9999');
+    
+    // Billing Address (required for credit card payments)
     form.setValue('billingStreet', 'Rua Teste, 123');
-    form.setValue('billingZipCode', '01310100');
+    form.setValue('billingZipCode', '01310100'); // Valid São Paulo ZIP
     form.setValue('billingCity', 'São Paulo');
     form.setValue('billingState', 'SP');
+    
+    // Credit Card Information (using official Pagar.me test cards)
     form.setValue('cardNumber', TEST_CARDS.APPROVED.number);
     form.setValue('cardHolderName', TEST_CARDS.APPROVED.name);
     form.setValue('cardExpirationDate', TEST_CARDS.APPROVED.expiry);
     form.setValue('cardCvv', TEST_CARDS.APPROVED.cvv);
+    
+    toast.success('Dados de teste preenchidos! Pronto para testar pagamentos.');
   };
 
-  const handlePlanSelectionContinue = () => {
-    if (!planSelector.selectedPlan) {
-      toast.error('Selecione um plano para continuar');
-      return;
-    }
-    toast.success('Plano selecionado! Prosseguindo...');
-    setCurrentStep(1);
+  // Separate helper for test credit card data (not automatically called)
+  // Available test card data for manual entry when testing credit card payments:
+  // Card Number: 4000000000000010 (Guaranteed Approval)
+  // CVV: 123
+  // Expiry: 12/30  
+  // Name: Teste Aprovado
+  const fillTestCreditCardData = () => {
+    form.setValue('cardNumber', TEST_CARDS.APPROVED.number);
+    form.setValue('cardHolderName', TEST_CARDS.APPROVED.name);
+    form.setValue('cardExpirationDate', TEST_CARDS.APPROVED.expiry);
+    form.setValue('cardCvv', TEST_CARDS.APPROVED.cvv);
+    toast.success('Dados de teste do cartão preenchidos!');
   };
 
   const handleStep1Continue = async () => {
@@ -263,7 +274,7 @@ const PaymentV2Form = ({
     
     if (isStep1Valid) {
       toast.success('Dados salvos! Prosseguindo...');
-      setCurrentStep(2);
+      setCurrentStep(1); // Go to step 1 (Payment Details) instead of step 2
     }
   };
 
@@ -273,16 +284,11 @@ const PaymentV2Form = ({
 
   const onSubmit = async (values: PaymentV2FormData) => {
     if (currentStep === 0) {
-      handlePlanSelectionContinue();
-      return;
-    }
-    
-    if (currentStep === 1) {
       handleStep1Continue();
       return;
     }
 
-    // Step 2: Process payment
+    // Step 1: Process payment
     setIsProcessing(true);
     
     try {
@@ -333,6 +339,48 @@ const PaymentV2Form = ({
             });
             setCurrentView('pix-display');
             toast.success('PIX gerado com sucesso! Use o QR code para pagar.');
+
+            // 🔥 ANALYTICS WEBHOOK - PIX Generation Success
+            try {
+              const webhookPayload = buildPaymentSuccessWebhookPayload({
+                // Customer data
+                customerName: values.customerName,
+                customerEmail: values.customerEmail,
+                customerDocument: values.customerDocument,
+                customerPhone: values.customerPhone,
+                billingStreet: values.billingStreet,
+                billingZipCode: values.billingZipCode,
+                billingCity: values.billingCity,
+                billingState: values.billingState,
+
+                // Transaction data
+                transactionId: response.id,
+                transactionCode: pixRequest.code || 'unknown',
+                paymentMethod: 'pix',
+                baseAmount: planSelector.selectedPlan?.final_amount || 0,
+                finalAmount: finalAmount,
+
+                // Plan data
+                planId: planSelector.selectedPlan?.id || '',
+                planName: planSelector.selectedPlan?.name || '',
+                planType: planSelector.selectedPlan?.plan_type || '',
+                durationDays: planSelector.selectedPlan?.duration_days || 0,
+
+                // Marketing data
+                customParameter: initialCustomParameter || undefined,
+
+                // Technical data
+                userAgent: navigator.userAgent,
+              });
+
+              // Modify event type for PIX generation
+              webhookPayload.event.type = 'pix_generated';
+              webhookPayload.transaction.status = 'pending';
+
+              sendAnalyticsWebhook(webhookPayload);
+            } catch (webhookError) {
+              console.warn('Analytics webhook failed (non-blocking):', webhookError);
+            }
           } else {
             throw new Error('Erro ao gerar QR code do PIX');
           }
@@ -399,6 +447,48 @@ const PaymentV2Form = ({
         });
         setCurrentView('result');
         toast.success(`Assinatura criada com sucesso! ID: ${response.id}`);
+
+        // 🔥 ANALYTICS WEBHOOK - Credit Card Payment Success
+        try {
+          const installmentOption = planSelector.getSelectedInstallmentOption();
+          const webhookPayload = buildPaymentSuccessWebhookPayload({
+            // Customer data
+            customerName: values.customerName,
+            customerEmail: values.customerEmail,
+            customerDocument: values.customerDocument,
+            customerPhone: values.customerPhone,
+            billingStreet: values.billingStreet,
+            billingZipCode: values.billingZipCode,
+            billingCity: values.billingCity,
+            billingState: values.billingState,
+
+            // Transaction data
+            transactionId: response.subscription_id || response.id,
+            transactionCode: subscriptionRequest.code || 'unknown',
+            paymentMethod: 'credit_card',
+            baseAmount: planSelector.selectedPlan?.final_amount || 0,
+            finalAmount: finalAmount,
+            installments: selectedInstallments,
+            feeAmount: installmentOption?.feeAmount,
+            feeRate: installmentOption?.feeRate ? `${installmentOption.feeRate}%` : undefined,
+
+            // Plan data
+            planId: planSelector.selectedPlan?.id || '',
+            planName: planSelector.selectedPlan?.name || '',
+            planType: planSelector.selectedPlan?.plan_type || '',
+            durationDays: planSelector.selectedPlan?.duration_days || 0,
+
+            // Marketing data
+            customParameter: initialCustomParameter || undefined,
+
+            // Technical data
+            userAgent: navigator.userAgent,
+          });
+
+          sendAnalyticsWebhook(webhookPayload);
+        } catch (webhookError) {
+          console.warn('Analytics webhook failed (non-blocking):', webhookError);
+        }
       }
       
     } catch (error: any) {
@@ -474,114 +564,27 @@ const PaymentV2Form = ({
         </Button>
       </div>
 
+      {/* Enhanced Plan Display - Show selected plan at top like /pagamento */}
+      {planSelector.selectedPlan && (
+        <div className="mb-6">
+          <EnhancedPlanDisplayV2 
+            plan={planSelector.selectedPlan}
+            formatCurrency={planSelector.formatCurrency}
+            className="opacity-95"
+          />
+        </div>
+      )}
+
       {/* Progress Indicator */}
       <ProgressSteps 
         currentStepIndex={currentStep} 
-        totalSteps={3}
+        totalSteps={2}
       />
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           
-          {/* Step 0: Plan Selection */}
+          {/* Step 0: Customer Data Collection */}
           {currentStep === 0 && (
-            <div className="transition-all duration-300 ease-in-out animate-in fade-in slide-in-from-right-4 space-y-4">
-              <div className="mb-4">
-                <h4 className="text-sm font-medium text-black mb-3">Selecione seu plano</h4>
-                
-                {planSelector.isLoading ? (
-                  <div className="text-center py-8 text-gray-500">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-600 mx-auto mb-4"></div>
-                    <p>Carregando planos...</p>
-                  </div>
-                ) : planSelector.availablePlans.length === 0 ? (
-                  <div className="text-center py-8 text-gray-500">
-                    <p>Nenhum plano disponível no momento</p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {planSelector.availablePlans.map((plan) => {
-                      const isSelected = planSelector.state.selectedPlanId === plan.id;
-                      
-                      return (
-                        <div
-                          key={plan.id}
-                          className={`cursor-pointer transition-all rounded-lg ${
-                            isSelected ? 'ring-2 ring-black ring-offset-2' : 'hover:shadow-md'
-                          }`}
-                          onClick={() => planSelector.selectPlan(plan.id)}
-                        >
-                          {/* Enhanced Plan Display with Visual Theming */}
-                          <div className="relative">
-                            <EnhancedPlanDisplayV2 
-                              plan={plan}
-                              formatCurrency={planSelector.formatCurrency}
-                              className={isSelected ? '' : 'opacity-90 hover:opacity-100'}
-                            />
-                            
-                            {/* Selection Indicator */}
-                            {isSelected && (
-                              <div className="absolute top-3 right-3">
-                                <CheckCircle2 className="h-5 w-5 text-green-600 bg-white rounded-full" />
-                              </div>
-                            )}
-                          </div>
-                          
-                          {/* Pricing Information for Selected Plan */}
-                          {isSelected && planSelector.pricing && (
-                            <div className="mt-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
-                              <h6 className="text-sm font-medium text-gray-900 mb-2">Opções de Pagamento</h6>
-                              <div className="space-y-2 text-xs text-gray-600">
-                                {selectedMethod === 'pix' && (
-                                  <div className="flex items-center justify-between">
-                                    <span className="flex items-center gap-1">
-                                      <Smartphone className="h-3 w-3" />
-                                      PIX (Instantâneo)
-                                    </span>
-                                    <span className="font-semibold text-green-700">
-                                      {planSelector.formatCurrency(planSelector.pricing.pixFinalAmount)}
-                                      {planSelector.pricing.pixDiscount > 0 && (
-                                        <span className="text-green-600 ml-1">
-                                          ({planSelector.pricing.pixDiscount}% desconto)
-                                        </span>
-                                      )}
-                                    </span>
-                                  </div>
-                                )}
-                                {selectedMethod === 'credit_card' && planSelector.pricing.installmentOptions && (
-                                  <div className="flex items-center justify-between">
-                                    <span className="flex items-center gap-1">
-                                      <CreditCard className="h-3 w-3" />
-                                      Cartão de Crédito
-                                    </span>
-                                    <span className="font-semibold text-blue-700">
-                                      até 12x de {planSelector.formatCurrency(Math.round(planSelector.pricing.finalAmount / 12))}
-                                    </span>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-
-              {/* Step 0 Continue Button */}
-              <Button 
-                type="submit" 
-                className="w-full !mt-8 !bg-black hover:!bg-gray-800 !text-white flex items-center justify-center gap-2" 
-                disabled={!planSelector.selectedPlan}
-              >
-                Continuar
-                <ArrowRight className="h-4 w-4" />
-              </Button>
-            </div>
-          )}
-          
-          {/* Step 1: Customer Data Collection */}
-          {currentStep === 1 && (
             <div className="transition-all duration-300 ease-in-out animate-in fade-in slide-in-from-right-4 space-y-4">
               <FormField
                 control={form.control}
@@ -697,8 +700,8 @@ const PaymentV2Form = ({
               </Button>
             </div>
           )}
-          {/* Step 2: Payment Method Selection */}
-          {currentStep === 2 && (
+          {/* Step 1: Payment Method Selection */}
+          {currentStep === 1 && (
             <div className="transition-all duration-300 ease-in-out animate-in fade-in slide-in-from-left-4 space-y-4">
               {/* Payment Method Selection */}
               <div className="mb-4">
@@ -993,7 +996,7 @@ const PaymentV2Form = ({
                 </div>
               )}
 
-              {/* Step 2 Submit Button */}
+              {/* Step 1 Submit Button */}
               <Button 
                 type="submit" 
                 className="w-full !mt-8 !bg-black hover:!bg-gray-800 !text-white text-base font-medium"

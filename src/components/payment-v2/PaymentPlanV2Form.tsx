@@ -71,6 +71,7 @@ const getDefaultFormData = (): PaymentPlanV2FormData => ({
   pixConfig: {
     enabled: true,
     expirationMinutes: 60,
+    baseFeeRate: 0.014, // 1.4% PIX processing fee
     discountPercentage: 0.05 // 5% PIX discount
   },
   creditCardConfig: {
@@ -451,6 +452,9 @@ export default function PaymentPlanV2Form({
                 <Zap className="h-4 w-4" />
                 Configuração PIX
               </CardTitle>
+              <CardDescription>
+                Configure taxas e descontos específicos para pagamento PIX
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
@@ -467,36 +471,307 @@ export default function PaymentPlanV2Form({
               </div>
 
               {formData.pixConfig.enabled && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="pixDiscount">Desconto PIX (%)</Label>
-                    <Input
-                      id="pixDiscount"
-                      type="number"
-                      value={(formData.pixConfig.discountPercentage || 0) * 100}
-                      onChange={(e) => updatePixConfig({ 
-                        discountPercentage: (parseFloat(e.target.value) || 0) / 100 
-                      })}
-                      placeholder="5"
-                      min="0"
-                      max="15"
-                      step="0.1"
-                    />
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="pixBaseFee">Taxa Base PIX (%)</Label>
+                      <Input
+                        id="pixBaseFee"
+                        type="number"
+                        value={((formData.pixConfig.baseFeeRate || 0.014) * 100).toFixed(2)}
+                        onChange={(e) => updatePixConfig({ 
+                          baseFeeRate: (parseFloat(e.target.value) || 0) / 100 
+                        })}
+                        placeholder="1.40"
+                        min="0"
+                        max="10"
+                        step="0.01"
+                        className="text-center"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Taxa de processamento base do PIX (padrão: 1.4%)
+                      </p>
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="pixDiscount">Desconto PIX (%)</Label>
+                      <Input
+                        id="pixDiscount"
+                        type="number"
+                        value={((formData.pixConfig.discountPercentage || 0) * 100).toFixed(1)}
+                        onChange={(e) => updatePixConfig({ 
+                          discountPercentage: (parseFloat(e.target.value) || 0) / 100 
+                        })}
+                        placeholder="5.0"
+                        min="0"
+                        max="15"
+                        step="0.1"
+                        className="text-center"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Desconto adicional para incentivar pagamento PIX
+                      </p>
+                    </div>
                   </div>
-                  
-                  <div>
-                    <Label htmlFor="pixExpiration">Expiração (minutos)</Label>
-                    <Input
-                      id="pixExpiration"
-                      type="number"
-                      value={formData.pixConfig.expirationMinutes || 60}
-                      onChange={(e) => updatePixConfig({ 
-                        expirationMinutes: parseInt(e.target.value) || 60 
-                      })}
-                      placeholder="60"
-                      min="5"
-                      max="1440"
-                    />
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="pixTargetValue">Valor alvo PIX (R$)</Label>
+                      <Input
+                        id="pixTargetValue"
+                        type="number"
+                        placeholder="18.50"
+                        onChange={(e) => {
+                          const targetValue = parseFloat(e.target.value) || 0;
+                          if (targetValue > 0) {
+                            // Reverse calculation for PIX
+                            // target = baseAmount * (1 + baseFeeRate) * (1 - discountPercentage)
+                            // Assuming we want to adjust discountPercentage to reach target
+                            const targetCents = Math.round(targetValue * 100);
+                            const baseAmount = pricing?.baseAmount || formData.baseAmount;
+                            const baseFeeRate = formData.pixConfig.baseFeeRate || 0.014;
+                            const amountWithBaseFee = baseAmount * (1 + baseFeeRate);
+                            
+                            // discountPercentage = 1 - (target / amountWithBaseFee)
+                            const newDiscountPercentage = Math.max(0, Math.min(0.15, 1 - (targetCents / amountWithBaseFee)));
+                            
+                            updatePixConfig({ 
+                              discountPercentage: newDiscountPercentage
+                            });
+                          }
+                        }}
+                        step="0.01"
+                        className="text-center"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Digite o valor final desejado para PIX
+                      </p>
+                    </div>
+
+                    <div>
+                      <Label htmlFor="pixExpiration">Expiração (minutos)</Label>
+                      <Input
+                        id="pixExpiration"
+                        type="number"
+                        value={formData.pixConfig.expirationMinutes || 60}
+                        onChange={(e) => updatePixConfig({ 
+                          expirationMinutes: parseInt(e.target.value) || 60 
+                        })}
+                        placeholder="60"
+                        min="5"
+                        max="1440"
+                        className="text-center"
+                      />
+                    </div>
+                  </div>
+
+                  {/* PIX Result Preview */}
+                  {pricing && (
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-green-800">PIX Final:</span>
+                        <span className="text-lg font-bold text-green-600">
+                          {formatCurrency(pricing.pixFinalAmount)}
+                        </span>
+                      </div>
+                      <div className="text-xs text-green-600 mt-1 space-y-1">
+                        <div>Base: {formatCurrency(formData.baseAmount)}</div>
+                        <div>Taxa base ({((formData.pixConfig.baseFeeRate || 0.014) * 100).toFixed(2)}%): +{formatCurrency(Math.round(formData.baseAmount * (formData.pixConfig.baseFeeRate || 0.014)))}</div>
+                        {pricing.pixDiscount.amount > 0 && (
+                          <div>Desconto ({((formData.pixConfig.discountPercentage || 0) * 100).toFixed(1)}%): -{formatCurrency(pricing.pixDiscount.amount)}</div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Installment Configuration */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Calculator className="h-4 w-4" />
+                Configuração de Parcelamento
+              </CardTitle>
+              <CardDescription>
+                Customize as taxas para cada opção de parcelamento ou use o cálculo reverso
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>Habilitar Parcelamento</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Permitir pagamento parcelado no cartão de crédito
+                  </p>
+                </div>
+                <Switch
+                  checked={formData.installmentConfig.enabled}
+                  onCheckedChange={(enabled) => updateInstallmentConfig({ enabled })}
+                />
+              </div>
+
+              {formData.installmentConfig.enabled && (
+                <div className="space-y-4">
+                  <Alert>
+                    <Calculator className="h-4 w-4" />
+                    <AlertDescription>
+                      <strong>Cálculo Reverso:</strong> Digite o valor desejado no campo "Valor alvo" de qualquer parcela e os outros campos serão calculados automaticamente.
+                    </AlertDescription>
+                  </Alert>
+
+                  {formData.installmentConfig.options?.map((option, index) => (
+                    <div key={option.installments} className="border rounded-lg p-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-base font-medium">
+                          {option.installments === 1 ? 'À vista' : `${option.installments}x`}
+                        </Label>
+                        <Badge variant="outline">
+                          Taxa atual: {(option.feeRate * 100).toFixed(2)}%
+                        </Badge>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {/* Fee Rate Input */}
+                        <div>
+                          <Label htmlFor={`fee-${option.installments}`}>Taxa (%)</Label>
+                          <Input
+                            id={`fee-${option.installments}`}
+                            type="number"
+                            value={(option.feeRate * 100).toFixed(2)}
+                            onChange={(e) => {
+                              const newFeeRate = (parseFloat(e.target.value) || 0) / 100;
+                              const newOptions = [...(formData.installmentConfig.options || [])];
+                              newOptions[index] = { ...option, feeRate: newFeeRate };
+                              updateInstallmentConfig({ options: newOptions });
+                            }}
+                            placeholder="2.99"
+                            min="0"
+                            max="50"
+                            step="0.01"
+                            className="text-center"
+                          />
+                        </div>
+
+                        {/* Target Value Input (Reverse Calculation) */}
+                        <div>
+                          <Label htmlFor={`target-${option.installments}`}>
+                            Valor alvo {option.installments === 1 ? '(total)' : '(por parcela)'}
+                          </Label>
+                          <Input
+                            id={`target-${option.installments}`}
+                            type="number"
+                            placeholder={option.installments === 1 ? "19.90" : "29.90"}
+                            onChange={(e) => {
+                              const targetValue = parseFloat(e.target.value) || 0;
+                              if (targetValue > 0) {
+                                // Reverse calculation logic
+                                const targetCents = Math.round(targetValue * 100);
+                                let newFeeRate: number;
+                                
+                                if (option.installments === 1) {
+                                  // For single payment: target = finalAmount * (1 + feeRate)
+                                  // So: feeRate = (target / finalAmount) - 1
+                                  const finalAmount = pricing?.finalAmount || formData.baseAmount;
+                                  newFeeRate = Math.max(0, (targetCents / finalAmount) - 1);
+                                } else {
+                                  // For installments: target = (finalAmount * (1 + feeRate)) / installments
+                                  // So: feeRate = (target * installments / finalAmount) - 1
+                                  const finalAmount = pricing?.finalAmount || formData.baseAmount;
+                                  newFeeRate = Math.max(0, (targetCents * option.installments / finalAmount) - 1);
+                                }
+                                
+                                const newOptions = [...(formData.installmentConfig.options || [])];
+                                newOptions[index] = { ...option, feeRate: newFeeRate };
+                                updateInstallmentConfig({ options: newOptions });
+                              }
+                            }}
+                            step="0.01"
+                            className="text-center"
+                          />
+                        </div>
+
+                        {/* Calculated Result Display */}
+                        <div>
+                          <Label>Resultado calculado</Label>
+                          <div className="h-9 flex items-center justify-center border rounded-md bg-gray-50 text-sm font-medium">
+                            {pricing && pricing.installmentOptions.find(opt => opt.installments === option.installments) && (
+                              option.installments === 1 
+                                ? formatCurrency(pricing.installmentOptions.find(opt => opt.installments === option.installments)!.totalAmount)
+                                : `${formatCurrency(pricing.installmentOptions.find(opt => opt.installments === option.installments)!.installmentAmount)}/parcela`
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {pricing && pricing.installmentOptions.find(opt => opt.installments === option.installments) && (
+                        <div className="text-xs text-muted-foreground">
+                          Total com taxas: {formatCurrency(pricing.installmentOptions.find(opt => opt.installments === option.installments)!.totalAmount)}
+                          {option.feeRate > 0 && (
+                            <> • Taxas: {formatCurrency(pricing.installmentOptions.find(opt => opt.installments === option.installments)!.totalFees)}</>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+
+                  {/* Quick Fee Templates */}
+                  <div className="border-t pt-4">
+                    <Label className="text-sm">Templates rápidos:</Label>
+                    <div className="flex gap-2 mt-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const templateOptions = [
+                            { installments: 1, feeRate: 0.029 },
+                            { installments: 3, feeRate: 0.069 },
+                            { installments: 6, feeRate: 0.099 },
+                            { installments: 12, feeRate: 0.149 }
+                          ];
+                          updateInstallmentConfig({ options: templateOptions });
+                        }}
+                      >
+                        Padrão Conservador
+                      </Button>
+                      
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const templateOptions = [
+                            { installments: 1, feeRate: 0.0199 },
+                            { installments: 3, feeRate: 0.0499 },
+                            { installments: 6, feeRate: 0.0799 },
+                            { installments: 12, feeRate: 0.1199 }
+                          ];
+                          updateInstallmentConfig({ options: templateOptions });
+                        }}
+                      >
+                        Competitivo
+                      </Button>
+                      
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const templateOptions = [
+                            { installments: 1, feeRate: 0.0399 },
+                            { installments: 3, feeRate: 0.0899 },
+                            { installments: 6, feeRate: 0.1299 },
+                            { installments: 12, feeRate: 0.1799 }
+                          ];
+                          updateInstallmentConfig({ options: templateOptions });
+                        }}
+                      >
+                        Premium
+                      </Button>
+                    </div>
                   </div>
                 </div>
               )}

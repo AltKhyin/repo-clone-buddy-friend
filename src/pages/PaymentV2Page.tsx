@@ -39,15 +39,11 @@ const PaymentV2Page = () => {
       ? paymentMethod as 'pix' | 'credit_card' 
       : null;
     
-    // Log validation results for debugging
-    if (process.env.NODE_ENV === 'development') {
+    // Log validation results for debugging (only when parameters change)
+    if (process.env.NODE_ENV === 'development' && (validPlano || validPaymentMethod)) {
       console.log('PaymentV2Page URL Parameters:', {
-        raw: { plano, paymentMethod },
-        validated: { validPlano, validPaymentMethod },
-        invalid: {
-          plano: plano && !validPlano,
-          paymentMethod: paymentMethod && !validPaymentMethod
-        }
+        plano: validPlano,
+        paymentMethod: validPaymentMethod
       });
     }
     

@@ -65,11 +65,12 @@ export interface DiscountConfigV2 {
 export interface PixConfigV2 {
   enabled: boolean;
   expirationMinutes?: number; // Default: 60
+  baseFeeRate?: number; // Base processing fee (e.g., 0.014 for 1.4%)
+  discountPercentage?: number; // Additional discount for PIX payments
   qrCodeSettings?: {
     includeDescription: boolean;
     customMessage?: string;
   };
-  discountPercentage?: number; // Additional discount for PIX payments
 }
 
 /**
@@ -136,6 +137,45 @@ export interface DisplayConfigV2 {
 // =============================================================================
 // PRICING CALCULATION TYPES
 // =============================================================================
+
+/**
+ * Individual installment option with fees
+ */
+export interface InstallmentOption {
+  installments: number;
+  feeRate: number;
+  totalAmount: number;
+  installmentAmount: number;
+  totalFees: number;
+}
+
+/**
+ * Complete pricing calculation result (updated for V2.0)
+ */
+export interface PricingCalculationResult {
+  baseAmount: number;
+  discountAmount: number;
+  finalAmount: number;
+  installmentOptions: InstallmentOption[];
+  pixDiscount: {
+    amount: number;
+    percentage: number;
+  };
+  pixFinalAmount: number;
+  savings: {
+    amount: number;
+    percentage: number;
+  };
+  metadata: {
+    hasDiscount: boolean;
+    hasPixDiscount: boolean;
+    pixBaseFee?: number;
+    pixBaseFeeRate?: number;
+    maxInstallments: number;
+    minInstallmentValue: number;
+    calculatedAt: string;
+  };
+}
 
 /**
  * Pre-request pricing calculation result
