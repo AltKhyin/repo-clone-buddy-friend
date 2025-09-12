@@ -10,12 +10,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Separator } from '@/components/ui/separator';
 import { 
   CreditCard, 
   Percent, 
   Calculator, 
   AlertTriangle, 
-  CheckCircle
+  CheckCircle,
+  Settings
 } from 'lucide-react';
 import { usePaymentPricingV2 } from '@/hooks/usePaymentPricingV2';
 import type { 
@@ -178,13 +180,23 @@ const getDefaultFormData = (): PaymentPlanV2FormData => ({
     enabled: true,
     requireCvv: true
   },
-  // Minimal promotional config - no customization needed
+  // Full promotional config with visual customization
   promotionalConfig: {
-    isActive: false
+    isActive: false,
+    titleColor: '#111827',
+    descriptionColor: '#6B7280',
+    borderColor: '#E5E7EB',
+    savingsColor: '#059669',
+    discountTagBackgroundColor: '#111827',
+    discountTagTextColor: '#FFFFFF'
   },
   displayConfig: {
     showDiscountAmount: true,
-    showSavingsAmount: true
+    showSavingsAmount: true,
+    customName: '',
+    customDescription: '',
+    showCustomName: false,
+    showCustomDescription: false
   },
   customLinkParameter: ''
 });
@@ -212,8 +224,22 @@ export default function PaymentPlanV2Form({
         discountConfig: (initialData.discount_config as DiscountConfigV2) || getDefaultFormData().discountConfig,
         pixConfig: (initialData.pix_config as any) || getDefaultFormData().pixConfig,
         creditCardConfig: (initialData.credit_card_config as any) || getDefaultFormData().creditCardConfig,
-        promotionalConfig: getDefaultFormData().promotionalConfig,
-        displayConfig: getDefaultFormData().displayConfig,
+        promotionalConfig: (() => {
+          try {
+            const config = initialData.promotional_config;
+            return config ? (typeof config === 'string' ? JSON.parse(config) : config) : getDefaultFormData().promotionalConfig;
+          } catch {
+            return getDefaultFormData().promotionalConfig;
+          }
+        })(),
+        displayConfig: (() => {
+          try {
+            const config = initialData.display_config;
+            return config ? (typeof config === 'string' ? JSON.parse(config) : config) : getDefaultFormData().displayConfig;
+          } catch {
+            return getDefaultFormData().displayConfig;
+          }
+        })(),
         customLinkParameter: (initialData as any)?.custom_link_parameter || ''
       };
     }
@@ -285,6 +311,28 @@ export default function PaymentPlanV2Form({
       ...prev,
       installmentConfig: {
         ...prev.installmentConfig,
+        ...updates
+      }
+    }));
+  };
+
+  // Update promotional configuration
+  const updatePromotionalConfig = (updates: any) => {
+    setFormData(prev => ({
+      ...prev,
+      promotionalConfig: {
+        ...prev.promotionalConfig,
+        ...updates
+      }
+    }));
+  };
+
+  // Update display configuration
+  const updateDisplayConfig = (updates: any) => {
+    setFormData(prev => ({
+      ...prev,
+      displayConfig: {
+        ...prev.displayConfig,
         ...updates
       }
     }));
@@ -836,6 +884,212 @@ export default function PaymentPlanV2Form({
             </Alert>
           )}
 
+          {/* Visual Customization Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Settings className="h-4 w-4" />
+                Personalização Visual
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              
+              {/* Main Toggle */}
+              <div className="flex items-center justify-between pb-4 border-b">
+                <Label className="text-base font-medium">Ativar Personalização</Label>
+                <Switch
+                  checked={formData.promotionalConfig.isActive}
+                  onCheckedChange={(checked) => 
+                    updatePromotionalConfig({ isActive: checked })
+                  }
+                  disabled={!formData.discountConfig.enabled}
+                />
+              </div>
+
+              {/* Settings Grid - Always visible when enabled */}
+              {formData.promotionalConfig.isActive && formData.discountConfig.enabled && (
+                <div className="space-y-6">
+                  
+                  {/* Visual Elements */}
+                  <div className="space-y-3">
+                    <Label className="text-sm font-medium text-gray-700">Elementos</Label>
+                    <div className="flex gap-6">
+                      <label className="flex items-center gap-2 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={formData.displayConfig.showDiscountAmount}
+                          onChange={(e) => 
+                            updateDisplayConfig({ showDiscountAmount: e.target.checked })
+                          }
+                          className="rounded w-4 h-4"
+                        />
+                        Mostrar desconto
+                      </label>
+                      
+                      <label className="flex items-center gap-2 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={formData.displayConfig.showSavingsAmount}
+                          onChange={(e) => 
+                            updateDisplayConfig({ showSavingsAmount: e.target.checked })
+                          }
+                          className="rounded w-4 h-4"
+                        />
+                        Mostrar economia
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Custom Content */}
+                  <div className="space-y-3">
+                    <Label className="text-sm font-medium text-gray-700">Conteúdo</Label>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={formData.displayConfig.showCustomName || false}
+                            onChange={(e) => 
+                              updateDisplayConfig({ showCustomName: e.target.checked })
+                            }
+                            className="rounded w-4 h-4"
+                          />
+                          <Label htmlFor="customName" className="text-sm">Nome customizado</Label>
+                        </div>
+                        <Input
+                          id="customName"
+                          value={formData.displayConfig.customName || ''}
+                          onChange={(e) => 
+                            updateDisplayConfig({ customName: e.target.value })
+                          }
+                          placeholder="Nome promocional"
+                          disabled={!formData.displayConfig.showCustomName}
+                          className="h-8"
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={formData.displayConfig.showCustomDescription || false}
+                            onChange={(e) => 
+                              updateDisplayConfig({ showCustomDescription: e.target.checked })
+                            }
+                            className="rounded w-4 h-4"
+                          />
+                          <Label htmlFor="customDescription" className="text-sm">Descrição customizada</Label>
+                        </div>
+                        <Textarea
+                          id="customDescription"
+                          value={formData.displayConfig.customDescription || ''}
+                          onChange={(e) => 
+                            updateDisplayConfig({ customDescription: e.target.value })
+                          }
+                          placeholder="Descrição promocional"
+                          disabled={!formData.displayConfig.showCustomDescription}
+                          rows={2}
+                          className="text-sm"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Colors */}
+                  <div className="space-y-3">
+                    <Label className="text-sm font-medium text-gray-700">Cores</Label>
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="space-y-1">
+                        <Label htmlFor="titleColor" className="text-xs text-gray-500">Título</Label>
+                        <Input
+                          id="titleColor"
+                          type="color"
+                          value={formData.promotionalConfig.titleColor || '#111827'}
+                          onChange={(e) => 
+                            updatePromotionalConfig({ titleColor: e.target.value })
+                          }
+                          className="h-8 p-1 cursor-pointer"
+                        />
+                      </div>
+                      
+                      <div className="space-y-1">
+                        <Label htmlFor="descriptionColor" className="text-xs text-gray-500">Descrição</Label>
+                        <Input
+                          id="descriptionColor"
+                          type="color"
+                          value={formData.promotionalConfig.descriptionColor || '#6B7280'}
+                          onChange={(e) => 
+                            updatePromotionalConfig({ descriptionColor: e.target.value })
+                          }
+                          className="h-8 p-1 cursor-pointer"
+                        />
+                      </div>
+                      
+                      <div className="space-y-1">
+                        <Label htmlFor="borderColor" className="text-xs text-gray-500">Borda</Label>
+                        <Input
+                          id="borderColor"
+                          type="color"
+                          value={formData.promotionalConfig.borderColor || '#E5E7EB'}
+                          onChange={(e) => 
+                            updatePromotionalConfig({ borderColor: e.target.value })
+                          }
+                          className="h-8 p-1 cursor-pointer"
+                        />
+                      </div>
+                      
+                      <div className="space-y-1">
+                        <Label htmlFor="savingsColor" className="text-xs text-gray-500">Economia</Label>
+                        <Input
+                          id="savingsColor"
+                          type="color"
+                          value={formData.promotionalConfig.savingsColor || '#059669'}
+                          onChange={(e) => 
+                            updatePromotionalConfig({ savingsColor: e.target.value })
+                          }
+                          className="h-8 p-1 cursor-pointer"
+                        />
+                      </div>
+                      
+                      <div className="space-y-1">
+                        <Label htmlFor="discountTagBackgroundColor" className="text-xs text-gray-500">Tag Fundo</Label>
+                        <Input
+                          id="discountTagBackgroundColor"
+                          type="color"
+                          value={formData.promotionalConfig.discountTagBackgroundColor || '#111827'}
+                          onChange={(e) => 
+                            updatePromotionalConfig({ discountTagBackgroundColor: e.target.value })
+                          }
+                          className="h-8 p-1 cursor-pointer"
+                        />
+                      </div>
+                      
+                      <div className="space-y-1">
+                        <Label htmlFor="discountTagTextColor" className="text-xs text-gray-500">Tag Texto</Label>
+                        <Input
+                          id="discountTagTextColor"
+                          type="color"
+                          value={formData.promotionalConfig.discountTagTextColor || '#FFFFFF'}
+                          onChange={(e) => 
+                            updatePromotionalConfig({ discountTagTextColor: e.target.value })
+                          }
+                          className="h-8 p-1 cursor-pointer"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Disabled State Message */}
+              {!formData.discountConfig.enabled && (
+                <div className="text-center py-8 text-gray-400">
+                  <Settings className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">Configure um desconto primeiro para personalizar a aparência</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
           {/* Form Actions */}
           <Card>

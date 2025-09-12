@@ -108,6 +108,8 @@ const transformFormDataToInsert = (data: PaymentPlanV2FormData): PaymentPlanV2In
     discount_config: data.discountConfig,
     pix_config: data.pixConfig,
     credit_card_config: data.creditCardConfig,
+    promotional_config: data.promotionalConfig,
+    display_config: data.displayConfig,
     is_active: data.isActive ?? true,
     slug: data.slug || generateSlug(data.name),
     custom_link_parameter: data.customLinkParameter || null
@@ -127,6 +129,8 @@ const transformFormDataToUpdate = (data: Partial<PaymentPlanV2FormData>): any =>
   if (data.discountConfig !== undefined) updateData.discount_config = data.discountConfig;
   if (data.pixConfig !== undefined) updateData.pix_config = data.pixConfig;
   if (data.creditCardConfig !== undefined) updateData.credit_card_config = data.creditCardConfig;
+  if (data.promotionalConfig !== undefined) updateData.promotional_config = data.promotionalConfig;
+  if (data.displayConfig !== undefined) updateData.display_config = data.displayConfig;
   if (data.isActive !== undefined) updateData.is_active = data.isActive;
   if (data.customLinkParameter !== undefined) updateData.custom_link_parameter = data.customLinkParameter || null;
   

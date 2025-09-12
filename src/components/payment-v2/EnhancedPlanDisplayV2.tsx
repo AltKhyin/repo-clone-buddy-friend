@@ -1,7 +1,6 @@
 // ABOUTME: Enhanced plan display V2.0 component with sophisticated promotional features for PaymentPlansV2
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { cn } from '@/lib/utils';
-import { Clock } from 'lucide-react';
 import type { PaymentPlanV2Row, PromotionalConfigV2, DisplayConfigV2 } from '@/types/paymentV2.types';
 
 interface EnhancedPlanDisplayV2Props {
@@ -47,79 +46,46 @@ export const EnhancedPlanDisplayV2: React.FC<EnhancedPlanDisplayV2Props> = ({
     }
   }, [plan.display_config]);
 
-  // Calculate promotional pricing
-  const originalPrice = plan.final_amount;
-  const displayPrice = promotionalConfig?.isActive && promotionalConfig.promotionValue > 0
-    ? (promotionalConfig.displayAsPercentage 
-        ? originalPrice - (originalPrice * promotionalConfig.promotionValue / 100)
-        : originalPrice - promotionalConfig.promotionValue)
-    : originalPrice;
-
-  const savingsAmount = promotionalConfig?.isActive 
-    ? originalPrice - displayPrice 
-    : 0;
-
-  // Check if promotion has expired
-  const isPromotionExpired = promotionalConfig?.expiresAt 
-    ? new Date(promotionalConfig.expiresAt) < new Date() 
-    : false;
-
-  const isPromotionActive = promotionalConfig?.isActive && !isPromotionExpired;
-
-  // Countdown timer state
-  const [timeLeft, setTimeLeft] = useState<string>('');
-
-  useEffect(() => {
-    if (!promotionalConfig?.expiresAt || !promotionalConfig.showCountdownTimer || !isPromotionActive) {
-      return;
+  // Parse discount configuration
+  const discountConfig = React.useMemo(() => {
+    if (!plan.discount_config) {
+      return null;
     }
+    
+    try {
+      const config = typeof plan.discount_config === 'string' 
+        ? JSON.parse(plan.discount_config) 
+        : plan.discount_config;
+      return config;
+    } catch {
+      return null;
+    }
+  }, [plan.discount_config]);
 
-    const updateCountdown = () => {
-      const now = new Date().getTime();
-      const expiry = new Date(promotionalConfig.expiresAt).getTime();
-      const distance = expiry - now;
-
-      if (distance < 0) {
-        setTimeLeft('');
-        return;
-      }
-
-      const days = Math.floor(distance / (1000 * 60 * 60 * 24));
-      const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-      const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-      const seconds = Math.floor((distance % (1000 * 60)) / 1000);
-
-      if (days > 0) {
-        setTimeLeft(`${days}d ${hours}h ${minutes}m`);
-      } else if (hours > 0) {
-        setTimeLeft(`${hours}h ${minutes}m ${seconds}s`);
-      } else {
-        setTimeLeft(`${minutes}m ${seconds}s`);
-      }
-    };
-
-    updateCountdown();
-    const timer = setInterval(updateCountdown, 1000);
-
-    return () => clearInterval(timer);
-  }, [promotionalConfig?.expiresAt, promotionalConfig?.showCountdownTimer, isPromotionActive]);
+  // Calculate promotional pricing based on actual discount config
+  const basePrice = plan.base_amount;
+  const discountedPrice = plan.final_amount;
+  const savingsAmount = discountConfig?.enabled ? (basePrice - discountedPrice) : 0;
+  
+  // Check if visual customization should be active
+  const isPromotionActive = promotionalConfig?.isActive && discountConfig?.enabled;
 
   // Check if plan has any display customization
-  const hasDisplayCustomization = promotionalConfig && (
-    promotionalConfig.titleColor !== '#111827' || 
-    promotionalConfig.descriptionColor !== '#6B7280' || 
-    promotionalConfig.borderColor !== '#E5E7EB' || 
-    promotionalConfig.backgroundColor ||
+  const hasDisplayCustomization = isPromotionActive && (
+    promotionalConfig?.titleColor !== '#111827' || 
+    promotionalConfig?.descriptionColor !== '#6B7280' || 
+    promotionalConfig?.borderColor !== '#E5E7EB' ||
     displayConfig?.customName || 
-    displayConfig?.customDescription
+    displayConfig?.customDescription ||
+    savingsAmount > 0
   );
 
   // Get sophisticated styling (always available for customization)
   const getContainerStyles = () => {
     const baseStyles = "p-4 rounded-xl border transition-all duration-300";
     
-    // Enhanced styling if there's any customization OR it's a promotion
-    if (hasDisplayCustomization || isPromotionActive) {
+    // Enhanced styling if there's any customization OR discount is active
+    if (hasDisplayCustomization || savingsAmount > 0) {
       return cn(
         baseStyles,
         "bg-white border-2 shadow-sm hover:shadow-md"
@@ -142,10 +108,7 @@ export const EnhancedPlanDisplayV2: React.FC<EnhancedPlanDisplayV2Props> = ({
       styles.borderWidth = '2px';
     }
     
-    // Apply custom background color if available
-    if (promotionalConfig?.backgroundColor) {
-      styles.backgroundColor = promotionalConfig.backgroundColor;
-    }
+    // Keep background white for better readability
     
     return styles;
   };
@@ -184,32 +147,14 @@ export const EnhancedPlanDisplayV2: React.FC<EnhancedPlanDisplayV2Props> = ({
     );
   };
 
-  // Render countdown timer
-  const renderCountdownTimer = () => {
-    if (!isPromotionActive || 
-        !promotionalConfig?.showCountdownTimer || 
-        !displayConfig?.showCountdownTimer || 
-        !timeLeft) {
-      return null;
-    }
-
-    return (
-      <div 
-        className="flex items-center gap-1.5 mt-2 text-xs"
-        style={{ color: promotionalConfig.timerColor || '#374151' }}
-      >
-        <Clock className="w-3 h-3" />
-        <span>Termina em {timeLeft}</span>
-      </div>
-    );
-  };
 
   const renderPricing = () => {
-    if (!isPromotionActive) {
+    // If no discount or customization is active, show normal pricing
+    if (!isPromotionActive || savingsAmount === 0) {
       return (
         <div className="text-right">
           <p className="text-lg font-semibold text-gray-900">
-            {formatCurrency(originalPrice)}
+            {formatCurrency(discountedPrice)}
           </p>
           <p className="text-xs text-gray-500 mt-1">
             {plan.duration_days} dias
@@ -218,36 +163,37 @@ export const EnhancedPlanDisplayV2: React.FC<EnhancedPlanDisplayV2Props> = ({
       );
     }
 
+    // Show promotional pricing with customization
     return (
       <div className="text-right space-y-1">
-        {displayConfig?.showDiscountAmount && promotionalConfig.showDiscountAmount && (
+        {displayConfig?.showDiscountAmount && (
           <div className="flex items-center justify-end gap-2">
             <p className="text-sm text-gray-500 line-through">
-              {formatCurrency(originalPrice)}
+              {formatCurrency(basePrice)}
             </p>
             <span 
               className="text-xs px-2 py-1 rounded font-medium"
               style={{
-                backgroundColor: promotionalConfig.discountTagBackgroundColor || '#111827',
-                color: promotionalConfig.discountTagTextColor || '#FFFFFF'
+                backgroundColor: promotionalConfig?.discountTagBackgroundColor || '#111827',
+                color: promotionalConfig?.discountTagTextColor || '#FFFFFF'
               }}
             >
-              -{promotionalConfig.displayAsPercentage 
-                ? `${Math.round((savingsAmount / originalPrice) * 100)}%` 
+              -{discountConfig?.type === 'percentage' 
+                ? `${Math.round((savingsAmount / basePrice) * 100)}%` 
                 : formatCurrency(savingsAmount)}
             </span>
           </div>
         )}
         <p className="text-lg font-semibold text-gray-900">
-          {formatCurrency(displayPrice)}
+          {formatCurrency(discountedPrice)}
         </p>
         <p className="text-xs text-gray-500">
           {plan.duration_days} dias
         </p>
-        {displayConfig?.showSavingsAmount && promotionalConfig.showSavingsAmount && savingsAmount > 0 && (
+        {displayConfig?.showSavingsAmount && savingsAmount > 0 && (
           <p 
             className="text-xs font-medium"
-            style={{ color: promotionalConfig.savingsColor || '#059669' }}
+            style={{ color: promotionalConfig?.savingsColor || '#059669' }}
           >
             Economia de {formatCurrency(savingsAmount)}
           </p>
@@ -269,7 +215,6 @@ export const EnhancedPlanDisplayV2: React.FC<EnhancedPlanDisplayV2Props> = ({
               <p className="text-sm text-gray-600 mt-1">{plan.description}</p>
             )}
             {renderCustomDescription()}
-            {renderCountdownTimer()}
           </div>
           {renderPricing()}
         </div>

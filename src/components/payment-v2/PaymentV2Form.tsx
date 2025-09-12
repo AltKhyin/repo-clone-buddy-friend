@@ -875,7 +875,7 @@ const PaymentV2Form = ({
                                   <SelectItem 
                                     key={option.installments}
                                     value={option.installments.toString()} 
-                                    className="text-black hover:bg-gray-50 focus:bg-gray-50 data-[highlighted]:bg-gray-50 data-[state=checked]:text-black focus:text-black py-2"
+                                    className="text-black hover:bg-gray-50 focus:bg-gray-50 data-[highlighted]:bg-gray-50 data-[state=checked]:text-black focus:text-black py-1"
                                   >
                                     <span>
                                       {option.installments}x de {planSelector.formatCurrency(option.installmentAmount)}

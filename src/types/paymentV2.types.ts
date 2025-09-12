@@ -64,20 +64,30 @@ export interface CreditCardConfigV2 {
 }
 
 /**
- * Visual customization configuration - Simplified (minimal promotional features)
+ * Visual customization configuration with full promotional features
  */
 export interface PromotionalConfigV2 {
-  // Basic promotional settings only
   isActive: boolean;
+  // Color customization
+  titleColor?: string;
+  descriptionColor?: string;
+  borderColor?: string;
+  savingsColor?: string;
+  discountTagBackgroundColor?: string;
+  discountTagTextColor?: string;
 }
 
 /**
- * Display configuration for plan presentation - Simplified
+ * Display configuration for plan presentation
  */
 export interface DisplayConfigV2 {
-  // Basic display options only
   showDiscountAmount: boolean;
   showSavingsAmount: boolean;
+  // Custom content
+  customName?: string;
+  customDescription?: string;
+  showCustomName?: boolean;
+  showCustomDescription?: boolean;
 }
 
 // =============================================================================
