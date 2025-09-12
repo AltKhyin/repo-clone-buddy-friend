@@ -79,8 +79,8 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ userProfile, isLoa
   
   // Calculate subscription days remaining
   const getSubscriptionDaysRemaining = () => {
-    if (!enhancedStatus.userProfile?.subscription_end_date) return null;
-    const endDate = new Date(enhancedStatus.userProfile.subscription_end_date);
+    if (!enhancedStatus.userProfile?.subscription_ends_at) return null;
+    const endDate = new Date(enhancedStatus.userProfile.subscription_ends_at);
     const today = new Date();
     const diffTime = endDate.getTime() - today.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -861,8 +861,8 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ userProfile, isLoa
                   <div className="flex justify-between items-center">
                     <span className="text-xs text-gray-600">Próxima renovação</span>
                     <span className="text-xs font-medium text-gray-900">
-                      {enhancedStatus.userProfile?.subscription_end_date 
-                        ? new Date(enhancedStatus.userProfile.subscription_end_date).toLocaleDateString('pt-BR')
+                      {enhancedStatus.userProfile?.subscription_ends_at 
+                        ? new Date(enhancedStatus.userProfile.subscription_ends_at).toLocaleDateString('pt-BR')
                         : 'N/A'
                       }
                     </span>
@@ -902,8 +902,8 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ userProfile, isLoa
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-gray-600">Próxima renovação</span>
                       <span className="text-sm font-medium text-gray-900">
-                        {enhancedStatus.userProfile?.subscription_end_date 
-                          ? new Date(enhancedStatus.userProfile.subscription_end_date).toLocaleDateString('pt-BR')
+                        {enhancedStatus.userProfile?.subscription_ends_at 
+                          ? new Date(enhancedStatus.userProfile.subscription_ends_at).toLocaleDateString('pt-BR')
                           : 'N/A'
                         }
                       </span>

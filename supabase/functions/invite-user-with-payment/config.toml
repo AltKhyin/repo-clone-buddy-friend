@@ -1,0 +1,1 @@
+verify_jwt = false  # This function needs to work from unauthenticated payment flows

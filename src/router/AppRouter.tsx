@@ -17,9 +17,8 @@ import LoginPage from '@/pages/LoginPage';
 import RegistrationPage from '@/pages/RegistrationPage';
 import ForgotPasswordPage from '@/pages/ForgotPasswordPage';
 import ResetPasswordPage from '@/pages/ResetPasswordPage';
-import PaymentPage from '@/pages/PaymentPage';
+import CompleteRegistration from '@/pages/CompleteRegistration';
 import PaymentV2Page from '@/pages/PaymentV2Page';
-import EmbeddedPaymentPage from '@/pages/EmbeddedPaymentPage';
 import ProfileCompletionPage from '@/pages/ProfileCompletionPage';
 import PaymentSuccessPage from '@/pages/PaymentSuccessPage';
 import { OptimizedRouteProtection } from '@/components/routes/OptimizedRouteProtection';
@@ -31,7 +30,6 @@ import AdminLayoutManagement from '@/pages/AdminLayoutManagement';
 import AdminAnalytics from '@/pages/AdminAnalytics';
 import AdminAccessControl from '@/pages/AdminAccessControl';
 import AdminCommunityManagement from '@/pages/AdminCommunityManagement';
-import AdminPaymentManagement from '@/pages/AdminPaymentManagement';
 import AdminPaymentV2Management from '@/pages/AdminPaymentV2Management';
 import EditorPage from '@/pages/EditorPage';
 import ReviewManagementPage from '@/pages/ReviewManagementPage';
@@ -56,12 +54,16 @@ const router = createBrowserRouter([
     element: <ResetPasswordPage />,
   },
   {
+    path: '/complete-registration',
+    element: <CompleteRegistration />,
+  },
+  {
     path: '/pagar',
-    element: <PaymentPage />,
+    element: <PaymentV2Page />,
   },
   {
     path: '/pagamento',
-    element: <PaymentPage />,
+    element: <PaymentV2Page />,
   },
   {
     path: '/pagamento-v2',
@@ -187,10 +189,6 @@ const router = createBrowserRouter([
       {
         path: '/admin/access-control',
         element: <AdminAccessControl />,
-      },
-      {
-        path: '/admin/payment',
-        element: <AdminPaymentManagement />,
       },
       {
         path: '/admin/payment-v2',

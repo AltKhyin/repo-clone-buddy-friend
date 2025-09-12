@@ -59,11 +59,8 @@ Deno.serve(async (req: Request) => {
           profession,
           display_hover_card,
           contribution_score,
-          subscription_start_date,
-          subscription_end_date,
-          subscription_created_by,
-          admin_subscription_notes,
-          subscription_days_granted,
+          subscription_starts_at,
+          subscription_ends_at,
           facebook_url,
           instagram_url,
           linkedin_url,
@@ -133,11 +130,8 @@ Deno.serve(async (req: Request) => {
           contribution_score: user.contribution_score || 0,
           
           // Subscription timing fields
-          subscription_start_date: user.subscription_start_date,
-          subscription_end_date: user.subscription_end_date,
-          subscription_created_by: user.subscription_created_by,
-          admin_subscription_notes: user.admin_subscription_notes,
-          subscription_days_granted: user.subscription_days_granted,
+          subscription_starts_at: user.subscription_starts_at,
+          subscription_ends_at: user.subscription_ends_at,
           
           // Social media links
           socialMediaLinks: {
@@ -197,7 +191,7 @@ Deno.serve(async (req: Request) => {
       // Get current user subscription data
       const { data: currentUser, error: getUserError } = await supabaseAdmin
         .from('Practitioners')
-        .select('subscription_end_date, subscription_tier')
+        .select('subscription_ends_at, subscription_tier')
         .eq('id', userId)
         .single();
 
@@ -212,9 +206,9 @@ Deno.serve(async (req: Request) => {
       let newEndDate: string;
       const days = parseInt(adjustmentDays);
       
-      if (currentUser.subscription_end_date) {
+      if (currentUser.subscription_ends_at) {
         // Adjust existing date
-        const currentEndDate = new Date(currentUser.subscription_end_date);
+        const currentEndDate = new Date(currentUser.subscription_ends_at);
         currentEndDate.setDate(currentEndDate.getDate() + days);
         newEndDate = currentEndDate.toISOString();
       } else {
@@ -226,15 +220,13 @@ Deno.serve(async (req: Request) => {
 
       // Update subscription timing
       const updateData: any = {
-        subscription_end_date: newEndDate,
-        subscription_created_by: 'admin',
-        admin_subscription_notes: `Adjusted by admin: ${days > 0 ? '+' : ''}${days} days on ${new Date().toLocaleDateString('pt-BR')}`,
+        subscription_ends_at: newEndDate,
       };
 
       // If user is free tier and we're adding time, upgrade to premium
       if (currentUser.subscription_tier === 'free' && days > 0) {
         updateData.subscription_tier = 'premium';
-        updateData.subscription_start_date = new Date().toISOString();
+        updateData.subscription_starts_at = new Date().toISOString();
       }
 
       const { error: updateError } = await supabaseAdmin
@@ -292,16 +284,14 @@ Deno.serve(async (req: Request) => {
 
       // Update subscription data with absolute date
       const updateData: any = {
-        subscription_end_date: newDate,
-        subscription_created_by: 'admin',
-        admin_subscription_notes: `Set absolute date by admin: ${targetDate.toLocaleDateString('pt-BR')} on ${new Date().toLocaleDateString('pt-BR')}`,
+        subscription_ends_at: newDate,
       };
 
       // If user is free tier and we're setting a future date, upgrade to premium
       const now = new Date();
       if (currentUser.subscription_tier === 'free' && targetDate > now) {
         updateData.subscription_tier = 'premium';
-        updateData.subscription_start_date = new Date().toISOString();
+        updateData.subscription_starts_at = new Date().toISOString();
       }
 
       const { error: updateError } = await supabaseAdmin

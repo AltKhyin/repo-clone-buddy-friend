@@ -9,21 +9,26 @@ import { Form, FormControl, FormField, FormItem, FormMessage } from '@/component
 import { useLoginMutation, loginSchema } from '../../hooks/mutations/useLoginMutation';
 import { useGoogleAuth } from '../../hooks/mutations/useGoogleAuth';
 import { toast } from 'sonner';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { Checkbox } from '@/components/ui/checkbox';
 import GoogleIcon from '@/components/icons/GoogleIcon';
 import { useAuthFormTransition } from '@/hooks/useAuthFormTransition';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Mail, AlertCircle } from 'lucide-react';
 
 const LoginForm = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const mutation = useLoginMutation();
   const googleAuthMutation = useGoogleAuth();
   const { switchToRegister } = useAuthFormTransition();
   const [showEmailConfirmation, setShowEmailConfirmation] = useState(false);
   const [userEmail, setUserEmail] = useState('');
   const [loginError, setLoginError] = useState('');
+  const [isProcessingPaymentToken, setIsProcessingPaymentToken] = useState(false);
+
+  // Check for payment token in URL
+  const paymentToken = searchParams.get('payment_token');
   
   const form = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
@@ -37,14 +42,48 @@ const LoginForm = () => {
     }
   };
 
+  // Handle payment token completion after successful login
+  const handlePaymentTokenCompletion = async (userId: string) => {
+    if (!paymentToken) return;
+
+    setIsProcessingPaymentToken(true);
+    
+    try {
+      console.log('🔗 Processing payment token after login');
+      
+      const { completeAccountLinking } = await import('@/services/accountLinkingService');
+      const result = await completeAccountLinking(paymentToken, userId);
+      
+      if (result.success) {
+        toast.success('Login realizado e assinatura ativada com sucesso!');
+      } else {
+        console.error('❌ Payment token completion failed:', result.error);
+        toast.warning('Login realizado, mas houve um problema na ativação da assinatura. Entre em contato conosco.');
+      }
+    } catch (error) {
+      console.error('💥 Error processing payment token:', error);
+      toast.warning('Login realizado, mas houve um problema na ativação da assinatura.');
+    } finally {
+      setIsProcessingPaymentToken(false);
+    }
+  };
+
   const onSubmit = (values: z.infer<typeof loginSchema>) => {
     // Clear any previous errors
     setLoginError('');
     setUserEmail(values.email);
     
     mutation.mutate(values, {
-      onSuccess: () => {
-        toast.success('Login bem-sucedido!');
+      onSuccess: async (data) => {
+        console.log('✅ Login successful');
+        
+        // If there's a payment token, complete account linking
+        if (paymentToken && data?.user?.id) {
+          await handlePaymentTokenCompletion(data.user.id);
+        } else {
+          toast.success('Login bem-sucedido!');
+        }
+        
         navigate('/');
       },
       onError: (error) => {
@@ -108,6 +147,15 @@ const LoginForm = () => {
         <span className="h-1.5 w-1.5 rounded-full bg-black"></span>
         <h2 className="text-xl font-serif tracking-tight">Entrar</h2>
       </div>
+      
+      {/* Payment token indicator */}
+      {paymentToken && (
+        <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+          <p className="text-sm text-blue-800">
+            💳 Você tem uma assinatura pendente. Após o login, sua assinatura será ativada automaticamente.
+          </p>
+        </div>
+      )}
       
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 mt-6">
@@ -182,8 +230,14 @@ const LoginForm = () => {
             </div>
           )}
           
-          <Button type="submit" className="w-full !mt-8 !bg-black hover:!bg-gray-800 !text-white" disabled={mutation.isPending}>
-            {mutation.isPending ? 'Entrando...' : 'Entrar'}
+          <Button 
+            type="submit" 
+            className="w-full !mt-8 !bg-black hover:!bg-gray-800 !text-white" 
+            disabled={mutation.isPending || isProcessingPaymentToken}
+          >
+            {isProcessingPaymentToken ? 'Ativando assinatura...' : 
+             mutation.isPending ? 'Entrando...' : 
+             paymentToken ? 'Entrar e ativar assinatura' : 'Entrar'}
           </Button>
         </form>
       </Form>

@@ -457,8 +457,8 @@ export const UserListTable = () => {
                             id: user.id,
                             full_name: user.full_name,
                             subscription_tier: user.roleTracking.subscriptionTier.value,
-                            subscription_start_date: user.subscription_start_date,
-                            subscription_end_date: user.subscription_end_date,
+                            subscription_starts_at: user.subscription_starts_at,
+                            subscription_ends_at: user.subscription_ends_at,
                           }}
                           isEditing={inlineEditMode}
                           isPending={cellUpdateMutation.isPending}

@@ -4,15 +4,14 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
 interface SubscriptionTimingData {
-  subscription_start_date?: string;
-  subscription_end_date?: string;
+  subscription_starts_at?: string;
+  subscription_ends_at?: string;
   subscription_created_by?: 'user' | 'admin';
   subscription_payment_method_used?: 'pix' | 'credit_card' | 'boleto' | 'admin_manual';
   admin_subscription_notes?: string;
   subscription_days_granted?: number;
   trial_end_date?: string;
   last_payment_date?: string;
-  next_billing_date?: string;
   subscription_id?: string;
 }
 
@@ -101,21 +100,19 @@ const calculateTrialRemainingDays = (trialEndDate?: string): number | null => {
 // Transform raw user data into enhanced status
 const transformUserData = (userData: any): EnhancedUserStatus => {
   const subscriptionData: SubscriptionTimingData = {
-    subscription_start_date: userData.subscription_start_date,
-    subscription_end_date: userData.subscription_end_date,
+    subscription_starts_at: userData.subscription_starts_at,
+    subscription_ends_at: userData.subscription_ends_at,
     subscription_created_by: userData.subscription_created_by,
     subscription_payment_method_used: userData.subscription_payment_method_used,
     admin_subscription_notes: userData.admin_subscription_notes,
     subscription_days_granted: userData.subscription_days_granted,
     trial_end_date: userData.trial_end_date,
     last_payment_date: userData.last_payment_date,
-    next_billing_date: userData.next_billing_date,
     subscription_id: userData.subscription_id,
   };
 
-  const remainingDays = calculateRemainingDays(subscriptionData.subscription_end_date);
+  const remainingDays = calculateRemainingDays(subscriptionData.subscription_ends_at);
   const trialRemainingDays = calculateTrialRemainingDays(subscriptionData.trial_end_date);
-  const nextBillingDays = calculateRemainingDays(subscriptionData.next_billing_date);
 
   const subscriptionStatus = {
     isActive: userData.subscription_tier === 'premium' && (remainingDays === null || remainingDays > 0),
@@ -123,7 +120,7 @@ const transformUserData = (userData: any): EnhancedUserStatus => {
     isExpiringSoon: remainingDays !== null && remainingDays > 0 && remainingDays <= 7,
     isCritical: remainingDays !== null && remainingDays > 0 && remainingDays <= 3,
     remainingDays,
-    daysUntilRenewal: nextBillingDays,
+    daysUntilRenewal: null, // V2 doesn't use next_billing_date
     isPremium: userData.subscription_tier === 'premium',
     hasTrial: Boolean(subscriptionData.trial_end_date),
     trialExpired: trialRemainingDays !== null && trialRemainingDays <= 0,
@@ -144,7 +141,7 @@ const transformUserData = (userData: any): EnhancedUserStatus => {
 
   const billingInfo = {
     hasRecurringSubscription: Boolean(subscriptionData.subscription_id),
-    nextBillingDate: subscriptionData.next_billing_date,
+    nextBillingDate: undefined, // V2 doesn't use next_billing_date
     lastPaymentDate: subscriptionData.last_payment_date,
     paymentMethod: subscriptionData.subscription_payment_method_used,
     totalDaysGranted: subscriptionData.subscription_days_granted || 0,
@@ -187,15 +184,14 @@ export const useUserStatus = (userId?: string) => {
           created_at,
           avatar_url,
           profession,
-          subscription_start_date,
-          subscription_end_date,
+          subscription_starts_at,
+          subscription_ends_at,
           subscription_created_by,
           subscription_payment_method_used,
           admin_subscription_notes,
           subscription_days_granted,
           trial_end_date,
           last_payment_date,
-          next_billing_date,
           subscription_id
         `)
         .eq('id', userId)
@@ -244,15 +240,14 @@ export const useCurrentUserStatus = () => {
           created_at,
           avatar_url,
           profession,
-          subscription_start_date,
-          subscription_end_date,
+          subscription_starts_at,
+          subscription_ends_at,
           subscription_created_by,
           subscription_payment_method_used,
           admin_subscription_notes,
           subscription_days_granted,
           trial_end_date,
           last_payment_date,
-          next_billing_date,
           subscription_id
         `)
         .eq('id', user.id)
@@ -294,15 +289,14 @@ export const useBulkUserStatus = (userIds: string[]) => {
           created_at,
           avatar_url,
           profession,
-          subscription_start_date,
-          subscription_end_date,
+          subscription_starts_at,
+          subscription_ends_at,
           subscription_created_by,
           subscription_payment_method_used,
           admin_subscription_notes,
           subscription_days_granted,
           trial_end_date,
           last_payment_date,
-          next_billing_date,
           subscription_id
         `)
         .in('id', userIds);
@@ -334,7 +328,7 @@ export const useTimeAdjustmentMutation = () => {
       // Get current user subscription data
       const { data: currentUser, error: fetchError } = await supabase
         .from('Practitioners')
-        .select('subscription_end_date, subscription_days_granted')
+        .select('subscription_ends_at, subscription_days_granted')
         .eq('id', userId)
         .single();
 
@@ -343,8 +337,8 @@ export const useTimeAdjustmentMutation = () => {
       }
 
       // Calculate new end date
-      const currentEndDate = currentUser?.subscription_end_date 
-        ? new Date(currentUser.subscription_end_date)
+      const currentEndDate = currentUser?.subscription_ends_at 
+        ? new Date(currentUser.subscription_ends_at)
         : new Date();
       
       const newEndDate = new Date(currentEndDate.getTime() + (days * 24 * 60 * 60 * 1000));
@@ -354,7 +348,7 @@ export const useTimeAdjustmentMutation = () => {
       const { error: updateError } = await supabase
         .from('Practitioners')
         .update({
-          subscription_end_date: newEndDate.toISOString(),
+          subscription_ends_at: newEndDate.toISOString(),
           subscription_days_granted: currentGrantedDays + days,
           admin_subscription_notes: notes,
           subscription_created_by: 'admin',
@@ -392,15 +386,14 @@ export const useSubscriptionResetMutation = () => {
         .from('Practitioners')
         .update({
           subscription_tier: 'free',
-          subscription_start_date: null,
-          subscription_end_date: null,
+          subscription_starts_at: null,
+          subscription_ends_at: null,
           subscription_created_by: null,
           subscription_payment_method_used: null,
           admin_subscription_notes: `RESET: ${notes}`,
           subscription_days_granted: 0,
           trial_end_date: null,
           last_payment_date: null,
-          next_billing_date: null,
           subscription_id: null,
         })
         .eq('id', userId);

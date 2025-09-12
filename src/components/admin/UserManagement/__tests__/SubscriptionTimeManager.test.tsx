@@ -70,8 +70,8 @@ const mockActiveUser: EnhancedUserStatus = {
   subscription_tier: 'premium',
   created_at: '2023-01-01T00:00:00Z',
   subscriptionData: {
-    subscription_start_date: '2023-01-01T00:00:00Z',
-    subscription_end_date: '2024-01-01T00:00:00Z',
+    subscription_starts_at: '2023-01-01T00:00:00Z',
+    subscription_ends_at: '2024-01-01T00:00:00Z',
     subscription_created_by: 'user',
     subscription_payment_method_used: 'credit_card',
     subscription_days_granted: 365,
@@ -108,8 +108,8 @@ const mockExpiredUser: EnhancedUserStatus = {
   email: 'maria@example.com',
   subscription_tier: 'free',
   subscriptionData: {
-    subscription_start_date: '2022-01-01T00:00:00Z',
-    subscription_end_date: '2023-01-01T00:00:00Z',
+    subscription_starts_at: '2022-01-01T00:00:00Z',
+    subscription_ends_at: '2023-01-01T00:00:00Z',
     subscription_created_by: 'admin',
     subscription_payment_method_used: 'admin_manual',
     admin_subscription_notes: 'Expired subscription, needs renewal',

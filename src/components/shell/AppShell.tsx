@@ -4,6 +4,7 @@
 import React, { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import { useIsMobile } from '../../hooks/use-mobile';
+import { usePasswordSetupRedirect } from '../../hooks/usePasswordSetupRedirect';
 import { ErrorBoundary } from '../ErrorBoundary';
 import DesktopShell from './DesktopShell';
 import MobileShell from './MobileShell';
@@ -11,6 +12,9 @@ import FixedHeader from './FixedHeader';
 
 const AppShell = () => {
   const isMobile = useIsMobile();
+  
+  // Check for password setup requirement for payment users
+  usePasswordSetupRedirect();
   
   // Sidebar state management - moved from DesktopShell for header coordination
   const [isCollapsed, setIsCollapsed] = useState(false);

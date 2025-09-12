@@ -1,37 +1,20 @@
-// ABOUTME: Unified subscription field update helpers ensuring data consistency across all subscription-related tables
+// ABOUTME: V2 subscription field update helpers for Practitioners table only
 
 import { supabase } from '@/integrations/supabase/client';
 import { Database } from '@/integrations/supabase/types';
 
 type Practitioner = Database['public']['Tables']['Practitioners']['Row'];
-type EvidensSubscription = Database['public']['Tables']['evidens_subscriptions']['Row'];
 
 export interface SubscriptionFieldUpdate {
   // Core subscription fields
   status?: string;
   tier?: string;
-  plan?: string;
   startDate?: string;
   endDate?: string;
-  nextBillingDate?: string;
-  lastPaymentDate?: string;
-  
-  // Payment and billing fields
-  paymentMethod?: string;
-  paymentMethodUsed?: string;
-  amount?: number;
-  currency?: string;
-  billingCycle?: string;
   
   // Management fields
-  createdBy?: string;
   daysGranted?: number;
   adminNotes?: string;
-  
-  // Integration fields
-  pagarmeCustomerId?: string;
-  pagarmeSubscriptionId?: string;
-  evidensCustomerId?: string;
   
   // Metadata and tracking
   metadata?: Record<string, any>;
@@ -41,20 +24,17 @@ export interface SubscriptionFieldUpdate {
 export interface SubscriptionUpdateResult {
   success: boolean;
   practitionerUpdated: boolean;
-  subscriptionRecordUpdated: boolean;
-  subscriptionId?: string;
   errors: string[];
   warnings: string[];
 }
 
 /**
- * Unified subscription field update service
- * Ensures consistency between Practitioners table and evidens_subscriptions table
+ * V2 subscription field update service for Practitioners table
  */
 export class UnifiedSubscriptionUpdater {
   
   /**
-   * Updates subscription fields for a single user with full data consistency
+   * Updates subscription fields for a single user in V2 system
    */
   static async updateUserSubscription(
     userId: string,
@@ -63,7 +43,6 @@ export class UnifiedSubscriptionUpdater {
     const result: SubscriptionUpdateResult = {
       success: false,
       practitionerUpdated: false,
-      subscriptionRecordUpdated: false,
       errors: [],
       warnings: []
     };
@@ -71,31 +50,17 @@ export class UnifiedSubscriptionUpdater {
     try {
       console.log(`🔄 Updating subscription for user: ${userId}`, updates);
       
-      // Build updates for Practitioners table
+      // Build updates for Practitioners table (V2 fields only)
       const practitionerUpdates = this.buildPractitionerUpdates(updates);
       
-      // Build updates for evidens_subscriptions table
-      const subscriptionUpdates = this.buildSubscriptionUpdates(updates);
-      
-      // Perform updates in transaction-like manner
+      // Perform update
       const practitionerResult = await this.updatePractitionerFields(userId, practitionerUpdates);
-      const subscriptionResult = await this.updateSubscriptionRecord(userId, subscriptionUpdates);
       
       result.practitionerUpdated = practitionerResult.success;
-      result.subscriptionRecordUpdated = subscriptionResult.success;
-      result.subscriptionId = subscriptionResult.subscriptionId;
       
       if (practitionerResult.error) result.errors.push(`Practitioner: ${practitionerResult.error}`);
-      if (subscriptionResult.error) result.errors.push(`Subscription: ${subscriptionResult.error}`);
       
-      // Add warnings for partial updates
-      if (result.practitionerUpdated && !result.subscriptionRecordUpdated) {
-        result.warnings.push('Practitioner updated but subscription record failed');
-      } else if (!result.practitionerUpdated && result.subscriptionRecordUpdated) {
-        result.warnings.push('Subscription record updated but Practitioner failed');
-      }
-      
-      result.success = result.practitionerUpdated || result.subscriptionRecordUpdated;
+      result.success = result.practitionerUpdated;
       
       console.log(`✅ Subscription update completed for user ${userId}:`, result);
       return result;
@@ -105,62 +70,6 @@ export class UnifiedSubscriptionUpdater {
       result.errors.push(`Update failed: ${error.message}`);
       return result;
     }
-  }
-  
-  /**
-   * Batch update subscription fields for multiple users
-   */
-  static async batchUpdateSubscriptions(
-    userUpdates: Array<{ userId: string; updates: SubscriptionFieldUpdate }>
-  ): Promise<{ results: SubscriptionUpdateResult[]; summary: any }> {
-    console.log(`🔄 Starting batch subscription update for ${userUpdates.length} users`);
-    
-    const results: SubscriptionUpdateResult[] = [];
-    let successCount = 0;
-    let partialCount = 0;
-    let failureCount = 0;
-    
-    for (const { userId, updates } of userUpdates) {
-      try {
-        const result = await this.updateUserSubscription(userId, updates);
-        results.push(result);
-        
-        if (result.success) {
-          if (result.practitionerUpdated && result.subscriptionRecordUpdated) {
-            successCount++;
-          } else {
-            partialCount++;
-          }
-        } else {
-          failureCount++;
-        }
-        
-        // Small delay to avoid overwhelming the database
-        await new Promise(resolve => setTimeout(resolve, 50));
-        
-      } catch (error) {
-        console.error(`❌ Batch update failed for user ${userId}:`, error);
-        results.push({
-          success: false,
-          practitionerUpdated: false,
-          subscriptionRecordUpdated: false,
-          errors: [error.message],
-          warnings: []
-        });
-        failureCount++;
-      }
-    }
-    
-    const summary = {
-      total: userUpdates.length,
-      successful: successCount,
-      partial: partialCount,
-      failed: failureCount,
-      successRate: ((successCount + partialCount) / userUpdates.length * 100).toFixed(2) + '%'
-    };
-    
-    console.log(`✅ Batch subscription update completed:`, summary);
-    return { results, summary };
   }
   
   /**
@@ -215,13 +124,11 @@ export class UnifiedSubscriptionUpdater {
       // Get current subscription end date
       const { data: practitioner } = await supabase
         .from('Practitioners')
-        .select('subscription_end_date, evidens_subscription_expires_at')
+        .select('subscription_ends_at')
         .eq('id', userId)
         .single();
       
-      const currentEndDate = practitioner?.evidens_subscription_expires_at || 
-                           practitioner?.subscription_end_date || 
-                           new Date().toISOString();
+      const currentEndDate = practitioner?.subscription_ends_at || new Date().toISOString();
       
       const newEndDate = new Date(new Date(currentEndDate).getTime() + additionalDays * 24 * 60 * 60 * 1000);
       
@@ -243,7 +150,6 @@ export class UnifiedSubscriptionUpdater {
       return {
         success: false,
         practitionerUpdated: false,
-        subscriptionRecordUpdated: false,
         errors: [`Extension failed: ${error.message}`],
         warnings: []
       };
@@ -251,39 +157,25 @@ export class UnifiedSubscriptionUpdater {
   }
   
   /**
-   * Build Practitioners table updates from generic updates
+   * Build Practitioners table updates from generic updates (V2 fields only)
    */
   private static buildPractitionerUpdates(updates: SubscriptionFieldUpdate): Partial<Practitioner> {
     const practitionerUpdates: any = {};
     
-    // Map generic fields to Practitioners table fields
+    // Map generic fields to V2 Practitioners table fields
     if (updates.status) {
       practitionerUpdates.subscription_status = updates.status;
-      practitionerUpdates.evidens_subscription_status = updates.status;
     }
     if (updates.tier) {
       practitionerUpdates.subscription_tier = updates.tier;
-      practitionerUpdates.evidens_subscription_tier = updates.tier;
     }
-    if (updates.plan) practitionerUpdates.subscription_plan = updates.plan;
-    if (updates.startDate) practitionerUpdates.subscription_start_date = updates.startDate;
+    if (updates.startDate) practitionerUpdates.subscription_starts_at = updates.startDate;
     if (updates.endDate) {
-      practitionerUpdates.subscription_end_date = updates.endDate;
-      practitionerUpdates.subscription_expires_at = updates.endDate;
-      practitionerUpdates.evidens_subscription_expires_at = updates.endDate;
+      practitionerUpdates.subscription_ends_at = updates.endDate;
     }
-    if (updates.nextBillingDate) practitionerUpdates.next_billing_date = updates.nextBillingDate;
-    if (updates.lastPaymentDate) practitionerUpdates.last_payment_date = updates.lastPaymentDate;
     
-    if (updates.paymentMethod) practitionerUpdates.payment_method_preferred = updates.paymentMethod;
-    if (updates.paymentMethodUsed) practitionerUpdates.subscription_payment_method_used = updates.paymentMethodUsed;
-    
-    if (updates.createdBy) practitionerUpdates.subscription_created_by = updates.createdBy;
     if (updates.daysGranted) practitionerUpdates.subscription_days_granted = updates.daysGranted;
     if (updates.adminNotes) practitionerUpdates.admin_subscription_notes = updates.adminNotes;
-    
-    if (updates.pagarmeCustomerId) practitionerUpdates.pagarme_customer_id = updates.pagarmeCustomerId;
-    if (updates.evidensCustomerId) practitionerUpdates.evidens_pagarme_customer_id = updates.evidensCustomerId;
     
     // Merge metadata
     if (updates.metadata) {
@@ -294,34 +186,6 @@ export class UnifiedSubscriptionUpdater {
     practitionerUpdates.updated_at = new Date().toISOString();
     
     return practitionerUpdates;
-  }
-  
-  /**
-   * Build evidens_subscriptions table updates from generic updates
-   */
-  private static buildSubscriptionUpdates(updates: SubscriptionFieldUpdate): Partial<EvidensSubscription> {
-    const subscriptionUpdates: any = {};
-    
-    if (updates.status) subscriptionUpdates.status = updates.status;
-    if (updates.amount) subscriptionUpdates.amount = updates.amount;
-    if (updates.currency) subscriptionUpdates.currency = updates.currency;
-    if (updates.billingCycle) subscriptionUpdates.billing_cycle = updates.billingCycle;
-    if (updates.startDate) subscriptionUpdates.current_period_start = updates.startDate;
-    if (updates.endDate) subscriptionUpdates.current_period_end = updates.endDate;
-    if (updates.nextBillingDate) subscriptionUpdates.next_billing_date = updates.nextBillingDate;
-    if (updates.paymentMethod) subscriptionUpdates.payment_method = updates.paymentMethod;
-    if (updates.pagarmeCustomerId) subscriptionUpdates.pagarme_customer_id = updates.pagarmeCustomerId;
-    if (updates.pagarmeSubscriptionId) subscriptionUpdates.pagarme_subscription_id = updates.pagarmeSubscriptionId;
-    
-    // Merge metadata
-    if (updates.metadata) {
-      subscriptionUpdates.metadata = updates.metadata;
-    }
-    
-    // Always update timestamp
-    subscriptionUpdates.updated_at = new Date().toISOString();
-    
-    return subscriptionUpdates;
   }
   
   /**
@@ -343,60 +207,6 @@ export class UnifiedSubscriptionUpdater {
       }
       
       return { success: true };
-    } catch (error) {
-      return { success: false, error: error.message };
-    }
-  }
-  
-  /**
-   * Update or create evidens_subscriptions record
-   */
-  private static async updateSubscriptionRecord(
-    userId: string,
-    updates: Partial<EvidensSubscription>
-  ): Promise<{ success: boolean; subscriptionId?: string; error?: string }> {
-    try {
-      // Check if subscription record exists
-      const { data: existingSubscription } = await supabase
-        .from('evidens_subscriptions')
-        .select('id, status')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
-      
-      if (existingSubscription) {
-        // Update existing subscription
-        const { error } = await supabase
-          .from('evidens_subscriptions')
-          .update(updates)
-          .eq('id', existingSubscription.id);
-        
-        if (error) {
-          console.error('Subscription update failed:', error);
-          return { success: false, error: error.message };
-        }
-        
-        return { success: true, subscriptionId: existingSubscription.id };
-      } else {
-        // Create new subscription record
-        const { data: newSubscription, error } = await supabase
-          .from('evidens_subscriptions')
-          .insert({
-            user_id: userId,
-            ...updates,
-            created_at: new Date().toISOString()
-          })
-          .select('id')
-          .single();
-        
-        if (error) {
-          console.error('Subscription creation failed:', error);
-          return { success: false, error: error.message };
-        }
-        
-        return { success: true, subscriptionId: newSubscription.id };
-      }
     } catch (error) {
       return { success: false, error: error.message };
     }
@@ -424,9 +234,6 @@ export const subscriptionHelpers = {
   upgradeToPremium: (userId: string, reason?: string) => 
     UnifiedSubscriptionUpdater.updateSubscriptionTier(userId, 'premium', reason),
   
-  upgradeToProfessional: (userId: string, reason?: string) => 
-    UnifiedSubscriptionUpdater.updateSubscriptionTier(userId, 'professional', reason),
-  
   downgradeToFree: (userId: string, reason?: string) => 
     UnifiedSubscriptionUpdater.updateSubscriptionTier(userId, 'free', reason),
   
@@ -436,25 +243,6 @@ export const subscriptionHelpers = {
   
   extend365Days: (userId: string, reason?: string) => 
     UnifiedSubscriptionUpdater.extendSubscription(userId, 365, reason),
-  
-  // Payment updates
-  updatePaymentMethod: async (userId: string, paymentMethod: string) => 
-    UnifiedSubscriptionUpdater.updateUserSubscription(userId, {
-      paymentMethod,
-      paymentMethodUsed: paymentMethod,
-      metadata: {
-        payment_method_updated_at: new Date().toISOString()
-      }
-    }),
-  
-  // Admin operations
-  addAdminNote: async (userId: string, note: string) =>
-    UnifiedSubscriptionUpdater.updateUserSubscription(userId, {
-      adminNotes: note,
-      metadata: {
-        admin_note_added_at: new Date().toISOString()
-      }
-    })
 };
 
 /**
@@ -467,13 +255,8 @@ export const subscriptionValidation = {
   },
   
   isValidTier: (tier: string): boolean => {
-    const validTiers = ['free', 'basic', 'premium', 'professional', 'enterprise'];
+    const validTiers = ['free', 'premium'];
     return validTiers.includes(tier);
-  },
-  
-  isValidPaymentMethod: (method: string): boolean => {
-    const validMethods = ['pix', 'credit_card', 'debit_card', 'boleto', 'bank_transfer'];
-    return validMethods.includes(method);
   },
   
   validateUpdate: (updates: SubscriptionFieldUpdate): { valid: boolean; errors: string[] } => {
@@ -485,14 +268,6 @@ export const subscriptionValidation = {
     
     if (updates.tier && !subscriptionValidation.isValidTier(updates.tier)) {
       errors.push(`Invalid tier: ${updates.tier}`);
-    }
-    
-    if (updates.paymentMethod && !subscriptionValidation.isValidPaymentMethod(updates.paymentMethod)) {
-      errors.push(`Invalid payment method: ${updates.paymentMethod}`);
-    }
-    
-    if (updates.amount && updates.amount < 0) {
-      errors.push(`Invalid amount: ${updates.amount}`);
     }
     
     if (updates.daysGranted && updates.daysGranted < 0) {

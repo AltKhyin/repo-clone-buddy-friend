@@ -83,44 +83,32 @@ export function calculateRemainingDays(endDate: string | null, currentDate: Date
 }
 
 /**
- * Create database update object for subscription payment
+ * Create database update object for V2 subscription payment
  */
 export function createSubscriptionUpdateData(
   accessUpdate: AccessTimeUpdate,
-  subscriptionData: {
-    subscription_id: string;
-    plan_name: string;
-    pagar_me_subscription_id?: string;
-    next_billing_date?: string;
+  subscriptionData?: {
+    plan_name?: string;
   }
 ): Record<string, any> {
   const updateData: Record<string, any> = {
-    // Core access time fields (what admin interface shows)
-    subscription_end_date: accessUpdate.newEndDate,
+    // Core V2 access time fields
+    subscription_ends_at: accessUpdate.newEndDate,
     subscription_tier: accessUpdate.newTier,
-    
-    // Subscription metadata
-    subscription_id: subscriptionData.subscription_id,
-    subscription_plan: subscriptionData.plan_name,
     subscription_status: 'active',
-    subscription_start_date: new Date().toISOString(),
+    subscription_starts_at: new Date().toISOString(),
     
-    // Payment tracking
-    last_payment_date: new Date().toISOString(),
-    subscription_created_by: 'payment_system',
+    // Metadata tracking
+    payment_metadata: {
+      payment_processed_at: new Date().toISOString(),
+      days_added: accessUpdate.daysAdded,
+      upgraded_to_premium: accessUpdate.shouldUpgrade,
+      plan_name: subscriptionData?.plan_name || 'premium'
+    },
     
-    // Admin notes for transparency
-    admin_subscription_notes: `Payment processed: +${accessUpdate.daysAdded} days on ${new Date().toLocaleDateString('pt-BR')}. ${accessUpdate.shouldUpgrade ? 'Upgraded to premium.' : 'Extended existing access.'}`
+    // Timestamp
+    updated_at: new Date().toISOString()
   };
-
-  // Optional pagar.me specific fields
-  if (subscriptionData.pagar_me_subscription_id) {
-    updateData.pagarme_subscription_id = subscriptionData.pagar_me_subscription_id;
-  }
-  
-  if (subscriptionData.next_billing_date) {
-    updateData.next_billing_date = subscriptionData.next_billing_date;
-  }
 
   return updateData;
 }

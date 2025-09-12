@@ -118,16 +118,8 @@ export const navigationItems: NavigationItem[] = [
     showOnDesktop: true,
   },
   {
-    path: '/admin/payment',
-    label: 'Gestão de Pagamentos V1',
-    icon: CreditCard,
-    requiredRoles: ['admin', 'editor'],
-    showOnMobile: false,
-    showOnDesktop: true,
-  },
-  {
     path: '/admin/payment-v2',
-    label: 'Gestão de Pagamentos V2.0',
+    label: 'Gestão de Pagamentos',
     icon: CreditCard,
     requiredRoles: ['admin', 'editor'],
     showOnMobile: false,

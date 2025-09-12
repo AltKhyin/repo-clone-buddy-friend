@@ -61,8 +61,8 @@ interface UserWithRoles {
   created_at: string;
   
   // Subscription timing fields
-  subscription_start_date?: string | null;
-  subscription_end_date?: string | null;
+  subscription_starts_at?: string | null;
+  subscription_ends_at?: string | null;
   subscription_created_by?: string | null;
   admin_subscription_notes?: string | null;
   subscription_days_granted?: number | null;

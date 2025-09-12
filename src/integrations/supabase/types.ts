@@ -178,6 +178,7 @@ export type Database = {
           id: string
           is_active: boolean
           is_featured: boolean
+          start_date: string | null
           target_date: string
           timezone: string
           title: string
@@ -192,6 +193,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           is_featured?: boolean
+          start_date?: string | null
           target_date: string
           timezone?: string
           title: string
@@ -206,6 +208,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           is_featured?: boolean
+          start_date?: string | null
           target_date?: string
           timezone?: string
           title?: string
@@ -642,199 +645,44 @@ export type Database = {
           },
         ]
       }
-      evidens_payment_transactions: {
+      email_dispatch_log: {
         Row: {
-          amount: number
-          card_brand: string | null
-          card_last_digits: string | null
-          created_at: string | null
-          evidens_metadata: Json | null
-          evidens_plan_price: number
-          evidens_plan_type: string
+          created_at: string
+          email_type: string
           id: string
-          pagarme_charge_id: string | null
-          pagarme_order_id: string | null
-          payment_method: string
-          pix_expires_at: string | null
-          pix_qr_code: string | null
-          pix_qr_code_url: string | null
+          plan_name: string
+          recipient_email: string
+          sent_at: string
           status: string
-          updated_at: string | null
-          user_id: string | null
+          subject: string
+          token_used: string
+          updated_at: string
         }
         Insert: {
-          amount: number
-          card_brand?: string | null
-          card_last_digits?: string | null
-          created_at?: string | null
-          evidens_metadata?: Json | null
-          evidens_plan_price: number
-          evidens_plan_type: string
+          created_at?: string
+          email_type: string
           id?: string
-          pagarme_charge_id?: string | null
-          pagarme_order_id?: string | null
-          payment_method: string
-          pix_expires_at?: string | null
-          pix_qr_code?: string | null
-          pix_qr_code_url?: string | null
-          status: string
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          amount?: number
-          card_brand?: string | null
-          card_last_digits?: string | null
-          created_at?: string | null
-          evidens_metadata?: Json | null
-          evidens_plan_price?: number
-          evidens_plan_type?: string
-          id?: string
-          pagarme_charge_id?: string | null
-          pagarme_order_id?: string | null
-          payment_method?: string
-          pix_expires_at?: string | null
-          pix_qr_code?: string | null
-          pix_qr_code_url?: string | null
+          plan_name: string
+          recipient_email: string
+          sent_at?: string
           status?: string
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "evidens_payment_transactions_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "Practitioners"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      evidens_plan_configurations: {
-        Row: {
-          billing_cycle: string
-          created_at: string | null
-          currency: string
-          display_order: number | null
-          features: Json | null
-          id: string
-          is_active: boolean | null
-          plan_name: string
-          plan_type: string
-          price_cents: number
-          trial_days: number | null
-          updated_at: string | null
-        }
-        Insert: {
-          billing_cycle: string
-          created_at?: string | null
-          currency?: string
-          display_order?: number | null
-          features?: Json | null
-          id?: string
-          is_active?: boolean | null
-          plan_name: string
-          plan_type: string
-          price_cents: number
-          trial_days?: number | null
-          updated_at?: string | null
+          subject: string
+          token_used: string
+          updated_at?: string
         }
         Update: {
-          billing_cycle?: string
-          created_at?: string | null
-          currency?: string
-          display_order?: number | null
-          features?: Json | null
+          created_at?: string
+          email_type?: string
           id?: string
-          is_active?: boolean | null
           plan_name?: string
-          plan_type?: string
-          price_cents?: number
-          trial_days?: number | null
-          updated_at?: string | null
+          recipient_email?: string
+          sent_at?: string
+          status?: string
+          subject?: string
+          token_used?: string
+          updated_at?: string
         }
         Relationships: []
-      }
-      evidens_subscriptions: {
-        Row: {
-          amount: number
-          billing_type: string
-          canceled_at: string | null
-          created_at: string | null
-          current_period_end: string | null
-          current_period_start: string | null
-          evidens_metadata: Json | null
-          evidens_plan_id: string | null
-          evidens_plan_type: string
-          id: string
-          interval: string
-          interval_count: number
-          next_billing_at: string | null
-          pagarme_subscription_id: string
-          payment_method: string | null
-          status: string
-          trial_end: string | null
-          updated_at: string | null
-          user_id: string | null
-        }
-        Insert: {
-          amount: number
-          billing_type?: string
-          canceled_at?: string | null
-          created_at?: string | null
-          current_period_end?: string | null
-          current_period_start?: string | null
-          evidens_metadata?: Json | null
-          evidens_plan_id?: string | null
-          evidens_plan_type: string
-          id?: string
-          interval: string
-          interval_count?: number
-          next_billing_at?: string | null
-          pagarme_subscription_id: string
-          payment_method?: string | null
-          status: string
-          trial_end?: string | null
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          amount?: number
-          billing_type?: string
-          canceled_at?: string | null
-          created_at?: string | null
-          current_period_end?: string | null
-          current_period_start?: string | null
-          evidens_metadata?: Json | null
-          evidens_plan_id?: string | null
-          evidens_plan_type?: string
-          id?: string
-          interval?: string
-          interval_count?: number
-          next_billing_at?: string | null
-          pagarme_subscription_id?: string
-          payment_method?: string | null
-          status?: string
-          trial_end?: string | null
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "evidens_subscriptions_evidens_plan_id_fkey"
-            columns: ["evidens_plan_id"]
-            isOneToOne: false
-            referencedRelation: "PaymentPlans"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "evidens_subscriptions_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "Practitioners"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       Notifications: {
         Row: {
@@ -1063,186 +911,116 @@ export type Database = {
         }
         Relationships: []
       }
-      payment_bridge: {
+      paymentplansv2: {
         Row: {
-          amount_paid: number | null
-          created_at: string | null
-          customer_document: string | null
-          customer_email: string | null
-          customer_name: string | null
-          customer_phone: string | null
-          expires_at: string | null
-          id: string
-          linked_at: string | null
-          linked_user_id: string | null
-          pagarme_payment_id: string
-          payment_date: string | null
-          payment_method: string | null
-          plan_purchased: string | null
-          status: string | null
-          updated_at: string | null
-          webhook_event_id: string | null
-        }
-        Insert: {
-          amount_paid?: number | null
-          created_at?: string | null
-          customer_document?: string | null
-          customer_email?: string | null
-          customer_name?: string | null
-          customer_phone?: string | null
-          expires_at?: string | null
-          id?: string
-          linked_at?: string | null
-          linked_user_id?: string | null
-          pagarme_payment_id: string
-          payment_date?: string | null
-          payment_method?: string | null
-          plan_purchased?: string | null
-          status?: string | null
-          updated_at?: string | null
-          webhook_event_id?: string | null
-        }
-        Update: {
-          amount_paid?: number | null
-          created_at?: string | null
-          customer_document?: string | null
-          customer_email?: string | null
-          customer_name?: string | null
-          customer_phone?: string | null
-          expires_at?: string | null
-          id?: string
-          linked_at?: string | null
-          linked_user_id?: string | null
-          pagarme_payment_id?: string
-          payment_date?: string | null
-          payment_method?: string | null
-          plan_purchased?: string | null
-          status?: string | null
-          updated_at?: string | null
-          webhook_event_id?: string | null
-        }
-        Relationships: []
-      }
-      payment_events: {
-        Row: {
-          created_at: string | null
-          event_data: Json | null
-          event_type: string
-          id: string
-          pagarme_transaction_id: string | null
-          processed_at: string | null
-          processing_status: string | null
-          user_id: string
-          webhook_id: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          event_data?: Json | null
-          event_type: string
-          id?: string
-          pagarme_transaction_id?: string | null
-          processed_at?: string | null
-          processing_status?: string | null
-          user_id: string
-          webhook_id?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          event_data?: Json | null
-          event_type?: string
-          id?: string
-          pagarme_transaction_id?: string | null
-          processed_at?: string | null
-          processing_status?: string | null
-          user_id?: string
-          webhook_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "payment_events_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "Practitioners"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      PaymentPlans: {
-        Row: {
-          amount: number
-          billing_interval: string | null
-          billing_interval_count: number | null
-          billing_type: string | null
+          base_amount: number
           created_at: string | null
           created_by: string | null
-          days: number
+          credit_card_config: Json | null
+          custom_link_parameter: string | null
           description: string | null
+          discount_config: Json | null
           display_config: Json | null
+          duration_days: number | null
+          final_amount: number
           id: string
+          installment_config: Json | null
           is_active: boolean | null
-          last_used_at: string | null
-          metadata: Json | null
           name: string
-          pagarme_plan_id: string | null
+          pix_config: Json | null
+          plan_type: string | null
           promotional_config: Json | null
           slug: string | null
-          type: string
           updated_at: string | null
           usage_count: number | null
         }
         Insert: {
-          amount: number
-          billing_interval?: string | null
-          billing_interval_count?: number | null
-          billing_type?: string | null
+          base_amount: number
           created_at?: string | null
           created_by?: string | null
-          days: number
+          credit_card_config?: Json | null
+          custom_link_parameter?: string | null
           description?: string | null
+          discount_config?: Json | null
           display_config?: Json | null
+          duration_days?: number | null
+          final_amount: number
           id?: string
+          installment_config?: Json | null
           is_active?: boolean | null
-          last_used_at?: string | null
-          metadata?: Json | null
           name: string
-          pagarme_plan_id?: string | null
+          pix_config?: Json | null
+          plan_type?: string | null
           promotional_config?: Json | null
           slug?: string | null
-          type: string
           updated_at?: string | null
           usage_count?: number | null
         }
         Update: {
-          amount?: number
-          billing_interval?: string | null
-          billing_interval_count?: number | null
-          billing_type?: string | null
+          base_amount?: number
           created_at?: string | null
           created_by?: string | null
-          days?: number
+          credit_card_config?: Json | null
+          custom_link_parameter?: string | null
           description?: string | null
+          discount_config?: Json | null
           display_config?: Json | null
+          duration_days?: number | null
+          final_amount?: number
           id?: string
+          installment_config?: Json | null
           is_active?: boolean | null
-          last_used_at?: string | null
-          metadata?: Json | null
           name?: string
-          pagarme_plan_id?: string | null
+          pix_config?: Json | null
+          plan_type?: string | null
           promotional_config?: Json | null
           slug?: string | null
-          type?: string
           updated_at?: string | null
           usage_count?: number | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "PaymentPlans_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "Practitioners"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
+      }
+      pending_account_links: {
+        Row: {
+          created_at: string | null
+          customer_data: Json
+          email: string
+          expires_at: string
+          id: string
+          is_used: boolean | null
+          link_type: string
+          payment_data: Json
+          plan_data: Json
+          token: string
+          used_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          customer_data?: Json
+          email: string
+          expires_at: string
+          id?: string
+          is_used?: boolean | null
+          link_type: string
+          payment_data?: Json
+          plan_data?: Json
+          token: string
+          used_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          customer_data?: Json
+          email?: string
+          expires_at?: string
+          id?: string
+          is_used?: boolean | null
+          link_type?: string
+          payment_data?: Json
+          plan_data?: Json
+          token?: string
+          used_at?: string | null
+        }
+        Relationships: []
       }
       PollOptions: {
         Row: {
@@ -1347,125 +1125,68 @@ export type Database = {
       }
       Practitioners: {
         Row: {
-          admin_subscription_notes: string | null
           avatar_url: string | null
           contribution_score: number
           created_at: string
           display_hover_card: boolean
-          evidens_pagarme_customer_id: string | null
-          evidens_payment_method_preference: string | null
-          evidens_subscription_expires_at: string | null
-          evidens_subscription_status: string | null
-          evidens_subscription_tier: string | null
-          evidens_trial_started_at: string | null
           facebook_url: string | null
           full_name: string | null
           id: string
           instagram_url: string | null
-          last_payment_date: string | null
           linkedin_url: string | null
           location: string | null
-          next_billing_date: string | null
-          pagarme_customer_id: string | null
-          payment_metadata: Json | null
-          payment_method_preferred: string | null
           phone: string | null
           profession: string | null
           role: string
-          subscription_created_by: string | null
-          subscription_days_granted: number | null
-          subscription_end_date: string | null
-          subscription_expires_at: string | null
-          subscription_id: string | null
-          subscription_payment_method_used: string | null
-          subscription_plan: string | null
-          subscription_start_date: string | null
-          subscription_status: string | null
+          subscription_ends_at: string | null
+          subscription_starts_at: string | null
           subscription_tier: string
-          trial_end_date: string | null
           twitter_url: string | null
+          updated_at: string | null
           website_url: string | null
           youtube_url: string | null
         }
         Insert: {
-          admin_subscription_notes?: string | null
           avatar_url?: string | null
           contribution_score?: number
           created_at?: string
           display_hover_card?: boolean
-          evidens_pagarme_customer_id?: string | null
-          evidens_payment_method_preference?: string | null
-          evidens_subscription_expires_at?: string | null
-          evidens_subscription_status?: string | null
-          evidens_subscription_tier?: string | null
-          evidens_trial_started_at?: string | null
           facebook_url?: string | null
           full_name?: string | null
           id: string
           instagram_url?: string | null
-          last_payment_date?: string | null
           linkedin_url?: string | null
           location?: string | null
-          next_billing_date?: string | null
-          pagarme_customer_id?: string | null
-          payment_metadata?: Json | null
-          payment_method_preferred?: string | null
           phone?: string | null
           profession?: string | null
           role?: string
-          subscription_created_by?: string | null
-          subscription_days_granted?: number | null
-          subscription_end_date?: string | null
-          subscription_expires_at?: string | null
-          subscription_id?: string | null
-          subscription_payment_method_used?: string | null
-          subscription_plan?: string | null
-          subscription_start_date?: string | null
-          subscription_status?: string | null
+          subscription_ends_at?: string | null
+          subscription_starts_at?: string | null
           subscription_tier?: string
-          trial_end_date?: string | null
           twitter_url?: string | null
+          updated_at?: string | null
           website_url?: string | null
           youtube_url?: string | null
         }
         Update: {
-          admin_subscription_notes?: string | null
           avatar_url?: string | null
           contribution_score?: number
           created_at?: string
           display_hover_card?: boolean
-          evidens_pagarme_customer_id?: string | null
-          evidens_payment_method_preference?: string | null
-          evidens_subscription_expires_at?: string | null
-          evidens_subscription_status?: string | null
-          evidens_subscription_tier?: string | null
-          evidens_trial_started_at?: string | null
           facebook_url?: string | null
           full_name?: string | null
           id?: string
           instagram_url?: string | null
-          last_payment_date?: string | null
           linkedin_url?: string | null
           location?: string | null
-          next_billing_date?: string | null
-          pagarme_customer_id?: string | null
-          payment_metadata?: Json | null
-          payment_method_preferred?: string | null
           phone?: string | null
           profession?: string | null
           role?: string
-          subscription_created_by?: string | null
-          subscription_days_granted?: number | null
-          subscription_end_date?: string | null
-          subscription_expires_at?: string | null
-          subscription_id?: string | null
-          subscription_payment_method_used?: string | null
-          subscription_plan?: string | null
-          subscription_start_date?: string | null
-          subscription_status?: string | null
+          subscription_ends_at?: string | null
+          subscription_starts_at?: string | null
           subscription_tier?: string
-          trial_end_date?: string | null
           twitter_url?: string | null
+          updated_at?: string | null
           website_url?: string | null
           youtube_url?: string | null
         }

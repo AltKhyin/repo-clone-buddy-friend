@@ -6,7 +6,7 @@ import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
@@ -174,6 +174,20 @@ interface PaymentData {
   pixQrCodeUrl?: string;
   paymentId?: string;
   paymentMethod?: PaymentMethod;
+  // Account linking data for PIX payments
+  customerData?: {
+    name: string;
+    email: string;
+    document: string;
+    phone: string;
+  };
+  planData?: {
+    id: string;
+    name: string;
+    description?: string;
+    durationDays: number;
+    finalAmount: number;
+  };
 }
 
 interface PaymentV2FormProps {
@@ -282,6 +296,134 @@ const PaymentV2Form = ({
     setCurrentStep(Math.max(currentStep - 1, 0));
   };
 
+  // Handle successful payment with account linking
+  const handlePaymentSuccess = async (
+    paymentData: {
+      transactionId: string;
+      amount: number;
+      paymentMethod: string;
+      paidAt: string;
+    },
+    customerData: PaymentV2FormData
+  ) => {
+    console.log('✅ Payment successful, initiating account linking:', paymentData);
+    
+    try {
+      // Import account linking service dynamically to avoid SSR issues
+      const { linkPaymentToAccount } = await import('@/services/accountLinkingService');
+      
+      // Prepare account linking data
+      const linkingData = {
+        email: customerData.customerEmail,
+        paymentData: {
+          planId: planSelector.selectedPlan?.id || '',
+          amount: paymentData.amount,
+          paymentMethod: paymentData.paymentMethod,
+          transactionId: paymentData.transactionId,
+          paidAt: paymentData.paidAt,
+        },
+        customerData: {
+          name: customerData.customerName,
+          email: customerData.customerEmail,
+          document: customerData.customerDocument,
+          phone: customerData.customerPhone,
+        },
+        planData: {
+          id: planSelector.selectedPlan?.id || '',
+          name: planSelector.selectedPlan?.name || '',
+          description: planSelector.selectedPlan?.description,
+          durationDays: planSelector.selectedPlan?.duration_days || 0,
+          finalAmount: planSelector.selectedPlan?.final_amount || 0,
+        },
+      };
+
+      // Execute account linking
+      const linkingResult = await linkPaymentToAccount(linkingData);
+      
+      if (linkingResult.success) {
+        console.log('✅ Account linking completed:', linkingResult.action);
+
+        // If registration invite or login prompt, dispatch email
+        if (linkingResult.action === 'registration_invite' || linkingResult.action === 'login_prompt') {
+          await dispatchAccountLinkingEmail(linkingResult, linkingData);
+        }
+
+        return linkingResult;
+      } else {
+        console.error('❌ Account linking failed:', linkingResult.error);
+        toast.warning('Pagamento processado, mas houve um problema na ativação. Entre em contato conosco.');
+        return linkingResult;
+      }
+      
+    } catch (error) {
+      console.error('💥 Error in account linking:', error);
+      toast.error('Erro ao processar pagamento. Entre em contato conosco.');
+      throw error;
+    }
+  };
+
+  // Dispatch account linking email
+  const dispatchAccountLinkingEmail = async (
+    linkingResult: any,
+    linkingData: any
+  ) => {
+    try {
+      console.log('📧 Dispatching account linking email:', linkingResult.action);
+
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        console.warn('⚠️ No session for email dispatch, skipping email');
+        return;
+      }
+
+      // Prepare email dispatch payload
+      const emailPayload = {
+        type: linkingResult.action as 'login_prompt' | 'registration_invite',
+        recipientEmail: linkingData.email,
+        recipientName: linkingData.customerData.name,
+        token: linkingResult.data?.token || '',
+        linkUrl: linkingResult.action === 'registration_invite' 
+          ? linkingResult.data?.registrationUrl || '' 
+          : linkingResult.data?.loginUrl || '',
+        expiresAt: linkingResult.data?.expiresAt || '',
+        planData: {
+          name: linkingData.planData.name,
+          description: linkingData.planData.description,
+          finalAmount: linkingData.planData.finalAmount,
+          durationDays: linkingData.planData.durationDays,
+        },
+        customization: {
+          brandName: 'EVIDENS',
+          brandColor: '#111827',
+          supportEmail: 'support@evidens.com',
+        },
+      };
+
+      // Call email dispatch Edge Function
+      const response = await fetch(`${supabase.supabaseUrl}/functions/v1/email-dispatch-service`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify(emailPayload),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('✅ Email dispatched successfully:', result);
+        toast.success('Email de ativação enviado!');
+      } else {
+        const errorData = await response.json();
+        console.error('❌ Email dispatch failed:', errorData);
+        toast.warning('Não foi possível enviar o email de ativação, mas seu pagamento foi processado.');
+      }
+    } catch (error) {
+      console.error('💥 Email dispatch error:', error);
+      toast.warning('Não foi possível enviar o email de ativação, mas seu pagamento foi processado.');
+    }
+  };
+
   const onSubmit = async (values: PaymentV2FormData) => {
     if (currentStep === 0) {
       handleStep1Continue();
@@ -335,7 +477,21 @@ const PaymentV2Form = ({
               pixQrCode: qrCode,
               pixQrCodeUrl: qrCodeUrl,
               paymentId: response.id,
-              paymentMethod: 'pix'
+              paymentMethod: 'pix',
+              // Store customer data for account linking when payment is confirmed
+              customerData: {
+                name: values.customerName,
+                email: values.customerEmail,
+                document: values.customerDocument,
+                phone: values.customerPhone,
+              },
+              planData: {
+                id: planSelector.selectedPlan?.id || '',
+                name: planSelector.selectedPlan?.name || '',
+                description: planSelector.selectedPlan?.description,
+                durationDays: planSelector.selectedPlan?.duration_days || 0,
+                finalAmount: planSelector.selectedPlan?.final_amount || 0,
+              }
             });
             setCurrentView('pix-display');
             toast.success('PIX gerado com sucesso! Use o QR code para pagar.');
@@ -421,6 +577,14 @@ const PaymentV2Form = ({
         
         console.log('Payment V2.0 - Credit card response:', response);
         
+        // Execute account linking process
+        await handlePaymentSuccess({
+          transactionId: response.subscription_id || response.id,
+          amount: finalAmount,
+          paymentMethod: 'credit_card',
+          paidAt: new Date().toISOString(),
+        }, values);
+
         // Show success result
         setPaymentResult({
           type: 'success',

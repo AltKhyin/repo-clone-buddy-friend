@@ -53,17 +53,15 @@ export const SubscriptionStatus: React.FC = () => {
     return methodMap[method] || method;
   };
 
-  const formatSubscriptionPlan = (plan: string | null | undefined): string => {
-    if (!plan) return 'N/A';
+  const formatSubscriptionTier = (tier: string | null | undefined): string => {
+    if (!tier) return 'N/A';
     
-    const planMap: Record<string, string> = {
-      'monthly_premium': 'Mensal',
-      'yearly_premium': 'Anual',
-      'monthly_professional': 'Mensal Pro',
-      'yearly_professional': 'Anual Pro'
+    const tierMap: Record<string, string> = {
+      'free': 'Gratuito',
+      'premium': 'Premium'
     };
     
-    return planMap[plan] || plan.replace(/_/g, ' ');
+    return tierMap[tier] || tier;
   };
 
   const getStatusIcon = () => {
@@ -110,42 +108,30 @@ export const SubscriptionStatus: React.FC = () => {
           {/* Subscription Details for Premium Users - Clean Layout */}
           {enhancedStatus.isMember && (
             <div className="space-y-3">
-              {enhancedStatus.userProfile?.subscription_plan && (
+              {enhancedStatus.subscriptionTier && (
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-600">Plano</span>
                   <span className="text-sm font-medium text-black">
-                    {formatSubscriptionPlan(enhancedStatus.userProfile.subscription_plan)}
+                    {formatSubscriptionTier(enhancedStatus.subscriptionTier)}
                   </span>
                 </div>
               )}
 
-              {/* Next Billing Date */}
-              {enhancedStatus.userProfile?.next_billing_date && (
+              {/* Subscription End Date */}
+              {enhancedStatus.userProfile?.subscription_ends_at && (
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-600">
-                    {enhancedStatus.isPastDue ? 'Vencimento' : 'Próxima cobrança'}
+                    {enhancedStatus.isPastDue ? 'Expirou em' : 'Expira em'}
                   </span>
                   <div className="flex items-center gap-2">
                     <Calendar className="h-3 w-3 text-gray-400" />
                     <span className="text-sm font-medium text-black">
-                      {formatDate(enhancedStatus.userProfile.next_billing_date)}
+                      {formatDate(enhancedStatus.userProfile.subscription_ends_at)}
                     </span>
                   </div>
                 </div>
               )}
 
-              {/* Payment Method */}
-              {enhancedStatus.userProfile?.payment_method_preferred && (
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Pagamento</span>
-                  <div className="flex items-center gap-2">
-                    <CreditCard className="h-3 w-3 text-gray-400" />
-                    <span className="text-sm font-medium text-black">
-                      {formatPaymentMethod(enhancedStatus.userProfile.payment_method_preferred)}
-                    </span>
-                  </div>
-                </div>
-              )}
             </div>
           )}
 
@@ -161,17 +147,17 @@ export const SubscriptionStatus: React.FC = () => {
             </div>
           )}
 
-          {/* Trial Warning - Clean */}
-          {enhancedStatus.isTrialing && enhancedStatus.userProfile?.trial_end_date && (
+          {/* Subscription Expiry Warning - Clean */}
+          {enhancedStatus.userProfile?.subscription_ends_at && (
             (() => {
-              const daysLeft = Math.ceil((new Date(enhancedStatus.userProfile.trial_end_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-              if (daysLeft <= 3) {
+              const daysLeft = Math.ceil((new Date(enhancedStatus.userProfile.subscription_ends_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+              if (daysLeft <= 7 && daysLeft > 0) {
                 return (
                   <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded">
                     <div className="flex items-center gap-2">
                       <Clock className="h-4 w-4 text-blue-600" />
                       <p className="text-sm text-blue-800 font-medium">
-                        Período de teste termina em {daysLeft} {daysLeft === 1 ? 'dia' : 'dias'}
+                        Assinatura expira em {daysLeft} {daysLeft === 1 ? 'dia' : 'dias'}
                       </p>
                     </div>
                   </div>

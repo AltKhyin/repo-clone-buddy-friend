@@ -15,8 +15,8 @@ interface EditableSubscriptionTimeCellProps {
     id: string;
     full_name?: string;
     subscription_tier: string;
-    subscription_start_date?: string | null;
-    subscription_end_date?: string | null;
+    subscription_starts_at?: string | null;
+    subscription_ends_at?: string | null;
   };
   isEditing: boolean;
   isPending?: boolean;
@@ -38,9 +38,9 @@ export const EditableSubscriptionTimeCell: React.FC<EditableSubscriptionTimeCell
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
   const calculateRemainingDays = (): number | null => {
-    if (!user.subscription_end_date) return null;
+    if (!user.subscription_ends_at) return null;
     
-    const endDate = new Date(user.subscription_end_date);
+    const endDate = new Date(user.subscription_ends_at);
     const today = new Date();
     const diffTime = endDate.getTime() - today.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -184,9 +184,9 @@ export const EditableSubscriptionTimeCell: React.FC<EditableSubscriptionTimeCell
         {remainingDays <= 0 ? 'Expirada' : `${remainingDays} dias`}
       </Badge>
       
-      {user.subscription_end_date && (
+      {user.subscription_ends_at && (
         <span className={`text-xs ${getRemainingDaysColor(remainingDays)}`}>
-          até {new Date(user.subscription_end_date).toLocaleDateString('pt-BR', { 
+          até {new Date(user.subscription_ends_at).toLocaleDateString('pt-BR', { 
             day: '2-digit', 
             month: '2-digit' 
           })}

@@ -86,7 +86,7 @@ export class SubscriptionEventProcessor {
             status: SUBSCRIPTION_STATUS_MAPPING.active,
             current_period_start: eventData.current_cycle?.start_at,
             current_period_end: eventData.current_cycle?.end_at,
-            next_billing_date: eventData.next_billing_at,
+            subscription_ends_at: eventData.next_billing_at,
             created_at: eventData.created_at || new Date().toISOString(),
             updated_at: new Date().toISOString()
           },
@@ -115,7 +115,7 @@ export class SubscriptionEventProcessor {
             status: SUBSCRIPTION_STATUS_MAPPING.active,
             current_period_start: eventData.subscription?.current_cycle?.start_at,
             current_period_end: eventData.subscription?.current_cycle?.end_at,
-            next_billing_date: eventData.subscription?.next_billing_at,
+            subscription_ends_at: eventData.subscription?.next_billing_at,
             updated_at: new Date().toISOString()
           },
           businessLogic: {

@@ -64,8 +64,8 @@ const mockUser = {
   full_name: 'Dr. João Silva',
   email: 'joao@example.com',
   subscription_tier: 'premium' as const,
-  subscription_start_date: '2023-01-01T00:00:00Z',
-  subscription_end_date: '2024-01-01T00:00:00Z',
+  subscription_starts_at: '2023-01-01T00:00:00Z',
+  subscription_ends_at: '2024-01-01T00:00:00Z',
   subscription_created_by: 'admin' as const,
   admin_subscription_notes: 'Granted for testing purposes',
   subscription_days_granted: 365,
@@ -75,8 +75,8 @@ const mockFreeUser = {
   ...mockUser,
   id: '456',
   subscription_tier: 'free' as const,
-  subscription_start_date: null,
-  subscription_end_date: null,
+  subscription_starts_at: null,
+  subscription_ends_at: null,
   subscription_created_by: null,
   admin_subscription_notes: null,
   subscription_days_granted: 0,
@@ -135,7 +135,7 @@ describe('EditableSubscriptionCell', () => {
     it('should show expired status for past-due subscriptions', () => {
       const expiredUser = {
         ...mockUser,
-        subscription_end_date: '2022-01-01T00:00:00Z', // Past date
+        subscription_ends_at: '2022-01-01T00:00:00Z', // Past date
       };
 
       // Mock the hook to return expired status
@@ -432,8 +432,8 @@ describe('EditableSubscriptionCell', () => {
     it('should handle users with null subscription dates', () => {
       const userWithNullDates = {
         ...mockUser,
-        subscription_start_date: null,
-        subscription_end_date: null,
+        subscription_starts_at: null,
+        subscription_ends_at: null,
       };
 
       render(
@@ -449,8 +449,8 @@ describe('EditableSubscriptionCell', () => {
     it('should handle users with invalid date formats', () => {
       const userWithInvalidDates = {
         ...mockUser,
-        subscription_start_date: 'invalid-date',
-        subscription_end_date: 'also-invalid',
+        subscription_starts_at: 'invalid-date',
+        subscription_ends_at: 'also-invalid',
       };
 
       render(

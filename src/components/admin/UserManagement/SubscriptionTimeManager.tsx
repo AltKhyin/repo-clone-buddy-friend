@@ -45,14 +45,13 @@ interface User {
   full_name: string;
   email: string;
   subscription_tier: string;
-  subscription_start_date?: string;
-  subscription_end_date?: string;
+  subscription_starts_at?: string;
+  subscription_ends_at?: string;
   subscription_created_by?: string;
   admin_subscription_notes?: string;
   subscription_days_granted?: number;
   trial_end_date?: string;
   last_payment_date?: string;
-  next_billing_date?: string;
 }
 
 interface SubscriptionTimeManagerProps {
@@ -93,10 +92,10 @@ export const SubscriptionTimeManager: React.FC<SubscriptionTimeManagerProps> = (
     return users.reduce((stats, user) => {
       stats.totalUsers++;
       
-      if (user.subscription_tier === 'premium' && user.subscription_end_date) {
+      if (user.subscription_tier === 'premium' && user.subscription_ends_at) {
         stats.activeSubscriptions++;
         
-        const endDate = new Date(user.subscription_end_date);
+        const endDate = new Date(user.subscription_ends_at);
         const daysRemaining = Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
         
         if (daysRemaining <= 0) {
@@ -133,9 +132,9 @@ export const SubscriptionTimeManager: React.FC<SubscriptionTimeManagerProps> = (
     
     const now = new Date();
     return users.filter(user => {
-      if (!user.subscription_end_date) return false;
+      if (!user.subscription_ends_at) return false;
       
-      const endDate = new Date(user.subscription_end_date);
+      const endDate = new Date(user.subscription_ends_at);
       const daysRemaining = Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
       
       switch (filterExpiring) {
@@ -385,7 +384,7 @@ export const SubscriptionTimeManager: React.FC<SubscriptionTimeManagerProps> = (
               </Alert>
             ) : (
               filteredUsers.map((user) => {
-                const remainingDays = getRemainingDays(user.subscription_end_date);
+                const remainingDays = getRemainingDays(user.subscription_ends_at);
                 const isSelected = selectedUsers.has(user.id);
 
                 return (
@@ -420,7 +419,7 @@ export const SubscriptionTimeManager: React.FC<SubscriptionTimeManagerProps> = (
                                   {remainingDays > 0 ? `${remainingDays} dias` : 'Expirado'}
                                 </span>
                                 <p className="text-xs text-muted-foreground">
-                                  até {formatDate(user.subscription_end_date)}
+                                  até {formatDate(user.subscription_ends_at)}
                                 </p>
                               </div>
                             ) : (
@@ -491,8 +490,8 @@ const IndividualTimeAdjuster: React.FC<IndividualTimeAdjusterProps> = ({
   const [notes, setNotes] = useState('');
   const [resetNotes, setResetNotes] = useState('');
 
-  const remainingDays = user.subscription_end_date 
-    ? Math.ceil((new Date(user.subscription_end_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
+  const remainingDays = user.subscription_ends_at 
+    ? Math.ceil((new Date(user.subscription_ends_at).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
     : null;
 
   const handleAdjustment = () => {
@@ -527,10 +526,10 @@ const IndividualTimeAdjuster: React.FC<IndividualTimeAdjusterProps> = ({
                 {remainingDays ? (remainingDays > 0 ? `${remainingDays} dias` : 'Expirado') : 'Sem assinatura'}
               </span>
             </div>
-            {user.subscription_end_date && (
+            {user.subscription_ends_at && (
               <div className="flex justify-between text-sm">
                 <span>Expira em:</span>
-                <span>{new Date(user.subscription_end_date).toLocaleDateString('pt-BR')}</span>
+                <span>{new Date(user.subscription_ends_at).toLocaleDateString('pt-BR')}</span>
               </div>
             )}
           </div>

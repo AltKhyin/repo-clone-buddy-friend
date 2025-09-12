@@ -9,7 +9,6 @@ import { useJourneyOrchestration } from '@/hooks/useJourneyOrchestration';
 import { checkProfileCompleteness } from '@/lib/profileCompleteness';
 import { createOrAssociateAccountFromPayment, type PaymentAccountCreationData, type AccountCreationResult } from '@/services/paymentAccountService';
 import { sendPaymentAccountWelcomeEmail } from '@/services/emailWelcomeService';
-import { triggerPaymentSuccessWebhook, handlePaymentSuccessWithActivation } from '@/services/makeWebhookService';
 import { supabase } from '@/integrations/supabase/client';
 
 // =================================================================
@@ -54,16 +53,8 @@ const triggerComprehensiveWebhook = async (
       plan_days: paymentData.planDays || (paymentData.amount >= 58800 ? 365 : 30) // Yearly if >= R$588, otherwise monthly
     };
     
-    // Use enhanced handler with automatic subscription activation
-    const result = await handlePaymentSuccessWithActivation(userId, enhancedPaymentData);
-    
-    if (result.subscriptionActivated) {
-      console.log('✅ PaymentSuccessPage: Subscription activated successfully', result.subscriptionDetails);
-    } else {
-      console.log('⚠️ PaymentSuccessPage: Subscription activation failed', result.error);
-    }
-    
-    console.log('✅ PaymentSuccessPage enhanced webhook completed');
+    // V2: Subscription activation is handled directly by the V2 Edge Functions
+    console.log('✅ PaymentSuccessPage: V2 subscription activation handled by Edge Functions');
     
   } catch (webhookError) {
     console.error('🚨 PaymentSuccessPage webhook failed (non-blocking):', webhookError);
@@ -108,16 +99,8 @@ const triggerFallbackWebhook = async (orderId: string, searchParams: URLSearchPa
       plan_days: amount >= 58800 ? 365 : 30 // Determine duration based on amount
     };
     
-    // Use enhanced handler with automatic subscription activation
-    const result = await handlePaymentSuccessWithActivation(user.id, enhancedPaymentData);
-    
-    if (result.subscriptionActivated) {
-      console.log('✅ PaymentSuccessPage fallback: Subscription activated successfully', result.subscriptionDetails);
-    } else {
-      console.log('⚠️ PaymentSuccessPage fallback: Subscription activation failed', result.error);
-    }
-    
-    console.log('✅ PaymentSuccessPage fallback webhook completed');
+    // V2: Fallback subscription activation is handled directly by the V2 Edge Functions
+    console.log('✅ PaymentSuccessPage: V2 fallback subscription activation handled by Edge Functions');
     
   } catch (webhookError) {
     console.error('🚨 PaymentSuccessPage fallback webhook failed (non-blocking):', webhookError);

@@ -55,7 +55,7 @@ describe('Subscription Event Handlers', () => {
         status: 'active',
         current_period_start: '2025-01-09T00:00:00Z',
         current_period_end: '2025-02-09T00:00:00Z',
-        next_billing_date: '2025-02-09T00:00:00Z',
+        subscription_ends_at: '2025-02-09T00:00:00Z',
         created_at: '2025-01-09T12:00:00Z',
         updated_at: expect.any(String)
       });

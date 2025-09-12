@@ -214,10 +214,10 @@ export const SubscriptionActions: React.FC = () => {
             <AlertDialogDescription className="text-gray-600">
               Tem certeza que deseja cancelar sua assinatura? Você ainda terá acesso aos recursos até o final do período atual.
               
-              {enhancedStatus.userProfile?.subscription_end_date && (
+              {enhancedStatus.userProfile?.subscription_ends_at && (
                 <div className="mt-3 p-3 bg-gray-50 rounded">
                   <p className="text-sm font-medium">
-                    Acesso até: {new Date(enhancedStatus.userProfile.subscription_end_date).toLocaleDateString('pt-BR')}
+                    Acesso até: {new Date(enhancedStatus.userProfile.subscription_ends_at).toLocaleDateString('pt-BR')}
                   </p>
                 </div>
               )}
