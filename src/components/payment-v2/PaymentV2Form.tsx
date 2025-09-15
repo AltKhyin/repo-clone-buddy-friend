@@ -1,4 +1,4 @@
-// ABOUTME: Payment V2.0 form component with dynamic plan selection and simplified payment confirmation
+// ABOUTME: Payment V2.0 form component with enhanced UX: processing states, clean design, and page refresh protection
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -10,7 +10,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { CreditCard, ArrowLeft, ArrowRight, Smartphone, CheckCircle2 } from 'lucide-react';
+import { CreditCard, ArrowLeft, ArrowRight, Smartphone, CheckCircle2, Loader2 } from 'lucide-react';
 import { PhoneInput } from '@/components/ui/PhoneInput';
 import {
   calculatePricing,
@@ -27,6 +27,9 @@ import { EnhancedPlanDisplayV2 } from './EnhancedPlanDisplayV2';
 import { supabase } from '@/integrations/supabase/client';
 import { PixDisplayV2 } from './PixDisplayV2';
 import { PaymentResultV2, type PaymentResultV2Data } from './PaymentResultV2';
+import { PaymentProcessingV2 } from './PaymentProcessingV2';
+import { PaymentSuccessV2 } from './PaymentSuccessV2';
+import { usePaymentStateProtection } from '@/hooks/usePaymentStateProtection';
 // Analytics moved to server-side webhook processing
 
 // Step 1: Customer Data Collection
@@ -167,7 +170,7 @@ const formatCurrency = (amountInCents: number): string => {
   return (amountInCents / 100).toFixed(2).replace('.', ',');
 };
 
-type PaymentViewState = 'form' | 'pix-display' | 'result';
+type PaymentViewState = 'form' | 'pix-display' | 'processing' | 'success' | 'result';
 
 interface PaymentData {
   pixQrCode?: string;
@@ -203,12 +206,21 @@ const PaymentV2Form = ({
   hideTestData = false,
   useProductionEndpoint = false
 }: PaymentV2FormProps = {}) => {
-  const [currentStep, setCurrentStep] = useState(0); // Start at 0 (Customer Data) instead of 1
+  // State protection for page refreshes
+  const {
+    paymentState,
+    savePaymentState,
+    clearPaymentState,
+    isRestored,
+    shouldShowRefreshWarning
+  } = usePaymentStateProtection();
+
+  const [currentStep, setCurrentStep] = useState(paymentState.currentStep || 0);
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>(initialPaymentMethod || 'credit_card');
   const [isProcessing, setIsProcessing] = useState(false);
-  const [currentView, setCurrentView] = useState<PaymentViewState>('form');
-  const [paymentData, setPaymentData] = useState<PaymentData>({});
-  const [paymentResult, setPaymentResult] = useState<PaymentResultV2Data | null>(null);
+  const [currentView, setCurrentView] = useState<PaymentViewState>(paymentState.view || 'form');
+  const [paymentData, setPaymentData] = useState<PaymentData>(paymentState.paymentData || {});
+  const [paymentResult, setPaymentResult] = useState<PaymentResultV2Data | null>(paymentState.paymentResult || null);
 
   
   // V2.0 Dynamic Plan Selection Integration with custom parameter support
@@ -217,6 +229,31 @@ const PaymentV2Form = ({
     initialCustomParameter,
     initialPaymentMethod: initialPaymentMethod || selectedMethod
   });
+
+  // Save state on critical changes
+  useEffect(() => {
+    if (!isRestored) return; // Don't save until we've restored initial state
+
+    if (currentView === 'processing' || currentView === 'success' || currentView === 'pix-display') {
+      const stateToSave = {
+        view: currentView,
+        currentStep,
+        paymentData,
+        paymentResult,
+        processingStartTime: currentView === 'processing' ? Date.now() : undefined
+      };
+      savePaymentState(stateToSave);
+    }
+  }, [currentView, paymentData, paymentResult, currentStep, isRestored, savePaymentState]);
+
+  // Clear state on successful completion
+  useEffect(() => {
+    if (currentView === 'form' && paymentResult?.type === 'success') {
+      // Clear after a delay to prevent clearing during transitions
+      const timer = setTimeout(() => clearPaymentState(), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [currentView, paymentResult, clearPaymentState]);
 
   const form = useForm<PaymentV2FormData>({
     resolver: zodResolver(paymentV2Schema),
@@ -347,9 +384,9 @@ const PaymentV2Form = ({
           durationDays: linkingData.planData.durationDays,
         },
         customization: {
-          brandName: 'EVIDENS',
+          brandName: 'Reviews',
           brandColor: '#111827',
-          supportEmail: 'support@evidens.com',
+          supportEmail: 'suporte@reviews.com.br',
         },
       };
 
@@ -410,24 +447,16 @@ const PaymentV2Form = ({
             paidAt: data.processed_at,
           }, formValues);
 
-          setPaymentResult({
-            type: 'success',
-            title: 'Pagamento confirmado!',
-            message: 'Sua assinatura foi ativada com sucesso. Bem-vindo(a) ao EVIDENS!',
+          // Show enhanced success screen
+          setPaymentData({
+            ...paymentData,
             orderId: paymentId,
-            paymentMethod: data.payment_method || selectedMethod,
             amount: data.amount || finalAmount,
-            actions: {
-              primary: {
-                label: 'Acessar plataforma',
-                action: () => {
-                  console.log('Redirecting to platform...');
-                }
-              }
-            }
+            paymentMethod: data.payment_method || selectedMethod,
+            planName: planSelector.selectedPlan?.name || 'Reviews Premium'
           });
-          setCurrentView('result');
-          toast.success('Pagamento confirmado! Bem-vindo(a) ao EVIDENS!');
+          setCurrentView('success');
+          toast.success('Pagamento confirmado!');
           return;
         }
 
@@ -449,10 +478,31 @@ const PaymentV2Form = ({
         if (attempts < maxAttempts) {
           setTimeout(checkStatus, 5000); // Check every 5 seconds
         } else {
-          // Timeout
+          // Timeout - show appropriate message
           console.log('⏰ Payment confirmation timeout');
           setIsProcessing(false);
-          toast.warning('Tempo limite para confirmação atingido. Verifique seu email ou entre em contato.');
+          setCurrentView('result');
+          setPaymentResult({
+            type: 'pending',
+            title: 'Tempo limite atingido',
+            message: 'Não conseguimos confirmar seu pagamento automaticamente. Verifique seu email para instruções.',
+            details: 'Se o pagamento foi aprovado, você receberá um email de confirmação em breve.',
+            actions: {
+              primary: {
+                label: 'Verificar email',
+                action: () => window.open(`mailto:${formValues.customerEmail}`, '_blank')
+              },
+              secondary: {
+                label: 'Entrar em contato',
+                action: () => window.open('mailto:suporte@reviews.com.br', '_blank')
+              },
+              back: {
+                label: 'Voltar',
+                action: () => setCurrentView('form')
+              }
+            }
+          });
+          toast.warning('Tempo limite atingido. Verifique seu email ou entre em contato.');
         }
 
       } catch (error) {
@@ -635,30 +685,29 @@ const PaymentV2Form = ({
         if (response.status === 'active' || response.status === 'paid') {
           console.log('✅ Payment immediately successful:', response.status);
 
-          // Show success immediately for test payments
+          // Show enhanced success for test payments
           toast.success('Pagamento aprovado com sucesso!');
-          setPaymentResult({
-            type: 'success',
-            title: 'Pagamento aprovado!',
-            message: 'Seu pagamento foi processado com sucesso. Você já tem acesso completo ao EVIDENS.',
-            paymentMethod: selectedMethod,
+          setPaymentData({
+            orderId: paymentId,
             amount: finalAmount,
-            transactionId: paymentId,
-            actions: {
-              primary: {
-                label: 'Ir para plataforma',
-                action: () => window.location.href = '/',
-                variant: 'default'
-              }
-            }
+            paymentMethod: selectedMethod,
+            customerName: values.customerName,
+            customerEmail: values.customerEmail,
+            planName: planSelector.selectedPlan?.name || 'Reviews Premium'
           });
-          setCurrentView('result');
+          setCurrentView('success');
           setIsProcessing(false);
           return;
         }
 
-        // For production payments, monitor status via webhooks
+        // For production payments, show processing state and monitor status via webhooks
         toast.success('Pagamento enviado! Aguardando confirmação...');
+        setPaymentData({
+          paymentId,
+          customerName: values.customerName,
+          customerEmail: values.customerEmail
+        });
+        setCurrentView('processing');
         startPaymentStatusMonitoring(paymentId, values);
 
           // ✅ ANALYTICS: Client context already captured and will be sent via webhook confirmation
@@ -712,9 +761,62 @@ const PaymentV2Form = ({
     );
   }
 
+  // Show Enhanced Processing State
+  if (currentView === 'processing') {
+    return (
+      <PaymentProcessingV2
+        paymentMethod={selectedMethod}
+        customerEmail={paymentData.customerEmail || ''}
+        onTimeout={() => {
+          setCurrentView('result');
+          setPaymentResult({
+            type: 'pending',
+            title: 'Tempo limite atingido',
+            message: 'Não conseguimos confirmar seu pagamento automaticamente.',
+            details: 'Se o pagamento foi aprovado, você receberá um email de confirmação.',
+            actions: {
+              primary: {
+                label: 'Verificar email',
+                action: () => window.open(`mailto:${paymentData.customerEmail}`, '_blank')
+              },
+              back: {
+                label: 'Voltar',
+                action: () => setCurrentView('form')
+              }
+            }
+          });
+        }}
+      />
+    );
+  }
+
+  // Show Enhanced Success State
+  if (currentView === 'success') {
+    return (
+      <PaymentSuccessV2
+        customerName={paymentData.customerName || ''}
+        customerEmail={paymentData.customerEmail || ''}
+        paymentMethod={paymentData.paymentMethod as 'pix' | 'credit_card'}
+        amount={paymentData.amount || finalAmount}
+        orderId={paymentData.orderId}
+        planName={paymentData.planName || 'Reviews Premium'}
+        onContinue={() => window.location.href = '/'}
+      />
+    );
+  }
+
   // Show Payment Result (Success/Failure)
   if (currentView === 'result' && paymentResult) {
     return <PaymentResultV2 result={paymentResult} />;
+  }
+
+  // Show loading state until state is restored
+  if (!isRestored) {
+    return (
+      <div className="flex justify-center items-center py-8">
+        <Loader2 className="h-6 w-6 animate-spin text-gray-600" />
+      </div>
+    );
   }
 
   // Show Payment Form (default)

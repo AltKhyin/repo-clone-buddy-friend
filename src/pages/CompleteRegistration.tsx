@@ -206,6 +206,74 @@ export default function CompleteRegistration() {
 
       console.log('✅ Password set successfully');
 
+      // For premium payment users: Update subscription in Practitioners table
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user?.user_metadata?.created_from_payment && user?.user_metadata?.subscription_tier === 'premium') {
+        console.log('💳 Upgrading user to premium subscription...');
+
+        // Extract subscription data from invitation metadata
+        const subscriptionStartsAt = user.user_metadata.subscription_starts_at;
+        const subscriptionEndsAt = user.user_metadata.subscription_ends_at;
+
+        const { error: subscriptionError } = await supabase
+          .from('Practitioners')
+          .update({
+            subscription_tier: 'premium',
+            subscription_starts_at: subscriptionStartsAt,
+            subscription_ends_at: subscriptionEndsAt,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', user.id);
+
+        if (subscriptionError) {
+          console.error('❌ Failed to upgrade subscription:', subscriptionError);
+          // Don't fail the whole flow, just log the error
+          toast.error('Atenção: Erro ao ativar assinatura premium. Entre em contato com o suporte.');
+        } else {
+          console.log('✅ Premium subscription activated successfully');
+
+          // Fire Make.com webhook for successful premium account creation
+          try {
+            const webhookPayload = {
+              event: {
+                type: 'premium_account_activated',
+                timestamp: new Date().toISOString(),
+                source: 'complete_registration'
+              },
+              customer: {
+                name: user.user_metadata.full_name,
+                email: user.email,
+                user_id: user.id
+              },
+              subscription: {
+                tier: 'premium',
+                starts_at: subscriptionStartsAt,
+                ends_at: subscriptionEndsAt,
+                payment_order_id: user.user_metadata.payment_order_id,
+                payment_amount: user.user_metadata.payment_amount
+              }
+            };
+
+            const webhookResponse = await fetch('https://hook.us2.make.com/qjdetduht1g375p7l556yrrutbi3j6cv', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(webhookPayload),
+            });
+
+            if (webhookResponse.ok) {
+              console.log('✅ Make.com webhook fired successfully');
+            } else {
+              console.warn('⚠️ Make.com webhook failed:', webhookResponse.status);
+            }
+          } catch (webhookError) {
+            console.warn('⚠️ Make.com webhook error:', webhookError);
+            // Don't fail the user flow for webhook errors
+          }
+        }
+      }
+
       // Success - account is ready
       toast.success('Senha criada com sucesso!');
       toast.success('Sua conta premium está ativa!');
