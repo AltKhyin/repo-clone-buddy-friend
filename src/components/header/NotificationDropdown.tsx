@@ -13,6 +13,7 @@ import {
 } from '../../../packages/hooks/useNotifications';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { PWAInstallNotification } from '../notifications/PWAInstallNotification';
 
 interface NotificationDropdownProps {
   isOpen: boolean;
@@ -153,6 +154,9 @@ export const NotificationDropdown = ({ isOpen, onClose }: NotificationDropdownPr
         onScrollCapture={handleScroll}
       >
         <div className="p-3 sm:p-2">
+          {/* PWA Install Notification */}
+          <PWAInstallNotification />
+
           {isLoading && notifications.length === 0 ? (
             <div className="flex items-center justify-center py-12 sm:py-8 text-base sm:text-sm text-muted-foreground">
               Carregando notificações...

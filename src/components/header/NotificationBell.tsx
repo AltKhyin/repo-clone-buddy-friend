@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/store/auth';
 import { useNotificationCount } from '../../../packages/hooks/useNotifications';
 import { NotificationDropdown } from './NotificationDropdown';
+import { usePWA } from '@/hooks/usePWA';
 
 interface NotificationBellProps {
   className?: string;
@@ -17,7 +18,13 @@ export const NotificationBell = ({ className }: NotificationBellProps) => {
 
   // Only fetch notifications if user is authenticated
   const { data: countData, isLoading } = useNotificationCount();
-  const unreadCount = countData?.unread_count || 0;
+  const regularUnreadCount = countData?.unread_count || 0;
+
+  // PWA notification dot logic
+  const { shouldShowNotificationDot, markNotificationDotSeen } = usePWA();
+
+  // Total unread count includes PWA notification if applicable
+  const unreadCount = regularUnreadCount + (shouldShowNotificationDot ? 1 : 0);
 
   // Don't render notification bell for unauthenticated users
   if (!user) {
@@ -25,6 +32,9 @@ export const NotificationBell = ({ className }: NotificationBellProps) => {
   }
 
   const handleClick = () => {
+    if (!isDropdownOpen && shouldShowNotificationDot) {
+      markNotificationDotSeen();
+    }
     setIsDropdownOpen(!isDropdownOpen);
   };
 

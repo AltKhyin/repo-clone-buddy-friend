@@ -1,5 +1,5 @@
 // ABOUTME: Payment V2.0 form component with enhanced UX: processing states, clean design, and page refresh protection
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';

@@ -2,6 +2,22 @@
 // ABOUTME: Hook for PWA capabilities detection and management.
 
 import { useState, useEffect } from 'react';
+import {
+  canShowPWAPrompt,
+  dismissPWAPrompt,
+  declinePWAInstall,
+  hasSeenIOSInstructions,
+  markIOSInstructionsAsSeen,
+  shouldShowNotificationDot,
+  markSessionNotificationShown
+} from '@/utils/pwaPreferences';
+import {
+  getDeviceInfo,
+  supportsPWAInstall,
+  shouldShowPWAByDefault,
+  getPWAInstallMethod,
+  isRunningStandalone
+} from '@/utils/deviceDetection';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -16,22 +32,50 @@ interface PWAHook {
   installPrompt: BeforeInstallPromptEvent | null;
   showInstallPrompt: () => Promise<void>;
   dismissInstallPrompt: () => void;
+  // New methods for notification integration
+  shouldShowNotification: boolean;
+  shouldShowNotificationDot: boolean;
+  canShowPrompt: boolean;
+  deviceInfo: ReturnType<typeof getDeviceInfo>;
+  installMethod: 'native' | 'manual' | 'unsupported';
+  handleDismissNotification: () => void;
+  handleDeclineInstall: () => void;
+  markNotificationDotSeen: () => void;
 }
 
 export const usePWA = (): PWAHook => {
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isInstalled, setIsInstalled] = useState(false);
 
-  // Detect if device is iOS
-  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-  
-  // Detect if app is running in standalone mode
-  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || 
-                      (window.navigator as any).standalone || 
-                      document.referrer.includes('android-app://');
+  // Get enhanced device information
+  const deviceInfo = getDeviceInfo();
+  const isIOS = deviceInfo.isIOS;
 
-  // Check if PWA is installable
+  // Detect if app is running in standalone mode
+  const isStandalone = isRunningStandalone();
+
+  // Check if PWA is installable (native prompt available or iOS)
   const isInstallable = installPrompt !== null || (isIOS && !isStandalone);
+
+  // Get installation method
+  const installMethod = getPWAInstallMethod();
+
+  // Check if user preferences allow showing notifications
+  const canShowPrompt = canShowPWAPrompt();
+
+  // Determine if PWA notification should be shown
+  const shouldShowNotification =
+    !isStandalone && // Not already installed as PWA
+    !isInstalled && // Not marked as installed
+    supportsPWAInstall() && // Device supports PWA (Android mobile only)
+    shouldShowPWAByDefault() && // Device should show PWA by default (Android mobile only)
+    canShowPrompt && // User preferences allow it
+    installMethod === 'native'; // Only native install method (Android Chrome/Samsung)
+
+  // Determine if notification dot should be shown (once per session)
+  const shouldShowNotificationDotValue =
+    shouldShowNotification && // Base notification logic
+    shouldShowNotificationDot(); // Session-based logic
 
   useEffect(() => {
     // Listen for beforeinstallprompt event (Chrome/Edge)
@@ -81,6 +125,20 @@ export const usePWA = (): PWAHook => {
     setInstallPrompt(null);
   };
 
+  const handleDismissNotification = () => {
+    dismissPWAPrompt();
+    setInstallPrompt(null);
+  };
+
+  const handleDeclineInstall = () => {
+    declinePWAInstall();
+    setInstallPrompt(null);
+  };
+
+  const markNotificationDotSeen = () => {
+    markSessionNotificationShown();
+  };
+
   return {
     isInstallable,
     isInstalled,
@@ -89,5 +147,13 @@ export const usePWA = (): PWAHook => {
     installPrompt,
     showInstallPrompt,
     dismissInstallPrompt,
+    shouldShowNotification,
+    shouldShowNotificationDot: shouldShowNotificationDotValue,
+    canShowPrompt,
+    deviceInfo,
+    installMethod,
+    handleDismissNotification,
+    handleDeclineInstall,
+    markNotificationDotSeen,
   };
 };

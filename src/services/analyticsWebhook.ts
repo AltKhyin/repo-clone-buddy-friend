@@ -1,5 +1,7 @@
 // ABOUTME: Analytics webhook service for sending comprehensive payment event data to Make.com for analytics and ad tracking
 
+import { getDeviceInfo } from '@/utils/deviceDetection';
+
 interface AnalyticsWebhookPayload {
   // Event metadata
   event: {
@@ -84,6 +86,9 @@ interface AnalyticsWebhookPayload {
     device_info?: {
       type: 'desktop' | 'mobile' | 'tablet';
       screen_resolution?: string;
+      browser?: string;
+      os?: string;
+      os_version?: string;
     };
   };
 
@@ -293,10 +298,16 @@ export function buildPaymentSuccessWebhookPayload({
       browser_info: {
         language: navigator.language,
       },
-      device_info: {
-        type: /Mobile|Android|iPhone|iPad/.test(navigator.userAgent) ? 'mobile' : 'desktop',
-        screen_resolution: `${screen.width}x${screen.height}`,
-      },
+      device_info: (() => {
+        const deviceInfo = getDeviceInfo();
+        return {
+          type: deviceInfo.isMobile ? 'mobile' : deviceInfo.isTablet ? 'tablet' : 'desktop',
+          screen_resolution: `${screen.width}x${screen.height}`,
+          browser: deviceInfo.browser,
+          os: deviceInfo.isIOS ? 'iOS' : deviceInfo.isAndroid ? 'Android' : 'Desktop',
+          os_version: deviceInfo.osVersion,
+        };
+      })(),
     },
 
     conversion: {

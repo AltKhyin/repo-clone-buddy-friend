@@ -1,17 +1,16 @@
-// ABOUTME: PWA provider for managing installation state and lifecycle - simplified without header button.
+// ABOUTME: PWA provider for managing installation state and lifecycle - notification-based, non-intrusive approach.
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { PWAContext, PWAContextType } from '@/contexts/PWAContext';
 import { usePWA } from '../../hooks/usePWA';
-import PWAInstallPrompt from './PWAInstallPrompt';
+import { resetSessionTracking } from '@/utils/pwaPreferences';
 
 interface PWAProviderProps {
   children: React.ReactNode;
 }
 
 const PWAProvider: React.FC<PWAProviderProps> = ({ children }) => {
-  const { isInstalled, isInstallable, isStandalone } = usePWA();
-  const [showInstallPrompt, setShowInstallPrompt] = useState(false);
+  const { isInstalled, isInstallable } = usePWA();
 
   useEffect(() => {
     // Register service worker
@@ -28,19 +27,13 @@ const PWAProvider: React.FC<PWAProviderProps> = ({ children }) => {
       });
     }
 
-    // Show install prompt after a delay if not installed and installable
-    if (!isInstalled && !isStandalone && isInstallable) {
-      const timer = setTimeout(() => {
-        setShowInstallPrompt(true);
-      }, 10000); // Show after 10 seconds
-
-      return () => clearTimeout(timer);
-    }
-  }, [isInstalled, isStandalone, isInstallable]);
+    // Reset session tracking on app start (session-based notification dot)
+    resetSessionTracking();
+  }, []);
 
   const contextValue: PWAContextType = {
-    showInstallPrompt,
-    setShowInstallPrompt,
+    showInstallPrompt: false, // No more popup prompts
+    setShowInstallPrompt: () => {}, // No-op function for backward compatibility
     isInstalled,
     isInstallable,
   };
@@ -48,7 +41,7 @@ const PWAProvider: React.FC<PWAProviderProps> = ({ children }) => {
   return (
     <PWAContext.Provider value={contextValue}>
       {children}
-      {showInstallPrompt && <PWAInstallPrompt onDismiss={() => setShowInstallPrompt(false)} />}
+      {/* No more PWAInstallPrompt popup - now handled via notification system */}
     </PWAContext.Provider>
   );
 };
