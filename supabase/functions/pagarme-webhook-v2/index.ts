@@ -191,7 +191,7 @@ const handleNewUserInvitation = async (supabase: any, webhookData: any) => {
           subscription_starts_at: new Date().toISOString(),
           subscription_ends_at: subscriptionEndsAt.toISOString(),
 
-          // Payment metadata for record-keeping
+          // Payment creation flag for password setup page
           created_from_payment: true,
           payment_order_id: webhookData.data.id,
           payment_amount: webhookData.data.amount,
@@ -203,7 +203,7 @@ const handleNewUserInvitation = async (supabase: any, webhookData: any) => {
           pagarme_customer_id: customerData.id,
 
           // Plan information
-          plan_description: webhookData.data.items?.[0]?.description || 'EVIDENS Premium Access'
+          plan_description: webhookData.data.items?.[0]?.description || 'EVIDENS Premium'
         }
       }
     )

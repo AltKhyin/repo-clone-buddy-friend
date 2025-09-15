@@ -1,4 +1,4 @@
-// ABOUTME: Supabase native registration completion page for payment-to-account linking flow
+// ABOUTME: Simplified password creation page for Supabase invitation flow matching login/register UI
 
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
@@ -7,15 +7,15 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, CheckCircle2, XCircle, Eye, EyeOff } from 'lucide-react';
+import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
+import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import SplitScreenAuthLayout from '@/components/auth/SplitScreenAuthLayout';
+import { AuthFormContainer } from '@/components/auth/AuthFormContainer';
 
-// Registration form schema - only password needed (name comes from invitation)
-const registrationSchema = z.object({
+// Simple password schema
+const passwordSchema = z.object({
   password: z.string().min(8, 'Senha deve ter pelo menos 8 caracteres'),
   confirmPassword: z.string().min(8, 'Confirmação de senha obrigatória'),
 }).refine((data) => data.password === data.confirmPassword, {
@@ -23,13 +23,7 @@ const registrationSchema = z.object({
   path: ["confirmPassword"],
 });
 
-type RegistrationFormData = z.infer<typeof registrationSchema>;
-
-interface PaymentMetadata {
-  paymentData: any;
-  customerData: any;
-  planData: any;
-}
+type PasswordFormData = z.infer<typeof passwordSchema>;
 
 export default function CompleteRegistration() {
   const [searchParams] = useSearchParams();
@@ -38,160 +32,103 @@ export default function CompleteRegistration() {
   // States
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [userMetadata, setUserMetadata] = useState<any>(null);
-  const [paymentMetadata, setPaymentMetadata] = useState<PaymentMetadata | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [invitationValid, setInvitationValid] = useState(false);
+  const [userInfo, setUserInfo] = useState<any>(null);
 
   // Form setup
-  const form = useForm<RegistrationFormData>({
-    resolver: zodResolver(registrationSchema),
+  const form = useForm<PasswordFormData>({
+    resolver: zodResolver(passwordSchema),
     defaultValues: {
       password: '',
       confirmPassword: '',
     },
   });
 
-  // Handle password setup flow on page load
+  // Check invitation status on page load
   useEffect(() => {
-    const handlePasswordSetupFlow = async () => {
+    const checkInvitation = async () => {
       try {
-        console.log('🔍 Checking user session for password setup requirement');
-        
+        console.log('🔍 Checking invitation status');
+
         // Get current session
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        
-        if (sessionError) {
-          console.error('❌ Session error:', sessionError);
-          setError('Erro ao validar sessão');
-          setIsLoading(false);
-          return;
-        }
 
-        if (session?.user) {
-          // User is authenticated - check if they need password setup
-          const userMeta = session.user.user_metadata;
-          console.log('👤 User metadata:', userMeta);
-          
-          const needsPasswordSetup = userMeta?.needs_password_setup === 'true' || userMeta?.needs_password_setup === true;
-          const invitedViaPayment = userMeta?.invited_via === 'payment';
-          
-          if (needsPasswordSetup && invitedViaPayment) {
-            // This user needs password setup after payment
-            console.log('✅ User needs password setup after payment');
-            setUserMetadata(userMeta);
-            
-            // Parse payment metadata if available
-            if (userMeta.payment_metadata) {
-              try {
-                const parsedPaymentMeta = JSON.parse(userMeta.payment_metadata);
-                setPaymentMetadata(parsedPaymentMeta);
-              } catch (parseError) {
-                console.warn('⚠️ Could not parse payment metadata:', parseError);
-              }
-            }
-            
-            setInvitationValid(true);
-          } else {
-            // User doesn't need password setup or not from payment
-            console.log('ℹ️ User does not need password setup, redirecting to dashboard');
-            navigate('/dashboard');
-            return;
-          }
-        } else {
-          // No session - redirect to login
-          console.log('❌ No active session - redirecting to login');
+        if (sessionError || !session?.user) {
+          console.log('❌ No valid session - redirecting to login');
           navigate('/login');
           return;
         }
-        
+
+        const user = session.user;
+        const userMeta = user.user_metadata;
+
+        // Check if user was created from payment and needs password setup
+        const createdFromPayment = userMeta?.created_from_payment === true;
+
+        if (createdFromPayment && userMeta?.full_name) {
+          console.log('✅ Payment user needs password setup');
+          setUserInfo({
+            name: userMeta.full_name,
+            email: user.email,
+            planDescription: userMeta.plan_description || 'EVIDENS Premium'
+          });
+        } else {
+          console.log('ℹ️ User does not need password setup - redirecting to dashboard');
+          navigate('/');
+          return;
+        }
+
       } catch (error) {
-        console.error('💥 Error handling password setup flow:', error);
-        setError('Erro ao processar configuração de senha');
+        console.error('💥 Error checking invitation:', error);
+        navigate('/login');
       } finally {
         setIsLoading(false);
       }
     };
 
-    handlePasswordSetupFlow();
+    checkInvitation();
   }, [navigate]);
 
-  // Handle form submission - complete password setup for Supabase invitation
-  const onSubmit = async (data: RegistrationFormData) => {
-    if (!userMetadata || !paymentMetadata) {
-      toast.error('Dados de convite não encontrados');
+  // Handle form submission - set password and complete account setup
+  const onSubmit = async (data: PasswordFormData) => {
+    if (!userInfo) {
+      toast.error('Dados do usuário não encontrados');
       return;
     }
 
     setIsSubmitting(true);
 
     try {
-      console.log('🚀 Completing Supabase invitation with password setup');
+      console.log('🚀 Setting password for invited user');
 
-      // Step 1: Update user password and clear the setup requirement flag
-      const { error: updatePasswordError } = await supabase.auth.updateUser({
+      // Update user password and mark setup complete
+      const { error: updateError } = await supabase.auth.updateUser({
         password: data.password,
         data: {
-          // Keep existing metadata but remove the password setup flag
-          ...userMetadata,
-          needs_password_setup: false, // Clear the flag
-          password_set_at: new Date().toISOString(), // Track when password was set
+          password_setup_complete: true,
+          password_set_at: new Date().toISOString(),
         }
       });
 
-      if (updatePasswordError) {
-        console.error('❌ Password update error:', updatePasswordError);
-        throw new Error(updatePasswordError.message);
+      if (updateError) {
+        console.error('❌ Password update error:', updateError);
+        throw new Error(updateError.message);
       }
 
-      console.log('✅ Password updated and setup flag cleared');
+      console.log('✅ Password set successfully');
 
-      // Step 2: Get current user ID
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      if (userError || !user) {
-        throw new Error('Falha ao obter dados do usuário');
-      }
+      // Success - account is ready
+      toast.success('Senha criada com sucesso!');
+      toast.success('Sua conta premium está ativa!');
 
-      console.log('✅ User authenticated:', user.id);
-
-      // Step 3: Activate subscription via Edge Function
-      // Note: Practitioners record is automatically created by database trigger
-      const { data: activationResult, error: activationError } = await supabase.functions.invoke('activate-subscription-v2', {
-        body: {
-          userId: user.id,
-          paymentData: paymentMetadata.paymentData,
-          planData: paymentMetadata.planData,
-        }
-      });
-
-      if (activationError || !activationResult?.success) {
-        console.error('❌ Subscription activation failed:', activationError || activationResult);
-        
-        // Account created but subscription activation failed
-        toast.success('Conta criada com sucesso!');
-        toast.warn('Erro ao ativar assinatura. Entre em contato com o suporte.');
-        
-        setTimeout(() => {
-          navigate('/dashboard?message=manual_activation_needed');
-        }, 2000);
-        return;
-      }
-
-      console.log('✅ Subscription activated successfully:', activationResult);
-
-      // Step 4: Success - redirect to dashboard
-      toast.success('Conta criada e assinatura ativada com sucesso!');
-      
       setTimeout(() => {
-        navigate('/dashboard?message=welcome_premium');
+        navigate('/?welcome=true');
       }, 2000);
 
     } catch (error: any) {
-      console.error('💥 Registration completion error:', error);
-      setError(error.message || 'Erro ao finalizar cadastro');
-      toast.error(error.message || 'Erro ao finalizar cadastro');
+      console.error('💥 Password setup error:', error);
+      toast.error(error.message || 'Erro ao criar senha');
     } finally {
       setIsSubmitting(false);
     }
@@ -200,112 +137,88 @@ export default function CompleteRegistration() {
   // Loading state
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardContent className="flex flex-col items-center justify-center py-8">
-            <Loader2 className="h-8 w-8 animate-spin text-blue-600 mb-4" />
-            <p className="text-gray-600 text-center">Verificando configuração de senha...</p>
-          </CardContent>
-        </Card>
-      </div>
+      <SplitScreenAuthLayout>
+        <AuthFormContainer>
+          <div className="flex flex-col items-center justify-center py-8">
+            <Loader2 className="h-8 w-8 animate-spin text-black mb-4" />
+            <p className="text-black/80 text-center">Verificando convite...</p>
+          </div>
+        </AuthFormContainer>
+      </SplitScreenAuthLayout>
     );
   }
 
-  // Error state
-  if (!invitationValid || error) {
+  // Error state or no user info
+  if (!userInfo) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <div className="flex justify-center mb-4">
-              <XCircle className="h-12 w-12 text-red-500" />
-            </div>
-            <CardTitle className="text-red-900">Erro de Acesso</CardTitle>
-          </CardHeader>
-          <CardContent className="text-center">
-            <p className="text-gray-600 mb-6">
-              {error || 'Não foi possível acessar a configuração de senha.'}
+      <SplitScreenAuthLayout>
+        <AuthFormContainer>
+          <div className="text-center">
+            <h2 className="text-2xl font-semibold text-black mb-4">Link inválido</h2>
+            <p className="text-black/80 mb-6">
+              Este link de ativação expirou ou não é válido.
             </p>
-            <Button 
-              onClick={() => navigate('/login')} 
-              className="w-full"
+            <Button
+              onClick={() => navigate('/login')}
+              className="w-full h-11 bg-black text-white hover:bg-black/90"
             >
               Ir para Login
             </Button>
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+        </AuthFormContainer>
+      </SplitScreenAuthLayout>
     );
   }
 
   // Success state (submitting)
   if (isSubmitting) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardContent className="flex flex-col items-center justify-center py-8">
-            <Loader2 className="h-8 w-8 animate-spin text-blue-600 mb-4" />
-            <p className="text-gray-600 text-center mb-2">Criando sua conta...</p>
-            <p className="text-sm text-gray-500 text-center">Isso pode levar alguns instantes</p>
-          </CardContent>
-        </Card>
-      </div>
+      <SplitScreenAuthLayout>
+        <AuthFormContainer>
+          <div className="flex flex-col items-center justify-center py-8">
+            <Loader2 className="h-8 w-8 animate-spin text-black mb-4" />
+            <p className="text-black/80 text-center mb-2">Criando sua senha...</p>
+            <p className="text-sm text-black/60 text-center">Aguarde um momento</p>
+          </div>
+        </AuthFormContainer>
+      </SplitScreenAuthLayout>
     );
   }
 
-  // Registration form
+  // Password creation form
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <div className="flex justify-center mb-4">
-            <CheckCircle2 className="h-12 w-12 text-green-500" />
+    <SplitScreenAuthLayout>
+      <AuthFormContainer>
+        <div className="space-y-6">
+          {/* Header */}
+          <div className="text-center">
+            <h2 className="text-2xl font-semibold text-black mb-2">
+              Crie sua senha
+            </h2>
+            <p className="text-black/80 text-sm mb-2">
+              Olá, {userInfo.name}
+            </p>
+            <p className="text-black/60 text-sm">
+              Sua assinatura {userInfo.planDescription} está ativa!
+            </p>
           </div>
-          <CardTitle className="text-2xl font-bold text-gray-900">
-            Complete seu Cadastro
-          </CardTitle>
-          <p className="text-gray-600">
-            Seu pagamento foi aprovado! Complete seu cadastro para ativar sua assinatura.
-          </p>
-        </CardHeader>
 
-        <CardContent>
-          {/* Plan info */}
-          {paymentMetadata?.planData && (
-            <Alert className="mb-6 bg-blue-50 border-blue-200">
-              <AlertDescription>
-                <div className="text-sm">
-                  <p className="font-medium text-blue-900 mb-1">
-                    Plano: {paymentMetadata.planData.name}
-                  </p>
-                  <p className="text-blue-700">
-                    Nome: {userMetadata?.full_name}
-                  </p>
-                  <p className="text-blue-700">
-                    Email: {userMetadata?.email || 'Não disponível'}
-                  </p>
-                </div>
-              </AlertDescription>
-            </Alert>
-          )}
-
+          {/* Form */}
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               {/* Password */}
               <FormField
                 control={form.control}
                 name="password"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Senha</FormLabel>
                     <FormControl>
                       <div className="relative">
                         <Input
                           {...field}
                           type={showPassword ? 'text' : 'password'}
-                          placeholder="Crie uma senha forte"
-                          className="h-11 pr-10"
+                          placeholder="Sua senha (mín. 8 caracteres)"
+                          className="h-11 pr-10 border-black/20 focus:border-black"
                         />
                         <Button
                           type="button"
@@ -315,9 +228,9 @@ export default function CompleteRegistration() {
                           onClick={() => setShowPassword(!showPassword)}
                         >
                           {showPassword ? (
-                            <EyeOff className="h-4 w-4 text-gray-500" />
+                            <EyeOff className="h-4 w-4 text-black/50" />
                           ) : (
-                            <Eye className="h-4 w-4 text-gray-500" />
+                            <Eye className="h-4 w-4 text-black/50" />
                           )}
                         </Button>
                       </div>
@@ -333,14 +246,13 @@ export default function CompleteRegistration() {
                 name="confirmPassword"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Confirmar Senha</FormLabel>
                     <FormControl>
                       <div className="relative">
                         <Input
                           {...field}
                           type={showConfirmPassword ? 'text' : 'password'}
                           placeholder="Confirme sua senha"
-                          className="h-11 pr-10"
+                          className="h-11 pr-10 border-black/20 focus:border-black"
                         />
                         <Button
                           type="button"
@@ -350,9 +262,9 @@ export default function CompleteRegistration() {
                           onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                         >
                           {showConfirmPassword ? (
-                            <EyeOff className="h-4 w-4 text-gray-500" />
+                            <EyeOff className="h-4 w-4 text-black/50" />
                           ) : (
-                            <Eye className="h-4 w-4 text-gray-500" />
+                            <Eye className="h-4 w-4 text-black/50" />
                           )}
                         </Button>
                       </div>
@@ -363,38 +275,37 @@ export default function CompleteRegistration() {
               />
 
               {/* Submit Button */}
-              <Button 
-                type="submit" 
-                className="w-full h-11"
+              <Button
+                type="submit"
+                className="w-full h-11 bg-black text-white hover:bg-black/90"
                 disabled={isSubmitting}
               >
                 {isSubmitting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Criando Conta...
+                    Criando...
                   </>
                 ) : (
-                  'Criar Conta e Ativar Assinatura'
+                  'Criar Senha e Acessar'
                 )}
               </Button>
             </form>
           </Form>
 
           {/* Footer */}
-          <div className="mt-6 text-center">
-            <p className="text-xs text-gray-500">
+          <div className="text-center pt-4">
+            <p className="text-xs text-black/60">
               Já tem uma conta?{' '}
-              <Button
-                variant="link"
-                className="p-0 h-auto text-xs"
+              <button
                 onClick={() => navigate('/login')}
+                className="text-black underline hover:no-underline"
               >
                 Faça login
-              </Button>
+              </button>
             </p>
           </div>
-        </CardContent>
-      </Card>
-    </div>
+        </div>
+      </AuthFormContainer>
+    </SplitScreenAuthLayout>
   );
 }
