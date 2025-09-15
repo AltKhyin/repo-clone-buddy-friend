@@ -33,11 +33,8 @@ export const useAccessControlPrefetch = () => {
     // Prevent multiple prefetches for the same session
     const currentSessionId = session.access_token;
     if (prefetchedSessionRef.current === currentSessionId) {
-      console.log('🔄 Access control already prefetched for this session');
       return;
     }
-
-    console.log('🚀 Starting access control prefetch for new session');
     prefetchedSessionRef.current = currentSessionId;
 
     // Prefetch access control data for all main routes
@@ -63,9 +60,7 @@ export const useAccessControlPrefetch = () => {
           gcTime: 15 * 60 * 1000, // 15 minutes (increased)
         });
 
-        console.log(`✅ Prefetched access control for: ${pagePath}`);
       } catch (error) {
-        console.warn(`⚠️ Failed to prefetch access control for ${pagePath}:`, error);
         // Don't block app startup if prefetch fails
       }
     });

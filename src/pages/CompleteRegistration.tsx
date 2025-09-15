@@ -51,7 +51,6 @@ export default function CompleteRegistration() {
 
     const handleInvitationFlow = async () => {
       try {
-        console.log('🔍 Handling invitation flow');
 
         // Get both current URL and hash parameters
         const currentUrl = new URL(window.location.href);
@@ -64,42 +63,18 @@ export default function CompleteRegistration() {
         const token = currentUrl.searchParams.get('token') || hashParams.get('token');
         const tokenHash = currentUrl.searchParams.get('token_hash') || hashParams.get('token_hash');
 
-        console.log('🔍 Complete URL breakdown:', {
-          fullUrl: window.location.href,
-          pathname: window.location.pathname,
-          search: window.location.search,
-          hash: window.location.hash,
-          searchParams: Object.fromEntries(currentUrl.searchParams.entries()),
-          hashParams: Object.fromEntries(hashParams.entries())
-        });
 
-        console.log('🔍 Extracted parameters:', {
-          accessToken: accessToken ? `${accessToken.substring(0, 10)}...` : null,
-          refreshToken: refreshToken ? `${refreshToken.substring(0, 10)}...` : null,
-          type,
-          token: token ? `${token.substring(0, 10)}...` : null,
-          tokenHash: tokenHash ? `${tokenHash.substring(0, 10)}...` : null
-        });
 
         // Set up auth state change listener to handle async auth events
         const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-          console.log('🔄 Auth state change:', event, {
-            hasSession: !!session,
-            userId: session?.user?.id,
-            email: session?.user?.email,
-            userMeta: session?.user?.user_metadata
-          });
-
           if (event === 'SIGNED_IN' && session?.user) {
-            console.log('✅ User signed in via auth state change');
+            // User signed in via auth state change
           }
         });
         authSubscription = subscription;
 
         // Handle token-based authentication (from email links)
         if (accessToken && refreshToken && type === 'invite') {
-          console.log('📧 Processing invitation with access tokens...');
-
           const { data, error } = await supabase.auth.setSession({
             access_token: accessToken,
             refresh_token: refreshToken
@@ -110,13 +85,9 @@ export default function CompleteRegistration() {
             navigate('/login?error=invalid_invitation');
             return;
           }
-
-          console.log('✅ Invitation session set successfully');
           window.history.replaceState({}, document.title, '/complete-registration');
         }
         else if (token && type === 'invite') {
-          console.log('📧 Processing invitation with verification token...');
-
           const { data, error } = await supabase.auth.verifyOtp({
             token_hash: tokenHash || token,
             type: 'invite'
@@ -127,8 +98,6 @@ export default function CompleteRegistration() {
             navigate('/login?error=invalid_invitation_token');
             return;
           }
-
-          console.log('✅ Invitation token verified successfully');
           window.history.replaceState({}, document.title, '/complete-registration');
         }
 
@@ -136,7 +105,6 @@ export default function CompleteRegistration() {
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
         if (sessionError || !session?.user) {
-          console.log('❌ No valid session - redirecting to login');
           navigate('/login?error=no_session');
           return;
         }
@@ -144,20 +112,17 @@ export default function CompleteRegistration() {
         const user = session.user;
         const userMeta = user.user_metadata;
 
-        console.log('👤 User metadata:', userMeta);
 
         // Check if user was created from payment
         const createdFromPayment = userMeta?.created_from_payment === true;
 
         if (createdFromPayment && userMeta?.full_name) {
-          console.log('✅ Payment user confirmed - showing password setup');
           setUserInfo({
             name: userMeta.full_name,
             email: user.email,
             planDescription: userMeta.plan_description || 'EVIDENS Premium'
           });
         } else {
-          console.log('ℹ️ User does not need password setup - redirecting to home');
           navigate('/?welcome=true');
           return;
         }
@@ -188,8 +153,6 @@ export default function CompleteRegistration() {
     setIsSubmitting(true);
 
     try {
-      console.log('🚀 Setting password for invited user');
-
       // Update user password and mark setup complete
       const { error: updateError } = await supabase.auth.updateUser({
         password: data.password,
@@ -204,13 +167,9 @@ export default function CompleteRegistration() {
         throw new Error(updateError.message);
       }
 
-      console.log('✅ Password set successfully');
-
       // For premium payment users: Update subscription in Practitioners table
       const { data: { user } } = await supabase.auth.getUser();
       if (user?.user_metadata?.created_from_payment && user?.user_metadata?.subscription_tier === 'premium') {
-        console.log('💳 Upgrading user to premium subscription...');
-
         // Extract subscription data from invitation metadata
         const subscriptionStartsAt = user.user_metadata.subscription_starts_at;
         const subscriptionEndsAt = user.user_metadata.subscription_ends_at;
@@ -230,7 +189,6 @@ export default function CompleteRegistration() {
           // Don't fail the whole flow, just log the error
           toast.error('Atenção: Erro ao ativar assinatura premium. Entre em contato com o suporte.');
         } else {
-          console.log('✅ Premium subscription activated successfully');
 
           // Fire Make.com webhook for successful premium account creation
           try {
@@ -262,9 +220,7 @@ export default function CompleteRegistration() {
               body: JSON.stringify(webhookPayload),
             });
 
-            if (webhookResponse.ok) {
-              console.log('✅ Make.com webhook fired successfully');
-            } else {
+            if (!webhookResponse.ok) {
               console.warn('⚠️ Make.com webhook failed:', webhookResponse.status);
             }
           } catch (webhookError) {
@@ -280,8 +236,6 @@ export default function CompleteRegistration() {
 
       // Force logout to ensure user logs in again with fresh session data
       setTimeout(async () => {
-        console.log('🚪 Forcing logout after password creation to refresh session');
-
         try {
           // Sign out the user to force a fresh login
           await supabase.auth.signOut();

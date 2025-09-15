@@ -15,15 +15,6 @@ interface PixDisplayV2Props {
 export function PixDisplayV2({ qrCode, qrCodeUrl, amount, onBack, className }: PixDisplayV2Props) {
   const [imageError, setImageError] = useState(false);
 
-  // Debug logging for PIX display data
-  React.useEffect(() => {
-    console.log('🖼️ PixDisplayV2 - Rendering with data:', {
-      qrCode: qrCode ? `${qrCode.substring(0, 50)}...` : 'null',
-      qrCodeUrl,
-      amount,
-      imageError
-    });
-  }, [qrCode, qrCodeUrl, amount, imageError]);
 
   const handleImageError = () => {
     console.error('❌ PixDisplayV2 - QR Code image failed to load:', qrCodeUrl);
@@ -33,7 +24,6 @@ export function PixDisplayV2({ qrCode, qrCodeUrl, amount, onBack, className }: P
   };
 
   const handleImageLoad = () => {
-    console.log('✅ PixDisplayV2 - QR Code image loaded successfully:', qrCodeUrl);
     setImageError(false);
   };
 

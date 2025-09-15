@@ -51,7 +51,6 @@ const LoginFormSimplified = () => {
     setIsProcessingPaymentToken(true);
 
     try {
-      console.log('🔗 Processing payment token after login');
 
       const { completeAccountLinking } = await import('@/services/accountLinkingService');
       const result = await completeAccountLinking(paymentToken, userId);
@@ -77,7 +76,6 @@ const LoginFormSimplified = () => {
 
     mutation.mutate(values, {
       onSuccess: async (data) => {
-        console.log('✅ Login successful');
 
         // If there's a payment token, complete account linking
         if (paymentToken && data?.user?.id) {

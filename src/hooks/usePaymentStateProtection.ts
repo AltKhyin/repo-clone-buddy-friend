@@ -90,12 +90,10 @@ export function usePaymentStateProtection() {
   useEffect(() => {
     const restoredState = loadPaymentState();
     if (restoredState) {
-      console.log('🔄 Restored payment state from page refresh:', restoredState.view);
 
       // Adjust processing time if restoring processing state
       if (restoredState.view === 'processing' && restoredState.processingStartTime) {
         const elapsed = Math.floor((Date.now() - restoredState.processingStartTime) / 1000);
-        console.log(`⏰ Payment has been processing for ${elapsed} seconds`);
       }
 
       setPaymentState(restoredState);

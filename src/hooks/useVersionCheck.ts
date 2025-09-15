@@ -104,26 +104,42 @@ export const useVersionCheck = (options: UseVersionCheckOptions = {}): UseVersio
   };
 
   // Reload app function with cache clearing
-  const reloadApp = () => {
-    // Clear all possible caches
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.getRegistrations().then((registrations) => {
-        registrations.forEach((registration) => registration.unregister());
-      });
+  const reloadApp = async () => {
+    try {
+      // Clear localStorage for dismissed versions
+      localStorage.removeItem(STORAGE_KEY);
+
+      // Clear all possible caches with proper async handling
+      const clearPromises: Promise<any>[] = [];
+
+      // Clear service workers
+      if ('serviceWorker' in navigator) {
+        const swPromise = navigator.serviceWorker.getRegistrations().then((registrations) => {
+          return Promise.all(registrations.map((registration) => registration.unregister()));
+        });
+        clearPromises.push(swPromise);
+      }
+
+      // Clear browser caches
+      if ('caches' in window) {
+        const cachePromise = caches.keys().then((names) => {
+          return Promise.all(names.map((name) => caches.delete(name)));
+        });
+        clearPromises.push(cachePromise);
+      }
+
+      // Wait for all cache clearing operations to complete
+      await Promise.all(clearPromises);
+
+      // Small delay to ensure everything is cleared
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+    } catch (error) {
+      console.error('Error clearing caches:', error);
+    } finally {
+      // Force hard reload - this will always happen regardless of cache clearing success
+      window.location.reload();
     }
-
-    // Clear localStorage for dismissed versions
-    localStorage.removeItem(STORAGE_KEY);
-
-    // Clear browser caches if possible
-    if ('caches' in window) {
-      caches.keys().then((names) => {
-        names.forEach((name) => caches.delete(name));
-      });
-    }
-
-    // Force hard reload
-    window.location.reload();
   };
 
   // Dismiss update notification

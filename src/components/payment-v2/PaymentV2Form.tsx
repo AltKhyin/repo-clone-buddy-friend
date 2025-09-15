@@ -297,7 +297,6 @@ const PaymentV2Form = ({
     },
     customerData: PaymentV2FormData
   ) => {
-    console.log('✅ Payment successful, initiating account linking:', paymentData);
 
     try {
       // Import account linking service dynamically to avoid SSR issues
@@ -332,7 +331,6 @@ const PaymentV2Form = ({
       const linkingResult = await linkPaymentToAccount(linkingData);
 
       if (linkingResult.success) {
-        console.log('✅ Account linking completed:', linkingResult.action);
 
         // If registration invite or login prompt, dispatch email
         if (linkingResult.action === 'registration_invite' || linkingResult.action === 'login_prompt') {
@@ -359,7 +357,6 @@ const PaymentV2Form = ({
     linkingData: any
   ) => {
     try {
-      console.log('📧 Dispatching account linking email:', linkingResult.action);
 
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) {
@@ -402,7 +399,6 @@ const PaymentV2Form = ({
 
       if (response.ok) {
         const result = await response.json();
-        console.log('✅ Email dispatched successfully:', result);
         toast.success('Email de ativação enviado!');
       } else {
         const errorData = await response.json();
@@ -425,7 +421,6 @@ const PaymentV2Form = ({
     const checkStatus = async () => {
       try {
         attempts++;
-        console.log(`🔍 Checking payment status (attempt ${attempts}/${maxAttempts}):`, paymentId);
 
         // Check payment_webhooks table for confirmation
         const { data, error } = await supabase
@@ -437,7 +432,6 @@ const PaymentV2Form = ({
 
         if (!error && data) {
           // Payment confirmed!
-          console.log('✅ Payment confirmed via webhook:', data);
           setIsProcessing(false);
 
           await handlePaymentSuccess({
@@ -469,7 +463,6 @@ const PaymentV2Form = ({
           .single();
 
         if (failedData) {
-          console.log('❌ Payment failed:', failedData);
           setIsProcessing(false);
           throw new Error('Pagamento não foi aprovado');
         }
@@ -479,7 +472,6 @@ const PaymentV2Form = ({
           setTimeout(checkStatus, 5000); // Check every 5 seconds
         } else {
           // Timeout - show appropriate message
-          console.log('⏰ Payment confirmation timeout');
           setIsProcessing(false);
           setCurrentView('result');
           setPaymentResult({
@@ -579,11 +571,9 @@ const PaymentV2Form = ({
     setIsProcessing(true);
     
     try {
-      console.log('Payment V2.0 - Processing payment for:', values.customerEmail);
 
       if (selectedMethod === 'pix') {
         // PIX Payment Logic with V2 Plan Integration
-        console.log('Payment V2.0 - Building PIX payment request...');
         
         const pixRequest = planSelector.buildPixRequest({
           name: values.customerName,
@@ -596,14 +586,12 @@ const PaymentV2Form = ({
           throw new Error('Erro ao processar dados do PIX. Verifique o plano selecionado.');
         }
         
-        console.log('Payment V2.0 - Sending PIX request to Edge Function:', pixRequest);
         
         const response = await createPixPaymentV2(
           pixRequest,
           supabase.supabaseUrl
         );
         
-        console.log('Payment V2.0 - PIX response:', response);
         
         // Handle PIX response - show QR code and start monitoring
         if (response.charges && response.charges.length > 0) {
@@ -649,7 +637,6 @@ const PaymentV2Form = ({
         
       } else if (selectedMethod === 'credit_card') {
         // Credit Card Payment Logic with V2 Plan Integration
-        console.log('Payment V2.0 - Building subscription request for server-side tokenization...');
         
         const subscriptionRequest = planSelector.buildCreditCardRequest({
           name: values.customerName,
@@ -670,20 +657,17 @@ const PaymentV2Form = ({
           throw new Error('Erro ao processar dados do cartão. Verifique o plano selecionado.');
         }
         
-        console.log('Payment V2.0 - Sending credit card request to Edge Function:', subscriptionRequest);
         
         const response = await createSubscriptionV2(
           subscriptionRequest,
           supabase.supabaseUrl
         );
         
-        console.log('Payment V2.0 - Credit card response:', response);
 
         const paymentId = response.subscription_id || response.id;
 
         // Check if payment was immediately successful (test cards)
         if (response.status === 'active' || response.status === 'paid') {
-          console.log('✅ Payment immediately successful:', response.status);
 
           // Show enhanced success for test payments
           toast.success('Pagamento aprovado com sucesso!');

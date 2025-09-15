@@ -62,20 +62,12 @@ export interface PaymentLinkingData {
 export const linkPaymentToAccount = async (
   linkingData: PaymentLinkingData
 ): Promise<AccountLinkingResult> => {
-  console.log('🔗 Starting account linking process for:', linkingData.email);
-  
   try {
     // Step 1: Identify user status
     const userLookup = await findUserByEmail(linkingData.email);
-    console.log('👤 User lookup result:', { 
-      exists: userLookup.exists, 
-      isLoggedIn: userLookup.isLoggedIn 
-    });
 
     // PATH 1: User exists in system → Direct activation via Edge Function
     if (userLookup.exists && userLookup.userId) {
-      console.log('⚡ PATH 1: Direct activation for existing user');
-      
       try {
         const { data: activationResult, error: activationError } = await supabase.functions.invoke('activate-subscription-v2', {
           body: {
@@ -95,7 +87,6 @@ export const linkPaymentToAccount = async (
           };
         }
 
-        console.log('✅ PATH 1: Direct activation successful:', activationResult);
         return {
           success: true,
           action: 'immediate_link',
@@ -118,8 +109,6 @@ export const linkPaymentToAccount = async (
     }
 
     // PATH 2: New user → Direct account creation with payment activation
-    console.log('✨ PATH 2: Direct account creation for new user');
-    
     try {
       // Create user account directly with payment metadata
       const signupResult = await inviteUserWithPaymentData(linkingData);
@@ -169,17 +158,13 @@ export const linkPaymentToAccount = async (
 const inviteUserWithPaymentData = async (
   linkingData: PaymentLinkingData
 ): Promise<{ success: boolean; userId?: string; error?: string }> => {
-  console.log('📧 Creating user signup with payment data for:', linkingData.email);
-
   try {
     // For new users, we'll use a simpler approach: direct signup with payment metadata
     // This creates the user immediately instead of using invitation emails
     
     // Generate a temporary password for the user - they'll set their own later
     const temporaryPassword = `temp_${Date.now()}_${Math.random().toString(36).substring(7)}`;
-    
-    console.log('🔐 Creating user account with temporary credentials');
-    
+
     // Create the user account directly
     const { data: authResult, error: authError } = await supabase.auth.signUp({
       email: linkingData.email,
@@ -219,12 +204,8 @@ const inviteUserWithPaymentData = async (
         const waitTimeMatch = authError.message.match(/after (\d+) seconds/);
         const waitTime = waitTimeMatch ? parseInt(waitTimeMatch[1]) : 60;
 
-        console.log(`⏰ Rate limited, waiting ${waitTime} seconds before retry...`);
-
         // Wait and retry once
         await new Promise(resolve => setTimeout(resolve, (waitTime + 1) * 1000));
-
-        console.log('🔄 Retrying signup after rate limit wait...');
         const { data: retryAuthResult, error: retryAuthError } = await supabase.auth.signUp({
           email: linkingData.email,
           password: temporaryPassword,
@@ -272,11 +253,9 @@ const inviteUserWithPaymentData = async (
       };
     }
 
-    console.log('✅ User account created successfully:', authResult.user.id);
     
     // The database trigger will automatically create the Practitioners record
     // Now we need to activate the subscription
-    console.log('⚡ Activating subscription for new user');
     
     const activationResult = await supabase.functions.invoke('activate-subscription-v2', {
       body: {
@@ -290,7 +269,6 @@ const inviteUserWithPaymentData = async (
       console.error('⚠️ Subscription activation failed but user was created:', activationResult.error);
       // Don't fail the whole process - user was created successfully
     } else {
-      console.log('✅ Subscription activated for new user');
     }
     
     return {
@@ -330,7 +308,6 @@ export const completeAccountLinking = async (
   token: string,
   userId: string
 ): Promise<{ success: boolean; error?: string }> => {
-  console.log('🔗 Completing account linking with token for user:', userId);
 
   try {
     // Get token data and validate
@@ -359,7 +336,6 @@ export const completeAccountLinking = async (
       // Mark token as used
       await markTokenAsUsed(tokenValidation.linkId);
       
-      console.log('✅ Account linking completed successfully');
       return { success: true };
     } else {
       return linkResult;

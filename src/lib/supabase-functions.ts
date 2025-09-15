@@ -87,28 +87,15 @@ export async function invokeFunctionGet<T>(
     requestHeaders.Authorization = `Bearer ${session.access_token}`;
   }
 
-  console.log(`🌐 [${functionName}] Making GET request to: ${url.toString()}`);
-  console.log(`🔑 [${functionName}] Request headers:`, requestHeaders);
-
   const response = await fetch(url.toString(), {
     method: 'GET',
     headers: requestHeaders,
   });
 
-  console.log(`📡 [${functionName}] Response status: ${response.status} ${response.statusText}`);
-
   // Check content type first
   const contentType = response.headers.get('content-type');
   const responseText = await response.text();
 
-  console.log(`📄 [${functionName}] Response content-type: ${contentType}`);
-  console.log(
-    `📄 [${functionName}] Response text (first 500 chars): ${responseText.substring(0, 500)}`
-  );
-
-  if (!response.ok) {
-    console.error(`❌ [${functionName}] HTTP Error ${response.status}: ${responseText}`);
-  }
 
   if (!response.ok) {
     console.error(`Function ${functionName} failed with status ${response.status}:`, responseText);

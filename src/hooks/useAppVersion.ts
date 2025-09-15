@@ -23,7 +23,6 @@ export const useAppVersion = () => {
           if (registration) {
             // Check if there's a waiting service worker (new version available)
             if (registration.waiting) {
-              console.log('🔄 New app version detected, updating silently...');
               
               // Skip the waiting and activate immediately
               registration.waiting.postMessage({ type: 'SKIP_WAITING' });
@@ -42,7 +41,6 @@ export const useAppVersion = () => {
               if (newWorker) {
                 newWorker.addEventListener('statechange', () => {
                   if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                    console.log('🔄 New app version available, activating...');
                     newWorker.postMessage({ type: 'SKIP_WAITING' });
                   }
                 });

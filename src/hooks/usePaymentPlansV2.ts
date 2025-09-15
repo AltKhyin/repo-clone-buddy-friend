@@ -159,7 +159,6 @@ export const usePaymentPlansV2 = (): UsePaymentPlansV2Result => {
   } = useQuery({
     queryKey: ['payment-plans-v2'],
     queryFn: async (): Promise<PaymentPlanV2Row[]> => {
-      console.log('🔄 Fetching V2 payment plans...');
       
       const { data, error } = await supabase
         .from('paymentplansv2')

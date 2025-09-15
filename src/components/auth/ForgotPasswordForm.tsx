@@ -73,28 +73,13 @@ const ForgotPasswordForm = () => {
             Não recebeu o email? Verifique sua pasta de spam ou aguarde alguns minutos.
           </p>
           
-          <div className="space-y-3">
-            <Button 
-              onClick={() => {
-                setEmailSent(false);
-                setResetError('');
-                form.reset();
-              }}
-              variant="outline" 
-              className="w-full bg-white hover:bg-gray-50 border-gray-300 text-gray-700"
-            >
-              Enviar para outro email
-            </Button>
-            
-            <Button 
-              onClick={() => navigate('/login')}
-              variant="ghost"
-              className="w-full text-gray-600 hover:text-black"
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Voltar ao login
-            </Button>
-          </div>
+          <Button
+            onClick={() => navigate('/login')}
+            className="w-full !bg-black hover:!bg-gray-800 !text-white"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Voltar ao login
+          </Button>
         </div>
       </div>
     );

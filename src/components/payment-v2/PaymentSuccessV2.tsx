@@ -117,15 +117,6 @@ export function PaymentSuccessV2({
         <p><strong>Importante:</strong> Verifique sua caixa de spam se não encontrar o email.</p>
       </div>
 
-      {/* Action Buttons */}
-      <div className="space-y-3">
-        <Button
-          onClick={onContinue}
-          className="w-full bg-black hover:bg-gray-800 text-white"
-        >
-          Continuar para Reviews
-        </Button>
-      </div>
 
       {/* Welcome Message */}
       <div className="text-center text-xs text-gray-500">
