@@ -185,12 +185,14 @@ serve(async (req) => {
 
       console.log('Payment V2.0 Edge Function - Card tokenized successfully:', tokenData.id)
 
-      // Replace card data with token
+      // Replace card data with token, but keep billing_address
       finalRequest = {
         ...paymentRequest,
         card_token: tokenData.id,
+        card: {
+          billing_address: paymentRequest.card.billing_address
+        }
       }
-      delete finalRequest.card // Remove raw card data
     }
 
     console.log('Payment V2.0 Edge Function - Final request:', JSON.stringify(finalRequest, null, 2))
