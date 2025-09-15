@@ -183,7 +183,7 @@ const handleNewUserInvitation = async (supabase: any, webhookData: any) => {
       customerData.email,
       {
         // Redirect to account setup page after email confirmation
-        redirectTo: `${Deno.env.get('SITE_URL') || 'https://reviews.igoreckert.com.br'}/complete-registration`,
+        redirectTo: `https://reviews.igoreckert.com.br/complete-registration`,
         data: {
           // User profile data
           full_name: customerData.name,

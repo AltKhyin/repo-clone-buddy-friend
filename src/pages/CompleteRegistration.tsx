@@ -45,49 +45,137 @@ export default function CompleteRegistration() {
     },
   });
 
-  // Check invitation status on page load
+  // Handle invitation confirmation and password setup
   useEffect(() => {
-    const checkInvitation = async () => {
-      try {
-        console.log('🔍 Checking invitation status');
+    let authSubscription: any = null;
 
-        // Get current session
+    const handleInvitationFlow = async () => {
+      try {
+        console.log('🔍 Handling invitation flow');
+
+        // Get both current URL and hash parameters
+        const currentUrl = new URL(window.location.href);
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+
+        // Check for auth-related URL parameters from both search and hash
+        const accessToken = currentUrl.searchParams.get('access_token') || hashParams.get('access_token');
+        const refreshToken = currentUrl.searchParams.get('refresh_token') || hashParams.get('refresh_token');
+        const type = currentUrl.searchParams.get('type') || hashParams.get('type');
+        const token = currentUrl.searchParams.get('token') || hashParams.get('token');
+        const tokenHash = currentUrl.searchParams.get('token_hash') || hashParams.get('token_hash');
+
+        console.log('🔍 Complete URL breakdown:', {
+          fullUrl: window.location.href,
+          pathname: window.location.pathname,
+          search: window.location.search,
+          hash: window.location.hash,
+          searchParams: Object.fromEntries(currentUrl.searchParams.entries()),
+          hashParams: Object.fromEntries(hashParams.entries())
+        });
+
+        console.log('🔍 Extracted parameters:', {
+          accessToken: accessToken ? `${accessToken.substring(0, 10)}...` : null,
+          refreshToken: refreshToken ? `${refreshToken.substring(0, 10)}...` : null,
+          type,
+          token: token ? `${token.substring(0, 10)}...` : null,
+          tokenHash: tokenHash ? `${tokenHash.substring(0, 10)}...` : null
+        });
+
+        // Set up auth state change listener to handle async auth events
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+          console.log('🔄 Auth state change:', event, {
+            hasSession: !!session,
+            userId: session?.user?.id,
+            email: session?.user?.email,
+            userMeta: session?.user?.user_metadata
+          });
+
+          if (event === 'SIGNED_IN' && session?.user) {
+            console.log('✅ User signed in via auth state change');
+          }
+        });
+        authSubscription = subscription;
+
+        // Handle token-based authentication (from email links)
+        if (accessToken && refreshToken && type === 'invite') {
+          console.log('📧 Processing invitation with access tokens...');
+
+          const { data, error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken
+          });
+
+          if (error) {
+            console.error('❌ Failed to set session from invitation:', error);
+            navigate('/login?error=invalid_invitation');
+            return;
+          }
+
+          console.log('✅ Invitation session set successfully');
+          window.history.replaceState({}, document.title, '/complete-registration');
+        }
+        else if (token && type === 'invite') {
+          console.log('📧 Processing invitation with verification token...');
+
+          const { data, error } = await supabase.auth.verifyOtp({
+            token_hash: tokenHash || token,
+            type: 'invite'
+          });
+
+          if (error) {
+            console.error('❌ Failed to verify invitation token:', error.message, error);
+            navigate('/login?error=invalid_invitation_token');
+            return;
+          }
+
+          console.log('✅ Invitation token verified successfully');
+          window.history.replaceState({}, document.title, '/complete-registration');
+        }
+
+        // Now check for active session after token processing
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
         if (sessionError || !session?.user) {
           console.log('❌ No valid session - redirecting to login');
-          navigate('/login');
+          navigate('/login?error=no_session');
           return;
         }
 
         const user = session.user;
         const userMeta = user.user_metadata;
 
-        // Check if user was created from payment and needs password setup
+        console.log('👤 User metadata:', userMeta);
+
+        // Check if user was created from payment
         const createdFromPayment = userMeta?.created_from_payment === true;
 
         if (createdFromPayment && userMeta?.full_name) {
-          console.log('✅ Payment user needs password setup');
+          console.log('✅ Payment user confirmed - showing password setup');
           setUserInfo({
             name: userMeta.full_name,
             email: user.email,
             planDescription: userMeta.plan_description || 'EVIDENS Premium'
           });
         } else {
-          console.log('ℹ️ User does not need password setup - redirecting to dashboard');
-          navigate('/');
+          console.log('ℹ️ User does not need password setup - redirecting to home');
+          navigate('/?welcome=true');
           return;
         }
 
       } catch (error) {
-        console.error('💥 Error checking invitation:', error);
-        navigate('/login');
+        console.error('💥 Error in invitation flow:', error);
+        navigate('/login?error=invitation_failed');
       } finally {
         setIsLoading(false);
       }
     };
 
-    checkInvitation();
+    handleInvitationFlow();
+
+    // Cleanup function
+    return () => {
+      authSubscription?.unsubscribe();
+    };
   }, [navigate]);
 
   // Handle form submission - set password and complete account setup
