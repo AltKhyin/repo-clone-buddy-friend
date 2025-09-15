@@ -19,12 +19,12 @@
 // =================================================================
 
 const PAGARME_CONFIG = {
-  // API Configuration
-  baseURL: 'https://sdx-api.pagar.me/core/v5',
+  // API Configuration - FIXED: Now using production endpoint
+  baseURL: 'https://api.pagar.me/core/v5',
   apiVersion: import.meta.env.PAGARME_API_VERSION || '2019-09-01',
   
   // Client-side keys (safe for browser)
-  publicKey: import.meta.env.VITE_PAGARME_PUBLIC_KEY,
+  publicKey: import.meta.env.VITE_PAGARME_PUBLIC_KEY || 'pk_BYm9A8QCrqFKK2Zn',
   
   // Server-side keys (only for Edge Functions - not included in client bundle)
   get secretKey() {

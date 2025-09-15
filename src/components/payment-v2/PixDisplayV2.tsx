@@ -1,5 +1,5 @@
 // ABOUTME: PIX QR Code display component for Payment V2.0 with copy functionality
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { QrCode } from 'lucide-react';
 import { toast } from 'sonner';
@@ -13,6 +13,30 @@ interface PixDisplayV2Props {
 }
 
 export function PixDisplayV2({ qrCode, qrCodeUrl, amount, onBack, className }: PixDisplayV2Props) {
+  const [imageError, setImageError] = useState(false);
+
+  // Debug logging for PIX display data
+  React.useEffect(() => {
+    console.log('🖼️ PixDisplayV2 - Rendering with data:', {
+      qrCode: qrCode ? `${qrCode.substring(0, 50)}...` : 'null',
+      qrCodeUrl,
+      amount,
+      imageError
+    });
+  }, [qrCode, qrCodeUrl, amount, imageError]);
+
+  const handleImageError = () => {
+    console.error('❌ PixDisplayV2 - QR Code image failed to load:', qrCodeUrl);
+    console.error('❌ PixDisplayV2 - This is likely a CORS issue with Pagar.me QR code URL');
+    setImageError(true);
+    toast.error('Erro ao carregar QR Code. Use o botão "Copiar código PIX" abaixo.');
+  };
+
+  const handleImageLoad = () => {
+    console.log('✅ PixDisplayV2 - QR Code image loaded successfully:', qrCodeUrl);
+    setImageError(false);
+  };
+
   const handleCopyPixCode = async () => {
     if (!qrCode) {
       toast.error('Código PIX não disponível');
@@ -70,16 +94,25 @@ export function PixDisplayV2({ qrCode, qrCodeUrl, amount, onBack, className }: P
 
         {/* PIX QR Code */}
         <div className="bg-white h-48 w-48 mx-auto mb-4 flex items-center justify-center rounded-lg border">
-          {qrCodeUrl ? (
-            <img 
-              src={qrCodeUrl} 
+          {qrCodeUrl && !imageError ? (
+            <img
+              src={qrCodeUrl}
               alt="PIX QR Code"
               className="h-44 w-44 object-contain"
+              onError={handleImageError}
+              onLoad={handleImageLoad}
             />
           ) : (
             <div className="text-center">
               <QrCode className="h-16 w-16 text-gray-400 mx-auto mb-2" />
-              <p className="text-xs text-gray-500">QR Code PIX</p>
+              <p className="text-xs text-gray-500">
+                {imageError ? 'Erro ao carregar QR Code' : 'QR Code PIX'}
+              </p>
+              {imageError && (
+                <p className="text-xs text-red-500 mt-1">
+                  Use o botão abaixo para copiar
+                </p>
+              )}
             </div>
           )}
         </div>

@@ -7,11 +7,29 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-// Pagar.me V2.0 configuration
+// Pagar.me V2.0 configuration from environment variables
 const PAGARME_V2_CONFIG = {
   baseURL: 'https://api.pagar.me/core/v5',
-  secretKey: 'sk_test_c2d9d4450e3d4ac5913c020779efbf14',
-  publicKey: 'pk_test_gjB1ZQAFVBH5LDlG',
+  secretKey: Deno.env.get('PAGARME_SECRET_KEY') || 'sk_503afc1f882248718635c3e92591c79c',
+  publicKey: Deno.env.get('PAGARME_PUBLIC_KEY') || 'pk_BYm9A8QCrqFKK2Zn',
+}
+
+// Runtime validation of API keys in Edge Function
+const isProduction = Deno.env.get('DENO_DEPLOYMENT_ID') !== undefined;
+console.log('🔍 PIX Edge Function Environment Debug:', {
+  isProduction,
+  baseURL: PAGARME_V2_CONFIG.baseURL,
+  secretKeyPrefix: PAGARME_V2_CONFIG.secretKey ? PAGARME_V2_CONFIG.secretKey.substring(0, 15) + '...' : 'undefined',
+  hasSecretEnvVar: Boolean(Deno.env.get('PAGARME_SECRET_KEY')),
+  hasPublicEnvVar: Boolean(Deno.env.get('PAGARME_PUBLIC_KEY'))
+});
+
+if (isProduction && PAGARME_V2_CONFIG.secretKey.startsWith('sk_test_')) {
+  console.error('🚨 CRITICAL: PIX Edge Function using test API keys in production! Set PAGARME_SECRET_KEY environment variable.');
+}
+
+if (isProduction && PAGARME_V2_CONFIG.publicKey.startsWith('pk_test_')) {
+  console.error('🚨 CRITICAL: PIX Edge Function using test public key in production! Set PAGARME_PUBLIC_KEY environment variable.');
 }
 
 interface PixPaymentRequest {
@@ -92,6 +110,7 @@ serve(async (req) => {
     console.log('PIX Payment V2.0 Edge Function - Request:', JSON.stringify(pixRequest, null, 2))
 
     // Make request to Pagar.me API (Orders endpoint for PIX)
+    console.log('🌐 PIX Edge Function - Using endpoint:', `${PAGARME_V2_CONFIG.baseURL}/orders`)
     const pagarmeResponse = await fetch(`${PAGARME_V2_CONFIG.baseURL}/orders`, {
       method: 'POST',
       headers: {

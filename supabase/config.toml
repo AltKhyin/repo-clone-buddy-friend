@@ -82,3 +82,10 @@ verify_jwt = false
 
 [functions.submit-suggestion]
 verify_jwt = false
+
+# Webhook endpoints - require Basic Auth from external services, not JWT
+[functions.pagarme-webhook-v2]
+verify_jwt = false
+
+[functions.pagarme-webhook-public]
+verify_jwt = false

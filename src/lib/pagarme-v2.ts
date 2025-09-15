@@ -1,9 +1,29 @@
-// ABOUTME: Pagar.me V2.0 API integration with isolated configuration and helper functions
+// ABOUTME: Pagar.me V2.0 API integration with environment-based configuration
 const PAGARME_V2_CONFIG = {
   baseURL: 'https://api.pagar.me/core/v5',
-  secretKey: 'sk_test_c2d9d4450e3d4ac5913c020779efbf14',
-  publicKey: 'pk_test_gjB1ZQAFVBH5LDlG',
+  secretKey: import.meta.env.VITE_PAGARME_SECRET_KEY || 'sk_503afc1f882248718635c3e92591c79c',
+  publicKey: import.meta.env.VITE_PAGARME_PUBLIC_KEY || 'pk_BYm9A8QCrqFKK2Zn',
 } as const;
+
+// Runtime validation of API keys
+console.log('🔍 Frontend Pagarme Config:', {
+  baseURL: PAGARME_V2_CONFIG.baseURL,
+  secretKeyPrefix: PAGARME_V2_CONFIG.secretKey.substring(0, 15) + '...',
+  publicKeyPrefix: PAGARME_V2_CONFIG.publicKey.substring(0, 15) + '...',
+  isUsingProductionKeys: !PAGARME_V2_CONFIG.secretKey.startsWith('sk_test_'),
+  hasEnvVars: {
+    secret: Boolean(import.meta.env.VITE_PAGARME_SECRET_KEY),
+    public: Boolean(import.meta.env.VITE_PAGARME_PUBLIC_KEY)
+  }
+});
+
+if (import.meta.env.PROD && PAGARME_V2_CONFIG.secretKey.startsWith('sk_test_')) {
+  console.error('🚨 CRITICAL: Using test API keys in production! Set VITE_PAGARME_SECRET_KEY environment variable.');
+}
+
+if (import.meta.env.PROD && PAGARME_V2_CONFIG.publicKey.startsWith('pk_test_')) {
+  console.error('🚨 CRITICAL: Using test public key in production! Set VITE_PAGARME_PUBLIC_KEY environment variable.');
+}
 
 // Official Pagar.me test card numbers
 export const TEST_CARDS = {
@@ -389,7 +409,7 @@ export function buildSubscriptionRequest(formData: {
   };
 }
 
-// V2.0 Enhanced: Build credit card subscription request with PaymentPlanV2
+// V2.0 Enhanced: Build credit card subscription request with PaymentPlanV2 (FIXED STRUCTURE)
 export function buildSubscriptionRequestV2(
   formData: {
     name: string;
@@ -422,7 +442,7 @@ export function buildSubscriptionRequestV2(
 ): PaymentV2Request {
   const phoneData = formatPhoneForPagarme(formData.phone);
   const cardExpiry = parseCardExpiry(formData.cardExpiry);
-  
+
   return {
     code: `ev2-${paymentPlan.id.slice(0, 8)}-${Date.now().toString().slice(-10)}`,
     customer: {
@@ -448,18 +468,36 @@ export function buildSubscriptionRequestV2(
     billing_type: 'prepaid',
     interval: 'month',
     interval_count: 1,
+    // ✅ FIX: Top-level pricing_scheme (REQUIRED for Pagar.me subscriptions)
+    pricing_scheme: {
+      scheme_type: 'unit',
+      price: installmentOption.totalAmount,  // Total price in cents
+    },
     items: [
       {
         description: `EVIDENS - ${paymentPlan.name} (${formData.installments}x)`,
         quantity: 1,
         code: `evidens-v2-${paymentPlan.plan_type}-${formData.installments}x`,
+        // ✅ FIX: Items need pricing_scheme for Pagar.me subscriptions
         pricing_scheme: {
           scheme_type: 'unit',
-          price: installmentOption.totalAmount,
+          price: installmentOption.totalAmount,  // Total price in cents
         },
       },
     ],
-    payment_method: 'credit_card',
+    // ✅ FIX: Will be converted to payment_methods array in Edge Function
+    payment_methods: [],  // Placeholder - Edge Function will populate with card_token
+    // ✅ FIX: Billing placeholder - Edge Function will populate from card data
+    billing: {
+      name: '',
+      address: {
+        line_1: '',
+        zip_code: '',
+        city: '',
+        state: '',
+        country: 'BR',
+      },
+    },
     card: {
       number: formData.cardNumber.replace(/\s/g, ''),
       holder_name: formData.cardName,
@@ -476,6 +514,7 @@ export function buildSubscriptionRequestV2(
     },
     installments: formData.installments,
     statement_descriptor: 'EVIDENS',
+    currency: 'BRL',  // ✅ FIX: Added currency specification
     metadata: {
       platform: 'evidens',
       plan_type: paymentPlan.plan_type,

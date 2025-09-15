@@ -7,11 +7,21 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-// Pagar.me V2.0 configuration
+// Pagar.me V2.0 configuration from environment variables
 const PAGARME_V2_CONFIG = {
   baseURL: 'https://api.pagar.me/core/v5',
-  secretKey: 'sk_test_c2d9d4450e3d4ac5913c020779efbf14',
-  publicKey: 'pk_test_gjB1ZQAFVBH5LDlG',
+  secretKey: Deno.env.get('PAGARME_SECRET_KEY') || 'sk_503afc1f882248718635c3e92591c79c',
+  publicKey: Deno.env.get('PAGARME_PUBLIC_KEY') || 'pk_BYm9A8QCrqFKK2Zn',
+}
+
+// Runtime validation of API keys in Edge Function
+const isProduction = Deno.env.get('DENO_DEPLOYMENT_ID') !== undefined;
+if (isProduction && PAGARME_V2_CONFIG.secretKey.startsWith('sk_test_')) {
+  console.error('🚨 CRITICAL: Edge Function using test API keys in production! Set PAGARME_SECRET_KEY environment variable.');
+}
+
+if (isProduction && PAGARME_V2_CONFIG.publicKey.startsWith('pk_test_')) {
+  console.error('🚨 CRITICAL: Edge Function using test public key in production! Set PAGARME_PUBLIC_KEY environment variable.');
 }
 
 interface PaymentV2Request {
@@ -39,16 +49,33 @@ interface PaymentV2Request {
   billing_type: 'prepaid'
   interval: 'month'
   interval_count: 1
+  // ✅ FIX: Top-level pricing_scheme (REQUIRED for Pagar.me subscriptions)
+  pricing_scheme: {
+    scheme_type: 'unit'
+    price: number  // Price in cents
+  }
   items: Array<{
     description: string
     quantity: 1
     code: string
-    pricing_scheme: {
-      scheme_type: 'unit'
-      price: number
-    }
+    // ✅ FIX: Removed pricing_scheme from items (not needed for subscriptions)
   }>
-  payment_method: 'credit_card'
+  // ✅ FIX: Correct payment_methods structure for Pagar.me subscriptions
+  payment_methods: Array<{
+    payment_method: 'credit_card'
+    card_token: string
+  }>
+  // ✅ FIX: Added top-level billing field required by Pagar.me Subscriptions API
+  billing: {
+    name: string
+    address: {
+      line_1: string
+      zip_code: string
+      city: string
+      state: string
+      country: 'BR'
+    }
+  }
   card?: {
     number: string
     holder_name: string
@@ -66,6 +93,7 @@ interface PaymentV2Request {
   card_token?: string
   installments: number
   statement_descriptor: 'EVIDENS'
+  currency: 'BRL'  // ✅ FIX: Added currency specification
   metadata: {
     platform: 'evidens'
     plan_type: 'premium'
@@ -125,7 +153,7 @@ serve(async (req) => {
     
     // Check if we need to tokenize card data first
     let finalRequest = paymentRequest
-    
+
     if (paymentRequest.card && !paymentRequest.card_token) {
       console.log('Payment V2.0 Edge Function - Tokenizing card data...')
       
@@ -165,17 +193,75 @@ serve(async (req) => {
 
       console.log('Payment V2.0 Edge Function - Card tokenized successfully:', tokenData.id)
 
-      // Replace card data with token
+      // ✅ FIX: Build correct Pagar.me subscription structure
       finalRequest = {
         ...paymentRequest,
+        // ✅ FIX: Correct payment_methods structure
+        payment_methods: [{
+          payment_method: 'credit_card',
+          card_token: tokenData.id
+        }],
+        // ✅ FIX: Also include top-level card_token for Pagar.me compatibility
         card_token: tokenData.id,
+        // ✅ FIX: Populate top-level billing field from card billing address
+        billing: {
+          name: paymentRequest.card.holder_name,
+          address: paymentRequest.card.billing_address
+        }
       }
+      // ✅ FIX: Remove old payment structure fields (but keep the new card_token)
       delete finalRequest.card // Remove raw card data
+      // NOTE: Don't delete finalRequest.card_token - we need it for Pagar.me
+    } else if (paymentRequest.card_token && paymentRequest.card) {
+      // ✅ FIX: Handle case where card_token already exists
+      finalRequest = {
+        ...paymentRequest,
+        // ✅ FIX: Correct payment_methods structure
+        payment_methods: [{
+          payment_method: 'credit_card',
+          card_token: paymentRequest.card_token
+        }],
+        // ✅ FIX: Keep top-level card_token for Pagar.me compatibility
+        card_token: paymentRequest.card_token,
+        // ✅ FIX: Populate billing field
+        billing: {
+          name: paymentRequest.card.holder_name,
+          address: paymentRequest.card.billing_address
+        }
+      }
+      // ✅ FIX: Remove old payment structure fields (but keep the card_token)
+      delete finalRequest.card // Remove raw card data
+      // NOTE: Don't delete finalRequest.card_token - we need it for Pagar.me
+    }
+
+    // ✅ VALIDATION: Ensure billing field is present before sending to Pagar.me
+    if (!finalRequest.billing) {
+      console.error('Payment V2.0 Edge Function - Missing required billing field')
+      return new Response(
+        JSON.stringify({
+          error: 'Dados de cobrança obrigatórios ausentes',
+          details: 'billing field is required for subscription creation'
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      )
+    }
+
+    // ✅ FIX: Ensure items array has pricing_scheme for Pagar.me API compatibility
+    if (finalRequest.items && finalRequest.pricing_scheme) {
+      finalRequest.items = finalRequest.items.map(item => ({
+        ...item,
+        pricing_scheme: finalRequest.pricing_scheme
+      }))
+      console.log('✅ Added pricing_scheme to items array for Pagar.me compatibility')
     }
 
     console.log('Payment V2.0 Edge Function - Final request:', JSON.stringify(finalRequest, null, 2))
 
     // Make request to Pagar.me API
+    console.log('🌐 Credit Card Edge Function - Using endpoint:', `${PAGARME_V2_CONFIG.baseURL}/subscriptions`)
     const pagarmeResponse = await fetch(`${PAGARME_V2_CONFIG.baseURL}/subscriptions`, {
       method: 'POST',
       headers: {

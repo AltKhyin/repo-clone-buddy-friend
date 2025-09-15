@@ -1,4 +1,4 @@
-// ABOUTME: Payment V2.0 form component with dynamic plan selection and visual customization
+// ABOUTME: Payment V2.0 form component with dynamic plan selection and simplified payment confirmation
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -12,15 +12,15 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { CreditCard, ArrowLeft, ArrowRight, Smartphone, CheckCircle2 } from 'lucide-react';
 import { PhoneInput } from '@/components/ui/PhoneInput';
-import { 
-  calculatePricing, 
+import {
+  calculatePricing,
   buildSubscriptionRequest,
   createSubscriptionV2,
   buildPixPaymentRequest,
   createPixPaymentV2,
   validatePaymentForm,
   TEST_CARDS,
-  type InstallmentOption 
+  type InstallmentOption
 } from '@/lib/pagarme-v2';
 import { usePaymentPlanSelector } from '@/hooks/usePaymentPlanSelector';
 import { EnhancedPlanDisplayV2 } from './EnhancedPlanDisplayV2';
@@ -236,18 +236,232 @@ const PaymentV2Form = ({
       billingState: '',
     },
   });
-  
+
   // Sync payment method selection with plan selector
   React.useEffect(() => {
     planSelector.selectPaymentMethod(selectedMethod);
   }, [selectedMethod, planSelector.selectPaymentMethod]);
-  
-  // Get dynamic pricing from selected plan
+
+  // Get dynamic pricing from selected plan (moved before webhook callbacks)
   const selectedInstallments = planSelector.state.selectedInstallments;
   const basePrice = planSelector.selectedPlan?.final_amount || 0;
-  const finalAmount = selectedMethod === 'pix' 
-    ? planSelector.getPixFinalAmount() 
+  const finalAmount = selectedMethod === 'pix'
+    ? planSelector.getPixFinalAmount()
     : planSelector.getCreditCardFinalAmount();
+
+  // Handle successful payment with account linking (moved before webhook callbacks)
+  const handlePaymentSuccess = async (
+    paymentData: {
+      transactionId: string;
+      amount: number;
+      paymentMethod: string;
+      paidAt: string;
+    },
+    customerData: PaymentV2FormData
+  ) => {
+    console.log('✅ Payment successful, initiating account linking:', paymentData);
+
+    try {
+      // Import account linking service dynamically to avoid SSR issues
+      const { linkPaymentToAccount } = await import('@/services/accountLinkingService');
+
+      // Prepare account linking data
+      const linkingData = {
+        email: customerData.customerEmail,
+        paymentData: {
+          planId: planSelector.selectedPlan?.id || '',
+          amount: paymentData.amount,
+          paymentMethod: paymentData.paymentMethod,
+          transactionId: paymentData.transactionId,
+          paidAt: paymentData.paidAt,
+        },
+        customerData: {
+          name: customerData.customerName,
+          email: customerData.customerEmail,
+          document: customerData.customerDocument,
+          phone: customerData.customerPhone,
+        },
+        planData: {
+          id: planSelector.selectedPlan?.id || '',
+          name: planSelector.selectedPlan?.name || '',
+          description: planSelector.selectedPlan?.description,
+          durationDays: planSelector.selectedPlan?.duration_days || 0,
+          finalAmount: planSelector.selectedPlan?.final_amount || 0,
+        },
+      };
+
+      // Execute account linking
+      const linkingResult = await linkPaymentToAccount(linkingData);
+
+      if (linkingResult.success) {
+        console.log('✅ Account linking completed:', linkingResult.action);
+
+        // If registration invite or login prompt, dispatch email
+        if (linkingResult.action === 'registration_invite' || linkingResult.action === 'login_prompt') {
+          await dispatchAccountLinkingEmail(linkingResult, linkingData);
+        }
+
+        return linkingResult;
+      } else {
+        console.error('❌ Account linking failed:', linkingResult.error);
+        toast.warning('Pagamento processado, mas houve um problema na ativação. Entre em contato conosco.');
+        return linkingResult;
+      }
+
+    } catch (error) {
+      console.error('💥 Error in account linking:', error);
+      toast.error('Erro ao processar pagamento. Entre em contato conosco.');
+      throw error;
+    }
+  };
+
+  // Dispatch account linking email
+  const dispatchAccountLinkingEmail = async (
+    linkingResult: any,
+    linkingData: any
+  ) => {
+    try {
+      console.log('📧 Dispatching account linking email:', linkingResult.action);
+
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        console.warn('⚠️ No session for email dispatch, skipping email');
+        return;
+      }
+
+      // Prepare email dispatch payload
+      const emailPayload = {
+        type: linkingResult.action as 'login_prompt' | 'registration_invite',
+        recipientEmail: linkingData.email,
+        recipientName: linkingData.customerData.name,
+        token: linkingResult.data?.token || '',
+        linkUrl: linkingResult.action === 'registration_invite'
+          ? linkingResult.data?.registrationUrl || ''
+          : linkingResult.data?.loginUrl || '',
+        expiresAt: linkingResult.data?.expiresAt || '',
+        planData: {
+          name: linkingData.planData.name,
+          description: linkingData.planData.description,
+          finalAmount: linkingData.planData.finalAmount,
+          durationDays: linkingData.planData.durationDays,
+        },
+        customization: {
+          brandName: 'EVIDENS',
+          brandColor: '#111827',
+          supportEmail: 'support@evidens.com',
+        },
+      };
+
+      // Call email dispatch Edge Function
+      const response = await fetch(`${supabase.supabaseUrl}/functions/v1/email-dispatch-service`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify(emailPayload),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('✅ Email dispatched successfully:', result);
+        toast.success('Email de ativação enviado!');
+      } else {
+        const errorData = await response.json();
+        console.error('❌ Email dispatch failed:', errorData);
+        toast.warning('Não foi possível enviar o email de ativação, mas seu pagamento foi processado.');
+      }
+    } catch (error) {
+      console.error('💥 Email dispatch error:', error);
+      toast.warning('Não foi possível enviar o email de ativação, mas seu pagamento foi processado.');
+    }
+  };
+
+  // Simple payment status monitoring function
+  const startPaymentStatusMonitoring = async (paymentId: string, formValues: PaymentV2FormData) => {
+    const maxAttempts = 60; // 5 minutes (5 second intervals)
+    let attempts = 0;
+
+    const checkStatus = async () => {
+      try {
+        attempts++;
+        console.log(`🔍 Checking payment status (attempt ${attempts}/${maxAttempts}):`, paymentId);
+
+        // Check payment_webhooks table for confirmation
+        const { data, error } = await supabase
+          .from('payment_webhooks')
+          .select('*')
+          .eq('payment_id', paymentId)
+          .eq('status', 'paid')
+          .single();
+
+        if (!error && data) {
+          // Payment confirmed!
+          console.log('✅ Payment confirmed via webhook:', data);
+          setIsProcessing(false);
+
+          await handlePaymentSuccess({
+            transactionId: paymentId,
+            amount: data.amount || finalAmount,
+            paymentMethod: data.payment_method || selectedMethod,
+            paidAt: data.processed_at,
+          }, formValues);
+
+          setPaymentResult({
+            type: 'success',
+            title: 'Pagamento confirmado!',
+            message: 'Sua assinatura foi ativada com sucesso. Bem-vindo(a) ao EVIDENS!',
+            orderId: paymentId,
+            paymentMethod: data.payment_method || selectedMethod,
+            amount: data.amount || finalAmount,
+            actions: {
+              primary: {
+                label: 'Acessar plataforma',
+                action: () => {
+                  console.log('Redirecting to platform...');
+                }
+              }
+            }
+          });
+          setCurrentView('result');
+          toast.success('Pagamento confirmado! Bem-vindo(a) ao EVIDENS!');
+          return;
+        }
+
+        // Check for failed payment
+        const { data: failedData } = await supabase
+          .from('payment_webhooks')
+          .select('*')
+          .eq('payment_id', paymentId)
+          .eq('status', 'failed')
+          .single();
+
+        if (failedData) {
+          console.log('❌ Payment failed:', failedData);
+          setIsProcessing(false);
+          throw new Error('Pagamento não foi aprovado');
+        }
+
+        // Continue checking if not confirmed and not failed
+        if (attempts < maxAttempts) {
+          setTimeout(checkStatus, 5000); // Check every 5 seconds
+        } else {
+          // Timeout
+          console.log('⏰ Payment confirmation timeout');
+          setIsProcessing(false);
+          toast.warning('Tempo limite para confirmação atingido. Verifique seu email ou entre em contato.');
+        }
+
+      } catch (error) {
+        console.error('❌ Error checking payment status:', error);
+        setIsProcessing(false);
+        toast.error('Erro ao verificar status do pagamento. Tente novamente.');
+      }
+    };
+
+    // Start checking
+    setTimeout(checkStatus, 2000); // Initial check after 2 seconds
+  };
 
   // Helper function to populate test data (USER DATA + CREDIT CARD)
   const fillTestData = () => {
@@ -301,133 +515,6 @@ const PaymentV2Form = ({
     setCurrentStep(Math.max(currentStep - 1, 0));
   };
 
-  // Handle successful payment with account linking
-  const handlePaymentSuccess = async (
-    paymentData: {
-      transactionId: string;
-      amount: number;
-      paymentMethod: string;
-      paidAt: string;
-    },
-    customerData: PaymentV2FormData
-  ) => {
-    console.log('✅ Payment successful, initiating account linking:', paymentData);
-    
-    try {
-      // Import account linking service dynamically to avoid SSR issues
-      const { linkPaymentToAccount } = await import('@/services/accountLinkingService');
-      
-      // Prepare account linking data
-      const linkingData = {
-        email: customerData.customerEmail,
-        paymentData: {
-          planId: planSelector.selectedPlan?.id || '',
-          amount: paymentData.amount,
-          paymentMethod: paymentData.paymentMethod,
-          transactionId: paymentData.transactionId,
-          paidAt: paymentData.paidAt,
-        },
-        customerData: {
-          name: customerData.customerName,
-          email: customerData.customerEmail,
-          document: customerData.customerDocument,
-          phone: customerData.customerPhone,
-        },
-        planData: {
-          id: planSelector.selectedPlan?.id || '',
-          name: planSelector.selectedPlan?.name || '',
-          description: planSelector.selectedPlan?.description,
-          durationDays: planSelector.selectedPlan?.duration_days || 0,
-          finalAmount: planSelector.selectedPlan?.final_amount || 0,
-        },
-      };
-
-      // Execute account linking
-      const linkingResult = await linkPaymentToAccount(linkingData);
-      
-      if (linkingResult.success) {
-        console.log('✅ Account linking completed:', linkingResult.action);
-
-        // If registration invite or login prompt, dispatch email
-        if (linkingResult.action === 'registration_invite' || linkingResult.action === 'login_prompt') {
-          await dispatchAccountLinkingEmail(linkingResult, linkingData);
-        }
-
-        return linkingResult;
-      } else {
-        console.error('❌ Account linking failed:', linkingResult.error);
-        toast.warning('Pagamento processado, mas houve um problema na ativação. Entre em contato conosco.');
-        return linkingResult;
-      }
-      
-    } catch (error) {
-      console.error('💥 Error in account linking:', error);
-      toast.error('Erro ao processar pagamento. Entre em contato conosco.');
-      throw error;
-    }
-  };
-
-  // Dispatch account linking email
-  const dispatchAccountLinkingEmail = async (
-    linkingResult: any,
-    linkingData: any
-  ) => {
-    try {
-      console.log('📧 Dispatching account linking email:', linkingResult.action);
-
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) {
-        console.warn('⚠️ No session for email dispatch, skipping email');
-        return;
-      }
-
-      // Prepare email dispatch payload
-      const emailPayload = {
-        type: linkingResult.action as 'login_prompt' | 'registration_invite',
-        recipientEmail: linkingData.email,
-        recipientName: linkingData.customerData.name,
-        token: linkingResult.data?.token || '',
-        linkUrl: linkingResult.action === 'registration_invite' 
-          ? linkingResult.data?.registrationUrl || '' 
-          : linkingResult.data?.loginUrl || '',
-        expiresAt: linkingResult.data?.expiresAt || '',
-        planData: {
-          name: linkingData.planData.name,
-          description: linkingData.planData.description,
-          finalAmount: linkingData.planData.finalAmount,
-          durationDays: linkingData.planData.durationDays,
-        },
-        customization: {
-          brandName: 'EVIDENS',
-          brandColor: '#111827',
-          supportEmail: 'support@evidens.com',
-        },
-      };
-
-      // Call email dispatch Edge Function
-      const response = await fetch(`${supabase.supabaseUrl}/functions/v1/email-dispatch-service`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify(emailPayload),
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        console.log('✅ Email dispatched successfully:', result);
-        toast.success('Email de ativação enviado!');
-      } else {
-        const errorData = await response.json();
-        console.error('❌ Email dispatch failed:', errorData);
-        toast.warning('Não foi possível enviar o email de ativação, mas seu pagamento foi processado.');
-      }
-    } catch (error) {
-      console.error('💥 Email dispatch error:', error);
-      toast.warning('Não foi possível enviar o email de ativação, mas seu pagamento foi processado.');
-    }
-  };
 
   const onSubmit = async (values: PaymentV2FormData) => {
     if (currentStep === 0) {
@@ -470,12 +557,12 @@ const PaymentV2Form = ({
         
         console.log('Payment V2.0 - PIX response:', response);
         
-        // Handle PIX response - show QR code
+        // Handle PIX response - show QR code and start monitoring
         if (response.charges && response.charges.length > 0) {
           const pixCharge = response.charges[0];
           const qrCode = pixCharge.last_transaction?.qr_code;
           const qrCodeUrl = pixCharge.last_transaction?.qr_code_url;
-          
+
           if (qrCode && qrCodeUrl) {
             // Store PIX data and show PIX display
             setPaymentData({
@@ -483,7 +570,6 @@ const PaymentV2Form = ({
               pixQrCodeUrl: qrCodeUrl,
               paymentId: response.id,
               paymentMethod: 'pix',
-              // Store customer data for account linking when payment is confirmed
               customerData: {
                 name: values.customerName,
                 email: values.customerEmail,
@@ -499,7 +585,11 @@ const PaymentV2Form = ({
               }
             });
             setCurrentView('pix-display');
-            toast.success('PIX gerado com sucesso! Use o QR code para pagar.');
+
+            // Start monitoring payment status
+            startPaymentStatusMonitoring(response.id, values);
+
+            toast.success('PIX gerado com sucesso! Escaneie o QR code para pagar.');
 
             // 🔥 ANALYTICS WEBHOOK - PIX Generation Success
             try {
@@ -581,83 +671,54 @@ const PaymentV2Form = ({
         );
         
         console.log('Payment V2.0 - Credit card response:', response);
-        
-        // Execute account linking process
-        await handlePaymentSuccess({
-          transactionId: response.subscription_id || response.id,
-          amount: finalAmount,
-          paymentMethod: 'credit_card',
-          paidAt: new Date().toISOString(),
-        }, values);
 
-        // Show success result
-        setPaymentResult({
-          type: 'success',
-          title: 'Pagamento aprovado!',
-          message: 'Sua assinatura foi criada com sucesso. Bem-vindo(a) ao EVIDENS!',
-          orderId: response.id,
-          paymentMethod: 'credit_card',
-          amount: finalAmount,
-          actions: {
-            primary: {
-              label: 'Acessar plataforma',
-              action: () => {
-                // TODO: Redirect to platform
-                console.log('Redirecting to platform...');
-              }
-            },
-            secondary: {
-              label: 'Ver detalhes',
-              action: () => {
-                console.log('Show payment details...');
-              }
-            }
+        const paymentId = response.subscription_id || response.id;
+
+        // Start monitoring payment status for confirmation
+        toast.success('Pagamento enviado! Aguardando confirmação...');
+        startPaymentStatusMonitoring(paymentId, values);
+
+          // 🔥 ANALYTICS WEBHOOK - Credit Card Payment Success
+          try {
+            const installmentOption = planSelector.getSelectedInstallmentOption();
+            const webhookPayload = buildPaymentSuccessWebhookPayload({
+              // Customer data
+              customerName: values.customerName,
+              customerEmail: values.customerEmail,
+              customerDocument: values.customerDocument,
+              customerPhone: values.customerPhone,
+              billingStreet: values.billingStreet,
+              billingZipCode: values.billingZipCode,
+              billingCity: values.billingCity,
+              billingState: values.billingState,
+
+              // Transaction data
+              transactionId: paymentId,
+              transactionCode: subscriptionRequest.code || 'unknown',
+              paymentMethod: 'credit_card',
+              baseAmount: planSelector.selectedPlan?.final_amount || 0,
+              finalAmount: finalAmount,
+              installments: selectedInstallments,
+              feeAmount: installmentOption?.feeAmount,
+              feeRate: installmentOption?.feeRate ? `${installmentOption.feeRate}%` : undefined,
+
+              // Plan data
+              planId: planSelector.selectedPlan?.id || '',
+              planName: planSelector.selectedPlan?.name || '',
+              planType: planSelector.selectedPlan?.plan_type || '',
+              durationDays: planSelector.selectedPlan?.duration_days || 0,
+
+              // Marketing data
+              customParameter: initialCustomParameter || undefined,
+
+              // Technical data
+              userAgent: navigator.userAgent,
+            });
+
+            sendAnalyticsWebhook(webhookPayload);
+          } catch (webhookError) {
+            console.warn('Analytics webhook failed (non-blocking):', webhookError);
           }
-        });
-        setCurrentView('result');
-        toast.success(`Assinatura criada com sucesso! ID: ${response.id}`);
-
-        // 🔥 ANALYTICS WEBHOOK - Credit Card Payment Success
-        try {
-          const installmentOption = planSelector.getSelectedInstallmentOption();
-          const webhookPayload = buildPaymentSuccessWebhookPayload({
-            // Customer data
-            customerName: values.customerName,
-            customerEmail: values.customerEmail,
-            customerDocument: values.customerDocument,
-            customerPhone: values.customerPhone,
-            billingStreet: values.billingStreet,
-            billingZipCode: values.billingZipCode,
-            billingCity: values.billingCity,
-            billingState: values.billingState,
-
-            // Transaction data
-            transactionId: response.subscription_id || response.id,
-            transactionCode: subscriptionRequest.code || 'unknown',
-            paymentMethod: 'credit_card',
-            baseAmount: planSelector.selectedPlan?.final_amount || 0,
-            finalAmount: finalAmount,
-            installments: selectedInstallments,
-            feeAmount: installmentOption?.feeAmount,
-            feeRate: installmentOption?.feeRate ? `${installmentOption.feeRate}%` : undefined,
-
-            // Plan data
-            planId: planSelector.selectedPlan?.id || '',
-            planName: planSelector.selectedPlan?.name || '',
-            planType: planSelector.selectedPlan?.plan_type || '',
-            durationDays: planSelector.selectedPlan?.duration_days || 0,
-
-            // Marketing data
-            customParameter: initialCustomParameter || undefined,
-
-            // Technical data
-            userAgent: navigator.userAgent,
-          });
-
-          sendAnalyticsWebhook(webhookPayload);
-        } catch (webhookError) {
-          console.warn('Analytics webhook failed (non-blocking):', webhookError);
-        }
       }
       
     } catch (error: any) {
@@ -1181,8 +1242,8 @@ const PaymentV2Form = ({
               )}
 
               {/* Step 1 Submit Button */}
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 className="w-full !mt-8 !bg-black hover:!bg-gray-800 !text-white text-base font-medium"
                 disabled={isProcessing}
               >
@@ -1203,7 +1264,7 @@ const PaymentV2Form = ({
       {/* Bottom Navigation - Show back button when not on first step */}
       {currentStep > 0 && (
         <div className="mt-4">
-          <Button 
+          <Button
             type="button"
             variant="outline"
             onClick={handleBackStep}
