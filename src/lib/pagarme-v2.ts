@@ -1,17 +1,12 @@
 // ABOUTME: Pagar.me V2.0 API integration with environment-based configuration
 const PAGARME_V2_CONFIG = {
   baseURL: 'https://api.pagar.me/core/v5',
-  secretKey: import.meta.env.VITE_PAGARME_SECRET_KEY,
   publicKey: import.meta.env.VITE_PAGARME_PUBLIC_KEY,
 } as const;
 
-// Runtime validation of API keys
-if (!PAGARME_V2_CONFIG.secretKey || !PAGARME_V2_CONFIG.publicKey) {
-  throw new Error('Missing required Pagar.me credentials. Set VITE_PAGARME_SECRET_KEY and VITE_PAGARME_PUBLIC_KEY environment variables.');
-}
-
-if (import.meta.env.PROD && PAGARME_V2_CONFIG.secretKey?.startsWith('sk_test_')) {
-  throw new Error('Cannot use test API keys in production! Set VITE_PAGARME_SECRET_KEY with live credentials.');
+// Runtime validation of API keys (frontend only needs public key)
+if (!PAGARME_V2_CONFIG.publicKey) {
+  throw new Error('Missing required Pagar.me public key. Set VITE_PAGARME_PUBLIC_KEY environment variable.');
 }
 
 if (import.meta.env.PROD && PAGARME_V2_CONFIG.publicKey?.startsWith('pk_test_')) {
