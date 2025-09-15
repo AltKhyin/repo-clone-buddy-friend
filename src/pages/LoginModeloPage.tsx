@@ -1,18 +1,17 @@
-
-// ABOUTME: Simplified login page for post-payment users with minimal auth options
+// ABOUTME: Backup of the original login page with all features (created for /login-modelo route)
 import React from 'react';
-import LoginFormSimplified from '@/components/auth/LoginFormSimplified';
+import LoginForm from '@/components/auth/LoginForm';
 import SplitScreenAuthLayout from '@/components/auth/SplitScreenAuthLayout';
 import { AuthFormContainer } from '@/components/auth/AuthFormContainer';
 
-const LoginPage = () => {
+const LoginModeloPage = () => {
   return (
     <SplitScreenAuthLayout>
       <AuthFormContainer>
-        <LoginFormSimplified />
+        <LoginForm />
       </AuthFormContainer>
     </SplitScreenAuthLayout>
   );
 };
 
-export default LoginPage;
+export default LoginModeloPage;

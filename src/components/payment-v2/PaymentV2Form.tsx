@@ -386,7 +386,7 @@ const PaymentV2Form = ({
         customization: {
           brandName: 'Reviews',
           brandColor: '#111827',
-          supportEmail: 'suporte@reviews.com.br',
+          supportEmail: 'suporte@igoreckert.com.br',
         },
       };
 
@@ -494,7 +494,7 @@ const PaymentV2Form = ({
               },
               secondary: {
                 label: 'Entrar em contato',
-                action: () => window.open('mailto:suporte@reviews.com.br', '_blank')
+                action: () => window.open('mailto:suporte@igoreckert.com.br', '_blank')
               },
               back: {
                 label: 'Voltar',

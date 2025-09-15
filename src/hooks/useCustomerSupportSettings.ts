@@ -18,7 +18,7 @@ export interface CustomerSupportSettings {
 const DEFAULT_SETTINGS: CustomerSupportSettings = {
   mode: 'simple',
   supportUrl: '',
-  email: 'suporte@evidens.com.br',
+  email: 'suporte@igoreckert.com.br',
   phone: '',
   whatsapp: '',
   website: ''

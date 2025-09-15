@@ -14,6 +14,7 @@ import SettingsPage from '@/pages/SettingsPage';
 import SuggestionPage from '@/pages/SuggestionPage';
 import UnauthorizedPage from '@/pages/UnauthorizedPage';
 import LoginPage from '@/pages/LoginPage';
+import LoginModeloPage from '@/pages/LoginModeloPage';
 import RegistrationPage from '@/pages/RegistrationPage';
 import ForgotPasswordPage from '@/pages/ForgotPasswordPage';
 import ResetPasswordPage from '@/pages/ResetPasswordPage';
@@ -41,6 +42,10 @@ const router = createBrowserRouter([
   {
     path: '/login',
     element: <LoginPage />,
+  },
+  {
+    path: '/login-modelo',
+    element: <LoginModeloPage />,
   },
   {
     path: '/registrar',

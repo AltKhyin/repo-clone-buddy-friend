@@ -278,8 +278,23 @@ export default function CompleteRegistration() {
       toast.success('Senha criada com sucesso!');
       toast.success('Sua conta premium está ativa!');
 
-      setTimeout(() => {
-        navigate('/?welcome=true');
+      // Force logout to ensure user logs in again with fresh session data
+      setTimeout(async () => {
+        console.log('🚪 Forcing logout after password creation to refresh session');
+
+        try {
+          // Sign out the user to force a fresh login
+          await supabase.auth.signOut();
+
+          toast.success('Faça login novamente para acessar sua conta premium!');
+
+          // Redirect to login page for proper authentication
+          navigate('/login?message=created_account');
+        } catch (error) {
+          console.error('Error during logout:', error);
+          // Fallback - still redirect to login
+          navigate('/login?message=created_account');
+        }
       }, 2000);
 
     } catch (error: any) {

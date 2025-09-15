@@ -154,7 +154,7 @@ export function PixDisplayV2({ qrCode, qrCodeUrl, amount, onBack, className }: P
           <p className="text-sm text-gray-700">
             Problemas com o pagamento?{' '}
             <a 
-              href="mailto:suporte@evidens.com.br" 
+              href="mailto:suporte@igoreckert.com.br" 
               className="text-black font-medium hover:underline touch-manipulation"
               target="_blank"
               rel="noopener noreferrer"

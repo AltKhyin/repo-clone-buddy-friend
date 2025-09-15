@@ -19,9 +19,9 @@ export const useContactInfo = (): ContactInfo => {
   // Return default contact info while loading or if no settings
   if (isLoading || !settings) {
     return {
-      email: 'suporte@evidens.com.br',
-      displayText: 'suporte@evidens.com.br',
-      href: 'mailto:suporte@evidens.com.br',
+      email: 'suporte@igoreckert.com.br',
+      displayText: 'suporte@igoreckert.com.br',
+      href: 'mailto:suporte@igoreckert.com.br',
       isLoading
     };
   }
@@ -29,7 +29,7 @@ export const useContactInfo = (): ContactInfo => {
   const primaryContact = getPrimaryContact(settings);
   
   return {
-    email: settings.mode === 'advanced' ? settings.email : 'suporte@evidens.com.br',
+    email: settings.mode === 'advanced' ? settings.email : 'suporte@igoreckert.com.br',
     displayText: primaryContact.value,
     href: primaryContact.formatted,
     isLoading: false

@@ -221,7 +221,7 @@ export const CustomerSupportSettingsCard: React.FC = () => {
               <Input
                 id="support-email"
                 type="email"
-                placeholder="suporte@evidens.com.br"
+                placeholder="suporte@igoreckert.com.br"
                 value={formData.email}
                 onChange={(e) => handleInputChange('email', e.target.value)}
                 className="h-10"

@@ -203,7 +203,7 @@ function generateLoginPromptEmail(data: EmailDispatchRequest) {
   
   const brandName = customization?.brandName || 'EVIDENS';
   const brandColor = customization?.brandColor || '#111827';
-  const supportEmail = customization?.supportEmail || 'support@evidens.com';
+  const supportEmail = customization?.supportEmail || 'suporte@igoreckert.com.br';
   
   const subject = `Complete Your ${planData.name} Subscription Activation`;
   
@@ -280,7 +280,7 @@ function generateRegistrationInviteEmail(data: EmailDispatchRequest) {
   
   const brandName = customization?.brandName || 'EVIDENS';
   const brandColor = customization?.brandColor || '#111827';
-  const supportEmail = customization?.supportEmail || 'support@evidens.com';
+  const supportEmail = customization?.supportEmail || 'suporte@igoreckert.com.br';
   
   const subject = `Create Your Account & Activate ${planData.name}`;
   

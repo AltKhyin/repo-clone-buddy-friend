@@ -202,12 +202,12 @@ export function PaymentResultV2({ result, className }: PaymentResultV2Props) {
           <div className="text-xs text-gray-500 bg-gray-50 p-3 rounded-lg text-center">
             <p>Precisa de ajuda? Entre em contato:</p>
             <a
-              href="mailto:suporte@reviews.com.br"
+              href="mailto:suporte@igoreckert.com.br"
               className="font-medium text-blue-600 hover:underline"
               target="_blank"
               rel="noopener noreferrer"
             >
-              suporte@reviews.com.br
+              suporte@igoreckert.com.br
             </a>
           </div>
         </div>
