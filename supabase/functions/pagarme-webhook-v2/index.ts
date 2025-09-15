@@ -86,19 +86,8 @@ const findUserByEmail = async (supabase: any, email: string) => {
       }
     }
 
-    // Fallback: try pending account links
-    const { data: pendingLink, error: linkError } = await supabase
-      .from('pending_account_links')
-      .select('*')
-      .eq('email', email)
-      .eq('is_used', false)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .single()
-
-    if (!linkError && pendingLink) {
-      return { user: pendingLink, source: 'pending_account_links' }
-    }
+    // Note: pending_account_links table is no longer used
+    // New users are handled directly via Supabase invitation system
 
     return { user: null, source: 'not_found' }
   } catch (error) {
@@ -129,7 +118,7 @@ const handlePaymentSuccess = async (supabase: any, webhookData: any) => {
 
     if (!userLookup.user) {
       console.log('❌ User not found, storing unlinked payment data')
-      return await handleUnlinkedPayment(supabase, webhookData)
+      return await handleNewUserInvitation(supabase, webhookData)
     }
 
     if (userLookup.source === 'practitioners') {
@@ -159,37 +148,9 @@ const handlePaymentSuccess = async (supabase: any, webhookData: any) => {
 
       return { processed: true, action: 'subscription_activated', userId: user.id }
 
-    } else if (userLookup.source === 'pending_account_links') {
-      // Payment-to-auth flow - mark pending link as processed
-      const pendingLink = userLookup.user
-
-      console.log('📋 Found pending account link, updating payment status')
-      const { error: updateError } = await supabase
-        .from('pending_account_links')
-        .update({
-          payment_data: {
-            ...pendingLink.payment_data,
-            paidAt: new Date().toISOString(),
-            pagarmeCustomerId: customerId,
-            pagarmeOrderId: webhookData.data.id,
-            paymentConfirmed: true
-          },
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', pendingLink.id)
-
-      if (updateError) {
-        console.error('❌ Failed to update pending payment:', updateError)
-        return { processed: false, error: 'pending_link_update_failed' }
-      }
-
-      console.log('✅ Pending payment link updated successfully')
-
-      // 🔥 ANALYTICS WEBHOOK: Send analytics data to Make.com after successful payment
-      await sendAnalyticsWebhookWithRealData(supabase, webhookData, userLookup, paymentId)
-
-      return { processed: true, action: 'pending_payment_updated', linkId: pendingLink.id }
     }
+
+    // Note: pending_account_links flow removed - new users handled via direct invitation
 
     return { processed: false, error: 'unhandled_user_source' }
 
@@ -199,10 +160,10 @@ const handlePaymentSuccess = async (supabase: any, webhookData: any) => {
   }
 }
 
-// Handle unlinked payment (when user not found)
-const handleUnlinkedPayment = async (supabase: any, webhookData: any) => {
+// Handle new user creation with Supabase native invitation (simplified)
+const handleNewUserInvitation = async (supabase: any, webhookData: any) => {
   try {
-    console.log('📝 Storing unlinked payment data for payment-to-auth flow')
+    console.log('📧 Creating new user account via Supabase invitation')
 
     const customerData = webhookData.data.customer
     const paymentData = {
@@ -214,41 +175,64 @@ const handleUnlinkedPayment = async (supabase: any, webhookData: any) => {
       webhookType: webhookData.type
     }
 
-    // Create a temporary token for linking
-    const token = Array.from(crypto.getRandomValues(new Uint8Array(32)))
-      .map(b => b.toString(16).padStart(2, '0'))
-      .join('')
+    // Calculate subscription end date (1 year from now)
+    const subscriptionEndsAt = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
 
-    const { error: insertError } = await supabase
-      .from('pending_account_links')
-      .insert({
-        email: customerData.email,
-        token: token,
-        payment_data: paymentData,
-        customer_data: {
-          name: customerData.name,
-          email: customerData.email,
-          document: customerData.document,
-          pagarmeCustomerId: customerData.id
-        },
-        plan_data: {
-          amount: webhookData.data.amount,
-          description: webhookData.data.items?.[0]?.description || 'EVIDENS Premium Access'
-        },
-        link_type: 'registration',
-        expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days
-      })
+    // Use Supabase's native invitation system with premium metadata
+    const { data: inviteData, error: inviteError } = await supabase.auth.admin.inviteUserByEmail(
+      customerData.email,
+      {
+        // Redirect to account setup page after email confirmation
+        redirectTo: `${Deno.env.get('SITE_URL') || 'https://reviews.igoreckert.com.br'}/complete-registration`,
+        data: {
+          // User profile data
+          full_name: customerData.name,
+          subscription_tier: 'premium',
+          subscription_starts_at: new Date().toISOString(),
+          subscription_ends_at: subscriptionEndsAt.toISOString(),
 
-    if (insertError) {
-      console.error('❌ Failed to store unlinked payment:', insertError)
-      return { processed: false, error: 'unlinked_storage_failed' }
+          // Payment metadata for record-keeping
+          created_from_payment: true,
+          payment_order_id: webhookData.data.id,
+          payment_amount: webhookData.data.amount,
+          payment_method: paymentData.paymentMethod,
+          customer_document: customerData.document,
+
+          // Additional customer data
+          customer_phone: customerData.phone,
+          pagarme_customer_id: customerData.id,
+
+          // Plan information
+          plan_description: webhookData.data.items?.[0]?.description || 'EVIDENS Premium Access'
+        }
+      }
+    )
+
+    if (inviteError) {
+      console.error('❌ Failed to send user invitation:', inviteError)
+      return { processed: false, error: 'invitation_failed', details: inviteError.message }
     }
 
-    console.log('✅ Unlinked payment stored successfully for email:', customerData.email)
-    return { processed: true, action: 'unlinked_payment_stored', email: customerData.email }
+    if (!inviteData.user) {
+      console.error('❌ No user data returned from invitation')
+      return { processed: false, error: 'no_user_data' }
+    }
+
+    console.log('✅ User invitation sent successfully:', {
+      userId: inviteData.user.id,
+      email: customerData.email,
+      orderId: webhookData.data.id
+    })
+
+    return {
+      processed: true,
+      action: 'new_user_invited',
+      userId: inviteData.user.id,
+      email: customerData.email
+    }
 
   } catch (error) {
-    console.error('❌ Error in handleUnlinkedPayment:', error)
+    console.error('❌ Error in handleNewUserInvitation:', error)
     return { processed: false, error: error.message }
   }
 }
