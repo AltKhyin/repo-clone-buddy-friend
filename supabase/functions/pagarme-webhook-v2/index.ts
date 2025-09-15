@@ -116,6 +116,7 @@ const handlePaymentSuccess = async (supabase: any, webhookData: any) => {
     const customerId = webhookData.data.customer.id
     const amount = webhookData.data.amount
     const paymentMethod = webhookData.data.charges?.[0]?.payment_method || 'unknown'
+    const paymentId = extractPaymentId(webhookData)
 
     console.log('📧 Customer Email:', customerEmail)
     console.log('👤 Customer ID:', customerId)
@@ -152,6 +153,10 @@ const handlePaymentSuccess = async (supabase: any, webhookData: any) => {
       }
 
       console.log('🎯 Premium subscription activated for user:', user.id)
+
+      // 🔥 ANALYTICS WEBHOOK: Send analytics data to Make.com after successful payment
+      await sendAnalyticsWebhookWithRealData(supabase, webhookData, userLookup, paymentId)
+
       return { processed: true, action: 'subscription_activated', userId: user.id }
 
     } else if (userLookup.source === 'pending_account_links') {
@@ -179,6 +184,10 @@ const handlePaymentSuccess = async (supabase: any, webhookData: any) => {
       }
 
       console.log('✅ Pending payment link updated successfully')
+
+      // 🔥 ANALYTICS WEBHOOK: Send analytics data to Make.com after successful payment
+      await sendAnalyticsWebhookWithRealData(supabase, webhookData, userLookup, paymentId)
+
       return { processed: true, action: 'pending_payment_updated', linkId: pendingLink.id }
     }
 
@@ -331,6 +340,154 @@ const getPaymentStatus = (eventType: string): string => {
       return 'failed'
     default:
       return 'pending'
+  }
+}
+
+// Send analytics webhook with real data from payment confirmation
+const sendAnalyticsWebhookWithRealData = async (supabase: any, webhookData: any, userLookup: any, paymentId: string | null) => {
+  try {
+    console.log('📊 Sending analytics webhook with real payment data...')
+
+    if (!paymentId) {
+      console.warn('⚠️ No payment ID found, skipping analytics webhook')
+      return
+    }
+
+    // Get any existing webhook data (simplified approach)
+    const { data: existingWebhook } = await supabase
+      .from('payment_webhooks')
+      .select('webhook_data')
+      .eq('payment_id', paymentId)
+      .single()
+
+    const existingData = existingWebhook?.webhook_data || {}
+
+    // Extract real data from webhook
+    const customerData = webhookData.data.customer
+    const transactionData = webhookData.data
+    const charges = transactionData.charges?.[0] || {}
+
+    // Build payload using existing structure but with real data
+    const analyticsPayload = {
+      // Event metadata (real timing)
+      event: {
+        type: 'payment_success',
+        timestamp: new Date().toISOString(),
+        source: 'evidens_v2',
+        platform: 'web',
+        environment: Deno.env.get('ENVIRONMENT') === 'production' ? 'production' : 'development',
+        session_id: `webhook_${Date.now()}`,
+      },
+
+      // Customer data (from webhook)
+      customer: {
+        name: customerData.name || '',
+        email: customerData.email,
+        document: customerData.document?.replace(/\D/g, '') || '',
+        phone: customerData.phone?.replace(/\D/g, '') || '',
+        address: {
+          street: customerData.address?.street || '',
+          zip_code: customerData.address?.zip_code || '',
+          city: customerData.address?.city || '',
+          state: customerData.address?.state || '',
+          country: 'BR',
+        },
+        customer_id_hash: btoa(`${customerData.email}-${customerData.document || ''}`).slice(0, 12),
+      },
+
+      // Transaction details (from webhook)
+      transaction: {
+        id: paymentId,
+        code: transactionData.code || 'unknown',
+        payment_method: charges.payment_method || 'unknown',
+        status: 'paid',
+        currency: 'BRL',
+        amounts: {
+          base_amount: Math.round((transactionData.amount || 0) / 100 * 100) / 100,
+          final_amount: Math.round((transactionData.amount || 0) / 100 * 100) / 100,
+          discount_amount: 0, // Could be calculated if discount data available
+          fee_amount: Math.round((charges.fee || 0) / 100 * 100) / 100,
+        },
+        ...(charges.installments > 1 && {
+          installments: {
+            count: charges.installments,
+            amount_per_installment: Math.round((transactionData.amount || 0) / charges.installments / 100 * 100) / 100,
+            total_with_fees: Math.round((transactionData.amount || 0) / 100 * 100) / 100,
+            fee_rate: '0%', // Would need to be calculated from charges data
+          },
+        }),
+      },
+
+      // Product/Plan data (from webhook items and metadata)
+      product: {
+        plan_id: transactionData.metadata?.plan_id || transactionData.items?.[0]?.id || 'unknown',
+        plan_name: transactionData.items?.[0]?.description || 'EVIDENS Premium',
+        plan_type: transactionData.metadata?.plan_type || 'premium',
+        duration_days: parseInt(transactionData.metadata?.duration_days) || 365,
+        category: 'subscription',
+        sku: `evidens-${transactionData.metadata?.plan_type || 'premium'}-${charges.installments || 1}x`,
+        pricing_tier: (transactionData.metadata?.plan_type || 'premium') as 'basic' | 'premium' | 'enterprise',
+      },
+
+      // Marketing attribution (simplified - will be enhanced later)
+      marketing: {
+        source: undefined,
+        medium: undefined,
+        campaign: undefined,
+        term: undefined,
+        content: undefined,
+        referrer: undefined,
+        landing_page: undefined,
+        custom_parameter: transactionData.metadata?.custom_parameter,
+      },
+
+      // Technical metadata (simplified)
+      technical: {
+        user_agent: 'webhook',
+        ip_address: undefined,
+        browser_info: {
+          name: undefined,
+          version: undefined,
+          language: 'unknown',
+        },
+        device_info: {
+          type: 'desktop',
+          screen_resolution: undefined,
+        },
+      },
+
+      // Conversion data (computed from real data)
+      conversion: {
+        value: Math.round((transactionData.amount || 0) / 100 * 100) / 100,
+        currency: 'BRL',
+        conversion_type: 'purchase',
+        customer_lifetime_value: Math.round((transactionData.amount || 0) / 100 * 100) / 100,
+        is_new_customer: !userLookup.exists, // Real calculation based on user lookup
+      },
+    }
+
+    // Send to Make.com webhook using existing URL
+    const webhookUrl = 'https://hook.us2.make.com/qjdetduht1g375p7l556yrrutbi3j6cv'
+
+    const response = await fetch(webhookUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(analyticsPayload),
+    })
+
+    if (!response.ok) {
+      throw new Error(`Analytics webhook failed: ${response.status} ${response.statusText}`)
+    }
+
+    const responseText = await response.text()
+    console.log('✅ Analytics Webhook - Success:', responseText || 'No response body')
+
+  } catch (error) {
+    // Non-blocking error - don't break user experience
+    console.error('❌ Analytics Webhook - Error:', error)
   }
 }
 

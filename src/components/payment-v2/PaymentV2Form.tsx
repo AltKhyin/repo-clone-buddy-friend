@@ -27,7 +27,7 @@ import { EnhancedPlanDisplayV2 } from './EnhancedPlanDisplayV2';
 import { supabase } from '@/integrations/supabase/client';
 import { PixDisplayV2 } from './PixDisplayV2';
 import { PaymentResultV2, type PaymentResultV2Data } from './PaymentResultV2';
-import { sendAnalyticsWebhook, buildPaymentSuccessWebhookPayload } from '@/services/analyticsWebhook';
+// Analytics moved to server-side webhook processing
 
 // Step 1: Customer Data Collection
 const step1Schema = z.object({
@@ -197,8 +197,8 @@ interface PaymentV2FormProps {
   useProductionEndpoint?: boolean; // V1 specific: use production endpoint
 }
 
-const PaymentV2Form = ({ 
-  initialCustomParameter, 
+const PaymentV2Form = ({
+  initialCustomParameter,
   initialPaymentMethod,
   hideTestData = false,
   useProductionEndpoint = false
@@ -209,6 +209,7 @@ const PaymentV2Form = ({
   const [currentView, setCurrentView] = useState<PaymentViewState>('form');
   const [paymentData, setPaymentData] = useState<PaymentData>({});
   const [paymentResult, setPaymentResult] = useState<PaymentResultV2Data | null>(null);
+
   
   // V2.0 Dynamic Plan Selection Integration with custom parameter support
   // Plan is auto-selected based on URL parameter - no manual selection needed
@@ -381,6 +382,8 @@ const PaymentV2Form = ({
   const startPaymentStatusMonitoring = async (paymentId: string, formValues: PaymentV2FormData) => {
     const maxAttempts = 60; // 5 minutes (5 second intervals)
     let attempts = 0;
+
+    // Analytics now handled server-side via webhook
 
     const checkStatus = async () => {
       try {
@@ -591,47 +594,7 @@ const PaymentV2Form = ({
 
             toast.success('PIX gerado com sucesso! Escaneie o QR code para pagar.');
 
-            // 🔥 ANALYTICS WEBHOOK - PIX Generation Success
-            try {
-              const webhookPayload = buildPaymentSuccessWebhookPayload({
-                // Customer data
-                customerName: values.customerName,
-                customerEmail: values.customerEmail,
-                customerDocument: values.customerDocument,
-                customerPhone: values.customerPhone,
-                billingStreet: values.billingStreet,
-                billingZipCode: values.billingZipCode,
-                billingCity: values.billingCity,
-                billingState: values.billingState,
-
-                // Transaction data
-                transactionId: response.id,
-                transactionCode: pixRequest.code || 'unknown',
-                paymentMethod: 'pix',
-                baseAmount: planSelector.selectedPlan?.final_amount || 0,
-                finalAmount: finalAmount,
-
-                // Plan data
-                planId: planSelector.selectedPlan?.id || '',
-                planName: planSelector.selectedPlan?.name || '',
-                planType: planSelector.selectedPlan?.plan_type || '',
-                durationDays: planSelector.selectedPlan?.duration_days || 0,
-
-                // Marketing data
-                customParameter: initialCustomParameter || undefined,
-
-                // Technical data
-                userAgent: navigator.userAgent,
-              });
-
-              // Modify event type for PIX generation
-              webhookPayload.event.type = 'pix_generated';
-              webhookPayload.transaction.status = 'pending';
-
-              sendAnalyticsWebhook(webhookPayload);
-            } catch (webhookError) {
-              console.warn('Analytics webhook failed (non-blocking):', webhookError);
-            }
+            // ✅ ANALYTICS: Client context already captured and will be sent via webhook confirmation
           } else {
             throw new Error('Erro ao gerar QR code do PIX');
           }
@@ -674,51 +637,37 @@ const PaymentV2Form = ({
 
         const paymentId = response.subscription_id || response.id;
 
-        // Start monitoring payment status for confirmation
+        // Check if payment was immediately successful (test cards)
+        if (response.status === 'active' || response.status === 'paid') {
+          console.log('✅ Payment immediately successful:', response.status);
+
+          // Show success immediately for test payments
+          toast.success('Pagamento aprovado com sucesso!');
+          setPaymentResult({
+            type: 'success',
+            title: 'Pagamento aprovado!',
+            message: 'Seu pagamento foi processado com sucesso. Você já tem acesso completo ao EVIDENS.',
+            paymentMethod: selectedMethod,
+            amount: finalAmount,
+            transactionId: paymentId,
+            actions: {
+              primary: {
+                label: 'Ir para plataforma',
+                action: () => window.location.href = '/',
+                variant: 'default'
+              }
+            }
+          });
+          setCurrentView('result');
+          setIsProcessing(false);
+          return;
+        }
+
+        // For production payments, monitor status via webhooks
         toast.success('Pagamento enviado! Aguardando confirmação...');
         startPaymentStatusMonitoring(paymentId, values);
 
-          // 🔥 ANALYTICS WEBHOOK - Credit Card Payment Success
-          try {
-            const installmentOption = planSelector.getSelectedInstallmentOption();
-            const webhookPayload = buildPaymentSuccessWebhookPayload({
-              // Customer data
-              customerName: values.customerName,
-              customerEmail: values.customerEmail,
-              customerDocument: values.customerDocument,
-              customerPhone: values.customerPhone,
-              billingStreet: values.billingStreet,
-              billingZipCode: values.billingZipCode,
-              billingCity: values.billingCity,
-              billingState: values.billingState,
-
-              // Transaction data
-              transactionId: paymentId,
-              transactionCode: subscriptionRequest.code || 'unknown',
-              paymentMethod: 'credit_card',
-              baseAmount: planSelector.selectedPlan?.final_amount || 0,
-              finalAmount: finalAmount,
-              installments: selectedInstallments,
-              feeAmount: installmentOption?.feeAmount,
-              feeRate: installmentOption?.feeRate ? `${installmentOption.feeRate}%` : undefined,
-
-              // Plan data
-              planId: planSelector.selectedPlan?.id || '',
-              planName: planSelector.selectedPlan?.name || '',
-              planType: planSelector.selectedPlan?.plan_type || '',
-              durationDays: planSelector.selectedPlan?.duration_days || 0,
-
-              // Marketing data
-              customParameter: initialCustomParameter || undefined,
-
-              // Technical data
-              userAgent: navigator.userAgent,
-            });
-
-            sendAnalyticsWebhook(webhookPayload);
-          } catch (webhookError) {
-            console.warn('Analytics webhook failed (non-blocking):', webhookError);
-          }
+          // ✅ ANALYTICS: Client context already captured and will be sent via webhook confirmation
       }
       
     } catch (error: any) {

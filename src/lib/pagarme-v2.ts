@@ -92,7 +92,7 @@ export interface PaymentV2Request {
     };
   }>;
   payment_method: 'credit_card';
-  card: {
+  card?: {
     number: string;
     holder_name: string;
     exp_month: number;
@@ -106,6 +106,7 @@ export interface PaymentV2Request {
       country: 'BR';
     };
   };
+  card_token?: string;
   installments: number;
   statement_descriptor: 'EVIDENS';
   metadata: {
@@ -409,7 +410,7 @@ export function buildSubscriptionRequest(formData: {
   };
 }
 
-// V2.0 Enhanced: Build credit card subscription request with PaymentPlanV2 (FIXED STRUCTURE)
+// V2.0 Enhanced: Build credit card subscription request with PaymentPlanV2 (WORKING STRUCTURE)
 export function buildSubscriptionRequestV2(
   formData: {
     name: string;
@@ -468,36 +469,18 @@ export function buildSubscriptionRequestV2(
     billing_type: 'prepaid',
     interval: 'month',
     interval_count: 1,
-    // ✅ FIX: Top-level pricing_scheme (REQUIRED for Pagar.me subscriptions)
-    pricing_scheme: {
-      scheme_type: 'unit',
-      price: installmentOption.totalAmount,  // Total price in cents
-    },
     items: [
       {
         description: `EVIDENS - ${paymentPlan.name} (${formData.installments}x)`,
         quantity: 1,
         code: `evidens-v2-${paymentPlan.plan_type}-${formData.installments}x`,
-        // ✅ FIX: Items need pricing_scheme for Pagar.me subscriptions
         pricing_scheme: {
           scheme_type: 'unit',
-          price: installmentOption.totalAmount,  // Total price in cents
+          price: installmentOption.totalAmount,
         },
       },
     ],
-    // ✅ FIX: Will be converted to payment_methods array in Edge Function
-    payment_methods: [],  // Placeholder - Edge Function will populate with card_token
-    // ✅ FIX: Billing placeholder - Edge Function will populate from card data
-    billing: {
-      name: '',
-      address: {
-        line_1: '',
-        zip_code: '',
-        city: '',
-        state: '',
-        country: 'BR',
-      },
-    },
+    payment_method: 'credit_card',
     card: {
       number: formData.cardNumber.replace(/\s/g, ''),
       holder_name: formData.cardName,
@@ -514,16 +497,13 @@ export function buildSubscriptionRequestV2(
     },
     installments: formData.installments,
     statement_descriptor: 'EVIDENS',
-    currency: 'BRL',  // ✅ FIX: Added currency specification
     metadata: {
       platform: 'evidens',
       plan_type: paymentPlan.plan_type,
-      plan_id: paymentPlan.id,
       installments: `${formData.installments}x`,
       base_price: paymentPlan.final_amount,
       fee_included: installmentOption.totalAmount - paymentPlan.final_amount,
       fee_rate: `${(installmentOption.feeRate * 100).toFixed(2)}%`,
-      duration_days: paymentPlan.duration_days.toString(),
     },
   };
 }
