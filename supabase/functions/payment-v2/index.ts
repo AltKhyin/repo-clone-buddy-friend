@@ -93,45 +93,55 @@ serve(async (req) => {
   }
 
   try {
-    // Verify authentication
+    // Check for authentication (optional for new users)
     const authHeader = req.headers.get('Authorization')
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'Missing authorization header' }),
-        { 
-          status: 401, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+    const isAuthenticatedRequest = Boolean(authHeader)
+
+    let user = null
+    let supabaseClient = null
+
+    if (isAuthenticatedRequest) {
+      // Initialize Supabase client for authenticated users
+      supabaseClient = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+        {
+          global: {
+            headers: { Authorization: authHeader },
+          },
         }
       )
-    }
 
-    // Initialize Supabase client for user verification
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      {
-        global: {
-          headers: { Authorization: authHeader },
-        },
+      // Verify user
+      const { data: { user: authUser }, error: userError } = await supabaseClient.auth.getUser()
+      if (userError || !authUser) {
+        return new Response(
+          JSON.stringify({ error: 'Invalid authentication token' }),
+          {
+            status: 401,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        )
       }
-    )
-
-    // Verify user
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser()
-    if (userError || !user) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { 
-          status: 401, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
+      user = authUser
+    } else {
+      // For unauthenticated requests (new users), create basic Supabase client
+      supabaseClient = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_ANON_KEY') ?? ''
       )
     }
+
+    console.log('Payment V2.0 Edge Function - Processing payment:', {
+      authenticated: isAuthenticatedRequest,
+      userId: user?.id || 'anonymous',
+      userEmail: user?.email || 'new_user'
+    })
 
     // Parse request body
     const paymentRequest: PaymentV2Request = await req.json()
 
-    console.log('Payment V2.0 Edge Function - Processing payment for user:', user.id)
+    console.log('Payment V2.0 Edge Function - Processing payment request for:', paymentRequest.customer?.email || 'unknown')
 
     // Check if we need to tokenize card data first
     let finalRequest = paymentRequest

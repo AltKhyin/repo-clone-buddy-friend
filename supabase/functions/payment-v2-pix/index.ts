@@ -68,45 +68,53 @@ serve(async (req) => {
   }
 
   try {
-    // Verify authentication
+    // Check for authentication (optional for new users)
     const authHeader = req.headers.get('Authorization')
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'Missing authorization header' }),
-        { 
-          status: 401, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+    const isAuthenticatedRequest = Boolean(authHeader)
+
+    let user = null
+    let supabaseClient = null
+
+    if (isAuthenticatedRequest) {
+      // Initialize Supabase client for authenticated users
+      supabaseClient = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+        {
+          global: {
+            headers: { Authorization: authHeader },
+          },
         }
       )
-    }
 
-    // Initialize Supabase client for user verification
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      {
-        global: {
-          headers: { Authorization: authHeader },
-        },
+      // Verify user
+      const { data: { user: authUser }, error: userError } = await supabaseClient.auth.getUser()
+      if (userError || !authUser) {
+        return new Response(
+          JSON.stringify({ error: 'Invalid authentication token' }),
+          {
+            status: 401,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        )
       }
-    )
-
-    // Verify user
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser()
-    if (userError || !user) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { 
-          status: 401, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
+      user = authUser
+    } else {
+      // For unauthenticated requests (new users), create basic Supabase client
+      supabaseClient = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_ANON_KEY') ?? ''
       )
     }
 
     // Parse request body
     const pixRequest: PixPaymentRequest = await req.json()
     
-    console.log('PIX Payment V2.0 Edge Function - Processing PIX payment for user:', user.id)
+    console.log('PIX Payment V2.0 Edge Function - Processing PIX payment:', {
+      authenticated: isAuthenticatedRequest,
+      userId: user?.id || 'anonymous',
+      customerEmail: pixRequest.customer?.email || 'unknown'
+    })
     console.log('PIX Payment V2.0 Edge Function - Request:', JSON.stringify(pixRequest, null, 2))
 
     // Make request to Pagar.me API (Orders endpoint for PIX)
