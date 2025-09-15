@@ -224,6 +224,14 @@ const handleNewUserInvitation = async (supabase: any, webhookData: any) => {
       orderId: webhookData.data.id
     })
 
+    // 🔥 ANALYTICS WEBHOOK: Send analytics data to Make.com for new users too
+    const paymentId = extractPaymentId(webhookData)
+    const mockUserLookup = {
+      user: { id: inviteData.user.id },
+      source: 'new_user'
+    }
+    await sendAnalyticsWebhookWithRealData(supabase, webhookData, mockUserLookup, paymentId)
+
     return {
       processed: true,
       action: 'new_user_invited',

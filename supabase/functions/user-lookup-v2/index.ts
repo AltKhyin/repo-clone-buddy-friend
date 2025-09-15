@@ -31,45 +31,38 @@ serve(async (req) => {
   }
 
   try {
-    // Verify authentication
-    const authHeader = req.headers.get('Authorization')
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'Missing authorization header' }),
-        { 
-          status: 401, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      )
-    }
-
-    // Initialize Supabase client for user verification
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      {
-        global: {
-          headers: { Authorization: authHeader },
-        },
-      }
-    )
-
-    // Initialize admin client for user lookup
+    // Initialize admin client for user lookup (always use service role for payment processing)
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     )
 
-    // Verify requesting user
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser()
-    if (userError || !user) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { 
-          status: 401, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+    // Check if this is an authenticated request
+    const authHeader = req.headers.get('Authorization')
+    let currentUser = null
+
+    if (authHeader) {
+      // Initialize Supabase client for user verification
+      const supabaseClient = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+        {
+          global: {
+            headers: { Authorization: authHeader },
+          },
         }
       )
+
+      // Try to get current user (but don't fail if unauthorized)
+      const { data: { user }, error: userError } = await supabaseClient.auth.getUser()
+      if (!userError && user) {
+        currentUser = user
+        console.log('🔍 V2 User lookup - authenticated request by user:', user.id)
+      } else {
+        console.log('🔍 V2 User lookup - unauthenticated request (payment processing)')
+      }
+    } else {
+      console.log('🔍 V2 User lookup - no auth header (payment processing)')
     }
 
     // Parse request body
@@ -86,40 +79,40 @@ serve(async (req) => {
     }
 
     const normalizedEmail = email.toLowerCase().trim()
-    
-    console.log('🔍 V2 User lookup for email:', normalizedEmail)
-    console.log('🔍 Requested by user:', user.id)
 
-    // Check if the email matches the current logged-in user
-    const isCurrentUserEmail = user.email === normalizedEmail
-    
-    if (isCurrentUserEmail) {
+    console.log('🔍 V2 User lookup for email:', normalizedEmail)
+    console.log('🔍 Requested by user:', currentUser?.id || 'unauthenticated')
+
+    // Check if the email matches the current logged-in user (if any)
+    const isCurrentUserEmail = currentUser?.email === normalizedEmail
+
+    if (isCurrentUserEmail && currentUser) {
       // Get practitioner data for current user
       const { data: practitioner, error: practitionerError } = await supabaseAdmin
         .from('Practitioners')
         .select('id, full_name, subscription_tier, subscription_ends_at')
-        .eq('id', user.id)
+        .eq('id', currentUser.id)
         .single()
-      
+
       if (practitionerError) {
         console.error('❌ Error fetching current user practitioner data:', practitionerError)
         // User exists in auth but not in Practitioners table
         return new Response(
           JSON.stringify({
             exists: true,
-            userId: user.id,
+            userId: currentUser.id,
             isLoggedIn: true,
           }),
-          { 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
           }
         )
       }
-      
+
       return new Response(
         JSON.stringify({
           exists: true,
-          userId: user.id,
+          userId: currentUser.id,
           isLoggedIn: true,
           practitionerData: {
             id: practitioner.id,
@@ -129,8 +122,8 @@ serve(async (req) => {
             subscription_ends_at: practitioner.subscription_ends_at,
           },
         }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       )
     }
@@ -180,7 +173,7 @@ serve(async (req) => {
         JSON.stringify({
           exists: true,
           userId: existingUser.id,
-          isLoggedIn: false, // Not the current logged-in user
+          isLoggedIn: currentUser?.id === existingUser.id
         }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -193,7 +186,7 @@ serve(async (req) => {
       JSON.stringify({
         exists: true,
         userId: existingUser.id,
-        isLoggedIn: false, // Not the current logged-in user
+        isLoggedIn: currentUser?.id === existingUser.id,
         practitionerData: {
           id: practitioner.id,
           email: normalizedEmail,

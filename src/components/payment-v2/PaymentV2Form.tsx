@@ -775,10 +775,6 @@ const PaymentV2Form = ({
             message: 'Não conseguimos confirmar seu pagamento automaticamente.',
             details: 'Se o pagamento foi aprovado, você receberá um email de confirmação.',
             actions: {
-              primary: {
-                label: 'Verificar email',
-                action: () => window.open(`mailto:${paymentData.customerEmail}`, '_blank')
-              },
               back: {
                 label: 'Voltar',
                 action: () => setCurrentView('form')
@@ -1338,7 +1334,7 @@ const PaymentV2Form = ({
         <p className="text-sm text-gray-700">
           Problemas com o pagamento?{' '}
           <a 
-            href="mailto:suporte@evidens.com.br" 
+            href="mailto:suporte@igoreckert.com.br" 
             className="text-black font-medium hover:underline touch-manipulation"
             target="_blank"
             rel="noopener noreferrer"

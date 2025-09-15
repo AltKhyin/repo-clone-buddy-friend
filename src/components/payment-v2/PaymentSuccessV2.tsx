@@ -125,26 +125,6 @@ export function PaymentSuccessV2({
         >
           Continuar para Reviews
         </Button>
-
-        <div className="grid grid-cols-2 gap-3">
-          <Button
-            variant="outline"
-            onClick={() => window.open(`mailto:${customerEmail}`, '_blank')}
-            className="flex items-center gap-2 text-sm"
-          >
-            <Mail className="h-4 w-4" />
-            Abrir Email
-          </Button>
-
-          <Button
-            variant="outline"
-            onClick={() => window.open('mailto:suporte@reviews.com.br', '_blank')}
-            className="flex items-center gap-2 text-sm"
-          >
-            <ExternalLink className="h-4 w-4" />
-            Suporte
-          </Button>
-        </div>
       </div>
 
       {/* Welcome Message */}

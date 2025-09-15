@@ -205,7 +205,7 @@ const inviteUserWithPaymentData = async (
 
     if (authError) {
       console.error('❌ Direct signup error:', authError);
-      
+
       // Handle specific error cases
       if (authError.message.includes('already registered') || authError.message.includes('already been registered')) {
         return {
@@ -213,11 +213,55 @@ const inviteUserWithPaymentData = async (
           error: 'Este email já possui uma conta. Tente fazer login.',
         };
       }
-      
-      return {
-        success: false,
-        error: authError.message,
-      };
+
+      // Handle rate limiting with automatic retry
+      if (authError.message.includes('For security purposes, you can only request this after')) {
+        const waitTimeMatch = authError.message.match(/after (\d+) seconds/);
+        const waitTime = waitTimeMatch ? parseInt(waitTimeMatch[1]) : 60;
+
+        console.log(`⏰ Rate limited, waiting ${waitTime} seconds before retry...`);
+
+        // Wait and retry once
+        await new Promise(resolve => setTimeout(resolve, (waitTime + 1) * 1000));
+
+        console.log('🔄 Retrying signup after rate limit wait...');
+        const { data: retryAuthResult, error: retryAuthError } = await supabase.auth.signUp({
+          email: linkingData.email,
+          password: temporaryPassword,
+          options: {
+            data: {
+              full_name: linkingData.customerData.name,
+              payment_metadata: JSON.stringify({
+                paymentData: linkingData.paymentData,
+                planData: linkingData.planData,
+                customerData: linkingData.customerData,
+              }),
+              subscription_tier: 'premium',
+              invited_via: 'payment',
+              plan_name: linkingData.planData.name,
+              plan_amount: linkingData.planData.finalAmount,
+              transaction_id: linkingData.paymentData.transactionId,
+              needs_password_setup: true,
+            },
+          },
+        });
+
+        if (retryAuthError) {
+          console.error('❌ Retry signup also failed:', retryAuthError);
+          return {
+            success: false,
+            error: retryAuthError.message,
+          };
+        }
+
+        // Use retry result instead
+        authResult = retryAuthResult;
+      } else {
+        return {
+          success: false,
+          error: authError.message,
+        };
+      }
     }
 
     if (!authResult.user) {
