@@ -663,14 +663,20 @@ export function buildPixPaymentRequestV2(
 }
 
 // Make PIX API call through Edge Function (to avoid CORS issues)
-export async function createPixPaymentV2(request: PixPaymentRequest, supabaseUrl: string, accessToken: string): Promise<PixPaymentResponse> {
+export async function createPixPaymentV2(request: PixPaymentRequest, supabaseUrl: string, accessToken?: string | null): Promise<PixPaymentResponse> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+  };
+
+  // Only add Authorization header if accessToken is provided
+  if (accessToken) {
+    headers['Authorization'] = `Bearer ${accessToken}`;
+  }
+
   const response = await fetch(`${supabaseUrl}/functions/v1/payment-v2-pix`, {
     method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${accessToken}`,
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-    },
+    headers,
     body: JSON.stringify(request),
   });
 
@@ -692,14 +698,20 @@ export async function createPixPaymentV2(request: PixPaymentRequest, supabaseUrl
 }
 
 // Make API call through Edge Function (to avoid CORS issues)
-export async function createSubscriptionV2(request: PaymentV2Request, supabaseUrl: string, accessToken: string): Promise<PaymentV2Response> {
+export async function createSubscriptionV2(request: PaymentV2Request, supabaseUrl: string, accessToken?: string | null): Promise<PaymentV2Response> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+  };
+
+  // Only add Authorization header if accessToken is provided
+  if (accessToken) {
+    headers['Authorization'] = `Bearer ${accessToken}`;
+  }
+
   const response = await fetch(`${supabaseUrl}/functions/v1/payment-v2`, {
     method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${accessToken}`,
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-    },
+    headers,
     body: JSON.stringify(request),
   });
 

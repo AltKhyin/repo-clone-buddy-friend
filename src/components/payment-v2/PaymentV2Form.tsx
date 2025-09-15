@@ -326,7 +326,7 @@ const PaymentV2Form = ({
 
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) {
-        console.warn('⚠️ No session for email dispatch, skipping email');
+        console.warn('⚠️ No session for email dispatch - this is expected for new users, webhook will handle email via Supabase native system');
         return;
       }
 
@@ -529,11 +529,7 @@ const PaymentV2Form = ({
     setIsProcessing(true);
     
     try {
-      // Get current session for authentication
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) {
-        throw new Error('Usuário não autenticado. Faça login novamente.');
-      }
+      console.log('Payment V2.0 - Processing payment for:', values.customerEmail);
 
       if (selectedMethod === 'pix') {
         // PIX Payment Logic with V2 Plan Integration
@@ -554,8 +550,7 @@ const PaymentV2Form = ({
         
         const response = await createPixPaymentV2(
           pixRequest,
-          supabase.supabaseUrl,
-          session.access_token
+          supabase.supabaseUrl
         );
         
         console.log('Payment V2.0 - PIX response:', response);
@@ -628,9 +623,8 @@ const PaymentV2Form = ({
         console.log('Payment V2.0 - Sending credit card request to Edge Function:', subscriptionRequest);
         
         const response = await createSubscriptionV2(
-          subscriptionRequest, 
-          supabase.supabaseUrl, 
-          session.access_token
+          subscriptionRequest,
+          supabase.supabaseUrl
         );
         
         console.log('Payment V2.0 - Credit card response:', response);
