@@ -9,16 +9,14 @@ const corsHeaders = {
 
 // Webhook authentication configuration
 const WEBHOOK_CONFIG = {
-  // Hardcoded Basic Auth credentials (fallback)
-  basicAuth: {
-    username: 'Reviews',
-    password: '#Pipoquinha12'
-  },
+  username: Deno.env.get('PAGARME_WEBHOOK_USER'),
+  password: Deno.env.get('PAGARME_WEBHOOK_PASSWORD'),
+  secretKey: Deno.env.get('PAGARME_SECRET_KEY')
+}
 
-  // Environment variable overrides
-  username: Deno.env.get('PAGARME_WEBHOOK_USER') || 'Reviews',
-  password: Deno.env.get('PAGARME_WEBHOOK_PASSWORD') || '#Pipoquinha12',
-  secretKey: Deno.env.get('PAGARME_SECRET_KEY') || 'sk_503afc1f882248718635c3e92591c79c'
+// Validation
+if (!WEBHOOK_CONFIG.username || !WEBHOOK_CONFIG.password || !WEBHOOK_CONFIG.secretKey) {
+  throw new Error('Missing required webhook credentials. Set PAGARME_WEBHOOK_USER, PAGARME_WEBHOOK_PASSWORD, and PAGARME_SECRET_KEY environment variables.');
 }
 
 // Authenticate webhook request

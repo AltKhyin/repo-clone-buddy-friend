@@ -24,7 +24,7 @@ const PAGARME_CONFIG = {
   apiVersion: import.meta.env.PAGARME_API_VERSION || '2019-09-01',
   
   // Client-side keys (safe for browser)
-  publicKey: import.meta.env.VITE_PAGARME_PUBLIC_KEY || 'pk_BYm9A8QCrqFKK2Zn',
+  publicKey: import.meta.env.VITE_PAGARME_PUBLIC_KEY,
   
   // Server-side keys (only for Edge Functions - not included in client bundle)
   get secretKey() {

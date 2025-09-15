@@ -1,28 +1,21 @@
 // ABOUTME: Pagar.me V2.0 API integration with environment-based configuration
 const PAGARME_V2_CONFIG = {
   baseURL: 'https://api.pagar.me/core/v5',
-  secretKey: import.meta.env.VITE_PAGARME_SECRET_KEY || 'sk_503afc1f882248718635c3e92591c79c',
-  publicKey: import.meta.env.VITE_PAGARME_PUBLIC_KEY || 'pk_BYm9A8QCrqFKK2Zn',
+  secretKey: import.meta.env.VITE_PAGARME_SECRET_KEY,
+  publicKey: import.meta.env.VITE_PAGARME_PUBLIC_KEY,
 } as const;
 
 // Runtime validation of API keys
-console.log('🔍 Frontend Pagarme Config:', {
-  baseURL: PAGARME_V2_CONFIG.baseURL,
-  secretKeyPrefix: PAGARME_V2_CONFIG.secretKey.substring(0, 15) + '...',
-  publicKeyPrefix: PAGARME_V2_CONFIG.publicKey.substring(0, 15) + '...',
-  isUsingProductionKeys: !PAGARME_V2_CONFIG.secretKey.startsWith('sk_test_'),
-  hasEnvVars: {
-    secret: Boolean(import.meta.env.VITE_PAGARME_SECRET_KEY),
-    public: Boolean(import.meta.env.VITE_PAGARME_PUBLIC_KEY)
-  }
-});
-
-if (import.meta.env.PROD && PAGARME_V2_CONFIG.secretKey.startsWith('sk_test_')) {
-  console.error('🚨 CRITICAL: Using test API keys in production! Set VITE_PAGARME_SECRET_KEY environment variable.');
+if (!PAGARME_V2_CONFIG.secretKey || !PAGARME_V2_CONFIG.publicKey) {
+  throw new Error('Missing required Pagar.me credentials. Set VITE_PAGARME_SECRET_KEY and VITE_PAGARME_PUBLIC_KEY environment variables.');
 }
 
-if (import.meta.env.PROD && PAGARME_V2_CONFIG.publicKey.startsWith('pk_test_')) {
-  console.error('🚨 CRITICAL: Using test public key in production! Set VITE_PAGARME_PUBLIC_KEY environment variable.');
+if (import.meta.env.PROD && PAGARME_V2_CONFIG.secretKey?.startsWith('sk_test_')) {
+  throw new Error('Cannot use test API keys in production! Set VITE_PAGARME_SECRET_KEY with live credentials.');
+}
+
+if (import.meta.env.PROD && PAGARME_V2_CONFIG.publicKey?.startsWith('pk_test_')) {
+  throw new Error('Cannot use test public key in production! Set VITE_PAGARME_PUBLIC_KEY with live credentials.');
 }
 
 // Official Pagar.me test card numbers

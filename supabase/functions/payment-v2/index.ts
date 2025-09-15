@@ -10,18 +10,22 @@ const corsHeaders = {
 // Pagar.me V2.0 configuration from environment variables
 const PAGARME_V2_CONFIG = {
   baseURL: 'https://api.pagar.me/core/v5',
-  secretKey: Deno.env.get('PAGARME_SECRET_KEY') || 'sk_503afc1f882248718635c3e92591c79c',
-  publicKey: Deno.env.get('PAGARME_PUBLIC_KEY') || 'pk_BYm9A8QCrqFKK2Zn',
+  secretKey: Deno.env.get('PAGARME_SECRET_KEY'),
+  publicKey: Deno.env.get('PAGARME_PUBLIC_KEY'),
 }
 
 // Runtime validation of API keys in Edge Function
-const isProduction = Deno.env.get('DENO_DEPLOYMENT_ID') !== undefined;
-if (isProduction && PAGARME_V2_CONFIG.secretKey.startsWith('sk_test_')) {
-  console.error('🚨 CRITICAL: Edge Function using test API keys in production! Set PAGARME_SECRET_KEY environment variable.');
+if (!PAGARME_V2_CONFIG.secretKey || !PAGARME_V2_CONFIG.publicKey) {
+  throw new Error('Missing required Pagar.me credentials. Set PAGARME_SECRET_KEY and PAGARME_PUBLIC_KEY environment variables.');
 }
 
-if (isProduction && PAGARME_V2_CONFIG.publicKey.startsWith('pk_test_')) {
-  console.error('🚨 CRITICAL: Edge Function using test public key in production! Set PAGARME_PUBLIC_KEY environment variable.');
+const isProduction = Deno.env.get('DENO_DEPLOYMENT_ID') !== undefined;
+if (isProduction && PAGARME_V2_CONFIG.secretKey?.startsWith('sk_test_')) {
+  throw new Error('Cannot use test API keys in production! Set PAGARME_SECRET_KEY with live credentials.');
+}
+
+if (isProduction && PAGARME_V2_CONFIG.publicKey?.startsWith('pk_test_')) {
+  throw new Error('Cannot use test public key in production! Set PAGARME_PUBLIC_KEY with live credentials.');
 }
 
 interface PaymentV2Request {
@@ -132,22 +136,18 @@ serve(async (req) => {
       )
     }
 
-    console.log('Payment V2.0 Edge Function - Processing payment:', {
-      authenticated: isAuthenticatedRequest,
-      userId: user?.id || 'anonymous',
-      userEmail: user?.email || 'new_user'
-    })
+    // Payment processing started
 
     // Parse request body
     const paymentRequest: PaymentV2Request = await req.json()
 
-    console.log('Payment V2.0 Edge Function - Processing payment request for:', paymentRequest.customer?.email || 'unknown')
+    // Processing payment request
 
     // Check if we need to tokenize card data first
     let finalRequest = paymentRequest
 
     if (paymentRequest.card && !paymentRequest.card_token) {
-      console.log('Payment V2.0 Edge Function - Tokenizing card data...')
+      // Tokenizing card data
 
       // Tokenize card data server-side (use public key as appId query parameter)
       const tokenResponse = await fetch(`${PAGARME_V2_CONFIG.baseURL}/tokens?appId=${PAGARME_V2_CONFIG.publicKey}`, {
@@ -183,7 +183,7 @@ serve(async (req) => {
         )
       }
 
-      console.log('Payment V2.0 Edge Function - Card tokenized successfully:', tokenData.id)
+      // Card tokenized successfully
 
       // Replace card data with token, but keep billing_address
       finalRequest = {
@@ -195,10 +195,10 @@ serve(async (req) => {
       }
     }
 
-    console.log('Payment V2.0 Edge Function - Final request:', JSON.stringify(finalRequest, null, 2))
+    // Sending request to Pagar.me
 
     // Make request to Pagar.me API
-    console.log('🌐 Credit Card Edge Function - Using endpoint:', `${PAGARME_V2_CONFIG.baseURL}/subscriptions`)
+    // Making subscription request
     const pagarmeResponse = await fetch(`${PAGARME_V2_CONFIG.baseURL}/subscriptions`, {
       method: 'POST',
       headers: {
@@ -211,8 +211,7 @@ serve(async (req) => {
 
     const pagarmeData = await pagarmeResponse.json()
     
-    console.log('Payment V2.0 Edge Function - Pagar.me response status:', pagarmeResponse.status)
-    console.log('Payment V2.0 Edge Function - Pagar.me response:', JSON.stringify(pagarmeData, null, 2))
+    // Response received from Pagar.me
 
     if (!pagarmeResponse.ok) {
       console.error('Payment V2.0 Edge Function - Pagar.me API Error:', pagarmeData)
@@ -242,7 +241,7 @@ serve(async (req) => {
     //     created_at: new Date().toISOString()
     //   })
 
-    console.log('Payment V2.0 Edge Function - Success! Subscription created:', pagarmeData.id)
+    // Subscription created successfully
 
     return new Response(
       JSON.stringify({

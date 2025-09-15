@@ -3,14 +3,14 @@
 ## Pagar.me Webhook Configuration
 
 ### Basic Authentication Credentials
-- **Username**: `Reviews`
-- **Password**: `#Pipoquinha12`
+- **Username**: Set via environment variable `PAGARME_WEBHOOK_USER`
+- **Password**: Set via environment variable `PAGARME_WEBHOOK_PASSWORD`
 
-### Environment Variables (Optional Override)
+### Required Environment Variables
 ```bash
-PAGARME_WEBHOOK_USER=Reviews
-PAGARME_WEBHOOK_PASSWORD=#Pipoquinha12
-PAGARME_SECRET_KEY=sk_test_XXXXXXXXXX  # Your API secret key
+PAGARME_WEBHOOK_USER=your_webhook_username_here
+PAGARME_WEBHOOK_PASSWORD=your_webhook_password_here
+PAGARME_SECRET_KEY=your_pagarme_secret_key_here
 ```
 
 ### Authentication Methods Supported (in Priority Order)
@@ -19,19 +19,18 @@ PAGARME_SECRET_KEY=sk_test_XXXXXXXXXX  # Your API secret key
 3. **HMAC Signature** - Uses `PAGARME_WEBHOOK_SECRET` if configured
 
 ### Security Notes
-- These credentials are hardcoded as fallback in the webhook function
-- Environment variables can override the hardcoded values
+- All credentials must be set via environment variables
+- No fallback credentials are provided in code
 - Store this file securely and don't commit to public repositories
-- The webhook function logs authentication attempts for debugging
+- The webhook function validates all authentication attempts
 
 ### Webhook URL
 ```
-https://qjoxiowuiiupbvqlssgk.supabase.co/functions/v1/pagarme-webhook
+https://qjoxiowuiiupbvqlssgk.supabase.co/functions/v1/pagarme-webhook-v2
 ```
 
 ## Generated Basic Auth Header
-For reference, the Basic Auth header should be:
+The Basic Auth header will be generated from your environment variables:
 ```
-Authorization: Basic UmV2aWV3czojUGlwb3F1aW5oYTEy
+Authorization: Basic <base64_encoded_username:password>
 ```
-(Base64 encoding of "Reviews:#Pipoquinha12")
