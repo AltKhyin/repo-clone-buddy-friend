@@ -8,7 +8,7 @@ import { createSuccessResponse, createErrorResponse, authenticateUser } from '..
 import { checkRateLimit, rateLimitHeaders, RateLimitError } from '../_shared/rate-limit.ts';
 
 interface CreatePostRequest {
-  title: string; // Now mandatory per frontend requirements
+  title?: string; // Mandatory for posts, optional for comments
   content?: string; // Now optional per frontend requirements
   category: string;
   post_type?: 'text' | 'image' | 'video' | 'poll' | 'link';
@@ -60,8 +60,9 @@ serve(async (req) => {
     // STEP 6: Input Validation
     const body: CreatePostRequest = await req.json();
     
-    // Title is now mandatory (NEW REQUIREMENT)
-    if (!body.title || body.title.trim().length === 0) {
+    // Title is mandatory for posts, but optional for comments
+    const isComment = Boolean(body.parent_post_id);
+    if (!isComment && (!body.title || body.title.trim().length === 0)) {
       throw new Error('VALIDATION_FAILED: Post title is required');
     }
 
@@ -95,8 +96,8 @@ serve(async (req) => {
       throw new Error('VALIDATION_FAILED: Post content exceeds maximum length (10,000 characters)');
     }
 
-    // Title validation (now mandatory)
-    if (body.title.length > 200) {
+    // Title validation (mandatory for posts, optional for comments)
+    if (body.title && body.title.length > 200) {
       throw new Error('VALIDATION_FAILED: Post title exceeds maximum length (200 characters)');
     }
 
@@ -104,7 +105,7 @@ serve(async (req) => {
     const { data: result, error: createError } = await supabase
       .rpc('create_post_and_auto_vote', {
         p_author_id: user.id,
-        p_title: body.title, // Now mandatory
+        p_title: body.title || (isComment ? '' : 'Untitled'), // Optional for comments
         p_content: postContent, // Now can be empty string
         p_category: body.category,
         p_parent_id: body.parent_post_id || null // Support for comments

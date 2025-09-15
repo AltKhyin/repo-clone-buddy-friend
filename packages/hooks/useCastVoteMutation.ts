@@ -202,22 +202,23 @@ export const useCastVoteMutation = () => {
         // Also update individual post detail pages if available
         queryClient.setQueriesData({ queryKey: ['postWithComments'] }, (old: unknown) => {
           if (!old || typeof old !== 'object' || !('post' in old)) return old;
-          
-          const data = old as { post: Record<string, unknown>; comments: Array<unknown> };
-          
+
+          const data = old as { post: Record<string, unknown>; comments: Array<Record<string, unknown>> };
+
+          // Check if we're voting on the main post
           if (data.post.id.toString() === variables.entity_id) {
             const currentVote = data.post.user_vote;
             const newVote = variables.vote_type === 'none' ? null : variables.vote_type;
-            
+
             let upvotes = data.post.upvotes || 0;
             let downvotes = data.post.downvotes || 0;
-            
+
             if (currentVote === 'up') upvotes--;
             if (currentVote === 'down') downvotes--;
-            
+
             if (newVote === 'up') upvotes++;
             if (newVote === 'down') downvotes++;
-            
+
             return {
               ...data,
               post: {
@@ -228,7 +229,40 @@ export const useCastVoteMutation = () => {
               }
             };
           }
-          
+
+          // Check if we're voting on a comment
+          const updatedComments = data.comments?.map((comment: Record<string, unknown>) => {
+            if (comment.id.toString() === variables.entity_id) {
+              const currentVote = comment.user_vote;
+              const newVote = variables.vote_type === 'none' ? null : variables.vote_type;
+
+              let upvotes = comment.upvotes || 0;
+              let downvotes = comment.downvotes || 0;
+
+              if (currentVote === 'up') upvotes--;
+              if (currentVote === 'down') downvotes--;
+
+              if (newVote === 'up') upvotes++;
+              if (newVote === 'down') downvotes++;
+
+              return {
+                ...comment,
+                user_vote: newVote,
+                upvotes: Math.max(0, upvotes),
+                downvotes: Math.max(0, downvotes)
+              };
+            }
+            return comment;
+          });
+
+          // If we updated any comments, return the updated data
+          if (updatedComments && updatedComments !== data.comments) {
+            return {
+              ...data,
+              comments: updatedComments
+            };
+          }
+
           return old;
         });
         

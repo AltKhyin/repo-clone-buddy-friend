@@ -150,6 +150,8 @@ serve(async req => {
       image_url: post.image_url || null,
       video_url: post.video_url || null,
       poll_data: post.poll_data || null,
+      link_url: post.link_url || null,
+      link_preview_data: post.link_preview_data || null,
       author: post.author || {
         id: post.author_id || null,
         full_name: 'Usuário removido',
