@@ -17,6 +17,13 @@ export function usePasswordSetupRedirect() {
     // Only check if user is authenticated
     if (!user) return;
 
+    console.log('🔐 usePasswordSetupRedirect check:', {
+      pathname: location.pathname,
+      user_metadata: user.user_metadata,
+      needs_password_setup: user.user_metadata?.needs_password_setup,
+      invited_via: user.user_metadata?.invited_via
+    });
+
     // Don't redirect if already on password setup pages
     const passwordSetupPaths = [
       '/complete-registration',
@@ -26,16 +33,21 @@ export function usePasswordSetupRedirect() {
     ];
 
     if (passwordSetupPaths.some(path => location.pathname.startsWith(path))) {
+      console.log('🔐 Already on password setup page, skipping redirect');
       return;
     }
 
-    // Don't redirect if user is in password recovery flow (has recovery token in URL)
+    // Don't redirect if user is in any auth flow (has auth tokens in URL)
     const urlParams = new URLSearchParams(window.location.search);
     const hashParams = new URLSearchParams(window.location.hash.substring(1));
-    const hasRecoveryToken = urlParams.get('type') === 'recovery' || hashParams.get('type') === 'recovery';
+    const hasAuthTokens =
+      urlParams.get('access_token') || hashParams.get('access_token') ||
+      urlParams.get('type') === 'recovery' || hashParams.get('type') === 'recovery' ||
+      urlParams.get('type') === 'invite' || hashParams.get('type') === 'invite' ||
+      urlParams.get('type') === 'signup' || hashParams.get('type') === 'signup';
 
-    if (hasRecoveryToken) {
-      console.log('🔐 User in password recovery flow, skipping redirect');
+    if (hasAuthTokens) {
+      console.log('🔐 User in auth flow with tokens, skipping redirect');
       return;
     }
 
@@ -44,12 +56,8 @@ export function usePasswordSetupRedirect() {
     const invitedViaPayment = user.user_metadata?.invited_via === 'payment';
 
     if (needsPasswordSetup && invitedViaPayment) {
-      console.log('🔐 User needs password setup, redirecting to complete registration');
-      
-      // Redirect to password setup with context
-      navigate('/complete-registration?source=payment_login', { 
-        replace: true 
-      });
+      console.log('🔐 User needs password setup (auto-redirect disabled)');
+      // Auto-redirect disabled - let user navigate manually
     }
   }, [user, navigate, location.pathname]);
 

@@ -32,6 +32,7 @@ export default function CompleteRegistration() {
   // States
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCompleted, setIsCompleted] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [userInfo, setUserInfo] = useState<any>(null);
@@ -294,29 +295,19 @@ export default function CompleteRegistration() {
 
       toast.success('Senha criada com sucesso!');
       if (isPaymentUser) {
-        toast.success('Sua conta premium está ativa!');
+        toast.success('Sua conta Reviews está ativa!');
       }
 
-      // Force logout to ensure user logs in again with fresh session data
-      setTimeout(async () => {
-        try {
-          // Sign out the user to force a fresh login
-          await supabase.auth.signOut();
-
-          if (isPaymentUser) {
-            toast.success('Faça login novamente para acessar sua conta premium!');
-          } else {
-            toast.success('Senha atualizada! Faça login com sua nova senha.');
-          }
-
-          // Redirect to login page for proper authentication
-          navigate('/login?message=created_account');
-        } catch (error) {
-          console.error('Error during logout:', error);
-          // Fallback - still redirect to login
-          navigate('/login?message=created_account');
+      // Update user metadata to mark password setup as complete
+      await supabase.auth.updateUser({
+        data: {
+          needs_password_setup: false,
+          password_setup_complete: true
         }
-      }, 2000);
+      });
+
+      // Show success state - no automatic redirect
+      setIsCompleted(true);
 
     } catch (error: any) {
       console.error('💥 Password setup error:', error);
@@ -371,6 +362,42 @@ export default function CompleteRegistration() {
             <Loader2 className="h-8 w-8 animate-spin text-black mb-4" />
             <p className="text-black/80 text-center mb-2">Criando sua senha...</p>
             <p className="text-sm text-black/60 text-center">Aguarde um momento</p>
+          </div>
+        </AuthFormContainer>
+      </SplitScreenAuthLayout>
+    );
+  }
+
+  // Success state (completed)
+  if (isCompleted) {
+    return (
+      <SplitScreenAuthLayout>
+        <AuthFormContainer>
+          <div className="text-center space-y-6">
+            <div>
+              <h2 className="text-2xl font-semibold text-black mb-2">
+                Conta criada com sucesso!
+              </h2>
+              <p className="text-black/80 text-sm mb-2">
+                Olá, {userInfo?.name}
+              </p>
+              <p className="text-black/60 text-sm">
+                Sua assinatura Reviews está ativa!
+              </p>
+            </div>
+
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+              <p className="text-green-800 text-sm">
+                Sua senha foi criada e sua conta está pronta para uso.
+              </p>
+            </div>
+
+            <Button
+              onClick={() => navigate('/')}
+              className="w-full h-11 bg-black text-white hover:bg-black/90"
+            >
+              Acessar o site
+            </Button>
           </div>
         </AuthFormContainer>
       </SplitScreenAuthLayout>

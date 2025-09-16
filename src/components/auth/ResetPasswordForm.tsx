@@ -108,11 +108,11 @@ const ResetPasswordForm = () => {
             Sua senha foi alterada com sucesso. Agora você pode fazer login com sua nova senha.
           </p>
           
-          <Button 
-            onClick={() => navigate('/login')}
+          <Button
+            onClick={() => navigate('/')}
             className="w-full !bg-black hover:!bg-gray-800 !text-white"
           >
-            Ir para o login
+            Acessar o site
           </Button>
         </div>
       </div>
