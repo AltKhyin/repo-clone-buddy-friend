@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Key, AlertCircle, CheckCircle, Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import { usePasswordResetConfirm, resetConfirmSchema } from '@/hooks/mutations/usePasswordResetMutation';
+import { supabase } from '@/integrations/supabase/client';
 import type { z } from 'zod';
 
 const ResetPasswordForm = () => {
@@ -37,8 +38,39 @@ const ResetPasswordForm = () => {
 
   // Check if we have a valid session for password reset
   useEffect(() => {
-    // This will be handled by Supabase automatically when user clicks the reset link
-    // If the session is invalid, the mutation will handle the error
+    const handleAuthSession = async () => {
+      try {
+        // Get both current URL and hash parameters (similar to CompleteRegistration)
+        const currentUrl = new URL(window.location.href);
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+
+        // Check for auth-related URL parameters from both search and hash
+        const accessToken = currentUrl.searchParams.get('access_token') || hashParams.get('access_token');
+        const refreshToken = currentUrl.searchParams.get('refresh_token') || hashParams.get('refresh_token');
+        const type = currentUrl.searchParams.get('type') || hashParams.get('type');
+
+        // If we have tokens, set the session
+        if (accessToken && refreshToken && type === 'recovery') {
+          const { error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken
+          });
+
+          if (error) {
+            console.error('❌ Failed to set session for password reset:', error);
+            setResetError('Link de redefinição inválido ou expirado. Solicite um novo.');
+            return;
+          }
+
+          // Clean URL after setting session
+          window.history.replaceState({}, document.title, '/redefinir-senha');
+        }
+      } catch (error) {
+        console.error('💥 Error handling auth session:', error);
+      }
+    };
+
+    handleAuthSession();
   }, []);
 
   const onSubmit = (values: z.infer<typeof resetConfirmSchema>) => {

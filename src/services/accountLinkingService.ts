@@ -166,7 +166,7 @@ const inviteUserWithPaymentData = async (
     // Use their email as the initial password for simplicity
     const temporaryPassword = linkingData.email;
 
-    // Create the user account directly
+    // Create the user account directly with auto-confirmation for payment users
     const { data: authResult, error: authError } = await supabase.auth.signUp({
       email: linkingData.email,
       password: temporaryPassword,
@@ -185,7 +185,10 @@ const inviteUserWithPaymentData = async (
           plan_amount: linkingData.planData.finalAmount,
           transaction_id: linkingData.paymentData.transactionId,
           needs_password_setup: true, // Flag that they need to set a real password
+          created_from_payment: true, // Additional flag for payment-created accounts
         },
+        // Disable email confirmation for payment users - they get password setup email instead
+        emailRedirectTo: `${window.location.origin}/complete-registration`,
       },
     });
 
@@ -254,7 +257,28 @@ const inviteUserWithPaymentData = async (
       };
     }
 
-    
+    console.log('✅ Payment user created successfully:', authResult.user.id);
+
+    // Auto-confirm payment users via Edge Function (admin privileges required)
+    try {
+      const { data: confirmResult, error: confirmError } = await supabase.functions.invoke('auto-confirm-payment-user', {
+        body: {
+          userId: authResult.user.id,
+          email: linkingData.email,
+        }
+      });
+
+      if (confirmError || !confirmResult?.success) {
+        console.error('⚠️ Failed to auto-confirm payment user email:', confirmError || confirmResult?.error);
+        // Continue anyway - user is created, just not confirmed
+      } else {
+        console.log('✅ Payment user email auto-confirmed via Edge Function:', linkingData.email);
+      }
+    } catch (confirmError) {
+      console.error('⚠️ Error auto-confirming payment user:', confirmError);
+      // Continue anyway - user is created
+    }
+
     // The database trigger will automatically create the Practitioners record
     // Now we need to activate the subscription
     
