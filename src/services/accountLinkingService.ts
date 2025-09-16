@@ -163,8 +163,7 @@ const inviteUserWithPaymentData = async (
     // This creates the user immediately instead of using invitation emails
     
     // Generate a temporary password for the user - they'll set their own later
-    // Use their email as the initial password for simplicity
-    const temporaryPassword = linkingData.email;
+    const temporaryPassword = `temp_${Date.now()}_${Math.random().toString(36).substring(7)}`;
 
     // Create the user account directly with auto-confirmation for payment users
     const { data: authResult, error: authError } = await supabase.auth.signUp({
