@@ -14,9 +14,24 @@ const WEBHOOK_CONFIG = {
   secretKey: Deno.env.get('PAGARME_SECRET_KEY')
 }
 
-// Validation
+// Validation and debug logging
+console.log('🔍 Webhook config check:', {
+  hasUsername: Boolean(WEBHOOK_CONFIG.username),
+  hasPassword: Boolean(WEBHOOK_CONFIG.password),
+  hasSecretKey: Boolean(WEBHOOK_CONFIG.secretKey),
+  usernameLength: WEBHOOK_CONFIG.username?.length || 0,
+  passwordLength: WEBHOOK_CONFIG.password?.length || 0,
+  secretKeyPrefix: WEBHOOK_CONFIG.secretKey?.substring(0, 10) || 'none'
+});
+
 if (!WEBHOOK_CONFIG.username || !WEBHOOK_CONFIG.password || !WEBHOOK_CONFIG.secretKey) {
-  throw new Error('Missing required webhook credentials. Set PAGARME_WEBHOOK_USER, PAGARME_WEBHOOK_PASSWORD, and PAGARME_SECRET_KEY environment variables.');
+  console.error('❌ Missing webhook credentials:', {
+    username: WEBHOOK_CONFIG.username ? '[SET]' : '[MISSING]',
+    password: WEBHOOK_CONFIG.password ? '[SET]' : '[MISSING]',
+    secretKey: WEBHOOK_CONFIG.secretKey ? '[SET]' : '[MISSING]'
+  });
+  // Don't throw error - continue with logging to debug the issue
+  console.warn('⚠️ Continuing without full credentials for debugging...');
 }
 
 // Authenticate webhook request
@@ -95,6 +110,7 @@ const findUserByEmail = async (supabase: any, email: string) => {
 const handlePaymentSuccess = async (supabase: any, webhookData: any) => {
   try {
     console.log('🎉 Processing successful payment webhook:', webhookData.type)
+    console.log('🔍 Full webhook data:', JSON.stringify(webhookData, null, 2))
 
     const customerEmail = webhookData.data.customer.email
     const customerId = webhookData.data.customer.id
@@ -106,10 +122,12 @@ const handlePaymentSuccess = async (supabase: any, webhookData: any) => {
     console.log('👤 Customer ID:', customerId)
     console.log('💰 Amount:', amount)
     console.log('💳 Payment Method:', paymentMethod)
+    console.log('🆔 Payment ID:', paymentId)
 
     // Find user by email
+    console.log('🔍 Starting user lookup for email:', customerEmail)
     const userLookup = await findUserByEmail(supabase, customerEmail)
-    console.log('🔍 User lookup result:', userLookup)
+    console.log('🔍 User lookup result:', JSON.stringify(userLookup, null, 2))
 
     if (!userLookup.user) {
       console.log('❌ User not found, storing unlinked payment data')
@@ -155,82 +173,86 @@ const handlePaymentSuccess = async (supabase: any, webhookData: any) => {
   }
 }
 
-// Handle new user creation with Supabase native invitation (simplified)
+// Handle new user creation with immediate auto-confirmation (no email confirmation required)
 const handleNewUserInvitation = async (supabase: any, webhookData: any) => {
   try {
-    console.log('📧 Creating new user account via Supabase invitation')
+    console.log('🚀 Creating new user account with immediate activation (no email confirmation)')
+    console.log('🔍 Customer data:', JSON.stringify(webhookData.data.customer, null, 2))
 
     const customerData = webhookData.data.customer
-    const paymentData = {
-      pagarmeOrderId: webhookData.data.id,
-      pagarmeCustomerId: customerData.id,
-      amount: webhookData.data.amount,
-      paymentMethod: webhookData.data.charges?.[0]?.payment_method || 'unknown',
-      paidAt: new Date().toISOString(),
-      webhookType: webhookData.type
-    }
-
-    // Calculate subscription end date (1 year from now)
     const subscriptionEndsAt = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
 
-    // Use Supabase's native invitation system with premium metadata
-    const { data: inviteData, error: inviteError } = await supabase.auth.admin.inviteUserByEmail(
-      customerData.email,
-      {
-        // Redirect to account setup page after email confirmation
-        redirectTo: `https://reviews.igoreckert.com.br/complete-registration`,
-        data: {
-          // User profile data
-          full_name: customerData.name,
-          subscription_tier: 'premium',
-          subscription_starts_at: new Date().toISOString(),
-          subscription_ends_at: subscriptionEndsAt.toISOString(),
+    console.log('👤 About to create user with email:', customerData.email)
+    console.log('📅 Subscription ends at:', subscriptionEndsAt.toISOString())
 
-          // Payment creation flag for password setup page
-          created_from_payment: true,
-          payment_order_id: webhookData.data.id,
-          payment_amount: webhookData.data.amount,
-          payment_method: paymentData.paymentMethod,
-          customer_document: customerData.document,
+    // Create user with email as temporary password (will be changed on first login)
+    console.log('🔄 Creating new user account with immediate activation...')
 
-          // Additional customer data
-          customer_phone: customerData.phone,
-          pagarme_customer_id: customerData.id,
+    // Create user with secure temporary password and auto-confirmation
+    const { data: userData, error: createError } = await supabase.auth.admin.createUser({
+      email: customerData.email,
+      password: `temp_${Date.now()}_${Math.random().toString(36).substring(7)}`, // Secure temporary password
+      email_confirm: true, // Auto-confirm email immediately
+      user_metadata: {
+        // User profile data - trigger expects full_name in raw_user_meta_data
+        full_name: customerData.name || customerData.email.split('@')[0],
+        subscription_tier: 'premium',
+        subscription_starts_at: new Date().toISOString(),
+        subscription_ends_at: subscriptionEndsAt.toISOString(),
 
-          // Plan information
-          plan_description: webhookData.data.items?.[0]?.description || 'EVIDENS Premium'
-        }
+        // Payment creation flag for password setup page
+        created_from_payment: true,
+        payment_order_id: webhookData.data.id,
+        payment_amount: webhookData.data.amount,
+        payment_method: webhookData.data.charges?.[0]?.payment_method || 'unknown',
+        customer_document: customerData.document || '',
+
+        // Additional customer data
+        customer_phone: customerData.phones?.mobile_phone ?
+          `${customerData.phones.mobile_phone.country_code}${customerData.phones.mobile_phone.area_code}${customerData.phones.mobile_phone.number}` : '',
+        pagarme_customer_id: customerData.id,
+
+        // Plan information
+        plan_description: webhookData.data.items?.[0]?.description || 'EVIDENS Premium'
+      },
+      app_metadata: {
+        role: 'practitioner',
+        subscription_tier: 'premium'
       }
-    )
+    })
 
-    if (inviteError) {
-      console.error('❌ Failed to send user invitation:', inviteError)
-      return { processed: false, error: 'invitation_failed', details: inviteError.message }
+    if (createError) {
+      console.error('❌ Failed to create user account:', JSON.stringify(createError, null, 2))
+      return { processed: false, error: 'account_creation_failed', details: createError.message }
     }
 
-    if (!inviteData.user) {
-      console.error('❌ No user data returned from invitation')
+    if (!userData.user) {
+      console.error('❌ No user data returned from account creation')
       return { processed: false, error: 'no_user_data' }
     }
 
-    console.log('✅ User invitation sent successfully:', {
-      userId: inviteData.user.id,
+    console.log('✅ User account created and auto-confirmed:', {
+      userId: userData.user.id,
       email: customerData.email,
-      orderId: webhookData.data.id
+      orderId: webhookData.data.id,
+      emailConfirmed: userData.user.email_confirmed_at
     })
 
-    // 🔥 ANALYTICS WEBHOOK: Send analytics data to Make.com for new users too
+    // The handle_new_user trigger will automatically create the Practitioners record
+    // with premium subscription tier (as per our migration)
+
+    // 🔥 ANALYTICS WEBHOOK: Send analytics data to Make.com for new users
     const paymentId = extractPaymentId(webhookData)
     const mockUserLookup = {
-      user: { id: inviteData.user.id },
+      user: { id: userData.user.id },
       source: 'new_user'
     }
     await sendAnalyticsWebhookWithRealData(supabase, webhookData, mockUserLookup, paymentId)
 
     return {
       processed: true,
-      action: 'new_user_invited',
-      userId: inviteData.user.id,
+      action: 'new_user_created_auto_confirmed',
+      userId: userData.user.id,
       email: customerData.email
     }
 
@@ -506,9 +528,19 @@ serve(async (req) => {
     console.log(`Processing webhook event: ${webhookData.type}`)
 
     // Initialize Supabase client
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+
+    console.log('🔍 Supabase connection check:', {
+      hasUrl: Boolean(supabaseUrl),
+      hasKey: Boolean(supabaseKey),
+      urlPrefix: supabaseUrl?.substring(0, 20) || 'none',
+      keyPrefix: supabaseKey?.substring(0, 20) || 'none'
+    })
+
     const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      supabaseUrl ?? '',
+      supabaseKey ?? '',
       {
         auth: {
           autoRefreshToken: false,

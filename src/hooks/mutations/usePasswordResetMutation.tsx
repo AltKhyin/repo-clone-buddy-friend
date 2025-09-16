@@ -52,18 +52,28 @@ const requestPasswordReset = async (payload: ResetRequestPayload) => {
 
 // Confirm password reset with new password
 const confirmPasswordReset = async (payload: ResetConfirmPayload) => {
+  // First check if we have a valid session
+  const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+  if (sessionError || !session) {
+    console.error('❌ Password reset - No valid session:', sessionError);
+    throw new Error('Sessão de redefinição inválida ou expirada. Clique novamente no link do email');
+  }
+
   const { error } = await supabase.auth.updateUser({
     password: payload.password
   });
 
   if (error) {
+    console.error('❌ Password update error:', error);
+
     // Handle different types of password reset errors
     if (error.message.toLowerCase().includes('session not found') ||
         error.message.toLowerCase().includes('invalid session')) {
       throw new Error('Sessão de redefinição inválida ou expirada. Solicite um novo link');
     }
 
-    if (error.message.toLowerCase().includes('password') && 
+    if (error.message.toLowerCase().includes('password') &&
         error.message.toLowerCase().includes('weak')) {
       throw new Error('Senha muito fraca. Use uma senha mais forte');
     }
@@ -72,8 +82,12 @@ const confirmPasswordReset = async (payload: ResetConfirmPayload) => {
       throw new Error('A nova senha deve ser diferente da senha atual');
     }
 
-    // Generic fallback
-    throw new Error('Erro ao redefinir senha. Tente novamente');
+    if (error.message.toLowerCase().includes('user not found')) {
+      throw new Error('Usuário não encontrado. Solicite um novo link de redefinição');
+    }
+
+    // Generic fallback with actual error for debugging
+    throw new Error(`Erro ao redefinir senha: ${error.message}`);
   }
 
   return { success: true };
