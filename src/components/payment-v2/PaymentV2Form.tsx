@@ -481,10 +481,6 @@ const PaymentV2Form = ({
             details: 'Se o pagamento foi aprovado, você receberá um email de confirmação em breve.',
             actions: {
               primary: {
-                label: 'Verificar email',
-                action: () => window.open(`mailto:${formValues.customerEmail}`, '_blank')
-              },
-              secondary: {
                 label: 'Entrar em contato',
                 action: () => window.open('mailto:suporte@igoreckert.com.br', '_blank')
               },
