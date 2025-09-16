@@ -32,10 +32,7 @@ const authenticateWebhook = (authHeader: string | null): { success: boolean; met
       const decoded = atob(encoded)
       const [username, password] = decoded.split(':')
 
-      const validBasicAuth = (
-        (username === WEBHOOK_CONFIG.username && password === WEBHOOK_CONFIG.password) ||
-        (username === WEBHOOK_CONFIG.basicAuth.username && password === WEBHOOK_CONFIG.basicAuth.password)
-      )
+      const validBasicAuth = (username === WEBHOOK_CONFIG.username && password === WEBHOOK_CONFIG.password)
 
       if (validBasicAuth) {
         return { success: true, method: 'Basic Auth', details: `Valid credentials for user: ${username}` }
@@ -256,38 +253,8 @@ const logWebhookEvent = async (supabase: any, eventData: any, result: any) => {
 
     console.log('📊 Webhook Event Log:', webhookLog)
 
-    // Insert webhook event into payment_webhooks table for realtime listening
-    const paymentId = extractPaymentId(eventData)
-    const customerId = eventData.data?.customer?.id
-    const amount = eventData.data?.amount
-    const paymentMethod = eventData.data?.charges?.[0]?.payment_method || 'unknown'
-
-    if (paymentId) {
-      const { error: insertError } = await supabase
-        .from('payment_webhooks')
-        .insert({
-          payment_id: paymentId,
-          event_type: eventData.type,
-          customer_id: customerId,
-          amount: amount,
-          status: getPaymentStatus(eventData.type),
-          payment_method: paymentMethod,
-          webhook_data: {
-            eventId: eventData.id,
-            eventType: eventData.type,
-            processed: result.processed,
-            action: result.action,
-            customerEmail: eventData.data?.customer?.email,
-            timestamp: new Date().toISOString()
-          }
-        })
-
-      if (insertError) {
-        console.error('❌ Failed to insert webhook event for realtime:', insertError)
-      } else {
-        console.log('✅ Webhook event inserted for realtime tracking:', paymentId)
-      }
-    }
+    // Skip webhook event insertion - payment_webhooks table doesn't exist at commit 016b6c4
+    console.log('ℹ️ Webhook event logging skipped - table not available at this commit')
   } catch (error) {
     console.error('❌ Failed to log webhook event:', error)
   }
@@ -343,14 +310,8 @@ const sendAnalyticsWebhookWithRealData = async (supabase: any, webhookData: any,
       return
     }
 
-    // Get any existing webhook data (simplified approach)
-    const { data: existingWebhook } = await supabase
-      .from('payment_webhooks')
-      .select('webhook_data')
-      .eq('payment_id', paymentId)
-      .single()
-
-    const existingData = existingWebhook?.webhook_data || {}
+    // Skip webhook data lookup - payment_webhooks table doesn't exist at commit 016b6c4
+    const existingData = {}
 
     // Extract real data from webhook
     const customerData = webhookData.data.customer
