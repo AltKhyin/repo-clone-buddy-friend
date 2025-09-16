@@ -87,6 +87,20 @@ export default function CompleteRegistration() {
           }
           window.history.replaceState({}, document.title, '/complete-registration');
         }
+        else if (accessToken && refreshToken && type === 'signup') {
+          // Handle email confirmation for payment-created accounts
+          const { data, error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken
+          });
+
+          if (error) {
+            console.error('❌ Failed to set session from email confirmation:', error);
+            navigate('/login?error=invalid_confirmation');
+            return;
+          }
+          window.history.replaceState({}, document.title, '/complete-registration');
+        }
         else if (token && type === 'invite') {
           const { data, error } = await supabase.auth.verifyOtp({
             token_hash: tokenHash || token,
@@ -96,6 +110,34 @@ export default function CompleteRegistration() {
           if (error) {
             console.error('❌ Failed to verify invitation token:', error.message, error);
             navigate('/login?error=invalid_invitation_token');
+            return;
+          }
+          window.history.replaceState({}, document.title, '/complete-registration');
+        }
+        else if (token && type === 'signup') {
+          // Handle email confirmation tokens for payment users
+          const { data, error } = await supabase.auth.verifyOtp({
+            token_hash: tokenHash || token,
+            type: 'email'
+          });
+
+          if (error) {
+            console.error('❌ Failed to verify email confirmation token:', error.message, error);
+            navigate('/login?error=invalid_confirmation_token');
+            return;
+          }
+          window.history.replaceState({}, document.title, '/complete-registration');
+        }
+        else if (token && type === 'recovery') {
+          // Handle password reset tokens for payment users
+          const { data, error } = await supabase.auth.verifyOtp({
+            token_hash: tokenHash || token,
+            type: 'recovery'
+          });
+
+          if (error) {
+            console.error('❌ Failed to verify password reset token:', error.message, error);
+            navigate('/login?error=invalid_reset_token');
             return;
           }
           window.history.replaceState({}, document.title, '/complete-registration');
@@ -115,12 +157,28 @@ export default function CompleteRegistration() {
 
         // Check if user was created from payment
         const createdFromPayment = userMeta?.created_from_payment === true;
+        const needsPasswordSetup = userMeta?.needs_password_setup === true;
 
-        if (createdFromPayment && userMeta?.full_name) {
+        // Detect if this is a password reset flow
+        // This can happen when users click password reset email and get auto-logged in
+        const isPasswordResetFlow = type === 'recovery' ||
+          (currentUrl.searchParams.has('access_token') && currentUrl.searchParams.has('refresh_token')) ||
+          (hashParams.has('access_token') && hashParams.has('refresh_token'));
+
+        // Allow password setup for:
+        // 1. Payment users with metadata
+        // 2. Any user who explicitly needs password setup
+        // 3. Users who came via password reset flow
+        const shouldAllowPasswordSetup =
+          (createdFromPayment && userMeta?.full_name) ||
+          needsPasswordSetup ||
+          isPasswordResetFlow;
+
+        if (shouldAllowPasswordSetup) {
           setUserInfo({
-            name: userMeta.full_name,
+            name: userMeta?.full_name || user.email?.split('@')[0] || 'Usuário',
             email: user.email,
-            planDescription: userMeta.plan_description || 'EVIDENS Premium'
+            planDescription: userMeta?.plan_description || userMeta?.plan_name || 'EVIDENS Premium'
           });
         } else {
           navigate('/?welcome=true');
@@ -231,8 +289,13 @@ export default function CompleteRegistration() {
       }
 
       // Success - account is ready
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      const isPaymentUser = currentUser?.user_metadata?.created_from_payment;
+
       toast.success('Senha criada com sucesso!');
-      toast.success('Sua conta premium está ativa!');
+      if (isPaymentUser) {
+        toast.success('Sua conta premium está ativa!');
+      }
 
       // Force logout to ensure user logs in again with fresh session data
       setTimeout(async () => {
@@ -240,7 +303,11 @@ export default function CompleteRegistration() {
           // Sign out the user to force a fresh login
           await supabase.auth.signOut();
 
-          toast.success('Faça login novamente para acessar sua conta premium!');
+          if (isPaymentUser) {
+            toast.success('Faça login novamente para acessar sua conta premium!');
+          } else {
+            toast.success('Senha atualizada! Faça login com sua nova senha.');
+          }
 
           // Redirect to login page for proper authentication
           navigate('/login?message=created_account');

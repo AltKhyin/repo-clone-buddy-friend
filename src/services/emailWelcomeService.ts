@@ -50,6 +50,7 @@ export async function sendPaymentAccountWelcomeEmail(
     // Generate password setup link if required
     let setupLink: string | undefined;
     if (options.includePasswordSetup) {
+      // Since payment users are now auto-confirmed, resetPasswordForEmail should work
       const linkResult = await generatePasswordSetupLink(user.email || paymentData.customerEmail);
       if (!linkResult.success) {
         console.error('Failed to generate password setup link:', linkResult.error);
@@ -125,7 +126,7 @@ async function generatePasswordSetupLink(email: string): Promise<PasswordSetupLi
     // Use Supabase auth to generate password reset link
     // This serves as our "password setup" link for new accounts
     const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/completar-perfil?setup=true`
+      redirectTo: `${window.location.origin}/complete-registration`
     });
 
     if (error) {
