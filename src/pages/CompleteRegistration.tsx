@@ -391,7 +391,7 @@ export default function CompleteRegistration() {
               Olá, {userInfo.name}
             </p>
             <p className="text-black/60 text-sm">
-              Sua assinatura {userInfo.planDescription} está ativa!
+              Sua assinatura Reviews está ativa!
             </p>
           </div>
 

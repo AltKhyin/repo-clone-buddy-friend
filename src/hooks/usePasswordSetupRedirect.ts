@@ -24,8 +24,18 @@ export function usePasswordSetupRedirect() {
       '/login',
       '/registrar'
     ];
-    
+
     if (passwordSetupPaths.some(path => location.pathname.startsWith(path))) {
+      return;
+    }
+
+    // Don't redirect if user is in password recovery flow (has recovery token in URL)
+    const urlParams = new URLSearchParams(window.location.search);
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    const hasRecoveryToken = urlParams.get('type') === 'recovery' || hashParams.get('type') === 'recovery';
+
+    if (hasRecoveryToken) {
+      console.log('🔐 User in password recovery flow, skipping redirect');
       return;
     }
 
