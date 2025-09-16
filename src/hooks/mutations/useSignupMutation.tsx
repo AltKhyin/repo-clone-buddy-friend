@@ -7,10 +7,7 @@ import { z } from 'zod';
 export const signupSchema = z.object({
   fullName: z.string().min(3, { message: 'Nome completo é obrigatório.' }),
   email: z.string().email({ message: 'Email inválido.' }),
-  password: z.string()
-    .min(8, { message: 'Mínimo 8 caracteres.' })
-    .regex(/[a-zA-Z]/, { message: 'Deve conter pelo menos uma letra.' })
-    .regex(/[0-9]/, { message: 'Deve conter pelo menos um número.' }),
+  password: z.string().min(1, { message: 'Senha é obrigatória.' }),
   confirmPassword: z.string().min(1, { message: 'Confirmação de senha é obrigatória.' }),
   birthday: z.string().min(1, { message: 'Data de nascimento é obrigatória.' }),
   phone: z.string().min(1, { message: 'Número de telefone é obrigatório.' }), // Mandatory phone field for Brazilian users

@@ -16,8 +16,8 @@ import { AuthFormContainer } from '@/components/auth/AuthFormContainer';
 
 // Simple password schema
 const passwordSchema = z.object({
-  password: z.string().min(8, 'Senha deve ter pelo menos 8 caracteres'),
-  confirmPassword: z.string().min(8, 'Confirmação de senha obrigatória'),
+  password: z.string().min(1, 'Senha é obrigatória'),
+  confirmPassword: z.string().min(1, 'Confirmação de senha obrigatória'),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "As senhas não coincidem",
   path: ["confirmPassword"],

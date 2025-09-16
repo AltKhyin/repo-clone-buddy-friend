@@ -11,11 +11,7 @@ export const resetRequestSchema = z.object({
 
 // Schema for password reset confirmation
 export const resetConfirmSchema = z.object({
-  password: z.string()
-    .min(8, { message: 'Senha deve ter pelo menos 8 caracteres.' })
-    .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, { 
-      message: 'Senha deve conter ao menos uma letra minúscula, uma maiúscula e um número.' 
-    }),
+  password: z.string().min(1, { message: 'Senha é obrigatória.' }),
   confirmPassword: z.string(),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Senhas não coincidem",
