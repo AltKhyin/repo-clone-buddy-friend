@@ -423,12 +423,44 @@ const PaymentV2Form = ({
         attempts++;
 
         // Check payment_webhooks table for confirmation
-        const { data, error } = await supabase
+        // If paymentId is an order ID (or_*), look for the corresponding charge ID
+        let { data, error } = await supabase
           .from('payment_webhooks')
           .select('*')
           .eq('payment_id', paymentId)
           .eq('status', 'paid')
-          .single();
+          .maybeSingle();
+
+        // If not found and this is an order ID, look for the charge ID from the same transaction
+        if (!data && !error && paymentId.startsWith('or_')) {
+          // Get customer_id from the order record
+          const { data: orderData } = await supabase
+            .from('payment_webhooks')
+            .select('customer_id, created_at')
+            .eq('payment_id', paymentId)
+            .single();
+
+          if (orderData?.customer_id) {
+            // Look for charge with same customer and timestamp within 1 minute
+            const timeWindow = new Date(orderData.created_at);
+            timeWindow.setMinutes(timeWindow.getMinutes() + 1);
+
+            const result = await supabase
+              .from('payment_webhooks')
+              .select('*')
+              .eq('customer_id', orderData.customer_id)
+              .eq('status', 'paid')
+              .like('payment_id', 'ch_%')
+              .gte('created_at', orderData.created_at)
+              .lte('created_at', timeWindow.toISOString())
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .maybeSingle();
+
+            data = result.data;
+            error = result.error;
+          }
+        }
 
         if (!error && data) {
           // Payment confirmed!
@@ -454,13 +486,41 @@ const PaymentV2Form = ({
           return;
         }
 
-        // Check for failed payment
-        const { data: failedData } = await supabase
+        // Check for failed payment with same order-to-charge mapping logic
+        let { data: failedData } = await supabase
           .from('payment_webhooks')
           .select('*')
           .eq('payment_id', paymentId)
           .eq('status', 'failed')
-          .single();
+          .maybeSingle();
+
+        // If not found and this is an order ID, look for failed charge in same transaction
+        if (!failedData && paymentId.startsWith('or_')) {
+          const { data: orderData } = await supabase
+            .from('payment_webhooks')
+            .select('customer_id, created_at')
+            .eq('payment_id', paymentId)
+            .single();
+
+          if (orderData?.customer_id) {
+            const timeWindow = new Date(orderData.created_at);
+            timeWindow.setMinutes(timeWindow.getMinutes() + 1);
+
+            const result = await supabase
+              .from('payment_webhooks')
+              .select('*')
+              .eq('customer_id', orderData.customer_id)
+              .eq('status', 'failed')
+              .like('payment_id', 'ch_%')
+              .gte('created_at', orderData.created_at)
+              .lte('created_at', timeWindow.toISOString())
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .maybeSingle();
+
+            failedData = result.data;
+          }
+        }
 
         if (failedData) {
           setIsProcessing(false);
