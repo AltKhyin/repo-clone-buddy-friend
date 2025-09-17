@@ -256,6 +256,32 @@ const PaymentV2Form = ({
     }
   }, [currentView, paymentResult, clearPaymentState]);
 
+
+  const form = useForm<PaymentV2FormData>({
+    resolver: zodResolver(paymentV2Schema),
+    defaultValues: {
+      customerName: '',
+      customerEmail: '',
+      customerEmailConfirm: '',
+      customerDocument: '',
+      customerPhone: '',
+      cardNumber: '',
+      cardHolderName: '',
+      cardExpirationDate: '',
+      cardCvv: '',
+      installments: '1',
+      billingStreet: '',
+      billingZipCode: '',
+      billingCity: '',
+      billingState: '',
+    },
+  });
+
+  // Sync payment method selection with plan selector
+  React.useEffect(() => {
+    planSelector.selectPaymentMethod(selectedMethod);
+  }, [selectedMethod, planSelector.selectPaymentMethod]);
+
   // 🎯 URL Parameter Auto-Fill - Safe implementation with conflict prevention
   useEffect(() => {
     // SAFETY: Only run after payment state is fully restored
@@ -321,31 +347,6 @@ const PaymentV2Form = ({
       });
     }
   }, [isRestored, currentStep, currentView, form]); // Safe dependencies
-
-  const form = useForm<PaymentV2FormData>({
-    resolver: zodResolver(paymentV2Schema),
-    defaultValues: {
-      customerName: '',
-      customerEmail: '',
-      customerEmailConfirm: '',
-      customerDocument: '',
-      customerPhone: '',
-      cardNumber: '',
-      cardHolderName: '',
-      cardExpirationDate: '',
-      cardCvv: '',
-      installments: '1',
-      billingStreet: '',
-      billingZipCode: '',
-      billingCity: '',
-      billingState: '',
-    },
-  });
-
-  // Sync payment method selection with plan selector
-  React.useEffect(() => {
-    planSelector.selectPaymentMethod(selectedMethod);
-  }, [selectedMethod, planSelector.selectPaymentMethod]);
 
   // Get dynamic pricing from selected plan (moved before webhook callbacks)
   const selectedInstallments = planSelector.state.selectedInstallments;
