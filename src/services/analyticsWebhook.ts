@@ -208,6 +208,13 @@ export function buildPaymentSuccessWebhookPayload({
 
   // Marketing data
   customParameter?: string;
+  utmSource?: string;
+  utmMedium?: string;
+  utmCampaign?: string;
+  utmTerm?: string;
+  utmContent?: string;
+  referrer?: string;
+  landingPage?: string;
 
   // Technical data
   userAgent?: string;
@@ -279,18 +286,14 @@ export function buildPaymentSuccessWebhookPayload({
 
     marketing: {
       custom_parameter: customParameter,
-      landing_page: window.location.href,
-      referrer: document.referrer || undefined,
-      // UTM parameters would be parsed from URL if available
-      ...(new URLSearchParams(window.location.search).get('utm_source') && {
-        source: new URLSearchParams(window.location.search).get('utm_source')!,
-      }),
-      ...(new URLSearchParams(window.location.search).get('utm_medium') && {
-        medium: new URLSearchParams(window.location.search).get('utm_medium')!,
-      }),
-      ...(new URLSearchParams(window.location.search).get('utm_campaign') && {
-        campaign: new URLSearchParams(window.location.search).get('utm_campaign')!,
-      }),
+      landing_page: landingPage || (typeof window !== 'undefined' ? window.location.href : undefined),
+      referrer: referrer || (typeof document !== 'undefined' ? document.referrer : undefined) || undefined,
+      // UTM parameters from passed values or URL fallback
+      source: utmSource || (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('utm_source')) || undefined,
+      medium: utmMedium || (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('utm_medium')) || undefined,
+      campaign: utmCampaign || (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('utm_campaign')) || undefined,
+      term: utmTerm || (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('utm_term')) || undefined,
+      content: utmContent || (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('utm_content')) || undefined,
     },
 
     technical: {

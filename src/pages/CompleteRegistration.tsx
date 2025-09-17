@@ -249,43 +249,46 @@ export default function CompleteRegistration() {
           toast.error('Atenção: Erro ao ativar assinatura premium. Entre em contato com o suporte.');
         } else {
 
-          // Fire Make.com webhook for successful premium account creation
-          try {
-            const webhookPayload = {
-              event: {
-                type: 'premium_account_activated',
-                timestamp: new Date().toISOString(),
-                source: 'complete_registration'
-              },
-              customer: {
-                name: user.user_metadata.full_name,
-                email: user.email,
-                user_id: user.id
-              },
-              subscription: {
-                tier: 'premium',
-                starts_at: subscriptionStartsAt,
-                ends_at: subscriptionEndsAt,
-                payment_order_id: user.user_metadata.payment_order_id,
-                payment_amount: user.user_metadata.payment_amount
-              }
-            };
+          // NOTE: premium_account_activated webhook disabled per user request
+          // Only payment_success events should be sent via the payment form
+          //
+          // // Fire Make.com webhook for successful premium account creation
+          // try {
+          //   const webhookPayload = {
+          //     event: {
+          //       type: 'premium_account_activated',
+          //       timestamp: new Date().toISOString(),
+          //       source: 'complete_registration'
+          //     },
+          //     customer: {
+          //       name: user.user_metadata.full_name,
+          //       email: user.email,
+          //       user_id: user.id
+          //     },
+          //     subscription: {
+          //       tier: 'premium',
+          //       starts_at: subscriptionStartsAt,
+          //       ends_at: subscriptionEndsAt,
+          //       payment_order_id: user.user_metadata.payment_order_id,
+          //       payment_amount: user.user_metadata.payment_amount
+          //     }
+          //   };
 
-            const webhookResponse = await fetch('https://hook.us2.make.com/qjdetduht1g375p7l556yrrutbi3j6cv', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify(webhookPayload),
-            });
+          //   const webhookResponse = await fetch('https://hook.us2.make.com/qjdetduht1g375p7l556yrrutbi3j6cv', {
+          //     method: 'POST',
+          //     headers: {
+          //       'Content-Type': 'application/json',
+          //     },
+          //     body: JSON.stringify(webhookPayload),
+          //   });
 
-            if (!webhookResponse.ok) {
-              console.warn('⚠️ Make.com webhook failed:', webhookResponse.status);
-            }
-          } catch (webhookError) {
-            console.warn('⚠️ Make.com webhook error:', webhookError);
-            // Don't fail the user flow for webhook errors
-          }
+          //   if (!webhookResponse.ok) {
+          //     console.warn('⚠️ Make.com webhook failed:', webhookResponse.status);
+          //   }
+          // } catch (webhookError) {
+          //   console.warn('⚠️ Make.com webhook error:', webhookError);
+          //   // Don't fail the user flow for webhook errors
+          // }
         }
       }
 

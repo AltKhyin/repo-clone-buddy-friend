@@ -30,7 +30,8 @@ import { PaymentResultV2, type PaymentResultV2Data } from './PaymentResultV2';
 import { PaymentProcessingV2 } from './PaymentProcessingV2';
 import { PaymentSuccessV2 } from './PaymentSuccessV2';
 import { usePaymentStateProtection } from '@/hooks/usePaymentStateProtection';
-// Analytics moved to server-side webhook processing
+import { sendAnalyticsWebhook, buildPaymentSuccessWebhookPayload } from '@/services/analyticsWebhook';
+// Analytics: Added back client-side for payment_success events
 
 // Step 1: Customer Data Collection
 const step1Schema = z.object({
@@ -465,6 +466,52 @@ const PaymentV2Form = ({
         if (!error && data) {
           // Payment confirmed!
           setIsProcessing(false);
+
+          // Send payment_success analytics webhook
+          try {
+            // Capture all URL parameters and buyer information
+            const urlParams = new URLSearchParams(window.location.search);
+
+            const analyticsPayload = buildPaymentSuccessWebhookPayload({
+              // Customer data
+              customerName: formValues.customerName,
+              customerEmail: formValues.customerEmail,
+              customerDocument: formValues.customerDocument,
+              customerPhone: formValues.customerPhone,
+
+              // Transaction data
+              transactionId: paymentId,
+              transactionCode: data.payment_id || paymentId, // Use charge ID if available
+              paymentMethod: (data.payment_method || selectedMethod) as 'credit_card' | 'pix',
+              baseAmount: planSelector.selectedPlan?.original_amount || finalAmount,
+              finalAmount: data.amount || finalAmount,
+
+              // Plan data
+              planId: planSelector.selectedPlan?.id || '',
+              planName: planSelector.selectedPlan?.name || 'Reviews Premium',
+              planType: 'premium',
+              durationDays: planSelector.selectedPlan?.duration_days || 365,
+
+              // Marketing data - capture ALL URL parameters as requested
+              customParameter: urlParams.get('plano') || undefined,
+              utmSource: urlParams.get('utm_source') || undefined,
+              utmMedium: urlParams.get('utm_medium') || undefined,
+              utmCampaign: urlParams.get('utm_campaign') || undefined,
+              utmTerm: urlParams.get('utm_term') || undefined,
+              utmContent: urlParams.get('utm_content') || undefined,
+              referrer: document.referrer || undefined,
+              landingPage: window.location.href,
+
+              // Technical data
+              userAgent: navigator.userAgent,
+            });
+
+            await sendAnalyticsWebhook(analyticsPayload);
+            console.log('✅ Analytics webhook sent successfully');
+          } catch (analyticsError) {
+            console.error('❌ Failed to send analytics webhook:', analyticsError);
+            // Don't fail the payment process if analytics fails
+          }
 
           await handlePaymentSuccess({
             transactionId: paymentId,
