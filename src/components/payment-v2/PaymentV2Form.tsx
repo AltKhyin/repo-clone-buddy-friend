@@ -439,6 +439,8 @@ const PaymentV2Form = ({
             .from('payment_webhooks')
             .select('customer_id, created_at')
             .eq('payment_id', paymentId)
+            .order('created_at', { ascending: false })
+            .limit(1)
             .single();
 
           if (orderData?.customer_id) {
@@ -564,6 +566,8 @@ const PaymentV2Form = ({
             .from('payment_webhooks')
             .select('customer_id, created_at')
             .eq('payment_id', paymentId)
+            .order('created_at', { ascending: false })
+            .limit(1)
             .single();
 
           if (orderData?.customer_id) {
