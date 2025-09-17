@@ -468,9 +468,18 @@ const PaymentV2Form = ({
           setIsProcessing(false);
 
           // Send payment_success analytics webhook
+          console.group('💳 PAYMENT SUCCESS - ANALYTICS WEBHOOK TRIGGER');
+          console.log('🎯 Payment confirmed, preparing analytics webhook...');
+          console.log('📦 Payment data received:', data);
+          console.log('📋 Form values:', formValues);
+          console.log('🎯 Plan selector data:', planSelector.selectedPlan);
+
           try {
             // Capture all URL parameters and buyer information
             const urlParams = new URLSearchParams(window.location.search);
+            console.log('🌐 Current URL:', window.location.href);
+            console.log('🔍 URL parameters:', Object.fromEntries(urlParams.entries()));
+            console.log('👀 Document referrer:', document.referrer);
 
             const analyticsPayload = buildPaymentSuccessWebhookPayload({
               // Customer data
@@ -506,11 +515,19 @@ const PaymentV2Form = ({
               userAgent: navigator.userAgent,
             });
 
+            console.log('📝 Analytics payload prepared, sending to make.com...');
             await sendAnalyticsWebhook(analyticsPayload);
-            console.log('✅ Analytics webhook sent successfully');
+            console.log('✅ Payment form: Analytics webhook completed successfully');
           } catch (analyticsError) {
-            console.error('❌ Failed to send analytics webhook:', analyticsError);
+            console.error('💥 Payment form: Analytics webhook failed:', analyticsError);
+            console.error('📋 Error details:', {
+              name: analyticsError.name,
+              message: analyticsError.message,
+              stack: analyticsError.stack
+            });
             // Don't fail the payment process if analytics fails
+          } finally {
+            console.groupEnd();
           }
 
           await handlePaymentSuccess({
@@ -954,6 +971,7 @@ const PaymentV2Form = ({
                   <FormItem className="space-y-0">
                     <FormControl>
                       <Input
+                        id="nome"
                         placeholder="Nome completo"
                         {...field}
                         className="bg-white border-gray-300 focus:border-black focus:ring-0 text-black placeholder:text-gray-500"
@@ -971,6 +989,7 @@ const PaymentV2Form = ({
                   <FormItem className="space-y-0">
                     <FormControl>
                       <Input
+                        id="email"
                         type="email"
                         placeholder="Email"
                         {...field}
@@ -1041,6 +1060,7 @@ const PaymentV2Form = ({
                   <FormItem className="space-y-0">
                     <FormControl>
                       <PhoneInput
+                        id="telefone"
                         {...field}
                         className="bg-white border-gray-300 focus:border-black focus:ring-0 text-black placeholder:text-gray-500"
                       />
