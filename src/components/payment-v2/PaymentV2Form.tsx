@@ -256,6 +256,72 @@ const PaymentV2Form = ({
     }
   }, [currentView, paymentResult, clearPaymentState]);
 
+  // 🎯 URL Parameter Auto-Fill - Safe implementation with conflict prevention
+  useEffect(() => {
+    // SAFETY: Only run after payment state is fully restored
+    if (!isRestored) return;
+
+    // SAFETY: Don't auto-fill if user already has form data (from restoration or manual input)
+    const hasExistingData = form.getValues('customerEmail') ||
+                           form.getValues('customerName') ||
+                           form.getValues('customerPhone');
+
+    if (hasExistingData) {
+      console.log('⚠️ Skipping URL auto-fill - form already has data from restoration or user input');
+      return;
+    }
+
+    // SAFETY: Only auto-fill on first step (customer data collection)
+    if (currentStep !== 0) return;
+
+    // SAFETY: Only auto-fill when in form view (not processing/success states)
+    if (currentView !== 'form') return;
+
+    // Extract URL parameters for auto-filling
+    const urlParams = new URLSearchParams(window.location.search);
+    const emailParam = urlParams.get('email');
+    const nameParam = urlParams.get('name');
+    const phoneParam = urlParams.get('phone');
+    const documentParam = urlParams.get('document');
+
+    // Auto-fill form fields if URL parameters are present
+    let autoFillData: any = {};
+
+    if (emailParam) {
+      const decodedEmail = decodeURIComponent(emailParam);
+      form.setValue('customerEmail', decodedEmail, { shouldValidate: false });
+      form.setValue('customerEmailConfirm', decodedEmail, { shouldValidate: false });
+      autoFillData.email = decodedEmail;
+    }
+
+    if (nameParam) {
+      const decodedName = decodeURIComponent(nameParam);
+      form.setValue('customerName', decodedName, { shouldValidate: false });
+      autoFillData.name = decodedName;
+    }
+
+    if (phoneParam) {
+      // Clean and format phone number
+      const decodedPhone = decodeURIComponent(phoneParam);
+      form.setValue('customerPhone', decodedPhone, { shouldValidate: false });
+      autoFillData.phone = decodedPhone;
+    }
+
+    if (documentParam) {
+      const decodedDocument = decodeURIComponent(documentParam);
+      form.setValue('customerDocument', decodedDocument, { shouldValidate: false });
+      autoFillData.document = decodedDocument;
+    }
+
+    // Log successful auto-fill
+    if (Object.keys(autoFillData).length > 0) {
+      console.log('✅ Form auto-filled from URL parameters:', autoFillData);
+      toast.success('Dados preenchidos automaticamente!', {
+        description: 'Informações capturadas do link de pagamento'
+      });
+    }
+  }, [isRestored, currentStep, currentView, form]); // Safe dependencies
+
   const form = useForm<PaymentV2FormData>({
     resolver: zodResolver(paymentV2Schema),
     defaultValues: {
