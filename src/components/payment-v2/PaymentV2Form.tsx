@@ -300,117 +300,57 @@ const PaymentV2Form = ({
   ) => {
 
     try {
-      // Import account linking service dynamically to avoid SSR issues
-      const { linkPaymentToAccount } = await import('@/services/accountLinkingService');
+      // 🎯 ACCOUNT LINKING DISABLED - Webhook Pagarme handles ALL user creation
+      //
+      // Why disabled:
+      // 1. Webhook Pagarme creates users via supabase.auth.admin.inviteUserByEmail()
+      // 2. Sets premium subscription, metadata, and sends confirmation emails
+      // 3. Frontend account linking caused 429 rate limits and duplicate emails
+      // 4. Webhook is standalone and doesn't depend on any frontend data
+      //
+      // Result: Clean payment flow with no conflicts or duplicate user creation
 
-      // Prepare account linking data
-      const linkingData = {
-        email: customerData.customerEmail,
-        paymentData: {
-          planId: planSelector.selectedPlan?.id || '',
-          amount: paymentData.amount,
-          paymentMethod: paymentData.paymentMethod,
-          transactionId: paymentData.transactionId,
-          paidAt: paymentData.paidAt,
-        },
-        customerData: {
-          name: customerData.customerName,
+      console.log('✅ Payment success detected - Webhook Pagarme will handle user creation');
+      console.log('📧 User will receive confirmation email from Webhook Pagarme');
+      console.log('🎯 Account linking disabled to prevent conflicts');
+
+      // Return success result for frontend confirmation
+      return {
+        success: true,
+        action: 'immediate_link' as const,
+        message: 'Pagamento realizado com sucesso! Verifique seu email para ativar sua conta.',
+        data: {
           email: customerData.customerEmail,
-          document: customerData.customerDocument,
-          phone: customerData.customerPhone,
-        },
-        planData: {
-          id: planSelector.selectedPlan?.id || '',
-          name: planSelector.selectedPlan?.name || '',
-          description: planSelector.selectedPlan?.description,
-          durationDays: planSelector.selectedPlan?.duration_days || 0,
-          finalAmount: planSelector.selectedPlan?.final_amount || 0,
-        },
+          transactionId: paymentData.transactionId,
+          planName: planSelector.selectedPlan?.name || '',
+        }
       };
 
-      // Execute account linking
-      const linkingResult = await linkPaymentToAccount(linkingData);
-
-      if (linkingResult.success) {
-
-        // If registration invite or login prompt, dispatch email
-        if (linkingResult.action === 'registration_invite' || linkingResult.action === 'login_prompt') {
-          await dispatchAccountLinkingEmail(linkingResult, linkingData);
-        }
-
-        return linkingResult;
-      } else {
-        console.error('❌ Account linking failed:', linkingResult.error);
-        toast.warning('Pagamento processado, mas houve um problema na ativação. Entre em contato conosco.');
-        return linkingResult;
-      }
-
     } catch (error) {
-      console.error('💥 Error in account linking:', error);
+      console.error('💥 Error in payment success handling:', error);
       toast.error('Erro ao processar pagamento. Entre em contato conosco.');
       throw error;
     }
   };
 
-  // Dispatch account linking email
+  // 🚫 DISABLED - Email dispatch no longer needed since Webhook Pagarme sends emails
+  /*
   const dispatchAccountLinkingEmail = async (
     linkingResult: any,
     linkingData: any
   ) => {
     try {
-
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) {
         console.warn('⚠️ No session for email dispatch - this is expected for new users, webhook will handle email via Supabase native system');
         return;
       }
-
-      // Prepare email dispatch payload
-      const emailPayload = {
-        type: linkingResult.action as 'login_prompt' | 'registration_invite',
-        recipientEmail: linkingData.email,
-        recipientName: linkingData.customerData.name,
-        token: linkingResult.data?.token || '',
-        linkUrl: linkingResult.action === 'registration_invite'
-          ? linkingResult.data?.registrationUrl || ''
-          : linkingResult.data?.loginUrl || '',
-        expiresAt: linkingResult.data?.expiresAt || '',
-        planData: {
-          name: linkingData.planData.name,
-          description: linkingData.planData.description,
-          finalAmount: linkingData.planData.finalAmount,
-          durationDays: linkingData.planData.durationDays,
-        },
-        customization: {
-          brandName: 'Reviews',
-          brandColor: '#111827',
-          supportEmail: 'suporte@igoreckert.com.br',
-        },
-      };
-
-      // Call email dispatch Edge Function
-      const response = await fetch(`${supabase.supabaseUrl}/functions/v1/email-dispatch-service`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify(emailPayload),
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        toast.success('Email de ativação enviado!');
-      } else {
-        const errorData = await response.json();
-        console.error('❌ Email dispatch failed:', errorData);
-        toast.warning('Não foi possível enviar o email de ativação, mas seu pagamento foi processado.');
-      }
+      // Email dispatch logic removed - Webhook Pagarme handles all emails
     } catch (error) {
       console.error('💥 Email dispatch error:', error);
-      toast.warning('Não foi possível enviar o email de ativação, mas seu pagamento foi processado.');
     }
   };
+  */
 
   // Simple payment status monitoring function
   const startPaymentStatusMonitoring = async (paymentId: string, formValues: PaymentV2FormData) => {

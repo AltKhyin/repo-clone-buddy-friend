@@ -115,8 +115,38 @@ const formatCentsToDecimal = (amountInCents: number): number => {
  * Sends comprehensive analytics data to Make.com webhook for processing
  */
 export async function sendAnalyticsWebhook(payload: AnalyticsWebhookPayload): Promise<void> {
+  const startTime = Date.now();
+
   try {
-    console.log('🔥 Analytics Webhook - Sending payload:', payload);
+    console.group('🚀 MAKE.COM WEBHOOK DEBUG');
+    console.log('📅 Timestamp:', new Date().toISOString());
+    console.log('🌐 Webhook URL:', ANALYTICS_WEBHOOK_URL);
+    console.log('📦 Payload size:', JSON.stringify(payload).length, 'characters');
+    console.log('📋 Full payload:', JSON.stringify(payload, null, 2));
+
+    // Log key customer data for easy identification
+    console.log('🧑‍💼 Customer:', {
+      email: payload.customer?.email,
+      name: payload.customer?.name,
+      transaction_id: payload.transaction?.id
+    });
+
+    // Log marketing attribution data
+    console.log('📊 Marketing data:', {
+      utm_source: payload.marketing?.source,
+      utm_medium: payload.marketing?.medium,
+      utm_campaign: payload.marketing?.campaign,
+      landing_page: payload.marketing?.landing_page,
+      referrer: payload.marketing?.referrer
+    });
+
+    console.log('💰 Transaction:', {
+      amount: payload.transaction?.amounts?.final_amount,
+      method: payload.transaction?.payment_method,
+      currency: payload.transaction?.currency
+    });
+
+    console.log('⏱️ Sending webhook request...');
 
     const response = await fetch(ANALYTICS_WEBHOOK_URL, {
       method: 'POST',
@@ -127,19 +157,52 @@ export async function sendAnalyticsWebhook(payload: AnalyticsWebhookPayload): Pr
       body: JSON.stringify(payload),
     });
 
+    const duration = Date.now() - startTime;
+    console.log('⏱️ Request duration:', duration + 'ms');
+    console.log('📈 Response status:', response.status, response.statusText);
+    console.log('🌐 Response headers:', Object.fromEntries(response.headers.entries()));
+
     if (!response.ok) {
-      throw new Error(`Analytics webhook failed: ${response.status} ${response.statusText}`);
+      const errorText = await response.text();
+      console.error('❌ Response error body:', errorText);
+      throw new Error(`Analytics webhook failed: ${response.status} ${response.statusText} - ${errorText}`);
     }
 
     const responseText = await response.text();
-    console.log('✅ Analytics Webhook - Success:', responseText || 'No response body');
+    console.log('✅ Response body:', responseText || 'Empty response');
+    console.log('🎉 MAKE.COM WEBHOOK SUCCESS!');
+
+    // Summary for quick scanning
+    console.log(`📝 SUMMARY: Sent ${payload.event?.type} for ${payload.customer?.email} (${payload.transaction?.amounts?.final_amount} ${payload.transaction?.currency})`);
 
   } catch (error) {
+    const duration = Date.now() - startTime;
+
+    console.error('💥 MAKE.COM WEBHOOK ERROR DETAILS:');
+    console.error('⏱️ Failed after:', duration + 'ms');
+    console.error('🔴 Error type:', error.constructor.name);
+    console.error('📝 Error message:', error.message);
+    console.error('🔍 Full error:', error);
+
+    // Log network-specific errors
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      console.error('🌐 Network error - possible causes:');
+      console.error('  - CORS policy blocking request');
+      console.error('  - Make.com webhook URL unreachable');
+      console.error('  - Internet connection issues');
+    }
+
+    // Log make.com specific error hints
+    console.error('🔧 Debug hints:');
+    console.error('  - Check make.com webhook is active');
+    console.error('  - Verify webhook URL is correct');
+    console.error('  - Check make.com scenario execution logs');
+
     // Non-blocking error - don't break user experience
-    console.error('❌ Analytics Webhook - Error:', error);
-    
-    // Could also send to error monitoring service here
-    // Sentry.captureException(error, { tags: { source: 'analytics_webhook' } });
+    console.error('⚠️ Continuing with payment process (webhook error is non-blocking)');
+
+  } finally {
+    console.groupEnd();
   }
 }
 
@@ -175,7 +238,14 @@ export function buildPaymentSuccessWebhookPayload({
 
   // Marketing data
   customParameter,
-  
+  utmSource,
+  utmMedium,
+  utmCampaign,
+  utmTerm,
+  utmContent,
+  referrer,
+  landingPage,
+
   // Optional technical data
   userAgent,
   
