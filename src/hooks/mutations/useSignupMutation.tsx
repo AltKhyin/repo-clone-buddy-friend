@@ -9,7 +9,7 @@ export const signupSchema = z.object({
   email: z.string().email({ message: 'Email inválido.' }),
   password: z.string().min(1, { message: 'Senha é obrigatória.' }),
   confirmPassword: z.string().min(1, { message: 'Confirmação de senha é obrigatória.' }),
-  birthday: z.string().min(1, { message: 'Data de nascimento é obrigatória.' }),
+  birthday: z.string().optional(), // Made optional - no longer required
   phone: z.string().min(1, { message: 'Número de telefone é obrigatório.' }), // Mandatory phone field for Brazilian users
   countryCode: z.string().default('+55'), // Default to Brazil
 }).refine((data) => data.password === data.confirmPassword, {
@@ -28,7 +28,7 @@ const signUpUser = async (payload: SignupPayload) => {
     options: {
       data: {
         full_name: payload.fullName,
-        birthday: payload.birthday,
+        birthday: payload.birthday || null, // Handle optional birthday
         phone: payload.phone,
         country_code: payload.countryCode,
       },

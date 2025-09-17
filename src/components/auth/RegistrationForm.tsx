@@ -27,12 +27,12 @@ const RegistrationForm = () => {
   const [userEmail, setUserEmail] = useState('');
   const form = useForm<z.infer<typeof signupSchema>>({
     resolver: zodResolver(signupSchema),
-    defaultValues: { 
-      fullName: '', 
-      email: '', 
-      password: '', 
+    defaultValues: {
+      fullName: '',
+      email: '',
+      password: '',
       confirmPassword: '',
-      birthday: '',
+      birthday: '', // Optional field - can be left empty
       phone: '',
       countryCode: '+55'
     },

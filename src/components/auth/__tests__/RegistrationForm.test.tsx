@@ -50,14 +50,15 @@ describe('RegistrationForm', () => {
 
   it('shows required field validation errors', async () => {
     render(<RegistrationForm />, { wrapper: TestWrapper });
-    
+
     const submitButton = screen.getByRole('button', { name: 'Criar conta' });
     fireEvent.click(submitButton);
-    
+
     await waitFor(() => {
       expect(screen.getByText('Nome completo é obrigatório.')).toBeInTheDocument();
       expect(screen.getByText('Email inválido.')).toBeInTheDocument();
-      expect(screen.getByText('Data de nascimento é obrigatória.')).toBeInTheDocument();
+      // Birthday is now optional, so no longer expecting this error
+      // expect(screen.getByText('Data de nascimento é obrigatória.')).toBeInTheDocument();
     });
   });
 });
