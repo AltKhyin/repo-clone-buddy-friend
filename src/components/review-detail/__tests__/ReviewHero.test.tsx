@@ -22,11 +22,18 @@ const mockReview: ReviewDetail = {
     id: 'author-1',
     full_name: 'John Doe',
     avatar_url: 'https://example.com/avatar.jpg',
+    profession: 'Cardiologist',
   },
   access_level: 'public',
   community_post_id: null,
   view_count: 1250,
+  edicao: null,
   tags: ['test', 'sample'],
+  // Custom author fields
+  custom_author_name: null,
+  custom_author_avatar_url: null,
+  custom_author_description: null,
+  // V3 Content Bridge metadata
   contentFormat: 'v3',
   nodeCount: 10,
   hasPositions: true,
@@ -214,6 +221,180 @@ describe('ReviewHero', () => {
       
       const coverImage = screen.getByAltText(mockReview.title);
       expect(coverImage).toHaveAttribute('loading', 'lazy');
+    });
+  });
+
+  describe('Author Prioritization and Description Fallback', () => {
+    beforeEach(() => {
+      mockUseIsMobile.mockReturnValue(false);
+    });
+
+    describe('Author Name Prioritization', () => {
+      it('should prioritize custom_author_name over author.full_name', () => {
+        const reviewWithCustomName = {
+          ...mockReview,
+          custom_author_name: 'Custom Author Name',
+          author: { ...mockReview.author!, full_name: 'Original Author' }
+        };
+
+        render(<ReviewHero review={reviewWithCustomName} />);
+
+        expect(screen.getByText('Por Custom Author Name')).toBeInTheDocument();
+        expect(screen.queryByText('Por Original Author')).not.toBeInTheDocument();
+      });
+
+      it('should fallback to author.full_name when custom_author_name is null', () => {
+        const reviewWithoutCustomName = {
+          ...mockReview,
+          custom_author_name: null,
+          author: { ...mockReview.author!, full_name: 'Original Author' }
+        };
+
+        render(<ReviewHero review={reviewWithoutCustomName} />);
+
+        expect(screen.getByText('Por Original Author')).toBeInTheDocument();
+      });
+
+      it('should fallback to EVIDENS when both custom_author_name and author.full_name are null', () => {
+        const reviewWithNoAuthor = {
+          ...mockReview,
+          custom_author_name: null,
+          author: null
+        };
+
+        render(<ReviewHero review={reviewWithNoAuthor} />);
+
+        expect(screen.getByText('Por EVIDENS')).toBeInTheDocument();
+      });
+    });
+
+    describe('Author Avatar Prioritization', () => {
+      it('should prioritize custom_author_avatar_url over author.avatar_url', () => {
+        const reviewWithCustomAvatar = {
+          ...mockReview,
+          custom_author_avatar_url: 'https://example.com/custom-avatar.jpg',
+          author: { ...mockReview.author!, avatar_url: 'https://example.com/original-avatar.jpg' }
+        };
+
+        render(<ReviewHero review={reviewWithCustomAvatar} />);
+
+        const avatarImage = screen.getByRole('img');
+        expect(avatarImage).toHaveAttribute('src', 'https://example.com/custom-avatar.jpg');
+      });
+
+      it('should fallback to author.avatar_url when custom_author_avatar_url is null', () => {
+        const reviewWithoutCustomAvatar = {
+          ...mockReview,
+          custom_author_avatar_url: null,
+          author: { ...mockReview.author!, avatar_url: 'https://example.com/original-avatar.jpg' }
+        };
+
+        render(<ReviewHero review={reviewWithoutCustomAvatar} />);
+
+        const avatarImage = screen.getByRole('img');
+        expect(avatarImage).toHaveAttribute('src', 'https://example.com/original-avatar.jpg');
+      });
+
+      it('should show fallback when both avatar URLs are null', () => {
+        const reviewWithNoAvatar = {
+          ...mockReview,
+          custom_author_avatar_url: null,
+          author: { ...mockReview.author!, avatar_url: null }
+        };
+
+        render(<ReviewHero review={reviewWithNoAvatar} />);
+
+        // Should show fallback initials (first letter of author name)
+        expect(screen.getByText('J')).toBeInTheDocument(); // First letter of "John"
+      });
+    });
+
+    describe('Author Description Fallback', () => {
+      it('should display custom_author_description when available', () => {
+        const reviewWithCustomDescription = {
+          ...mockReview,
+          custom_author_description: 'Custom author description text',
+          author: { ...mockReview.author!, profession: 'Original Profession' }
+        };
+
+        render(<ReviewHero review={reviewWithCustomDescription} />);
+
+        expect(screen.getByText('Custom author description text')).toBeInTheDocument();
+        expect(screen.queryByText('Original Profession')).not.toBeInTheDocument();
+      });
+
+      it('should fallback to author.profession when custom_author_description is null', () => {
+        const reviewWithProfession = {
+          ...mockReview,
+          custom_author_description: null,
+          author: { ...mockReview.author!, profession: 'Cardiologist' }
+        };
+
+        render(<ReviewHero review={reviewWithProfession} />);
+
+        expect(screen.getByText('Cardiologist')).toBeInTheDocument();
+      });
+
+      it('should not display description section when both fields are null', () => {
+        const reviewWithNoDescription = {
+          ...mockReview,
+          custom_author_description: null,
+          author: { ...mockReview.author!, profession: null }
+        };
+
+        render(<ReviewHero review={reviewWithNoDescription} />);
+
+        // Description element should not exist
+        const descriptionElements = screen.queryAllByText(/cardiologist|custom/i);
+        expect(descriptionElements).toHaveLength(0);
+      });
+
+      it('should not display description section when author is null', () => {
+        const reviewWithNoAuthor = {
+          ...mockReview,
+          custom_author_description: null,
+          author: null
+        };
+
+        render(<ReviewHero review={reviewWithNoAuthor} />);
+
+        // Only EVIDENS author name should be visible, no description
+        expect(screen.getByText('Por EVIDENS')).toBeInTheDocument();
+        expect(screen.queryByText(/cardiologist|custom/i)).not.toBeInTheDocument();
+      });
+    });
+
+    describe('Mobile Layout Author Features', () => {
+      beforeEach(() => {
+        mockUseIsMobile.mockReturnValue(true);
+      });
+
+      it('should apply author prioritization on mobile layout', () => {
+        const reviewWithCustomFields = {
+          ...mockReview,
+          custom_author_name: 'Mobile Custom Author',
+          custom_author_description: 'Mobile custom description'
+        };
+
+        render(<ReviewHero review={reviewWithCustomFields} />);
+
+        expect(screen.getByText('Por Mobile Custom Author')).toBeInTheDocument();
+        expect(screen.getByText('Mobile custom description')).toBeInTheDocument();
+      });
+
+      it('should show profession fallback on mobile layout', () => {
+        const reviewWithProfession = {
+          ...mockReview,
+          custom_author_name: null,
+          custom_author_description: null,
+          author: { ...mockReview.author!, full_name: 'Mobile Author', profession: 'Mobile Specialist' }
+        };
+
+        render(<ReviewHero review={reviewWithProfession} />);
+
+        expect(screen.getByText('Por Mobile Author')).toBeInTheDocument();
+        expect(screen.getByText('Mobile Specialist')).toBeInTheDocument();
+      });
     });
   });
 });

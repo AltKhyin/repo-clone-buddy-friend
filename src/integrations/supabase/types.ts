@@ -911,6 +911,128 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_webhooks: {
+        Row: {
+          amount: number | null
+          analytics_context: Json | null
+          client_metadata: Json | null
+          created_at: string | null
+          customer_id: string | null
+          event_type: string
+          id: string
+          payment_id: string
+          payment_method: string | null
+          processed_at: string | null
+          status: string
+          webhook_data: Json | null
+        }
+        Insert: {
+          amount?: number | null
+          analytics_context?: Json | null
+          client_metadata?: Json | null
+          created_at?: string | null
+          customer_id?: string | null
+          event_type: string
+          id?: string
+          payment_id: string
+          payment_method?: string | null
+          processed_at?: string | null
+          status: string
+          webhook_data?: Json | null
+        }
+        Update: {
+          amount?: number | null
+          analytics_context?: Json | null
+          client_metadata?: Json | null
+          created_at?: string | null
+          customer_id?: string | null
+          event_type?: string
+          id?: string
+          payment_id?: string
+          payment_method?: string | null
+          processed_at?: string | null
+          status?: string
+          webhook_data?: Json | null
+        }
+        Relationships: []
+      }
+      PaymentPlans: {
+        Row: {
+          amount: number
+          billing_interval: string | null
+          billing_interval_count: number | null
+          billing_type: string | null
+          created_at: string | null
+          created_by: string | null
+          days: number
+          description: string | null
+          display_config: Json | null
+          id: string
+          is_active: boolean | null
+          last_used_at: string | null
+          metadata: Json | null
+          name: string
+          pagarme_plan_id: string | null
+          promotional_config: Json | null
+          slug: string | null
+          type: string
+          updated_at: string | null
+          usage_count: number | null
+        }
+        Insert: {
+          amount: number
+          billing_interval?: string | null
+          billing_interval_count?: number | null
+          billing_type?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          days: number
+          description?: string | null
+          display_config?: Json | null
+          id?: string
+          is_active?: boolean | null
+          last_used_at?: string | null
+          metadata?: Json | null
+          name: string
+          pagarme_plan_id?: string | null
+          promotional_config?: Json | null
+          slug?: string | null
+          type: string
+          updated_at?: string | null
+          usage_count?: number | null
+        }
+        Update: {
+          amount?: number
+          billing_interval?: string | null
+          billing_interval_count?: number | null
+          billing_type?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          days?: number
+          description?: string | null
+          display_config?: Json | null
+          id?: string
+          is_active?: boolean | null
+          last_used_at?: string | null
+          metadata?: Json | null
+          name?: string
+          pagarme_plan_id?: string | null
+          promotional_config?: Json | null
+          slug?: string | null
+          type?: string
+          updated_at?: string | null
+          usage_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "PaymentPlans_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "Practitioners"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       paymentplansv2: {
         Row: {
           base_amount: number
@@ -1359,6 +1481,7 @@ export type Database = {
           cover_image_url: string | null
           created_at: string
           custom_author_avatar_url: string | null
+          custom_author_description: string | null
           custom_author_name: string | null
           description: string | null
           edicao: string | null
@@ -1388,6 +1511,7 @@ export type Database = {
           cover_image_url?: string | null
           created_at?: string
           custom_author_avatar_url?: string | null
+          custom_author_description?: string | null
           custom_author_name?: string | null
           description?: string | null
           edicao?: string | null
@@ -1417,6 +1541,7 @@ export type Database = {
           cover_image_url?: string | null
           created_at?: string
           custom_author_avatar_url?: string | null
+          custom_author_description?: string | null
           custom_author_name?: string | null
           description?: string | null
           edicao?: string | null

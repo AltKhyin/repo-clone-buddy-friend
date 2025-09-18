@@ -91,10 +91,14 @@ interface ReviewDetailResponse {
   cover_image_url: string | null;
   structured_content: any;
   published_at: string;
+  custom_author_name: string | null;
+  custom_author_avatar_url: string | null;
+  custom_author_description: string | null;
   author: {
     id: string;
     full_name: string | null;
     avatar_url: string | null;
+    profession: string | null;
   } | null;
   access_level: string;
   community_post_id: number | null;
@@ -192,10 +196,14 @@ serve(async req => {
           edicao,
           author_id,
           status,
+          custom_author_name,
+          custom_author_avatar_url,
+          custom_author_description,
           author:Practitioners!Reviews_author_id_fkey(
             id,
             full_name,
-            avatar_url
+            avatar_url,
+            profession
           )
         `
         )
@@ -235,10 +243,14 @@ serve(async req => {
           edicao,
           author_id,
           status,
+          custom_author_name,
+          custom_author_avatar_url,
+          custom_author_description,
           author:Practitioners!Reviews_author_id_fkey(
             id,
             full_name,
-            avatar_url
+            avatar_url,
+            profession
           )
         `
         )
@@ -283,10 +295,14 @@ serve(async req => {
           edicao,
           author_id,
           status,
+          custom_author_name,
+          custom_author_avatar_url,
+          custom_author_description,
           author:Practitioners!Reviews_author_id_fkey(
             id,
             full_name,
-            avatar_url
+            avatar_url,
+            profession
           )
         `
         )

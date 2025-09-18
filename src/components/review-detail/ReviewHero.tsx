@@ -15,13 +15,17 @@ interface ReviewHeroProps {
 const ReviewHero: React.FC<ReviewHeroProps> = ({ review }) => {
   const isMobile = useIsMobile();
 
-  // Author fallback logic
+  // Author fallback logic with custom fields priority
   const getAuthorName = () => {
-    return review.author?.full_name || 'EVIDENS';
+    return review.custom_author_name || review.author?.full_name || 'EVIDENS';
   };
 
   const getAuthorAvatar = () => {
-    return review.author?.avatar_url || null;
+    return review.custom_author_avatar_url || review.author?.avatar_url || null;
+  };
+
+  const getAuthorDescription = () => {
+    return review.custom_author_description || review.author?.profession || null;
   };
 
   // Format date with Portuguese month names (full format for article style)
@@ -71,6 +75,11 @@ const ReviewHero: React.FC<ReviewHeroProps> = ({ review }) => {
               <div className="text-sm font-semibold text-foreground">
                 Por {getAuthorName()}
               </div>
+              {getAuthorDescription() && (
+                <div className="text-xs text-muted-foreground">
+                  {getAuthorDescription()}
+                </div>
+              )}
               <div className="flex justify-center items-center gap-3 text-xs text-muted-foreground">
                 <span>{formatDate(review.published_at)}</span>
                 <span>•</span>
@@ -128,6 +137,11 @@ const ReviewHero: React.FC<ReviewHeroProps> = ({ review }) => {
               <div className="text-base font-semibold text-foreground">
                 Por {getAuthorName()}
               </div>
+              {getAuthorDescription() && (
+                <div className="text-sm text-muted-foreground">
+                  {getAuthorDescription()}
+                </div>
+              )}
               <div className="flex justify-center items-center gap-4 text-sm text-muted-foreground">
                 <span>{formatDate(review.published_at)}</span>
                 <span>•</span>

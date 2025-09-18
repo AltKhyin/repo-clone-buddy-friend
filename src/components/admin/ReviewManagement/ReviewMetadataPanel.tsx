@@ -45,6 +45,7 @@ export const ReviewMetadataPanel: React.FC<ReviewMetadataPanelProps> = ({ review
     reading_time_minutes: review.reading_time_minutes?.toString() || '',
     custom_author_name: review.custom_author_name || '',
     custom_author_avatar_url: review.custom_author_avatar_url || '',
+    custom_author_description: review.custom_author_description || '',
   });
 
   const [validationErrors, setValidationErrors] = useState<{ [key: string]: string }>({});
@@ -247,6 +248,20 @@ export const ReviewMetadataPanel: React.FC<ReviewMetadataPanelProps> = ({ review
               value={formData.custom_author_name}
               onChange={e => handleInputChange('custom_author_name', e.target.value)}
               placeholder="Leave empty to use review creator"
+            />
+          </div>
+
+          {/* Custom Author Description */}
+          <div className="space-y-3">
+            <Label htmlFor="custom_author_description" className="text-sm font-medium text-foreground">
+              Custom Author Description
+            </Label>
+            <Textarea
+              id="custom_author_description"
+              value={formData.custom_author_description}
+              onChange={e => handleInputChange('custom_author_description', e.target.value)}
+              placeholder="Leave empty to use author's profession"
+              rows={3}
             />
           </div>
 

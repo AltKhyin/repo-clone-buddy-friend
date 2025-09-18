@@ -8,6 +8,7 @@ export interface ReviewAuthor {
   id: string;
   full_name: string | null;
   avatar_url: string | null;
+  profession: string | null;
 }
 
 export interface ReviewDetail {
@@ -23,6 +24,10 @@ export interface ReviewDetail {
   view_count: number | null;
   edicao: string | null;
   tags: string[];
+  // Custom author fields
+  custom_author_name: string | null;
+  custom_author_avatar_url: string | null;
+  custom_author_description: string | null;
   // V3 Content Bridge metadata
   contentFormat: 'v3' | 'v2' | 'legacy' | 'unknown';
   nodeCount?: number;

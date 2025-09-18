@@ -22,12 +22,14 @@ interface Review {
   reading_time_minutes?: number | null;
   custom_author_name?: string | null;
   custom_author_avatar_url?: string | null;
+  custom_author_description?: string | null;
   edicao?: string | null;
   // Author and content type data
   author?: {
     id: string;
     full_name: string;
     avatar_url?: string | null;
+    profession?: string | null;
   } | null;
   content_types?: {
     id: number;
@@ -129,8 +131,8 @@ serve(async (req: Request) => {
         .select(
           `
         id, title, description, cover_image_url, published_at, view_count,
-        reading_time_minutes, custom_author_name, custom_author_avatar_url, edicao,
-        author:Practitioners!Reviews_author_id_fkey(id, full_name, avatar_url),
+        reading_time_minutes, custom_author_name, custom_author_avatar_url, custom_author_description, edicao,
+        author:Practitioners!Reviews_author_id_fkey(id, full_name, avatar_url, profession),
         content_types:ReviewContentTypes(
           content_type:ContentTypes(id, label, text_color, border_color, background_color)
         )
@@ -146,8 +148,8 @@ serve(async (req: Request) => {
         .select(
           `
         id, title, description, cover_image_url, published_at, view_count,
-        reading_time_minutes, custom_author_name, custom_author_avatar_url, edicao,
-        author:Practitioners!Reviews_author_id_fkey(id, full_name, avatar_url),
+        reading_time_minutes, custom_author_name, custom_author_avatar_url, custom_author_description, edicao,
+        author:Practitioners!Reviews_author_id_fkey(id, full_name, avatar_url, profession),
         content_types:ReviewContentTypes(
           content_type:ContentTypes(id, label, text_color, border_color, background_color)
         )
@@ -188,15 +190,15 @@ serve(async (req: Request) => {
     // --- Featured Review Logic: Manual vs Automatic Selection ---
     let featuredReview: Review | null = null;
     const featuredReviewId = getResultData(featuredReviewIdResult, null)?.value;
-    
+
     if (featuredReviewId && featuredReviewId !== 'null' && featuredReviewId !== null) {
       // Manual selection: try to fetch the specific review
       const { data: manualFeaturedReview } = await supabase
         .from('Reviews')
         .select(`
           id, title, description, cover_image_url, published_at, view_count,
-          reading_time_minutes, custom_author_name, custom_author_avatar_url, edicao,
-          author:Practitioners!Reviews_author_id_fkey(id, full_name, avatar_url),
+          reading_time_minutes, custom_author_name, custom_author_avatar_url, custom_author_description, edicao,
+          author:Practitioners!Reviews_author_id_fkey(id, full_name, avatar_url, profession),
           content_types:ReviewContentTypes(
             content_type:ContentTypes(id, label, text_color, border_color, background_color)
           )
@@ -204,20 +206,20 @@ serve(async (req: Request) => {
         .eq('id', featuredReviewId)
         .eq('status', 'published')
         .maybeSingle();
-      
+
       if (manualFeaturedReview) {
         featuredReview = transformSingleReview(manualFeaturedReview);
       }
     }
-    
+
     // Fallback: if no manual selection or manual selection failed, use most recent
     if (!featuredReview) {
       const { data: autoFeaturedReview } = await supabase
         .from('Reviews')
         .select(`
           id, title, description, cover_image_url, published_at, view_count,
-          reading_time_minutes, custom_author_name, custom_author_avatar_url, edicao,
-          author:Practitioners!Reviews_author_id_fkey(id, full_name, avatar_url),
+          reading_time_minutes, custom_author_name, custom_author_avatar_url, custom_author_description, edicao,
+          author:Practitioners!Reviews_author_id_fkey(id, full_name, avatar_url, profession),
           content_types:ReviewContentTypes(
             content_type:ContentTypes(id, label, text_color, border_color, background_color)
           )
@@ -226,7 +228,7 @@ serve(async (req: Request) => {
         .order('published_at', { ascending: false })
         .limit(1)
         .maybeSingle();
-      
+
       featuredReview = transformSingleReview(autoFeaturedReview);
     }
 
@@ -240,8 +242,13 @@ serve(async (req: Request) => {
         'popular',
       ],
       featured: featuredReview,
-      recent: transformReviewData(getResultData(recentResult, [])),
-      popular: transformReviewData(getResultData(popularResult, [])),
+      // Filter out featured review from both recent and popular to avoid duplication
+      recent: transformReviewData(getResultData(recentResult, [])).filter(
+        review => featuredReview ? review.id !== featuredReview.id : true
+      ),
+      popular: transformReviewData(getResultData(popularResult, [])).filter(
+        review => featuredReview ? review.id !== featuredReview.id : true
+      ),
       suggestions: getResultData(suggestionsResult, []),
       recommendations: transformReviewData(getResultData(recommendationsResult, [])),
       userProfile: getResultData(userProfileResult, null),
