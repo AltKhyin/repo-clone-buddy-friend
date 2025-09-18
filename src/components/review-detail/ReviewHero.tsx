@@ -39,9 +39,12 @@ const ReviewHero: React.FC<ReviewHeroProps> = ({ review }) => {
   };
 
 
-  // Estimate reading time based on content (fallback implementation)
+  // Get reading time from database or fallback
   const getReadingTime = () => {
-    return '5min de leitura';
+    if (review.reading_time_minutes && review.reading_time_minutes > 0) {
+      return `${review.reading_time_minutes}min de leitura`;
+    }
+    return '5min de leitura'; // Fallback
   };
 
   // MOBILE LAYOUT: Classic editorial header
