@@ -91,6 +91,7 @@ interface ReviewDetailResponse {
   cover_image_url: string | null;
   structured_content: any;
   published_at: string;
+  reading_time_minutes: number | null;
   custom_author_name: string | null;
   custom_author_avatar_url: string | null;
   custom_author_description: string | null;
@@ -190,6 +191,7 @@ serve(async req => {
           cover_image_url,
           structured_content,
           published_at,
+          reading_time_minutes,
           access_level,
           community_post_id,
           view_count,
@@ -237,6 +239,7 @@ serve(async req => {
           cover_image_url,
           structured_content,
           published_at,
+          reading_time_minutes,
           access_level,
           community_post_id,
           view_count,
@@ -289,6 +292,7 @@ serve(async req => {
           cover_image_url,
           structured_content,
           published_at,
+          reading_time_minutes,
           access_level,
           community_post_id,
           view_count,
@@ -501,6 +505,10 @@ serve(async req => {
       cover_image_url: review.cover_image_url,
       structured_content: finalStructuredContent,
       published_at: review.published_at,
+      reading_time_minutes: review.reading_time_minutes,
+      custom_author_name: review.custom_author_name,
+      custom_author_avatar_url: review.custom_author_avatar_url,
+      custom_author_description: review.custom_author_description,
       author: review.author,
       access_level: review.access_level,
       community_post_id: review.community_post_id,

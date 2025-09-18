@@ -155,7 +155,7 @@ const AdminAnalytics: React.FC = () => {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-foreground">
-                {isLoading ? '---' : analyticsData?.contentStats.publishedReviews || '89'}
+                {isLoading ? '---' : analyticsData?.contentStats?.publishedReviews || '89'}
               </div>
               <p className="text-xs text-muted-foreground">
                 <span className="text-green-600 dark:text-green-300">+5</span> esta semana
@@ -172,7 +172,7 @@ const AdminAnalytics: React.FC = () => {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-foreground">
-                {isLoading ? '---' : `${analyticsData?.engagementStats.avgEngagement || 78}%`}
+                {isLoading ? '---' : `${analyticsData?.engagementStats?.avgEngagement || 78}%`}
               </div>
               <p className="text-xs text-muted-foreground">
                 <span className="text-blue-600 dark:text-blue-300">+3%</span> vs média anterior
@@ -189,7 +189,7 @@ const AdminAnalytics: React.FC = () => {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-foreground">
-                {isLoading ? '---' : analyticsData?.systemStats.uptime || '99.9%'}
+                {isLoading ? '---' : analyticsData?.systemStats?.uptime || '99.9%'}
               </div>
               <p className="text-xs text-muted-foreground">Últimos 30 dias</p>
             </CardContent>
@@ -216,7 +216,7 @@ const AdminAnalytics: React.FC = () => {
           <CardContent>
             <div className="space-y-4">
               {(
-                analyticsData?.engagementStats.topContent || [
+                analyticsData?.engagementStats?.topContent || [
                   {
                     id: 1,
                     title: 'Análise de Metodologias Ágeis',

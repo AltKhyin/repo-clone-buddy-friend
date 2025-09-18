@@ -24,6 +24,7 @@ export interface ReviewDetail {
   view_count: number | null;
   edicao: string | null;
   tags: string[];
+  reading_time_minutes: number | null;
   // Custom author fields
   custom_author_name: string | null;
   custom_author_avatar_url: string | null;

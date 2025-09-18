@@ -173,92 +173,82 @@ const handlePaymentSuccess = async (supabase: any, webhookData: any) => {
   }
 }
 
-// Handle new user creation with immediate auto-confirmation (no email confirmation required)
+// Handle new user creation with Supabase native invitation system
 const handleNewUserInvitation = async (supabase: any, webhookData: any) => {
   try {
-    console.log('🚀 Creating new user account with immediate activation (no email confirmation)')
-    console.log('🔍 Customer data:', JSON.stringify(webhookData.data.customer, null, 2))
+    console.log('📧 Creating new user account via Supabase invitation')
 
     const customerData = webhookData.data.customer
-    const subscriptionEndsAt = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
 
-    console.log('👤 About to create user with email:', customerData.email)
-    console.log('📅 Subscription ends at:', subscriptionEndsAt.toISOString())
+    // Calculate subscription end date (1 year from now)
+    const subscriptionEndsAt = new Date(Date.now() + (365 * 24 * 60 * 60 * 1000))
 
-    // Create user with email as temporary password (will be changed on first login)
-    console.log('🔄 Creating new user account with immediate activation...')
+    // Use Supabase's native invitation system with premium metadata
+    const { data: inviteData, error: inviteError } = await supabase.auth.admin.inviteUserByEmail(
+      customerData.email,
+      {
+        // Redirect to account setup page after email confirmation
+        redirectTo: `https://reviews.igoreckert.com.br/complete-registration`,
+        data: {
+          // User profile data
+          full_name: customerData.name,
+          subscription_tier: 'premium',
+          subscription_starts_at: new Date().toISOString(),
+          subscription_ends_at: subscriptionEndsAt.toISOString(),
 
-    // Create user with secure temporary password and auto-confirmation
-    const { data: userData, error: createError } = await supabase.auth.admin.createUser({
-      email: customerData.email,
-      password: `temp_${Date.now()}_${Math.random().toString(36).substring(7)}`, // Secure temporary password
-      email_confirm: true, // Auto-confirm email immediately
-      user_metadata: {
-        // User profile data - trigger expects full_name in raw_user_meta_data
-        full_name: customerData.name || customerData.email.split('@')[0],
-        subscription_tier: 'premium',
-        subscription_starts_at: new Date().toISOString(),
-        subscription_ends_at: subscriptionEndsAt.toISOString(),
+          // Payment creation flag for password setup page
+          created_from_payment: true,
+          payment_order_id: webhookData.data.id,
+          payment_amount: webhookData.data.amount,
+          payment_method: webhookData.data.charges?.[0]?.payment_method || 'unknown',
+          customer_document: customerData.document,
 
-        // Payment creation flag for password setup page
-        created_from_payment: true,
-        payment_order_id: webhookData.data.id,
-        payment_amount: webhookData.data.amount,
-        payment_method: webhookData.data.charges?.[0]?.payment_method || 'unknown',
-        customer_document: customerData.document || '',
+          // Additional customer data
+          customer_phone: customerData.phones?.mobile_phone ?
+            `${customerData.phones.mobile_phone.country_code}${customerData.phones.mobile_phone.area_code}${customerData.phones.mobile_phone.number}` : '',
+          pagarme_customer_id: customerData.id,
 
-        // Additional customer data
-        customer_phone: customerData.phones?.mobile_phone ?
-          `${customerData.phones.mobile_phone.country_code}${customerData.phones.mobile_phone.area_code}${customerData.phones.mobile_phone.number}` : '',
-        pagarme_customer_id: customerData.id,
-
-        // Plan information
-        plan_description: webhookData.data.items?.[0]?.description || 'EVIDENS Premium'
-      },
-      app_metadata: {
-        role: 'practitioner',
-        subscription_tier: 'premium'
+          // Plan information
+          plan_description: 'EVIDENS Premium'
+        }
       }
-    })
+    )
 
-    if (createError) {
-      console.error('❌ Failed to create user account:', JSON.stringify(createError, null, 2))
-      return { processed: false, error: 'account_creation_failed', details: createError.message }
+    if (inviteError) {
+      console.error('❌ Failed to send user invitation:', inviteError)
+      return {
+        processed: false,
+        error: 'invitation_failed',
+        details: inviteError.message
+      }
     }
 
-    if (!userData.user) {
-      console.error('❌ No user data returned from account creation')
-      return { processed: false, error: 'no_user_data' }
+    if (!inviteData.user) {
+      console.error('❌ No user data returned from invitation')
+      return {
+        processed: false,
+        error: 'no_user_data'
+      }
     }
 
-    console.log('✅ User account created and auto-confirmed:', {
-      userId: userData.user.id,
+    console.log('✅ User invitation sent successfully:', {
+      userId: inviteData.user.id,
       email: customerData.email,
-      orderId: webhookData.data.id,
-      emailConfirmed: userData.user.email_confirmed_at
+      orderId: webhookData.data.id
     })
-
-    // The handle_new_user trigger will automatically create the Practitioners record
-    // with premium subscription tier (as per our migration)
-
-    // 🔥 ANALYTICS WEBHOOK: Send analytics data to Make.com for new users
-    const paymentId = extractPaymentId(webhookData)
-    const mockUserLookup = {
-      user: { id: userData.user.id },
-      source: 'new_user'
-    }
-    await sendAnalyticsWebhookWithRealData(supabase, webhookData, mockUserLookup, paymentId)
 
     return {
       processed: true,
-      action: 'new_user_created_auto_confirmed',
-      userId: userData.user.id,
+      action: 'new_user_invited',
+      userId: inviteData.user.id,
       email: customerData.email
     }
-
   } catch (error) {
     console.error('❌ Error in handleNewUserInvitation:', error)
-    return { processed: false, error: error.message }
+    return {
+      processed: false,
+      error: error.message
+    }
   }
 }
 
