@@ -122,6 +122,16 @@ export function PaymentSuccessV2({
       <div className="text-center text-xs text-gray-500">
         <p>Bem-vindo(a) ao Reviews! Sua assinatura premium está ativa por 1 ano.</p>
       </div>
+
+      {/* Login Button */}
+      <div className="text-center space-y-3">
+        <Button
+          onClick={() => window.location.href = '/login'}
+          className="w-full h-11 bg-black text-white hover:bg-gray-800 font-medium"
+        >
+          Realizar login
+        </Button>
+      </div>
     </div>
   );
 }
