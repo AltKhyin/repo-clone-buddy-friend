@@ -1,0 +1,21 @@
+# Pagar.me Webhook V2 Edge Function Configuration
+
+[function]
+name = "pagarme-webhook-v2"
+verify_jwt = false  # No JWT verification required for webhook endpoints
+
+[function.permissions]
+read_access = ["public"]  # Public webhook endpoint
+write_access = ["public"]
+
+[function.rate_limiting]
+enabled = true
+max_requests_per_minute = 120  # Allow for webhook bursts
+max_requests_per_hour = 2000
+
+[function.caching]
+enabled = false  # Disable caching for webhook processing
+
+[function.env]
+SUPABASE_URL = "required"
+SUPABASE_SERVICE_ROLE_KEY = "required"

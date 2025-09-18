@@ -129,8 +129,8 @@ export const Comment = ({
 
           {/* Reddit-style comment body */}
           <div
-            className="reddit-comment-text max-w-none mb-3 text-sm leading-relaxed text-foreground"
-            dangerouslySetInnerHTML={{ __html: comment.content }}
+            className="reddit-comment-text max-w-none mb-3 text-sm leading-relaxed text-foreground whitespace-pre-wrap"
+            dangerouslySetInnerHTML={{ __html: comment.content.replace(/\n/g, '<br>') }}
           />
 
           {/* Essential comment actions */}

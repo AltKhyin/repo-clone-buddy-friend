@@ -89,3 +89,8 @@ verify_jwt = false
 
 [functions.pagarme-webhook-public]
 verify_jwt = false
+
+# Custom email templates
+[auth.email.template.invite]
+subject = "Ative sua conta de Membro Fundador"
+content_path = "./supabase/templates/invite.html"

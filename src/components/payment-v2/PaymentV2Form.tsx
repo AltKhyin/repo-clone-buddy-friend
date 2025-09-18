@@ -431,24 +431,40 @@ const PaymentV2Form = ({
         attempts++;
 
         // Check payment_webhooks table for confirmation
-        // If paymentId is an order ID (or_*), look for the corresponding charge ID
+        // First, look for charge.paid events (most reliable)
         let { data, error } = await supabase
           .from('payment_webhooks')
           .select('*')
           .eq('payment_id', paymentId)
+          .eq('event_type', 'charge.paid')
           .eq('status', 'paid')
           .maybeSingle();
 
+        // If not found, also check for order.paid events directly (regardless of status)
+        if (!data && !error) {
+          const { data: orderPaidData } = await supabase
+            .from('payment_webhooks')
+            .select('*')
+            .eq('payment_id', paymentId)
+            .eq('event_type', 'order.paid')
+            .maybeSingle();
+
+          if (orderPaidData) {
+            data = orderPaidData;
+          }
+        }
+
         // If not found and this is an order ID, look for the charge ID from the same transaction
         if (!data && !error && paymentId.startsWith('or_')) {
-          // Get customer_id from the order record
+          // Get customer_id from the order record (check both order.created and order.paid events)
           const { data: orderData } = await supabase
             .from('payment_webhooks')
             .select('customer_id, created_at')
             .eq('payment_id', paymentId)
+            .in('event_type', ['order.created', 'order.paid'])
             .order('created_at', { ascending: false })
             .limit(1)
-            .single();
+            .maybeSingle();
 
           if (orderData?.customer_id) {
             // Look for charge with same customer and timestamp within 1 minute
@@ -459,6 +475,7 @@ const PaymentV2Form = ({
               .from('payment_webhooks')
               .select('*')
               .eq('customer_id', orderData.customer_id)
+              .eq('event_type', 'charge.paid')
               .eq('status', 'paid')
               .like('payment_id', 'ch_%')
               .gte('created_at', orderData.created_at)
@@ -567,15 +584,30 @@ const PaymentV2Form = ({
           .eq('status', 'failed')
           .maybeSingle();
 
+        // Also check for order.payment_failed events directly
+        if (!failedData) {
+          const { data: orderFailedData } = await supabase
+            .from('payment_webhooks')
+            .select('*')
+            .eq('payment_id', paymentId)
+            .eq('event_type', 'order.payment_failed')
+            .maybeSingle();
+
+          if (orderFailedData) {
+            failedData = orderFailedData;
+          }
+        }
+
         // If not found and this is an order ID, look for failed charge in same transaction
         if (!failedData && paymentId.startsWith('or_')) {
           const { data: orderData } = await supabase
             .from('payment_webhooks')
             .select('customer_id, created_at')
             .eq('payment_id', paymentId)
+            .in('event_type', ['order.created', 'order.paid', 'order.payment_failed'])
             .order('created_at', { ascending: false })
             .limit(1)
-            .single();
+            .maybeSingle();
 
           if (orderData?.customer_id) {
             const timeWindow = new Date(orderData.created_at);

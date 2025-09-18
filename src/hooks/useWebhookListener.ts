@@ -106,6 +106,7 @@ export function useWebhookListener({
         .from('payment_webhooks')
         .select('*')
         .eq('payment_id', paymentId)
+        .eq('event_type', 'charge.paid')
         .order('created_at', { ascending: false })
         .limit(1);
 

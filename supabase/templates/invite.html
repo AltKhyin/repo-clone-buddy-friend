@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reviews Confirmation</title>
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body style="background-color: #f7f7f7; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; font-family: 'Open Sans', sans-serif;">
+
+  <div style="max-width: 400px; margin: 0 auto; padding: 40px 20px; background: white; border-radius: 8px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);">
+
+    <div style="text-align: center; margin-bottom: 40px;">
+      <h1 style="font-family: ui-serif, Georgia, serif; font-weight: 500; font-size: 48px; color: black; margin: 0; line-height: 1; letter-spacing: -0.025em;">
+        Reviews.
+      </h1>
+      <p style="font-size: 14px; color: rgba(0,0,0,0.8); margin: 4px 0 0 0; font-family: ui-serif, Georgia, serif;">
+        - por Igor Eckert
+      </p>
+    </div>
+
+    <div style="margin-bottom: 32px;">
+      <h2 style="color: black; font-size: 24px; font-weight: 600; margin: 0 0 16px 0; text-align: center;">
+        Sucesso!
+      </h2>
+
+      <p style="color: rgba(0,0,0,0.8); font-size: 16px; line-height: 1.5; margin: 0; text-align: center;">
+        Parabéns pela sua decisão de assinar o Reviews.
+      </p>
+      <p style="color: rgba(0,0,0,0.8); font-size: 16px; line-height: 1.5; margin: 16px 0 0; text-align: center;">
+        Sua conta de Membro Fundador do Reviews foi criada.
+      </p>
+      <p style="color: rgba(0,0,0,0.8); font-size: 16px; line-height: 1.5; margin: 16px 0 24px; text-align: center;">
+        Agora, você precisa clicar no botão abaixo para validar seu acesso e criar sua senha.
+      </p>
+    </div>
+
+    <div style="text-align: center; margin-bottom: 32px;">
+      <a href="{{ .ConfirmationURL }}" style="display: inline-block; background: #d97757; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500; font-size: 16px;">
+        Criar minha senha
+      </a>
+    </div>
+
+    <div style="text-align: center; padding-top: 24px; border-top: 1px solid rgba(0,0,0,0.1);">
+      <p style="color: rgba(0,0,0,0.8); font-size: 16px; line-height: 1.5; margin: 0 0 16px 0;">
+        Espero te ver lá na comunidade!
+      </p>
+      <p style="color: rgba(0,0,0,0.8); font-size: 16px; line-height: 1.5; margin: 0 0 4px 0;">
+        Um abração,
+      </p>
+      <p style="color: rgba(0,0,0,0.8); font-size: 16px; font-weight: 600; line-height: 1.5; margin: 0;">
+        Igor Eckert
+      </p>
+      <p style="color: rgba(0,0,0,0.6); font-size: 14px; margin: 0; line-height: 1.4;">
+        Editor-chefe, Reviews
+      </p>
+      <p style="color: rgba(0,0,0,0.6); font-size: 14px; margin: 24px 0 0 0; line-height: 1.4;">
+        Link válido por 24 horas<br>
+        <span style="font-size: 12px;">{{ .ConfirmationURL }}</span>
+      </p>
+    </div>
+
+  </div>
+
+</body>
+</html>
