@@ -19,6 +19,7 @@ import RegistrationPage from '@/pages/RegistrationPage';
 import ForgotPasswordPage from '@/pages/ForgotPasswordPage';
 import ResetPasswordPage from '@/pages/ResetPasswordPage';
 import CompleteRegistration from '@/pages/CompleteRegistration';
+import SolicitarPlanoPage from '@/pages/SolicitarPlanoPage';
 import PaymentV2Page from '@/pages/PaymentV2Page';
 import PaymentV1Page from '@/pages/PaymentV1Page';
 import ProfileCompletionPage from '@/pages/ProfileCompletionPage';
@@ -62,6 +63,10 @@ const router = createBrowserRouter([
   {
     path: '/complete-registration',
     element: <CompleteRegistration />,
+  },
+  {
+    path: '/solicitar-plano',
+    element: <SolicitarPlanoPage />,
   },
   {
     path: '/pagar',

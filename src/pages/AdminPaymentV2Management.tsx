@@ -6,15 +6,16 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  CreditCard, 
-  Trash2, 
-  Edit3, 
-  Plus, 
-  AlertTriangle, 
+import {
+  CreditCard,
+  Trash2,
+  Edit3,
+  Plus,
+  AlertTriangle,
   TrendingUp,
   Eye,
-  BarChart
+  BarChart,
+  Building
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { usePaymentPlansV2 } from '@/hooks/usePaymentPlansV2';
@@ -22,6 +23,7 @@ import { useSiteSettings } from '@/hooks/useSiteSettings';
 import PaymentPlanV2Form from '@/components/payment-v2/PaymentPlanV2Form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { PaymentPlanV2FormData, PaymentPlanV2Row } from '@/types/paymentV2.types';
+import { InstitutionalRequestsTab } from '@/components/admin/InstitutionalRequestsTab';
 
 export default function AdminPaymentV2Management() {
   const {
@@ -40,7 +42,7 @@ export default function AdminPaymentV2Management() {
 
   const siteSettings = useSiteSettings();
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'create' | 'edit'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'create' | 'edit' | 'institutional-requests'>('overview');
   const [editingPlan, setEditingPlan] = useState<PaymentPlanV2Row | null>(null);
 
   // Handle form submission
@@ -135,7 +137,7 @@ export default function AdminPaymentV2Management() {
 
       {/* Main Tabs */}
       <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as typeof activeTab)}>
-        <TabsList className="grid w-full grid-cols-3 lg:w-auto lg:grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:grid-cols-4">
           <TabsTrigger value="overview" className="flex items-center gap-2">
             <BarChart className="h-4 w-4" />
             Visão Geral
@@ -143,6 +145,10 @@ export default function AdminPaymentV2Management() {
           <TabsTrigger value="create" className="flex items-center gap-2">
             <Plus className="h-4 w-4" />
             Criar Plano
+          </TabsTrigger>
+          <TabsTrigger value="institutional-requests" className="flex items-center gap-2">
+            <Building className="h-4 w-4" />
+            Requisições de planos
           </TabsTrigger>
           {editingPlan && (
             <TabsTrigger value="edit" className="flex items-center gap-2">
@@ -414,6 +420,11 @@ export default function AdminPaymentV2Management() {
             onCancel={handleFormCancel}
             isSubmitting={isCreating}
           />
+        </TabsContent>
+
+        {/* Institutional Requests Tab */}
+        <TabsContent value="institutional-requests">
+          <InstitutionalRequestsTab />
         </TabsContent>
 
         {/* Edit Tab */}

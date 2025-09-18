@@ -1,6 +1,6 @@
 // ABOUTME: Read-only canvas that mirrors WYSIWYGCanvas for perfect visual parity in review display - unified rendering architecture
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { StructuredContentV3 } from '@/types/editor';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { ReadOnlyBlock } from './ReadOnlyBlock';
@@ -26,28 +26,56 @@ interface ReadOnlyCanvasProps {
   showGrid?: boolean; // Optional grid overlay for visual debugging
 }
 
-export function ReadOnlyCanvas({ 
-  content, 
-  className = '', 
-  showGrid = false 
+export function ReadOnlyCanvas({
+  content,
+  className = '',
+  showGrid = false
 }: ReadOnlyCanvasProps) {
   const isMobile = useIsMobile();
-  
+
+  // State to track current screen dimensions for responsive scaling
+  const [screenWidth, setScreenWidth] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth : 375
+  );
+
+  // Effect to handle window resize and update screen width
+  useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+
+    const debouncedHandleResize = () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        setScreenWidth(window.innerWidth);
+      }, 100); // Debounce resize events by 100ms
+    };
+
+    // Only add listener if window is available
+    if (typeof window !== 'undefined') {
+      window.addEventListener('resize', debouncedHandleResize);
+
+      // Set initial value
+      setScreenWidth(window.innerWidth);
+
+      return () => {
+        window.removeEventListener('resize', debouncedHandleResize);
+        clearTimeout(timeoutId);
+      };
+    }
+  }, []);
+
   // Select appropriate positions and config based on current viewport - with mobile scaling to screen width
   const currentCanvasConfig = CANVAS_CONFIG[isMobile ? 'mobile' : 'desktop'];
-  const currentPositions = isMobile && content.mobilePositions 
-    ? content.mobilePositions 
+  const currentPositions = isMobile && content.mobilePositions
+    ? content.mobilePositions
     : content.positions;
-    
+
   // 🎯 MOBILE SCALING FIX: Logical canvas width (375px) vs visual screen width
   const logicalCanvasWidth = currentCanvasConfig.width; // Always 375px for mobile logic
-  const actualScreenWidth = isMobile 
-    ? (typeof window !== 'undefined' ? window.innerWidth : 375)
-    : currentCanvasConfig.width;
-    
+  const actualScreenWidth = isMobile ? screenWidth : currentCanvasConfig.width;
+
   // 🎯 VISUAL SCALING: Scale up 375px canvas to fill mobile screen width
-  const visualScaleFactor = isMobile 
-    ? actualScreenWidth / logicalCanvasWidth 
+  const visualScaleFactor = isMobile
+    ? actualScreenWidth / logicalCanvasWidth
     : 1;
     
   // 🎯 POSITIONING: Always use 1:1 scale for position calculations (maintains editor parity)
@@ -127,20 +155,32 @@ export function ReadOnlyCanvas({
     <div className={`readonly-canvas-container readonly-content ${className}`}>
       {/* Canvas container - NO zoom functionality for read-only mode */}
       <div className={isMobile ? "w-full flex justify-center px-0" : "flex justify-center"}>
+        {/* Scaling wrapper to prevent overflow issues */}
         <div
-          className="readonly-canvas relative"
+          className="readonly-canvas-wrapper"
           style={{
-            width: logicalCanvasWidth, // Always use logical 375px for canvas size
-            height: canvasHeight,
-            backgroundColor: 'hsl(var(--background))',
-            // 🎯 MOBILE SCALING: Scale up canvas visually to fill screen width
-            transform: isMobile ? `scale(${visualScaleFactor})` : 'none',
-            transformOrigin: 'top center', // Scale from top center
+            width: isMobile ? actualScreenWidth : logicalCanvasWidth,
+            height: isMobile ? canvasHeight * visualScaleFactor : canvasHeight,
+            overflow: 'hidden', // Prevent any overflow
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'flex-start',
           }}
-          data-testid="readonly-canvas"
-          data-canvas-type="readonly"
-          data-viewport={isMobile ? 'mobile' : 'desktop'}
         >
+          <div
+            className="readonly-canvas relative"
+            style={{
+              width: logicalCanvasWidth, // Always use logical 375px for canvas size
+              height: canvasHeight,
+              backgroundColor: 'hsl(var(--background))',
+              // 🎯 MOBILE SCALING: Scale up canvas visually to fill screen width
+              transform: isMobile ? `scale(${visualScaleFactor})` : 'none',
+              transformOrigin: 'top center', // Scale from top center
+            }}
+            data-testid="readonly-canvas"
+            data-canvas-type="readonly"
+            data-viewport={isMobile ? 'mobile' : 'desktop'}
+          >
           {/* Optional grid overlay for visual debugging - identical to editor */}
           {showGrid && (
             <div
@@ -195,6 +235,7 @@ export function ReadOnlyCanvas({
               </div>
             </div>
           )}
+          </div>
         </div>
       </div>
 
