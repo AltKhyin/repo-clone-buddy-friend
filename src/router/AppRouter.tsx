@@ -30,10 +30,10 @@ import ContentManagement from '@/pages/ContentManagement';
 import AdminUserManagement from '@/pages/AdminUserManagement';
 import AdminTagManagement from '@/pages/AdminTagManagement';
 import AdminLayoutManagement from '@/pages/AdminLayoutManagement';
-import AdminAnalytics from '@/pages/AdminAnalytics';
 import AdminAccessControl from '@/pages/AdminAccessControl';
 import AdminCommunityManagement from '@/pages/AdminCommunityManagement';
 import AdminPaymentV2Management from '@/pages/AdminPaymentV2Management';
+import AdminAnalytics from '@/pages/AdminAnalytics';
 import EditorPage from '@/pages/EditorPage';
 import ReviewManagementPage from '@/pages/ReviewManagementPage';
 import DebugSidebar from '@/pages/DebugSidebar';
@@ -194,16 +194,16 @@ const router = createBrowserRouter([
         element: <AdminLayoutManagement />,
       },
       {
-        path: '/admin/analytics',
-        element: <AdminAnalytics />,
-      },
-      {
         path: '/admin/access-control',
         element: <AdminAccessControl />,
       },
       {
         path: '/admin/payment-v2',
         element: <AdminPaymentV2Management />,
+      },
+      {
+        path: '/admin/analytics',
+        element: <AdminAnalytics />,
       },
       {
         path: '/admin/review/:reviewId',

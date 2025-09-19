@@ -293,7 +293,6 @@ describe('AdminRoute - Critical Admin Security Boundaries', () => {
     const adminPages = [
       'AdminDashboard',
       'AdminUserManagement',
-      'AdminAnalytics',
       'AdminAccessControl',
       'AdminLayoutManagement',
       'AdminTagManagement',

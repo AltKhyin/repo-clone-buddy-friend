@@ -170,13 +170,12 @@ const handleNewUserInvitation = async (supabase: any, webhookData: any) => {
       orderId: webhookData.data.id
     })
 
-    // Step 2: Immediately auto-confirm the user for instant access (best of both worlds)
-    console.log('🔄 Auto-confirming user for immediate access...')
+    // Step 2: Set app metadata without auto-confirming to preserve invitation token
+    console.log('🔄 Setting app metadata while preserving invitation token...')
 
-    const { error: confirmError } = await supabase.auth.admin.updateUserById(
+    const { error: metadataError } = await supabase.auth.admin.updateUserById(
       inviteData.user.id,
       {
-        email_confirm: true,
         app_metadata: {
           role: 'practitioner',
           subscription_tier: 'premium'
@@ -184,12 +183,11 @@ const handleNewUserInvitation = async (supabase: any, webhookData: any) => {
       }
     )
 
-    if (confirmError) {
-      console.error('❌ Failed to auto-confirm user:', JSON.stringify(confirmError, null, 2))
-      // Don't fail the whole process - user can still use invitation email
-      console.warn('⚠️ User will need to confirm via invitation email')
+    if (metadataError) {
+      console.error('❌ Failed to set app metadata:', JSON.stringify(metadataError, null, 2))
+      console.warn('⚠️ User created but app metadata not set')
     } else {
-      console.log('✅ User auto-confirmed for immediate access')
+      console.log('✅ App metadata set successfully, invitation token preserved')
     }
 
     // The handle_new_user trigger will automatically create the Practitioners record
@@ -205,11 +203,11 @@ const handleNewUserInvitation = async (supabase: any, webhookData: any) => {
 
     return {
       processed: true,
-      action: 'new_user_invited_and_auto_confirmed',
+      action: 'new_user_invited_token_preserved',
       userId: inviteData.user.id,
       email: customerData.email,
       invitationSent: true,
-      autoConfirmed: !confirmError
+      tokenPreserved: !metadataError
     }
 
   } catch (error) {

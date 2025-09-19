@@ -75,13 +75,13 @@ serve(async (req: Request) => {
         .order('published_at', { ascending: false })
         .limit(5),
 
-      // Fetch recent members for simple avatar display (max 7)
+      // Fetch recent members for full-width avatar display (increased limit)
       supabase
         .from('Practitioners')
         .select('id, full_name, avatar_url, created_at')
         .not('avatar_url', 'is', null)
         .order('created_at', { ascending: false })
-        .limit(7),
+        .limit(20),
 
       // Fetch real member statistics using database functions
       Promise.all([
@@ -176,7 +176,7 @@ serve(async (req: Request) => {
                 const { data: postCount } = await supabase
                   .from('CommunityPosts')
                   .select('id', { count: 'exact', head: true })
-                  .eq('category_id', category.id);
+                  .eq('category', category.name);
 
                 return {
                   ...category,

@@ -73,22 +73,18 @@ serve(async (req) => {
       throw new Error('VALIDATION_FAILED: Post category is required');
     }
 
-    // Validate category - Support actual Portuguese categories used by frontend
+    // Validate category - Support your 3 categories + system categories
     const validCategories = [
-      // Current frontend categories (from CreatePostForm.tsx)
+      // Your 3 active categories
       'discussao-geral',
-      'duvida-clinica', 
-      'caso-clinico',
       'evidencia-cientifica',
-      'tecnologia-saude',
-      'carreira-medicina',
-      'bem-estar-medico',
-      // Legacy categories for backward compatibility
-      'geral', 'discussao-review', 'pergunta', 'anuncio', 'comment',
-      'general', 'review_discussion', 'review-discussion', 'question', 'announcement'
+      'carreira-profissional',
+      // System categories (comment system + review)
+      'comment',
+      'review'
     ];
     if (!validCategories.includes(body.category)) {
-      throw new Error('VALIDATION_FAILED: Categoria inválida fornecida. Categorias válidas: discussao-geral, duvida-clinica, caso-clinico, evidencia-cientifica, tecnologia-saude, carreira-medicina, bem-estar-medico');
+      throw new Error('VALIDATION_FAILED: Categoria inválida fornecida. Categorias válidas: discussao-geral, evidencia-cientifica, carreira-profissional');
     }
 
     // Content length validation (now optional)

@@ -19,11 +19,21 @@ interface RecentMembersAvatarsProps {
 
 export function RecentMembersAvatars({
   members,
-  maxDisplayed = 7,
+  maxDisplayed,
   className,
 }: RecentMembersAvatarsProps) {
-  // Limit to maximum displayed members
-  const displayedMembers = members.slice(0, maxDisplayed);
+  // Calculate how many avatars fit nicely, then show all with extended fade
+  const calculateBaseAvatars = () => {
+    // Sidebar: 16rem (256px) - 2rem padding (32px) = 224px available
+    const availableWidth = 224;
+    const avatarSize = 32; // h-8 w-8
+    const overlapSize = 8; // -space-x-2 overlap
+    return Math.floor((availableWidth - avatarSize) / (avatarSize - overlapSize)) + 1;
+  };
+
+  const baseAvatarCount = calculateBaseAvatars(); // ~9 avatars fit nicely
+  const maxToShow = Math.min(members.length, 12); // Limit to 12 to prevent overflow
+  const displayedMembers = members.slice(0, maxToShow);
 
   // If no members, don't render anything
   if (!displayedMembers.length) {
@@ -32,12 +42,31 @@ export function RecentMembersAvatars({
 
   return (
     <div className={cn('flex items-center', className)}>
-      {/* Stacked and overlapping avatars */}
+      {/* Full-width stacked avatars with fade effect and z-index stacking */}
       <div className="flex -space-x-2">
         {displayedMembers.map((member, index) => {
-          // Calculate opacity for fade effect on the right
-          const opacity =
-            index < maxDisplayed - 2 ? 1 : Math.max(0.3, 1 - (index - (maxDisplayed - 3)) * 0.35);
+          // Progressive fade with last avatar completely transparent
+          let opacity = 1;
+
+          if (displayedMembers.length > baseAvatarCount) {
+            if (index >= baseAvatarCount - 1) {
+              // Calculate fade for avatars beyond the base comfortable fit
+              const fadeStart = baseAvatarCount - 1;
+              const fadePosition = index - fadeStart;
+              const totalFadePositions = displayedMembers.length - fadeStart - 1;
+
+              if (index === displayedMembers.length - 1) {
+                // Last avatar is completely transparent (0% opacity)
+                opacity = 0;
+              } else {
+                // Progressive fade from 1.0 to near 0
+                opacity = Math.max(0.1, 1 - (fadePosition / (totalFadePositions + 1)) * 0.9);
+              }
+            }
+          }
+
+          // Z-index stacking: left avatars on upper layer
+          const zIndex = displayedMembers.length - index;
 
           // Get user initials for fallback
           const initials = member.full_name
@@ -52,10 +81,21 @@ export function RecentMembersAvatars({
               key={member.id}
               className={cn(
                 'border-2 border-background transition-opacity duration-200',
-                'hover:z-10 hover:scale-110',
+                'hover:scale-110',
                 'h-8 w-8' // Compact size for sidebar
               )}
-              style={{ opacity }}
+              style={{
+                opacity,
+                zIndex: zIndex,
+                // Ensure hover state goes above all others
+                '--hover-z': displayedMembers.length + 10
+              } as React.CSSProperties & { '--hover-z': number }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLElement).style.zIndex = `${displayedMembers.length + 10}`;
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLElement).style.zIndex = `${zIndex}`;
+              }}
             >
               <AvatarImage
                 src={member.avatar_url || undefined}
@@ -66,11 +106,6 @@ export function RecentMembersAvatars({
           );
         })}
       </div>
-
-      {/* Member count indicator if there are more members */}
-      {members.length > maxDisplayed && (
-        <div className="ml-2 text-xs text-muted-foreground">+{members.length - maxDisplayed}</div>
-      )}
     </div>
   );
 }
@@ -79,7 +114,7 @@ export function RecentMembersAvatars({
 export function SidebarRecentMembers({ members }: { members: RecentMember[] }) {
   return (
     <div className="space-y-2">
-      <RecentMembersAvatars members={members} maxDisplayed={7} className="justify-start" />
+      <RecentMembersAvatars members={members} className="justify-start" />
       {members.length > 0 && (
         <div className="text-xs text-muted-foreground">
           Recentemente online

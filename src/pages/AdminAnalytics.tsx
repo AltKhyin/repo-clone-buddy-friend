@@ -1,272 +1,129 @@
-// ABOUTME: Enhanced admin analytics page with real data fetching and interactive charts
+// ABOUTME: Simple admin analytics dashboard with key metrics from production data
 
-import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { StandardLayout } from '@/components/layout/StandardLayout';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
-  BarChart3,
-  TrendingUp,
-  Users,
-  FileText,
-  Download,
-  RefreshCw,
-  Calendar,
-  Activity,
-} from 'lucide-react';
-import { useAnalyticsQuery } from '../../packages/hooks/useAnalyticsQuery';
-import { AnalyticsCharts } from '@/components/admin/Analytics/AnalyticsCharts';
-import { ErrorBoundary } from '@/components/ErrorBoundary';
+import React from 'react';
+import { TrendingUp, Users, MessageSquare, CreditCard } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { SimpleChart } from '@/components/admin/SimpleChart';
+import { usePaymentRevenue, useUserRegistrations, useCommunityPosts } from '../../packages/hooks/useSimpleAnalytics';
 
-const AdminAnalytics: React.FC = () => {
-  const [timeRange, setTimeRange] = useState('30d');
-  const [refreshKey, setRefreshKey] = useState(0);
-
-  const { data: analyticsData, isLoading, error, refetch } = useAnalyticsQuery();
-
-  const handleRefresh = () => {
-    setRefreshKey(prev => prev + 1);
-    refetch();
-  };
-
-  const handleExport = async () => {
-    console.log('Exporting analytics data...');
-    // Implementation would trigger CSV/PDF export
-  };
-
-  // Mock chart data - would be derived from real analytics data
-  const userGrowthData = [
-    { month: 'Jan', users: 1200, premium: 120 },
-    { month: 'Fev', users: 1350, premium: 156 },
-    { month: 'Mar', users: 1500, premium: 189 },
-    { month: 'Abr', users: 1680, premium: 234 },
-    { month: 'Mai', users: 1820, premium: 267 },
-    { month: 'Jun', users: 1950, premium: 298 },
-  ];
-
-  const contentDistribution = [
-    { type: 'Reviews', count: 245, color: '#3b82f6' },
-    { type: 'Posts', count: 1890, color: '#10b981' },
-    { type: 'Comentários', count: 3420, color: '#f59e0b' },
-    { type: 'Polls', count: 67, color: '#ef4444' },
-  ];
-
-  const engagementTrends = [
-    { date: '01/06', views: 2340, votes: 145 },
-    { date: '08/06', views: 2890, votes: 167 },
-    { date: '15/06', views: 3120, votes: 189 },
-    { date: '22/06', views: 3450, votes: 234 },
-  ];
-
-  if (error) {
-    return (
-      <Card>
-        <CardContent className="pt-6">
-          <div className="text-center">
-            <p className="text-red-600 dark:text-red-400 mb-4">
-              Erro ao carregar dados de analytics
-            </p>
-            <Button onClick={handleRefresh} variant="outline">
-              <RefreshCw className="mr-2 h-4 w-4" />
-              Tentar Novamente
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
+export default function AdminAnalytics() {
+  const { data: paymentData, isLoading: paymentLoading, error: paymentError } = usePaymentRevenue();
+  const { data: userRegData, isLoading: userLoading, error: userError } = useUserRegistrations();
+  const { data: postData, isLoading: postLoading, error: postError } = useCommunityPosts();
 
   return (
-    <ErrorBoundary
-      tier="feature"
-      context="analytics administrativo"
-      showDetails={process.env.NODE_ENV === 'development'}
-      showHomeButton={false}
-      showBackButton={false}
-    >
-      <StandardLayout type="wide" contentClassName="space-y-6">
-        {/* Header Section - Enhanced typography hierarchy */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div className="space-y-2">
-            <h2 className="text-3xl font-bold text-foreground mb-2 font-serif">Analytics</h2>
-            <p className="text-muted-foreground text-lg">Métricas detalhadas e insights da plataforma</p>
-          </div>
+    <div className="container mx-auto p-6 space-y-6">
+      {/* Header */}
+      <div>
+        <h1 className="text-3xl font-bold text-gray-900">Analytics Dashboard</h1>
+        <p className="text-gray-600 mt-1">
+          Métricas principais dos últimos 30 dias
+        </p>
+      </div>
 
-          <div className="flex items-center gap-2">
-            <Select value={timeRange} onValueChange={setTimeRange}>
-              <SelectTrigger className="w-32">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="7d">7 dias</SelectItem>
-                <SelectItem value="30d">30 dias</SelectItem>
-                <SelectItem value="90d">90 dias</SelectItem>
-                <SelectItem value="1y">1 ano</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isLoading}>
-              <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-              Atualizar
-            </Button>
-
-            <Button variant="outline" size="sm" onClick={handleExport}>
-              <Download className="mr-2 h-4 w-4" />
-              Exportar
-            </Button>
-          </div>
-        </div>
-
-        {/* Statistics Overview - Enhanced with proper tokens */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Card className="bg-surface border-border shadow-sm">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-foreground">
-                Total de Usuários
+      {/* Key Metrics */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card>
+          <CardHeader className="pb-2">
+            <div className="flex items-center gap-2">
+              <CreditCard className="h-5 w-5 text-green-600" />
+              <CardTitle className="text-sm font-medium text-gray-600">
+                Receita Total
               </CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-foreground">
-                {isLoading
-                  ? '---'
-                  : analyticsData?.userStats?.totalUsers?.toLocaleString() || '1,234'}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                <span className="text-green-600 dark:text-green-300">+12%</span> vs mês anterior
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-surface border-border shadow-sm">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-foreground">
-                Reviews Publicadas
-              </CardTitle>
-              <FileText className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-foreground">
-                {isLoading ? '---' : analyticsData?.contentStats?.publishedReviews || '89'}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                <span className="text-green-600 dark:text-green-300">+5</span> esta semana
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-surface border-border shadow-sm">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-foreground">
-                Engajamento Médio
-              </CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-foreground">
-                {isLoading ? '---' : `${analyticsData?.engagementStats?.avgEngagement || 78}%`}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                <span className="text-blue-600 dark:text-blue-300">+3%</span> vs média anterior
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-surface border-border shadow-sm">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-foreground">
-                Uptime do Sistema
-              </CardTitle>
-              <Activity className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-foreground">
-                {isLoading ? '---' : analyticsData?.systemStats?.uptime || '99.9%'}
-              </div>
-              <p className="text-xs text-muted-foreground">Últimos 30 dias</p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Interactive Charts */}
-        <AnalyticsCharts
-          userGrowthData={userGrowthData}
-          contentDistribution={contentDistribution}
-          engagementTrends={engagementTrends}
-        />
-
-        {/* Top Content Performance - Enhanced with surface tokens */}
-        <Card className="bg-surface border-border shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-xl font-semibold text-foreground">
-              Conteúdo Mais Performático
-            </CardTitle>
-            <CardDescription className="text-muted-foreground">
-              Reviews e posts com maior engajamento
-            </CardDescription>
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {(
-                analyticsData?.engagementStats?.topContent || [
-                  {
-                    id: 1,
-                    title: 'Análise de Metodologias Ágeis',
-                    views: 2340,
-                    type: 'review' as const,
-                  },
-                  {
-                    id: 2,
-                    title: 'Discussão sobre Performance',
-                    views: 1890,
-                    type: 'post' as const,
-                  },
-                  {
-                    id: 3,
-                    title: 'Review: Ferramentas de Análise',
-                    views: 1567,
-                    type: 'review' as const,
-                  },
-                ]
-              ).map(content => (
-                <div
-                  key={content.id}
-                  className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-surface-muted transition-colors"
-                >
-                  <div className="flex items-center space-x-4">
-                    <div className="w-10 h-10 bg-surface-muted rounded-lg flex items-center justify-center">
-                      {content.type === 'review' ? (
-                        <FileText className="h-5 w-5 text-muted-foreground" />
-                      ) : (
-                        <BarChart3 className="h-5 w-5 text-muted-foreground" />
-                      )}
-                    </div>
-                    <div>
-                      <h3 className="font-medium text-foreground">{content.title}</h3>
-                      <p className="text-sm text-muted-foreground">
-                        {content.views.toLocaleString()} visualizações
-                      </p>
-                    </div>
-                  </div>
-                  <Badge variant={content.type === 'review' ? 'default' : 'secondary'}>
-                    {content.type === 'review' ? 'Review' : 'Post'}
-                  </Badge>
-                </div>
-              ))}
+            <div className="text-2xl font-bold">
+              {paymentLoading ? '...' : paymentData ?
+                `R$ ${paymentData.reduce((sum, item) => sum + item.value, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+                : 'R$ 0,00'
+              }
             </div>
           </CardContent>
         </Card>
-      </StandardLayout>
-    </ErrorBoundary>
-  );
-};
 
-export default AdminAnalytics;
+        <Card>
+          <CardHeader className="pb-2">
+            <div className="flex items-center gap-2">
+              <Users className="h-5 w-5 text-blue-600" />
+              <CardTitle className="text-sm font-medium text-gray-600">
+                Novos Usuários
+              </CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {userLoading ? '...' : userRegData ?
+                userRegData.reduce((sum, item) => sum + item.value, 0)
+                : '0'
+              }
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <div className="flex items-center gap-2">
+              <MessageSquare className="h-5 w-5 text-purple-600" />
+              <CardTitle className="text-sm font-medium text-gray-600">
+                Posts da Comunidade
+              </CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {postLoading ? '...' : postData ?
+                postData.reduce((sum, item) => sum + item.value, 0)
+                : '0'
+              }
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Charts */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <SimpleChart
+          title="Receita Diária"
+          description="Receita de pagamentos por dia (últimos 30 dias)"
+          data={paymentData}
+          isLoading={paymentLoading}
+          error={paymentError}
+          color="#059669"
+        />
+
+        <SimpleChart
+          title="Novos Usuários"
+          description="Registros de usuários por dia (últimos 30 dias)"
+          data={userRegData}
+          isLoading={userLoading}
+          error={userError}
+          color="#2563eb"
+        />
+
+        <SimpleChart
+          title="Atividade da Comunidade"
+          description="Posts criados por dia (últimos 30 dias)"
+          data={postData}
+          isLoading={postLoading}
+          error={postError}
+          color="#7c3aed"
+        />
+
+        <Card className="h-80 border-dashed border-2 border-gray-300">
+          <CardContent className="flex items-center justify-center h-full">
+            <div className="text-center">
+              <TrendingUp className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-500 font-medium mb-2">
+                Mais métricas em breve
+              </p>
+              <p className="text-sm text-gray-400">
+                Dashboard simples com dados reais
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
