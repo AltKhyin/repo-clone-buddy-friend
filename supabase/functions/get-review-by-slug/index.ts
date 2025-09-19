@@ -413,14 +413,23 @@ serve(async req => {
       // Continue without tags rather than failing the entire request
     }
 
-    // Asynchronously increment view count (fire and forget) - performance optimization
+    // Enhanced dual view tracking: total + daily granular (fire and forget) - performance optimization
     if (userId) {
+      // Update total view count for backward compatibility
       supabase
         .from('Reviews')
         .update({ view_count: (review.view_count || 0) + 1 })
         .eq('id', review.id)
-        .then(() => console.log(`📈 EDGE FUNCTION: View count incremented for review ${review.id}`))
-        .catch(err => console.error('❌ EDGE FUNCTION: Failed to increment view count:', err));
+        .then(() => console.log(`📈 EDGE FUNCTION: Total view count incremented for review ${review.id}`))
+        .catch(err => console.error('❌ EDGE FUNCTION: Failed to increment total view count:', err));
+
+      // Track daily view metrics for time-sensitive analytics
+      supabase.rpc('increment_daily_view_count', {
+        p_review_id: review.id,
+        p_view_date: new Date().toISOString().split('T')[0] // YYYY-MM-DD format
+      })
+        .then(() => console.log(`📊 EDGE FUNCTION: Daily view metric recorded for review ${review.id}`))
+        .catch(err => console.error('❌ EDGE FUNCTION: Failed to record daily view metric:', err));
     }
 
     // STEP 8: Enhanced V3 Content Bridge - Prioritize V3 content from editor

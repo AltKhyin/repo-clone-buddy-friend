@@ -2,6 +2,13 @@
 
 import { z } from 'zod';
 
+// Mobile generation options for enhanced algorithms
+export interface MobileGenerationOptions {
+  spacingMultiplier: number;
+  heightMultiplier: number;
+  useEnhancedAlgorithm: boolean;
+}
+
 // ===== ENHANCED PADDING SYSTEM =====
 
 // Viewport-specific padding with zero-to-positive range (0px to +100px)
@@ -727,7 +734,7 @@ export interface EditorState {
 
   // Dual Viewport System  
   switchViewport: (viewport: Viewport) => void;
-  generateMobileLayout: () => void; // Simple mobile layout generation from desktop
+  generateMobileLayout: (options?: MobileGenerationOptions) => void; // Mobile layout generation with enhanced algorithm support
   updateCanvasTransform: (transform: Partial<CanvasTransform>) => void;
   setCanvasTheme: (theme: 'light' | 'dark') => void;
   setCanvasBackgroundColor: (color: string) => void;

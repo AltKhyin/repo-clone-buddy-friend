@@ -43,22 +43,20 @@ const defaultState: DashboardState = {
   activeTab: 'finances',
   visibleCharts: {
     // Finances
-    'revenue-by-plan': true,
-    'plan-tier-summary': true,
-    'payment-success-rate': true,
+    'daily-revenue': true,
     'cumulative-revenue': true,
 
     // Users
     'user-growth': true,
-    'user-tier-distribution': true,
-    'user-acquisition-funnel': true,
-    'user-retention': true,
+    'daily-active-users': true,
+    'monthly-active-users': true,
+    'dau-mau-ratio': true,
+    'user-engagement': true,
 
-    // Content
-    'content-creation': true,
-    'content-engagement': true,
-    'top-content': true,
-    'content-pipeline': true,
+    // Content Analytics
+    'content-total-views': true,
+    'top-performing-content': true,
+    'content-performance-since-publication': true,
   },
   chartFilters: {}
 };
@@ -177,92 +175,78 @@ export function useDashboard() {
 export const chartConfigs = {
   finances: [
     {
-      id: 'revenue-by-plan',
-      title: 'Receita por Plano',
-      description: 'Receita diária segmentada por plano de assinatura',
-      hook: 'useRevenueByPlan',
-      filters: ['planTiers', 'paymentStatus']
-    },
-    {
-      id: 'plan-tier-summary',
-      title: 'Performance dos Planos',
-      description: 'Comparação de vendas e receita entre planos',
-      hook: 'usePlanTierSummary',
-      filters: ['paymentStatus']
-    },
-    {
-      id: 'payment-success-rate',
-      title: 'Taxa de Sucesso',
-      description: 'Taxa de aprovação de pagamentos ao longo do tempo',
-      hook: 'usePaymentSuccessRate',
-      filters: ['planTiers']
+      id: 'daily-revenue',
+      title: 'Receita Diária',
+      description: 'Receita total por dia (todos os planos)',
+      hook: 'useDailyRevenue',
+      filters: []
     },
     {
       id: 'cumulative-revenue',
       title: 'Receita Acumulada',
-      description: 'Crescimento cumulativo da receita',
-      hook: 'useRevenueByPlan',
-      filters: ['planTiers', 'paymentStatus']
+      description: 'Crescimento cumulativo da receita total',
+      hook: 'useDailyRevenue',
+      filters: []
     }
   ],
   users: [
     {
+      id: 'user-engagement',
+      title: 'Engajamento de Usuários',
+      description: 'Posts, upvotes e comentários por usuário',
+      hook: 'useUserEngagement',
+      filters: ['engagementTypes', 'userTiers']
+    },
+    {
       id: 'user-growth',
       title: 'Crescimento de Usuários',
-      description: 'Novos registros diários por tipo de plano',
+      description: 'Novos registros diários',
       hook: 'useUserGrowth',
       filters: ['userTiers']
     },
     {
-      id: 'user-tier-distribution',
-      title: 'Distribuição por Plano',
-      description: 'Proporção de usuários por tipo de assinatura',
-      hook: 'useUserTierDistribution',
+      id: 'daily-active-users',
+      title: 'Usuários Ativos Diários (DAU)',
+      description: 'Total e percentual de usuários ativos por dia',
+      hook: 'useDailyActiveUsers',
+      filters: ['userTiers']
+    },
+    {
+      id: 'monthly-active-users',
+      title: 'Usuários Ativos Mensais (MAU)',
+      description: 'Total e percentual de usuários ativos por mês',
+      hook: 'useMonthlyActiveUsers',
+      filters: ['userTiers']
+    },
+    {
+      id: 'dau-mau-ratio',
+      title: 'Razão DAU:MAU',
+      description: 'Índice de engajamento (DAU dividido por MAU)',
+      hook: 'useDAUMAURatio',
       filters: []
-    },
-    {
-      id: 'user-acquisition-funnel',
-      title: 'Funil de Aquisição',
-      description: 'Conversão de registro para assinatura paga',
-      hook: 'useUserGrowth',
-      filters: ['userTiers']
-    },
-    {
-      id: 'user-retention',
-      title: 'Retenção de Usuários',
-      description: 'Atividade e engajamento ao longo do tempo',
-      hook: 'useUserTierDistribution',
-      filters: ['userTiers']
     }
   ],
   content: [
     {
-      id: 'content-creation',
-      title: 'Criação de Conteúdo',
-      description: 'Posts e reviews criados ao longo do tempo',
-      hook: 'useContentCreation',
-      filters: ['contentTypes']
+      id: 'content-total-views',
+      title: 'Total de Visualizações',
+      description: 'Total de visualizações diárias do conteúdo publicado',
+      hook: 'useContentTotalViews',
+      filters: []
     },
     {
-      id: 'content-engagement',
-      title: 'Engajamento por Tipo',
-      description: 'Upvotes médios e visualizações por tipo de conteúdo',
-      hook: 'useContentEngagement',
-      filters: ['contentTypes']
+      id: 'top-performing-content',
+      title: 'Top 10 Conteúdos',
+      description: 'Os 10 conteúdos mais visualizados no período',
+      hook: 'useTopPerformingContent',
+      filters: []
     },
     {
-      id: 'top-content',
-      title: 'Conteúdo Destacado',
-      description: 'Melhor conteúdo por engajamento',
-      hook: 'useContentEngagement',
-      filters: ['contentTypes']
-    },
-    {
-      id: 'content-pipeline',
-      title: 'Pipeline de Conteúdo',
-      description: 'Status do conteúdo: rascunho → publicado → arquivado',
-      hook: 'useContentCreation',
-      filters: ['contentTypes']
+      id: 'content-performance-since-publication',
+      title: 'Performance desde Publicação',
+      description: 'Evolução de visualizações acumuladas desde a publicação (dias vs views)',
+      hook: 'useContentPerformanceSincePublication',
+      filters: ['contentSelection']
     }
   ]
 };

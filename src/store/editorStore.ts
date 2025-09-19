@@ -3,6 +3,7 @@
 import { create } from 'zustand';
 import { debounce } from 'lodash-es';
 import { tiptapJsonToHtml } from '@/components/editor/shared/tiptapContentHelpers';
+import { EnhancedMobilePositioning, generateLegacyMobilePositions } from '@/utils/enhancedMobilePositioning';
 import {
   EditorState,
   NodeObject,
@@ -68,8 +69,35 @@ const findAvailablePosition = (
   };
 };
 
+// Mobile generation options interface
+export interface MobileGenerationOptions {
+  spacingMultiplier: number;
+  heightMultiplier: number;
+  useEnhancedAlgorithm: boolean;
+}
+
 // Simple mobile position generator - CONTENT-ADAPTIVE SYSTEM - blocks can touch all canvas edges
-const generateMobilePositions = (nodes: NodeObject[], desktopPositions: BlockPositions): BlockPositions => {
+const generateMobilePositions = (
+  nodes: NodeObject[],
+  desktopPositions: BlockPositions,
+  options: MobileGenerationOptions = { spacingMultiplier: 1.0, heightMultiplier: 1.0, useEnhancedAlgorithm: false }
+): BlockPositions => {
+  // Use enhanced algorithm if requested
+  if (options.useEnhancedAlgorithm) {
+    return EnhancedMobilePositioning.generateEnhancedMobilePositions(
+      nodes,
+      desktopPositions,
+      options.spacingMultiplier,
+      options.heightMultiplier
+    );
+  }
+
+  // Legacy algorithm with spacing multiplier support (height multiplier not applicable)
+  return generateLegacyMobilePositions(nodes, desktopPositions, options.spacingMultiplier);
+}
+
+// Legacy implementation for backwards compatibility
+const generateMobilePositionsLegacy = (nodes: NodeObject[], desktopPositions: BlockPositions): BlockPositions => {
   const mobilePositions: BlockPositions = {};
   const MOBILE_CANVAS_WIDTH = 375; // Mobile canvas total width
   const MOBILE_CONTENT_WIDTH = MOBILE_CANVAS_WIDTH; // Full canvas width - no margins
@@ -872,18 +900,31 @@ export const useEditorStore = create<EditorState>((set, get) => {
       console.log(`[EditorStore] Switched to ${viewport} viewport (Rich Block responsive)`);
     },
 
-    generateMobileLayout: () => {
-      // Simple mobile layout generation - stacks blocks vertically
+    generateMobileLayout: (options?: MobileGenerationOptions) => {
+      // Mobile layout generation with enhanced algorithm support
       const state = get();
-      const mobilePositions = generateMobilePositions(state.nodes, state.positions);
-      
-      set({ 
+      const generationOptions: MobileGenerationOptions = options || {
+        spacingMultiplier: 1.0,
+        useEnhancedAlgorithm: false
+      };
+
+      const mobilePositions = generateMobilePositions(
+        state.nodes,
+        state.positions,
+        generationOptions
+      );
+
+      set({
         mobilePositions,
-        isDirty: true 
+        isDirty: true
       });
-      
-      console.log(`[EditorStore] Generated mobile layout for ${state.nodes.length} blocks`);
-      
+
+      const algorithmUsed = generationOptions.useEnhancedAlgorithm ? 'Enhanced' : 'Legacy';
+      console.log(
+        `[EditorStore] Generated mobile layout for ${state.nodes.length} blocks ` +
+        `using ${algorithmUsed} algorithm (spacing: ${generationOptions.spacingMultiplier}x)`
+      );
+
       // Auto-save after generating mobile layout
       debouncedSave();
     },

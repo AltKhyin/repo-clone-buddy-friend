@@ -1,6 +1,6 @@
 // ABOUTME: Unified toolbar containing ALL editor functionality in organized categories to replace fragmented interfaces
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useEditorStore, useCanvasState, useCanvasActions } from '@/store/editorStore';
 import { useTheme } from '@/components/providers/CustomThemeProvider';
@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { AccessibleNumberInput } from './shared/AccessibleNumberInput';
+import { MobileGenerationDialog, type MobileGenerationOptions } from './MobileGenerationDialog';
 // Legacy block typography support removed - now using selection-based typography for all content
 import {
   Bold,
@@ -104,6 +105,8 @@ export const UnifiedToolbar = React.memo(function UnifiedToolbar({
   const { canvasBackgroundColor } = useCanvasState();
   const { setCanvasBackgroundColor } = useCanvasActions();
 
+  // 📱 MOBILE GENERATION DIALOG STATE
+  const [mobileDialogOpen, setMobileDialogOpen] = useState(false);
 
   const selectedNode = selectedNodeId ? nodes.find(n => n.id === selectedNodeId) : null;
 
@@ -118,6 +121,11 @@ export const UnifiedToolbar = React.memo(function UnifiedToolbar({
   // BATCH 1: Enhanced typography state with BasicTable support
   const typographyActive = canApplyTypography || tableSelectionState.canApplyTableTypography;
   const currentSelectionType = currentSelection.type;
+
+  // 📱 MOBILE GENERATION HANDLER
+  const handleMobileGeneration = (options: MobileGenerationOptions) => {
+    generateMobileLayout(options);
+  };
 
 
   // 🎯 TIPTAP EDITOR STATE: For Rich Block editing features
@@ -815,6 +823,7 @@ export const UnifiedToolbar = React.memo(function UnifiedToolbar({
   }, [updateCanvasZoom, CANVAS_CONFIG.defaultZoom]);
 
   return (
+    <>
     <div
       className={cn('border-b bg-background/95 backdrop-blur-sm h-20 sm:h-24 md:h-20 flex flex-col shadow-sm', className)}
       role="toolbar"
@@ -1293,9 +1302,9 @@ export const UnifiedToolbar = React.memo(function UnifiedToolbar({
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={generateMobileLayout}
+                onClick={() => setMobileDialogOpen(true)}
                 className="flex items-center gap-1 h-6 px-1.5 border-none text-blue-600 hover:text-blue-700"
-                title="Generate mobile layout from desktop layout"
+                title="Generate mobile layout with enhanced options"
                 aria-label="Generate mobile layout"
               >
                 <RefreshCw size={10} />
@@ -1582,5 +1591,13 @@ export const UnifiedToolbar = React.memo(function UnifiedToolbar({
 
       </div>
     </div>
+
+    {/* 📱 MOBILE GENERATION DIALOG */}
+    <MobileGenerationDialog
+      open={mobileDialogOpen}
+      onOpenChange={setMobileDialogOpen}
+      onGenerate={handleMobileGeneration}
+    />
+  </>
   );
 });

@@ -332,9 +332,20 @@ export function EnhancedChart({
       </CardHeader>
 
       <CardContent className="pt-0">
-        <ResponsiveContainer width="100%" height={250}>
-          {renderChart()}
-        </ResponsiveContainer>
+        {!chartData || chartData.length === 0 ? (
+          <div className="flex items-center justify-center h-[250px]">
+            <div className="text-center">
+              <p className="text-gray-500 font-medium">Nenhum dado disponível</p>
+              <p className="text-sm text-gray-400 mt-1">
+                Ajuste o período ou filtros para ver os dados
+              </p>
+            </div>
+          </div>
+        ) : (
+          <ResponsiveContainer width="100%" height={250}>
+            {renderChart()}
+          </ResponsiveContainer>
+        )}
       </CardContent>
     </Card>
   );

@@ -304,46 +304,102 @@ export const PostCard = ({ post }: PostCardProps) => {
 
         {/* Content Preview or Multimedia */}
         {post.post_type === 'image' && post.image_url ? (
-          post.category === 'review' ? (
-            // Review banner style with gradient overlay and title
-            <div className="mb-3 relative rounded-lg overflow-hidden border border-border bg-surface-muted">
-              <div className="relative h-32 sm:h-40">
-                <img
-                  src={post.image_url}
-                  alt={post.title}
-                  className="w-full h-full object-cover"
-                  loading="lazy"
+          <div className="mb-3">
+            {/* Content preview for image posts - above the image */}
+            {post.content && (
+              <div className="mb-2 relative">
+                <div
+                  className={cn(
+                    'text-sm leading-relaxed relative',
+                    post.is_pinned && actualTheme === 'dark'
+                      ? 'text-primary-foreground/90'
+                      : post.is_pinned
+                        ? 'text-accent-foreground/90'
+                        : 'text-muted-foreground'
+                  )}
+                  style={{
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden',
+                    maskImage: post.content.length > 120 ? 'linear-gradient(to bottom, black 0%, black 80%, transparent 100%)' : undefined,
+                    WebkitMaskImage: post.content.length > 120 ? 'linear-gradient(to bottom, black 0%, black 80%, transparent 100%)' : undefined,
+                  }}
+                  dangerouslySetInnerHTML={{
+                    __html: post.content,
+                  }}
                 />
-                <div className="absolute inset-0 bg-gradient-to-r from-black/60 to-black/40" />
-                <div className="absolute bottom-3 left-3 right-3">
-                  <h3 className="text-white font-bold text-lg leading-tight line-clamp-2">
-                    {post.title}
-                  </h3>
+              </div>
+            )}
+
+            {post.category === 'review' ? (
+              // Review banner style with gradient overlay and title
+              <div className="relative rounded-lg overflow-hidden border border-border bg-surface-muted">
+                <div className="relative h-32 sm:h-40">
+                  <img
+                    src={post.image_url}
+                    alt={post.title}
+                    className="w-full h-full object-cover"
+                    loading="lazy"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-r from-black/60 to-black/40" />
+                  <div className="absolute bottom-3 left-3 right-3">
+                    <h3 className="text-white font-bold text-lg leading-tight line-clamp-2">
+                      {post.title}
+                    </h3>
+                  </div>
                 </div>
               </div>
-            </div>
-          ) : (
-            // Regular image display for non-review posts
-            <div className="mb-3">
-              <img
-                src={post.image_url}
-                alt="Post image"
-                className="w-full aspect-video object-cover rounded border"
-                loading="lazy"
-              />
-            </div>
-          )
+            ) : (
+              // Regular image display for non-review posts
+              <div className="relative rounded-lg overflow-hidden border border-border">
+                <img
+                  src={post.image_url}
+                  alt="Post image"
+                  className="w-full aspect-video object-cover"
+                  loading="lazy"
+                />
+              </div>
+            )}
+          </div>
         ) : post.post_type === 'video' && post.video_url ? (
           <div className="mb-3">
+            {/* Content preview for video posts - above the video */}
+            {post.content && (
+              <div className="mb-2 relative">
+                <div
+                  className={cn(
+                    'text-sm leading-relaxed relative',
+                    post.is_pinned && actualTheme === 'dark'
+                      ? 'text-primary-foreground/90'
+                      : post.is_pinned
+                        ? 'text-accent-foreground/90'
+                        : 'text-muted-foreground'
+                  )}
+                  style={{
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden',
+                    maskImage: post.content.length > 120 ? 'linear-gradient(to bottom, black 0%, black 80%, transparent 100%)' : undefined,
+                    WebkitMaskImage: post.content.length > 120 ? 'linear-gradient(to bottom, black 0%, black 80%, transparent 100%)' : undefined,
+                  }}
+                  dangerouslySetInnerHTML={{
+                    __html: post.content,
+                  }}
+                />
+              </div>
+            )}
+
             {(() => {
               const processedUrl = processVideoUrl(post.video_url);
               const videoType = getVideoType(processedUrl);
 
               return videoType === 'youtube' || videoType === 'vimeo' ? (
-                <div className="relative">
+                <div className="relative rounded-lg overflow-hidden border border-border">
                   <iframe
                     src={processedUrl}
-                    className="w-full aspect-video rounded border"
+                    className="w-full aspect-video"
                     frameBorder="0"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     allowFullScreen
@@ -363,7 +419,7 @@ export const PostCard = ({ post }: PostCardProps) => {
                           <div class="flex items-center justify-center h-48 bg-muted rounded border">
                             <div class="text-center text-muted-foreground">
                               <p class="mb-2">Video não pode ser carregado</p>
-                              <a href="${originalUrl}" target="_blank" rel="noopener noreferrer" 
+                              <a href="${originalUrl}" target="_blank" rel="noopener noreferrer"
                                  class="text-primary hover:underline">Assistir no ${videoType === 'youtube' ? 'YouTube' : 'Vimeo'}</a>
                             </div>
                           </div>
@@ -373,29 +429,31 @@ export const PostCard = ({ post }: PostCardProps) => {
                   />
                 </div>
               ) : (
-                <video
-                  src={processedUrl}
-                  controls
-                  className="w-full aspect-video object-cover rounded border"
-                  preload="metadata"
-                  crossOrigin="anonymous"
-                  onError={e => {
-                    console.error('Direct video load error:', e);
-                    const video = e.target as HTMLVideoElement;
-                    const container = video.parentElement;
-                    if (container) {
-                      container.innerHTML = `
-                        <div class="flex items-center justify-center h-48 bg-muted rounded border">
-                          <div class="text-center text-muted-foreground">
-                            <p class="mb-2">Vídeo não pode ser carregado</p>
-                            <a href="${processedUrl}" target="_blank" rel="noopener noreferrer" 
-                               class="text-primary hover:underline">Abrir vídeo em nova aba</a>
+                <div className="relative rounded-lg overflow-hidden border border-border">
+                  <video
+                    src={processedUrl}
+                    controls
+                    className="w-full aspect-video object-cover"
+                    preload="metadata"
+                    crossOrigin="anonymous"
+                    onError={e => {
+                      console.error('Direct video load error:', e);
+                      const video = e.target as HTMLVideoElement;
+                      const container = video.parentElement;
+                      if (container) {
+                        container.innerHTML = `
+                          <div class="flex items-center justify-center h-48 bg-muted rounded border">
+                            <div class="text-center text-muted-foreground">
+                              <p class="mb-2">Vídeo não pode ser carregado</p>
+                              <a href="${processedUrl}" target="_blank" rel="noopener noreferrer"
+                                 class="text-primary hover:underline">Abrir vídeo em nova aba</a>
+                            </div>
                           </div>
-                        </div>
-                      `;
-                    }
-                  }}
-                />
+                        `;
+                      }
+                    }}
+                  />
+                </div>
               );
             })()}
           </div>
@@ -410,7 +468,34 @@ export const PostCard = ({ post }: PostCardProps) => {
           </div>
         ) : post.post_type === 'link' && (post.link_url || post.link_preview_data) ? (
           <div className="mb-3">
-            <div className="border rounded-lg overflow-hidden bg-card hover:bg-accent/15 transition-colors">
+            {/* Content preview for link posts - above the link preview */}
+            {post.content && (
+              <div className="mb-2 relative">
+                <div
+                  className={cn(
+                    'text-sm leading-relaxed relative',
+                    post.is_pinned && actualTheme === 'dark'
+                      ? 'text-primary-foreground/90'
+                      : post.is_pinned
+                        ? 'text-accent-foreground/90'
+                        : 'text-muted-foreground'
+                  )}
+                  style={{
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden',
+                    maskImage: post.content.length > 120 ? 'linear-gradient(to bottom, black 0%, black 80%, transparent 100%)' : undefined,
+                    WebkitMaskImage: post.content.length > 120 ? 'linear-gradient(to bottom, black 0%, black 80%, transparent 100%)' : undefined,
+                  }}
+                  dangerouslySetInnerHTML={{
+                    __html: post.content,
+                  }}
+                />
+              </div>
+            )}
+
+            <div className="relative border rounded-lg overflow-hidden bg-card hover:bg-accent/15 transition-colors">
               <a
                 href={post.link_url || post.link_preview_data?.url}
                 target="_blank"
