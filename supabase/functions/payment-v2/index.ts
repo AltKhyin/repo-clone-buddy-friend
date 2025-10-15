@@ -52,7 +52,7 @@ interface PaymentV2Request {
   }
   billing_type: 'prepaid'
   interval: 'month'
-  interval_count: 1
+  interval_count: 12
   items: Array<{
     description: string
     quantity: 1

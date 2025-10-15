@@ -69,7 +69,7 @@ export interface PaymentV2Request {
   };
   billing_type: 'prepaid';
   interval: 'month';
-  interval_count: 1;
+  interval_count: 12;
   items: Array<{
     description: string;
     quantity: 1;
@@ -286,7 +286,7 @@ export function buildSubscriptionRequestWithToken(
     },
     billing_type: 'prepaid',
     interval: 'month',
-    interval_count: 1,
+    interval_count: 12,
     items: [
       {
         description: `EVIDENS - Plano Premium (${installmentCount}x)`,
@@ -358,7 +358,7 @@ export function buildSubscriptionRequest(formData: {
     },
     billing_type: 'prepaid',
     interval: 'month',
-    interval_count: 1,
+    interval_count: 12,
     items: [
       {
         description: `EVIDENS - Plano Premium (${installmentCount}x)`,
@@ -456,7 +456,7 @@ export function buildSubscriptionRequestV2(
     },
     billing_type: 'prepaid',
     interval: 'month',
-    interval_count: 1,
+    interval_count: 12,
     items: [
       {
         description: `EVIDENS - ${paymentPlan.name} (${formData.installments}x)`,
